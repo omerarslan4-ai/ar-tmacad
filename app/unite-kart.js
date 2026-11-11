@@ -64,7 +64,7 @@
   K.UNITE = {
     cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu', tip: 'terfi' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
-    gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre' }, pc: { ad: 'Ön çökeltme' },
+    gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre', tip: 'debimetre' }, pc: { ad: 'Ön çökeltme' },
     dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz' }, bio: { ad: 'Biyolojik havuz' },
     dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme' },
     uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
@@ -72,7 +72,7 @@
     cp: { ad: 'Kimyasal fosfor giderimi' },
   };
   /* nihai kademe debisiyle boyutlanan üniteler (ön arıtma). Terfi istasyonu yapısı da nihai kademeye göre (varsayım) */
-  K.NIHAI = new Set(['cs', 'fs', 'izB', 'ps', 'gr']);
+  K.NIHAI = new Set(['cs', 'fs', 'izB', 'ps', 'gr', 'dm']);
   const KOKU = new Set(['cs', 'fs', 'izB', 'gr', 'dw', 'et']);
 
   /* akış zinciri: proses seçimlerine göre ünite sırası. Durum: kart | taslak (proses ebatlı ayak izi) | eksik (hesapta yok) | bekliyor (şablon yok) */
@@ -97,7 +97,7 @@
       zorunlu(su, 'cs'); secimli(su, 'ps'); secimli(su, 'fs');
     }
     zorunlu(su, 'gr');
-    ekle(su, 'dm', { durum: 'bekliyor', secenek: (sec.debimetre || 'MAN') === 'PAR' ? 'Parshall savağı' : 'Manyetik debimetre' });
+    ekle(su, 'dm', { durum: 'kart', secenek: (sec.debimetre || 'MAN') === 'PAR' ? 'Parshall savağı' : 'Manyetik debimetre' });
     secimli(su, 'pc');
     if (veri('bio') && N('bio') >= 2) ekle(su, 'dg1', { durum: 'bekliyor', hat: N('bio') });
     secimli(su, 'an');
@@ -312,6 +312,86 @@
     };
   };
 
+  /* ---------- DEBİMETRE KARTI ----------
+     Manyetik (varsayılan): boru üstünde debimetre odası. Standartlar Çokal AAT T-104 çiziminden:
+     oda iç 2,00 (akış yönü) × 1,50 m, duvar 25 cm, taban plağı 30 cm; boru altı tabandan 0,42 m yukarıda;
+     üst döşeme 95,45, çevre zemini 95,00. Boru: PE100 (programın boru kataloğu), PN10 / SDR 17, nihai Q maks.'ta hız ≤ 1,5 m/s
+     (Çokal: Q maks. 0,083 m³/s → Ø315, DN300 flanş). Düz boru boyları: önce 5·DN, sonra 3·DN (saha borulamasına aktarılır).
+     Parshall savağı: boğaz genişliği standart tablodan (Q = K·Ha^n), kot düşümü ≈ 0,4·Ha (yaklaşık; şablonu yok). */
+  const PE_OD = [63, 75, 90, 110, 125, 140, 160, 180, 200, 225, 250, 280, 315, 355, 400, 450, 500, 560, 630];
+  K.PARSHALL = [ // W (m), Q min, Q maks (m³/s), K, n — Q = K·Ha^n
+    [0.076, 0.00085, 0.032, 0.177, 1.550], [0.152, 0.0015, 0.111, 0.381, 1.580], [0.229, 0.0025, 0.251, 0.535, 1.530],
+    [0.305, 0.0031, 0.457, 0.690, 1.522], [0.457, 0.0042, 0.695, 1.056, 1.538], [0.610, 0.0119, 0.937, 1.428, 1.550],
+    [0.914, 0.0173, 1.427, 2.184, 1.566], [1.219, 0.0368, 1.923, 2.953, 1.578], [1.524, 0.0453, 2.424, 3.732, 1.587],
+    [1.829, 0.0736, 2.929, 4.519, 1.595], [2.134, 0.0850, 3.438, 5.312, 1.601], [2.438, 0.0991, 3.949, 6.112, 1.607],
+  ];
+  K.STD_DEBI = {
+    vmax: { ad: 'Boruda en büyük hız (Q maks.)', v: 1.5, birim: 'm/s' },
+    sdr: { ad: 'PE boru SDR (PN10 = 17)', v: 17, birim: '' },
+    Li: { ad: 'Oda iç boyu (akış yönü) — en az', v: 2.00, birim: 'm' },
+    Bi: { ad: 'Oda iç genişliği — en az', v: 1.50, birim: 'm' },
+    tw: { ad: 'Duvar kalınlığı', v: 0.25, birim: 'm' },
+    tb: { ad: 'Taban plağı kalınlığı', v: 0.30, birim: 'm' },
+    pa: { ad: 'Boru altı → oda tabanı', v: 0.42, birim: 'm' },
+    pz: { ad: 'Üst döşeme — zeminden', v: 0.45, birim: 'm' },
+  };
+  K.debimetreKart = (id, debiN, debiM, par, sec, katPE) => {
+    par = par || {}; sec = sec || {}; debiN = debiN || {}; debiM = debiM || debiN;
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    const parshall = (sec.debimetre || 'MAN') === 'PAR';
+    // hesaptan: nihai kademe Q maks., mevcut kademe Q min.
+    const Qmax = ek('Qmax', 'Q maks. (nihai kademe)', (+debiN.Qww || 0) / 3600, 'm³/s', 'hesap');
+    const Qmin = ek('Qmin', 'Q min. (mevcut kademe)', (+debiM.Qmin || 0) / 3600, 'm³/s', 'hesap');
+    ek('tip', 'Debimetre tipi', parshall ? 'Parshall savağı' : 'Manyetik debimetre', '', 'standart', { not: 'Seçenek: üstteki "Debimetre"' });
+    const S = {}; for (const [k, s] of Object.entries(K.STD_DEBI)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart');
+    if (parshall) {
+      const r = K.PARSHALL.find(x => x[2] >= Qmax) || K.PARSHALL[K.PARSHALL.length - 1];
+      const W = ek('W', 'Boğaz genişliği', r[0], 'm', 'katalog', { not: 'Parshall standart tablosu' });
+      const Ha = ek('Ha', 'Savak önü su yüksekliği (Q maks.)', Math.pow(Qmax / r[3], 1 / r[4]), 'm', 'türetilen', { f: '(Q / K)^(1/n)' });
+      ek('dz', 'Gerekli kot düşümü (yaklaşık)', 0.4 * Ha, 'm', 'türetilen', { f: '≈ 0,4·Ha (serbest akış)', not: 'Hidrolik profile işlenir' });
+      if (Qmax > r[2]) uyari.push(`Q maks. (${Qmax.toFixed(2).replace('.', ',')} m³/s) tablodaki en büyük boğazın kapasitesini (${r[2].toFixed(2).replace('.', ',')} m³/s) aşıyor; birden fazla savak gerekir.`);
+      if (Qmin && Qmin < r[1]) uyari.push(`Q min. (${Qmin.toFixed(4).replace('.', ',')} m³/s) seçilen boğazın ölçüm alt sınırının altında.`);
+      uyari.push('Parshall savağı şablonu henüz yok; ayak izi çizilmedi.');
+      return { id, tip: 'debimetre', params: P, uyari, koku: false, ayakIzi: null, kot: {} };
+    }
+    // manyetik: katalogdan en küçük uygun PE boru
+    const liste = katPE && katPE.length ? katPE : PE_OD;
+    const di = od => od * (1 - 2 / S.sdr) / 1000;
+    const od = liste.find(o => Qmax / (Math.PI / 4 * di(o) ** 2) <= S.vmax) || liste[liste.length - 1];
+    const OD = ek('OD', 'Boru dış çapı (PE100)', od, 'mm', 'türetilen', { f: 'katalogda Q maks.\'ta hız ≤ sınır olan en küçük çap' });
+    const A = Math.PI / 4 * di(OD) ** 2;
+    const vM = ek('vmaxH', 'Hız (Q maks.)', Qmax / A, 'm/s', 'türetilen', { f: 'Q / iç kesit' });
+    const vm = ek('vminH', 'Hız (Q min.)', Qmin / A, 'm/s', 'türetilen', { f: 'Q / iç kesit' });
+    const DN = ek('DN', 'Debimetre DN (flanş)', (C && C.flangeDN ? C.flangeDN('PE', OD) : ({ 250: 250, 280: 250, 315: 300, 355: 350, 400: 400 })[OD] || OD), 'mm', 'türetilen', { f: 'PE çapına uyan flanş' });
+    ek('Lu', 'Debimetre öncesi düz boru', 5 * DN / 1000, 'm', 'türetilen', { f: '5·DN', not: 'Saha borulamasına aktarılır' });
+    ek('Ld', 'Debimetre sonrası düz boru', 3 * DN / 1000, 'm', 'türetilen', { f: '3·DN' });
+    // elle
+    const zb = dz('zb', 'Boru taban kotu (debimetrede)', 0, 'm', 'elle', 'Önceki ünitenin çıkış borusu; 3. parçada hidrolikten');
+    const zzVars = zb + S.pa + 1.5;
+    const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+    const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: '2. parçada araziden okunacak' });
+    // türetilen
+    const Li = ek('Lic', 'Oda iç boyu', Math.max(S.Li, 1.0 + DN / 1000 * 1.7), 'm', 'türetilen', { f: 'en büyük(standart ; debimetre boyu + montaj payı)' });
+    const Bi = ek('Bic', 'Oda iç genişliği', Math.max(S.Bi, OD / 1000 + 1.1), 'm', 'türetilen', { f: 'en büyük(standart ; boru + 2·0,55)' });
+    const zt = ek('zt', 'Oda taban kotu', zb - S.pa, 'm', 'türetilen', { f: 'boru altı − pay' });
+    ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
+    const zu = ek('zu', 'Üst döşeme kotu', zz + S.pz, 'm', 'türetilen', { f: 'zemin + pay' });
+    ek('D', 'Oda derinliği (taban → döşeme)', zu - zt, 'm', 'türetilen', { f: 'döşeme − taban' });
+    const en = ek('en', 'Ayak izi eni', Bi + 2 * S.tw, 'm', 'türetilen', { f: 'iç genişlik + 2·duvar' });
+    const boy = ek('boy', 'Ayak izi boyu', Li + 2 * S.tw, 'm', 'türetilen', { f: 'iç boy + 2·duvar' });
+    if (vM > S.vmax + 1e-6) uyari.push(`Katalogdaki en büyük boru (Ø${OD}) bile yetmiyor: hız ${vM.toFixed(2).replace('.', ',')} m/s. Birden fazla debimetre hattı ya da Parshall savağı düşünün.`);
+    if (vm && vm < 0.3) uyari.push(`Q min.'da hız ${vm.toFixed(2).replace('.', ',')} m/s; manyetik debimetre için düşük (≥ 0,3 m/s önerilir).`);
+    if (!Qmax) uyari.push('Proses verisinde debi yok.');
+    return {
+      id, tip: 'debimetre', params: P, uyari, koku: false,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zb }, cikis: { x: r3(boy), y: r3(en / 2), z: zb },
+      kot: { boru: zb, taban: zt, doseme: zu, zemin: zz },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -323,6 +403,9 @@
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'debimetre') {
+        x.kart = K.debimetreKart(x.id, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id], sec, C && C.CATALOG && C.CATALOG.PE && C.CATALOG.PE.sizes);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'terfi') {
         x.kart = K.terfiKart(x.id, veri(x.id).dim, par[x.id], (uM[x.id] || {}).dim, sec);

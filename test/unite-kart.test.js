@@ -159,6 +159,26 @@ t('terfi yerleşimi: bitişik (varsayılan) ya da ayrı yapı', () => {
   assert.deepStrictEqual(ayr.ayakIzi, bit.ayakIzi);
 });
 
+/* GERÇEK PROJE: Çokal AAT, T-104 Giriş Debimetre (2-Çokal_AAT_Giriş Debimetre_R3.dwg)
+   Proses raporu: Q maks. (2060) 0,083 m³/s, Q min. (2045) 0,029 m³/s; çizimde DN315 HDPE.
+   Oda iç 2,00 × 1,50, duvar 25 → 2,50 × 2,00; boru altı 93,67; taban 93,25; döşeme 95,45; zemin 95,00. */
+t('Çokal AAT T-104: debimetre borusu ve odası çizimle aynı', () => {
+  const k = K.debimetreKart('dm', { Qww: 0.083 * 3600 }, { Qmin: 0.029 * 3600 }, { zb: 93.67, zz: 95.00 }, {});
+  assert.strictEqual(p(k, 'OD').v, 315); assert.strictEqual(p(k, 'DN').v, 300);
+  yakin(k.kot.taban, 93.25, 'taban'); yakin(k.kot.doseme, 95.45, 'döşeme');
+  yakin(k.ayakIzi.en, 2.00, 'en'); yakin(k.ayakIzi.boy, 2.50, 'boy');
+  yakin(p(k, 'Lu').v, 1.5, '5·DN'); assert.strictEqual(k.uyari.length, 0);
+});
+
+t('debimetre: zincirde nihai kademe; büyük debide boru yetmez uyarısı; Parshall seçeneği', () => {
+  const x = K.kartlar(j, {}).su.find(y => y.id === 'dm');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'nihai');
+  assert.ok(x.kart.uyari.some(u => u.includes('yetmiyor')));
+  const pr = K.debimetreKart('dm', { Qww: 0.083 * 3600 }, { Qmin: 0.029 * 3600 }, {}, { debimetre: 'PAR' });
+  yakin(p(pr, 'W').v, 0.152, '6 inç boğaz (Q maks. 0,111)'); yakin(p(pr, 'Ha').v, Math.pow(0.083 / 0.381, 1 / 1.58), 'Ha');
+  assert.strictEqual(pr.ayakIzi, null);
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));
