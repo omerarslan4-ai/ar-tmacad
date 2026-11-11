@@ -37,7 +37,7 @@
     sbox(out, G, W2, s0h, G.Lf, -0.03, q.d + 0.03, -hwH, hwH, COL.head);
     for (let k = 0; k < 4; k++) { const sk = s0h + 0.15 + k * (q.Lh - 0.3) / 4, sl = sk + (q.Lh - 0.3) / 4 - 0.12; sbox(out, G, W2, sk, sl, -0.045, -0.03, -hwH + 0.1, hwH - 0.1, COL.door); for (const sg of [-1, 1]) sbox(out, G, W2, s0h + k * q.Lh / 4, s0h + k * q.Lh / 4 + 0.05, -0.05, q.d + 0.05, sg > 0 ? hwH : -hwH - 0.03, sg > 0 ? hwH + 0.03 : -hwH, COL.frame); }
     // deşarj kaputu (mansap tarafında) ve çıkış ağzı
-    const zb = q.hd + 0.25, zt = Math.min(q.H - 0.12, q.hd + 1.17), yb1 = G.yb(zb), yb2 = G.yb(zt), ext = Math.max(0.65, q.ol);
+    const zb = q.hd + 0.25, zt = Math.max(zb + 0.30, Math.min(q.H - 0.12, q.hd + 1.17)), yb1 = G.yb(zb), yb2 = G.yb(zt), ext = Math.max(0.65, q.ol);
     box(out, W2, [[-hw, yb1, zb], [hw, yb1, zb], [hw, yb1 + ext, zb], [-hw, yb1 + ext, zb], [-hw, yb2, zt], [hw, yb2, zt], [hw, yb1 + ext, zt - 0.35], [-hw, yb1 + ext, zt - 0.35]], COL.hood);
     hbox(out, W2, -q.b / 2, q.b / 2, yb1 + ext - 0.60, yb1 + ext - 0.05, q.hd, zb, COL.hood);
     // motor - redüktör (yanda, kafanın üst kısmında)
