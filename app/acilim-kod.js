@@ -9,7 +9,7 @@
 (function (C) {
   'use strict';
   /* büyük harf (Türkçe); parantez içi olduğu gibi kalır — örnek projede "KATRAN BADANA (3 kat)", "GROBETON (10 cm)" */
-  const buyukTR = s => String(s).split(/(([^)]*))/).map((p, i) => (i % 2 ? p : p.toLocaleUpperCase('tr-TR'))).join('');
+  const buyukTR = s => String(s).split(/(\([^)]*\))/).map((p, i) => (i % 2 ? p : p.toLocaleUpperCase('tr-TR'))).join('');
   /* "Hazır beton, 40 cm" → "40 cm HAZIR BETON" (birim küçük kalır); kalınlıksız satır yalnız büyük harfe çevrilir */
   const satirBicim = s => { const m = /^(.*?),\s*(\d+(?:[.,]\d+)?)\s*cm\s*$/.exec(String(s).trim()); return m ? `${m[2]} cm ${buyukTR(m[1].trim())}` : buyukTR(String(s).trim()).replace(/(\d)\s*CM\b/g, '$1 cm').replace(/(\d)\s*MM\b/g, '$1 mm'); };
   /* uzun satırı kelime sınırından böl */
