@@ -26,6 +26,8 @@
     mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.10, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
+  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC']; // elle taşınan boru delikleri
+
   /* yardımcılar (yerel 2B) */
   const arc = (cx, cy, r, a0, a1, n) => { const o = []; n = n || Math.max(6, Math.ceil(Math.abs(a1 - a0) / 6)); for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * RAD; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return o; };
   const sector = (cx, cy, r1, r2, a0, a1) => [...arc(cx, cy, r2, a0, a1), ...arc(cx, cy, r1, a1, a0)];
@@ -77,7 +79,7 @@
   }
 
   function geo(e) {
-    const q = Object.assign({}, DEF, e || {});
+    const q = {}; e = e || {}; for (const k of PAR) q[k] = e[k] != null ? e[k] : DEF[k]; // yalnız geometri parametreleri (önbellek, 3B ağ vb. alınmaz)
     const n = Math.max(1, Math.round(q.n)), R2 = q.Ro + q.two;
     const xc1 = q.tK + q.bG + q.two + q.Ro, xc2 = xc1 + q.Ls, xR = xc2 + R2, Lo = xR + q.bC + q.tK;
     const yc = Array.from({ length: n }, (_, i) => q.two + q.Ro + i * (2 * q.Ro + q.two));
