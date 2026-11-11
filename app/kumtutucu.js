@@ -231,6 +231,15 @@
       const eksiUy = [-uy[0], -uy[1], -uy[2]]; for (const r of G.rampa) out.push(ext(f.at(0, r.y1, 0), f.ux, eksiUy, r.prof, r.y1 - r.y0)); // sıyırma rampası: boyuna kesit (x, z) enine uzatılır
       return out;
     },
+    /* kodlu malzeme açılımları (Çokal T-103 paftası: DUVARLAR DU01 dış duvar, DU02 iç duvar; DÖŞEMELER DÖ01 yürüme döşemesi, DÖ02 göz tabanı, DÖ03 kanal tabanı) */
+    acilimlar: e => { const G = geo(e), q = G.q, t = q.tw, B = 'C30/37 hazır beton';
+      return [
+        { tur: 'duvar', lines: [B, 'Katran badana (3 kat)', 'Dolgular, kazıdan elde edilen uygun nitelikli malzeme ile yapılacaktır'], kutular: [[0, 0, G.boy, t], [0, G.en - t, G.boy, G.en], [0, 0, t, G.en], [G.boy - t, 0, G.boy, G.en]], z0: G.zr1, z1: G.zu },
+        { tur: 'duvar', lines: [B], kutular: [[G.xD1, t, G.xg0, G.en - t], [G.xg1, t, G.xC0, G.en - t], ...G.goz.slice(0, -1).map(g => [G.xg0, g.y1, G.xg1, g.y1 + q.ti])], z0: G.zr1, z1: G.zmw },
+        { tur: 'doseme', lines: [B], kutular: G.yol.map(y => [y.pts[0][0], y.pts[0][1], y.pts[2][0], y.pts[2][1]]).concat([[G.xg1, G.sahanlik.ys, G.boy, G.en]]), z0: G.zmw, z1: G.zy },
+        { tur: 'doseme', lines: ['C16/20 grobeton', B, 'C16/20 grobeton (10 cm)'], kutular: G.goz.map(g => [G.xg0, g.kum[0], G.xg1, g.kum[1]]), z0: G.zr0, z1: G.zo },
+        { tur: 'doseme', lines: [B, 'C16/20 grobeton (10 cm)', "30 cm ince tane oranı %5'ten az, 0-30 mm çap aralığında sıkıştırılmış malzeme"], kutular: [[G.xD0, t, G.xD1, G.en - t], [G.xC0, t, G.xC1, G.en - t]], z0: G.zr0, z1: G.zr1 },
+      ]; },
     snaps: e => { const G = geo(e), f = C.frame(e.o, e.rot); return G.bolge.dis.map(p => ({ p: f.at(p[0], p[1], G.zu), k: 'end' })); },
     xf: (e, X) => { const o2 = X.p(e.o); const v = X.v([Math.cos((e.rot || 0) * Math.PI / 180), Math.sin((e.rot || 0) * Math.PI / 180), 0]); e.rot = Math.atan2(v[1], v[0]) * 180 / Math.PI; e.o = [o2[0], o2[1], 0]; },
     info: e => { const G = geo(e); return `${e.code || ''} kum ve yağ tutucu: ${G.N} göz × ${f2(G.gz)} m, boy ${f2(G.q.L)} m, dış ölçü ${f2(G.boy)} × ${f2(G.en)} m, su ${kot(G.zs)}, duvar üstü ${kot(G.zu)}`; },

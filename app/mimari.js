@@ -348,7 +348,7 @@
       list.push([y, y - h]);
       const px = sd < 0 ? m.ub[0] - th * 14 : m.ub[2] + th * 14;
       const a = W([cd.s, cd.kind === 'doseme' ? cd.zt - 0.005 : cd.z]); cd.r.s = cd.s;
-      C.add(C.newEnt('acilim', { a, p: W([px, y]), lines: cd.r.lines, side: sd, src: { k: m.nm, s: cd.s, z: cd.kind === 'doseme' ? cd.zt - 0.005 : cd.z }, dis: 'Mimari', layer: ensL('MALZEME_ACILIM') })); n++;
+      C.add(C.newEnt('acilim', { a, p: W([px, y]), lines: cd.r.lines, tur: cd.kind, /* 'duvar' | 'doseme' → kod öneki DU / DÖ (acilim-kod.js) */ side: sd, src: { k: m.nm, s: cd.s, z: cd.kind === 'doseme' ? cd.zt - 0.005 : cd.z }, dis: 'Mimari', layer: ensL('MALZEME_ACILIM') })); n++;
     }
     C.changed(); return n;
   };

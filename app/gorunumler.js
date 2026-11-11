@@ -163,6 +163,7 @@
     const n = await kesitUret(v); if (!n) { C.warn('Kesit üretilemedi (kesit çizgisi 3B modele değmiyor olabilir).'); return; }
     VL().push(v);
     const yer = sec.gruplar.map(g => { const L = paftayaKoy(v, g); return L ? `${g}: ${L.name}` : null; }).filter(Boolean);
+    try { if (C.pstil && C.pstil() && yer.some(t => /^Mimari/.test(t)) && C.doc.ents.some(e => e.type === 'acilim')) C.acilimTablo(true); } catch (er) { console.error('açılım tablosu', er); } // örnek proje düzeni: kodlu açılım tablosu Mimari paftasında
     C.changed(); C.emit('layouts');
     C.log(`${v.ad} üretildi (${n} nesne) ve ${yer.length} disiplin paftasına yerleştirildi — ${yer.join(' · ')}. Alt sekmelerden ilgili disipline geçin. Tasarım'da görmek: GORUNUSGOSTER.`);
   });
@@ -199,6 +200,31 @@
     for (const x of X) ln([x, yTop - 7.5], [x, y], x === x0 || x === xE ? 35 : 18); ln([x0, yTop], [x0, yTop - 7.5], 35); ln([xE, yTop], [xE, yTop - 7.5], 35);
     return yTop - y;
   };
+  /* MALZEME AÇILIM TABLOSU (örnek proje düzeni): "DÖŞEMELER" / "DUVARLAR" başlıkları altında kodlu kutular → Mimari paftası.
+     Ölçüler kâğıt mm: başlık 3,04; kod 2,66 (altı çizili, renk 94); satır 1,9; kutu aralığı 55; satır aralığı 3,2. Yazı stili YZ. */
+  C.acilimTablo = (sessiz) => {
+    if (!C.acilimTabloVeri) return null; const G = C.acilimTabloVeri(); if (!G.length) { if (!sessiz) C.warn('Çizimde malzeme açılımı yok (önce KESITPAFTA ile kesit alın ya da MALZEMEACILIM).'); return null; }
+    const ps = C.pstil ? C.pstil() : null, st = ps ? ps.yazi : undefined, ol = +(C.doc.set.sonKesitOlcek || 50), k = ol / 1000, ly = 'MALZEME_ACILIM'; C.ensureLayer(ly, 7, 'CONTINUOUS', 25);
+    const eski = VL().find(v => v.tip === 'tablo' && v.unite === 'ACILIM'), gv = (eski && eski.gv) || ('T' + Date.now().toString(36)); C.doc.ents = C.doc.ents.filter(e => e.gv !== gv);
+    const o = eski && eski.o ? eski.o : bolgeYeri(), K = C.acilimKodApi;
+    const tx = (x, y, s, h, renk) => { const e = C.add(C.newEnt('text', Object.assign({ p: [x * k + o[0], y * k + o[1], 0], h: h * k, s: String(s), rot: 0, al: 'L', layer: ly }, st ? { st } : {}, renk ? { color: renk } : {}))); e.gv = gv; delete e.sp; return e; };
+    const ln = (x0, y0, x1, y1, renk) => { const e = C.add(C.newEnt('line', Object.assign({ a: [x0 * k + o[0], y0 * k + o[1], 0], b: [x1 * k + o[0], y1 * k + o[1], 0], layer: ly, lw: 18 }, renk ? { color: renk } : {}))); e.gv = gv; delete e.sp; };
+    const gen = (s, h) => (C.measureText ? C.measureText(s, h, C.textStyle(st)) * (C.textStyle(st).wf || 1) : s.length * h * 0.7);
+    let y = 0, n = 0;
+    for (const g of G) {
+      tx(0, y - 3.04, g.baslik, 3.04); ln(0, y - 3.8, gen(g.baslik, 3.04), y - 3.8); y -= 8.5; let enAlt = y;
+      g.kutular.forEach((kt, i) => { const x = i * 55; let yy = y;
+        tx(x, yy - 2.66, kt.kod, 2.66, 94); ln(x, yy - 3.3, x + gen(kt.kod, 2.66), yy - 3.3, 94); yy -= 6.6;
+        for (const s of kt.satir) K.kaydir(s, 30).forEach((parca, j) => { if (j === 0) tx(x, yy - 1.9, '-', 1.9); tx(x + 2.6, yy - 1.9, parca, 1.9); yy -= 3.2; });
+        enAlt = Math.min(enAlt, yy); n++; });
+      y = enAlt - 7;
+    }
+    let v = eski; if (!v) { v = { id: 'G' + Date.now().toString(36), tip: 'tablo', unite: 'ACILIM', ad: 'MALZEME AÇILIMLARI', gv, o, olcek: ol, gruplar: ['Mimari'] }; VL().push(v); } else v.olcek = ol;
+    const Lp = paftayaKoy(v, 'Mimari'); C.changed(); C.emit('layouts');
+    if (!sessiz) C.log(`Malzeme açılım tablosu: ${n} kod (${G.map(g => g.baslik + ' ' + g.kutular.length).join(', ')}) → ${Lp ? Lp.name : 'pafta bulunamadı'} (1/${ol}).`);
+    return n;
+  };
+  C.addCommand(['ACILIMTABLO', 'MALZEMETABLO', 'ACILIMLISTE'], 'Kesitlerdeki kodlu malzeme açılımlarının (DÖ01, DU01 …) tablosunu "DÖŞEMELER" / "DUVARLAR" başlıklarıyla Mimari paftasına yapıştırır. Kesitler değişince yeniden çalıştırın.', async () => { C.acilimTablo(false); });
   C.addCommand(['MEKTABLO', 'MEKANIKTABLO', 'EKIPMANTABLO'], 'Seçilen ünitenin (anaerobik, ön arıtma …) mekanik ekipman listesi, kapak ve mikser çizelgelerini Mekanik paftasına yapıştırır. Ekipman değişince yeniden çalıştırın.', async (I) => {
     let u = (C.sel || []).find(e => C.doc.ents.some(x => x.bag === e.id));
     if (!u) { const adaylar = C.doc.ents.filter(e => C.doc.ents.some(x => x.bag === e.id && x.type === 'aile')); u = adaylar.length === 1 ? adaylar[0] : null; }
