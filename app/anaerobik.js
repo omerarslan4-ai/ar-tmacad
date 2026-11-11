@@ -379,8 +379,9 @@
     for (let i = 0; i < G.n; i++) if (G.n === 1 ? false : (i > 0 && i < G.n - 1) || G.n === 2) senaryolar.push({ ad: G.n === 3 ? 'İki yan dolu, orta boş' : `H${i + 1} boş, diğerleri dolu`, dolu: tum.filter(a => a !== 'H' + (i + 1)) });
     const xs = walls.flatMap(w => w.pts.map(p => p[0])), ys = walls.flatMap(w => w.pts.map(p => p[1]));
     const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t)), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t));
-    const geo0 = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: radye.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: radye.kAlt, kUst: r3(G.zTop), kSu: r3(G.zW), ust: 'S' };
-    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [], bolmeler, senaryolar, seritOrt: 1.0, wmax: 0.2 }, // 1 m şerit ortalaması (kullanıcı kararı) geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
+    const geo0 = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: radye.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: radye.kAlt, kUst: r3(G.zTop), kSu: r3(G.zW), ust: 'S',
+      kZemin: r3(zemin(e, G)), ...(e.yas != null && isFinite(+e.yas) ? { kYAS: r3(+e.yas) } : {}) }; // dış zemin: arazi → e.zg → duvar üstü − 2,25; yeraltı suyu: e.yas (yoksa hesap penceresindeki değer kalır)
+    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [], bolmeler, senaryolar, seritOrt: 1.0, wmax: 0.2 }, /* 1 m şerit ortalaması, çatlak 0,20 mm (kullanıcı kararı) */ geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
       ozet: `${e.code || ''} anaerobik havuz: ${walls.length} perde (${walls.filter(w => w.tip === 'dis').length} dış), radye ${Math.round(radye.t * 100)} cm · kot ${r3(radye.kAlt)} → ${r3(G.zTop)}, su ${r3(G.zW)}`, uyar: [] };
   };
   C.bolgeKati = bolgeKati; C.ucgenle = ucgenle; // ortak: delikli plan şeklinden katı (ön arıtma vb. de kullanır)

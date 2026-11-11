@@ -14,8 +14,9 @@
       const sec = FORM.find(x => /Tasarım ayarları/.test(x[0]));
       if (sec && !sec[2].some(f => f.k === 'tas.sTercih')) {
         sec[2].push({ k: 'tas.sTercih', label: 'Tercih edilen donatı aralığı', t: 'sel', opts: [[0.15, '15 cm (mümkünse)'], [0.2, '20 cm (mümkünse)'], [0.125, '12.5 cm (mümkünse)'], [0, 'Serbest — en az çelik']] },
-          { k: 'tas.agEsit', label: 'Perde yatay / düşey donatı', t: 'sel', opts: [[true, 'Aynı (iç ve dış katman tek ağ)'], [false, 'Her doğrultu ayrı']] });
-        const vars = () => { if (S && S.tas) { if (S.tas.sTercih == null) S.tas.sTercih = 0.15; if (S.tas.agEsit == null) S.tas.agEsit = true; } };
+          { k: 'tas.agEsit', label: 'Perde yatay / düşey donatı', t: 'sel', opts: [[true, 'Aynı (iç ve dış katman tek ağ)'], [false, 'Her doğrultu ayrı']] },
+          { k: 'tas.catDep', label: 'Çatlak kontrolü (yay / oval / anaerobik)', t: 'sel', opts: [[true, 'Deprem dahil'], [false, 'Yalnız işletme yükleri (deprem hariç)']] });
+        const vars = () => { if (S && S.tas) { if (S.tas.sTercih == null) S.tas.sTercih = 0.15; if (S.tas.agEsit == null) S.tas.agEsit = true; if (S.tas.catDep == null) S.tas.catDep = true; } };
         vars(); const bf = window.buildForm; if (typeof bf === 'function') { window.buildForm = buildForm = function () { vars(); return bf.apply(this, arguments); }; } // eslint-disable-line no-global-assign
         try { buildForm(); } catch (e) { }
       }

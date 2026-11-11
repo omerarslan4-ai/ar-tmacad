@@ -79,11 +79,11 @@
       if (SN && base.Hs) { // bölme senaryoları: hidrostatik yük Hs/Hd yerine her senaryonun kendi su durumu
         const hs = base.Hs, b0 = Object.assign({}, base, { Hs: 0 }), depV2 = dep ? [['X', 1], ['X', -1], ['Y', 1], ['Y', -1]] : [[null, 0]];
         SN.forEach((sn, j) => { for (const [yon, s] of depV2) { const c = Object.assign({}, b0, { ['B' + j]: hs }); if (yon) { c['EW' + yon] = s * (f.EHs || 0); c['ES' + yon] = s * Math.max(f.EHt || 0, f.EQs || 0, f.E_YAS || 0, 1); }
-          out.push({ ad: `${k.ad} [${sn.ad || 'S' + (j + 1)}]` + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : ''), komb: k.ad, tip, f: c }); } });
+          out.push({ ad: `${k.ad} [${sn.ad || 'S' + (j + 1)}]` + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : ''), komb: k.ad, tip, dep: !!yon, f: c }); } });
         continue; }
       const hdV = base.Hs ? [1, -1] : [0], depV = dep ? [['X', 1], ['X', -1], ['Y', 1], ['Y', -1]] : [[null, 0]];
       for (const hd of hdV) for (const [yon, s] of depV) { const c = Object.assign({}, base); if (hd) c.Hd = hd * base.Hs; if (yon) { c['EW' + yon] = s * (f.EHs || 0); c['ES' + yon] = s * Math.max(f.EHt || 0, f.EQs || 0, f.E_YAS || 0, 1); }
-        out.push({ ad: k.ad + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : '') + (hd ? (hd > 0 ? ' Hd+' : ' Hd−') : ''), komb: k.ad, tip, f: c }); } }
+        out.push({ ad: k.ad + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : '') + (hd ? (hd > 0 ? ' Hd+' : ' Hd−') : ''), komb: k.ad, tip, dep: !!yon, f: c }); } }
     return out;
   };
 
@@ -101,9 +101,12 @@
     const ne = AG.els.length, Q = {};
     for (const [c, U] of Object.entries(coz.sonuc)) { const F = P.kabukKuvvet(AG, o, U), a = new Float32Array(ne * 4 * NQ); F.forEach((f4, e) => f4.forEach((q, k) => { const b = (e * 4 + k) * NQ; a[b] = q.M11; a[b + 1] = q.M22; a[b + 2] = q.M12; a[b + 3] = q.N11; a[b + 4] = q.N22; a[b + 5] = q.N12; a[b + 6] = q.V13; a[b + 7] = q.V23; })); Q[c] = a; }
     // zarf (Wood–Armer: M11 ± |M12|)
-    const KV = kombler(S), Z = {}; for (const tip of ['tsm', 'emn']) Z[tip] = { m11p: new Float32Array(ne * 4).fill(-1e9), m11n: new Float32Array(ne * 4).fill(1e9), m22p: new Float32Array(ne * 4).fill(-1e9), m22n: new Float32Array(ne * 4).fill(1e9), n11: new Float32Array(ne * 4).fill(-1e9), n22: new Float32Array(ne * 4).fill(-1e9), v: new Float32Array(ne * 4) };
+    /* 'cat': çatlak kontrolünde kullanılan zarf — emniyet kombinasyonları. Varsayılan: deprem dahil (kullanıcı kararı);
+       S.tas.catDep kapatılırsa yalnız işletme yükleri */
+    const catDep = !(S.tas.catDep === false || S.tas.catDep === 'false');
+    const KV = kombler(S), Z = {}; for (const tip of ['tsm', 'emn', 'cat']) Z[tip] = { m11p: new Float32Array(ne * 4).fill(-1e9), m11n: new Float32Array(ne * 4).fill(1e9), m22p: new Float32Array(ne * 4).fill(-1e9), m22n: new Float32Array(ne * 4).fill(1e9), n11: new Float32Array(ne * 4).fill(-1e9), n22: new Float32Array(ne * 4).fill(-1e9), v: new Float32Array(ne * 4) };
     const tmp = new Float64Array(NQ);
-    for (const k of KV) { const z = Z[k.tip], ent = Object.entries(k.f).filter(([c, f]) => f && Q[c]);
+    for (const k of KV.concat(KV.filter(k => k.tip === 'emn' && (catDep || !k.dep)).map(k => Object.assign({}, k, { tip: 'cat' })))) { const z = Z[k.tip], ent = Object.entries(k.f).filter(([c, f]) => f && Q[c]);
       for (let i = 0; i < ne * 4; i++) { tmp.fill(0); for (const [c, f] of ent) { const a = Q[c], b = i * NQ; for (let q = 0; q < NQ; q++) tmp[q] += f * a[b + q]; }
         const a12 = Math.abs(tmp[2]); z.m11p[i] = Math.max(z.m11p[i], tmp[0] + a12); z.m11n[i] = Math.min(z.m11n[i], tmp[0] - a12); z.m22p[i] = Math.max(z.m22p[i], tmp[1] + a12); z.m22n[i] = Math.min(z.m22n[i], tmp[1] - a12);
         z.n11[i] = Math.max(z.n11[i], tmp[3]); z.n22[i] = Math.max(z.n22[i], tmp[4]); z.v[i] = Math.max(z.v[i], Math.hypot(tmp[6], tmp[7])); } }
@@ -150,9 +153,9 @@
       for (const [yon, kp, kn, kN] of [['M11 (yatay)', 'm11p', 'm11n', 'n11'], ['M22 (düşey)', 'm22p', 'm22n', 'n22']]) {
         if (gr.tur === 'radye' || gr.tur === 'doseme') yon.replace('yatay', 'X').replace('düşey', 'Y');
         const yAd = gr.tur === 'radye' || gr.tur === 'doseme' ? (kp === 'm11p' ? 'M11 (X)' : 'M22 (Y)') : yon;
-        const Nd = Math.max(0, enb(Z.tsm[kN], 0, 1).m), Ns = Math.max(0, enb(Z.emn[kN], 0, 1).m);
+        const Nd = Math.max(0, enb(Z.tsm[kN], 0, 1).m), Ns = Math.max(0, enb(Z.cat[kN], 0, 1).m);
         for (const [s, key] of [[1, kp], [-1, kn]]) {
-          const Md = Math.max(0, s * enb(Z.tsm[key], 0, s).m), Ms = Math.max(0, s * enb(Z.emn[key], 0, s).m);
+          const Md = Math.max(0, s * enb(Z.tsm[key], 0, s).m), Ms = Math.max(0, s * enb(Z.cat[key], 0, s).m);
           const yuz = gr.tur === 'radye' || gr.tur === 'doseme' ? (s > 0 ? 'üst' : 'alt') : (gr.tur === 'dis' ? ((s > 0) === disa ? 'dış' : 'iç') : (s > 0 ? '1. yüz' : '2. yüz'));
           const dd = gr.t - gr.c - 0.01, Meq = Md + 0.5 * Nd * 0.9 * dd, Mseq = Ms + 0.5 * Ns * 0.9 * dd;
           const sec = P.donatiSec({ M: Meq, Ms: Mseq, h: gr.t, c: gr.c, kat: kp === 'm11p' ? 1 : 2, su: true }, S, MAL);
