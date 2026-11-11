@@ -5,15 +5,15 @@
   const M = C.M, T = C.T, RAD = Math.PI / 180;
 
   /* ---------- stiller ---------- */
-  const FONTS = ['Arial', 'Arial Narrow', 'Calibri', 'Segoe UI', 'Tahoma', 'Verdana', 'Century Gothic', 'Times New Roman', 'Georgia', 'Courier New', 'Consolas', 'ISOCPEUR', 'Romans (CAD)'];
-  const FONT_FILE = { 'Arial': 'arial.ttf', 'Arial Narrow': 'arialn.ttf', 'Calibri': 'calibri.ttf', 'Segoe UI': 'segoeui.ttf', 'Tahoma': 'tahoma.ttf', 'Verdana': 'verdana.ttf', 'Century Gothic': 'gothic.ttf', 'Times New Roman': 'times.ttf', 'Georgia': 'georgia.ttf', 'Courier New': 'cour.ttf', 'Consolas': 'consola.ttf', 'ISOCPEUR': 'isocpeur.ttf', 'Romans (CAD)': 'romans.shx' };
-  const FONT_CSS = { 'Romans (CAD)': '"Romans", "ISOCPEUR", "Arial Narrow", Arial, sans-serif', 'ISOCPEUR': '"ISOCPEUR", "Arial Narrow", Arial, sans-serif', 'Arial Narrow': '"Arial Narrow", "Liberation Sans Narrow", Arial, sans-serif' };
+  const FONTS = ['Arial', 'Arial Narrow', 'Calibri', 'Segoe UI', 'Tahoma', 'Verdana', 'Century Gothic', 'Times New Roman', 'Georgia', 'Courier New', 'Consolas', 'ISOCPEUR', 'Romans (CAD)', 'Türkçe (CAD)'];
+  const FONT_FILE = { 'Arial': 'arial.ttf', 'Arial Narrow': 'arialn.ttf', 'Calibri': 'calibri.ttf', 'Segoe UI': 'segoeui.ttf', 'Tahoma': 'tahoma.ttf', 'Verdana': 'verdana.ttf', 'Century Gothic': 'gothic.ttf', 'Times New Roman': 'times.ttf', 'Georgia': 'georgia.ttf', 'Courier New': 'cour.ttf', 'Consolas': 'consola.ttf', 'ISOCPEUR': 'isocpeur.ttf', 'Romans (CAD)': 'romans.shx', 'Türkçe (CAD)': 'turkce.shx' };
+  const FONT_CSS = { 'Türkçe (CAD)': '"Arial Narrow", "Liberation Sans Narrow", Arial, sans-serif', 'Romans (CAD)': '"Romans", "ISOCPEUR", "Arial Narrow", Arial, sans-serif', 'ISOCPEUR': '"ISOCPEUR", "Arial Narrow", Arial, sans-serif', 'Arial Narrow': '"Arial Narrow", "Liberation Sans Narrow", Arial, sans-serif' };
   C.FONTS = FONTS;
   C.fontFile = n => FONT_FILE[n] || (/\.(ttf|shx|otf)$/i.test(n) ? n : n.toLowerCase().replace(/\s+/g, '') + '.ttf');
   C.fontFromFile = f => {
     const l = String(f || '').toLowerCase().replace(/^.*[\\/]/, '');
     for (const [k, v] of Object.entries(FONT_FILE)) if (l === v || l.replace(/\.\w+$/, '') === v.replace(/\.\w+$/, '')) return k;
-    if (/isocp/.test(l)) return 'ISOCPEUR'; if (/romans|simplex|^txt|monotxt|romand|romanc|isoct/.test(l)) return 'Romans (CAD)';
+    if (/turkce/.test(l)) return 'Türkçe (CAD)'; if (/isocp/.test(l)) return 'ISOCPEUR'; if (/romans|simplex|^txt|monotxt|romand|romanc|isoct/.test(l)) return 'Romans (CAD)';
     if (/times/.test(l)) return 'Times New Roman'; if (/cour/.test(l)) return 'Courier New'; if (/arialn/.test(l)) return 'Arial Narrow'; if (/calibri/.test(l)) return 'Calibri';
     return 'Arial';
   };

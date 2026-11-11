@@ -33,7 +33,7 @@
   /* yerel çizgiler (büyük harf yüksekliği = 1, taban y = 0, y yukarı) */
   const strokes = s => { const out = []; let x = 0; for (const ch of String(s)) { const g = GL.get(ch); for (const pl of g.st) out.push(pl.map(([px, py]) => [x + (px - g.L) / CAP, (BASE - py) / CAP])); x += (g.R - g.L) / CAP; } return out; };
   C.strokeFont = { ok, adv, strokes };
-  const isR = st => !!st && st.font === 'Romans (CAD)';
+  const isR = st => !!st && (st.font === 'Romans (CAD)' || st.font === 'Türkçe (CAD)'); // turkce.shx de aynı çizgi fontla (Türkçe harfler tanımlı)
   /* ölçüm / ekran / SVG — Romans stiliyle yazılan tüm yazılar çizgi fontla */
   { const m0 = C.measureText; C.measureText = function (s, h, st) { const y = st || C.textStyle(); if (s && isR(y) && ok(s)) return adv(s) * h; return m0.apply(this, arguments); }; }
   const lineOK = Ly => isR(Ly.st) && Ly.lines.every(l => !l.s || ok(l.s));
@@ -70,10 +70,11 @@
   C.kotStil = () => { const v = C.doc.set.kotStil; return STY.some(s => s[0] === v) ? v : 'ornek'; };
   const p0 = T.kot.prims;
   T.kot.prims = e => {
-    const st = kotStyle(), tag = arr => arr.map(pr => pr.k === 'T' ? Object.assign(pr, { st }) : pr);
-    const sty = C.kotStil();
+    const ps = C.pstil ? C.pstil() : null, pk = ps && ps.kot; // pafta çizim stili (pafta-stil.js): örnek projedeki kot işareti ve yazı stili
+    const st = pk ? (kotStyle(), ps.yazi) : kotStyle(), tag = arr => arr.map(pr => pr.k === 'T' ? Object.assign(pr, { st }) : pr);
+    const sty = pk ? pk.stil : C.kotStil();
     if (e.pk || sty === 'klasik') return tag(p0(e));
-    const th = C.annoH(C.doc.set.textH), s = Math.max(C.annoH(2.5), th * 1.25), p = M.p3(e.p), z = p[2], f = e.ters ? -1 : 1;
+    const th = C.annoH(pk ? pk.th : C.doc.set.textH), s = Math.max(C.annoH(2.5), th * 1.25), p = M.p3(e.p), z = p[2], f = e.ters ? -1 : 1;
     const txt = (e.txt ? e.txt + ' ' : '') + C.fmtKot(e.v), tw = C.measureText(C.txL ? C.txL(txt) : txt, th, C.textStyle(st));
     const hw = s * 0.5, yt = p[1] + s, A = [p[0] - hw, yt, z], B = [p[0] + hw, yt, z], out = [];
     const tri = [p, A, B];
@@ -85,13 +86,13 @@
       return tag(out);
     }
     if (sty === 'dolu') out.push(S(tri));
-    if (sty === 'yarim') out.push(S([p, f > 0 ? A : B, [p[0], yt, z]]));
+    if (sty === 'yarim' || sty === 'cokal') out.push(S([p, f > 0 ? A : B, [p[0], yt, z]]));
     out.push(P(tri, true));
     const lh = s * 0.75, yl = yt + lh;
     out.push(L([p[0], yt, z], [p[0], yl, z]));
     out.push(L([p[0], yl, z], [p[0] + f * (tw + s * 1.1), yl, z]));
     out.push(TX([p[0] + f * s * 0.15, yl + th * 0.3, z], th, txt, 0, f > 0 ? 'L' : 'R'));
-    if (sty === 'ornek') out.push(L([p[0] - s * 1.2, p[1], z], [p[0] + s * 1.2, p[1], z]));
+    if (sty === 'ornek' || sty === 'cokal') out.push(L([p[0] - s * (sty === 'cokal' ? 0.85 : 1.2), p[1], z], [p[0] + s * (sty === 'cokal' ? 0.85 : 1.2), p[1], z]));
     return tag(out);
   };
   /* kot stilini değiştir → tüm kotlar */

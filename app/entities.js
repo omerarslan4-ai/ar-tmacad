@@ -378,18 +378,19 @@
     prims: e => {
       if (e.k === 'r' || e.k === 'd') return T.dim.radPrims(e);
       const { a, b, a2, b2, u, val, set } = T.dim.geom(e);
-      const S1 = C.annoH(1), ah = C.annoH(set.dimArrow), th = C.annoH(set.dimTextH);
+      const ps = C.pstil ? C.pstil() : null, D = ps && ps.dim ? ps.dim() : { exo: 0.8, exe: 1.5, dle: 0, tik: set.dimTick, th: set.dimTextH, ah: set.dimArrow, st: null }; // pafta çizim stili (pafta-stil.js)
+      const S1 = C.annoH(1), ah = C.annoH(D.ah), th = C.annoH(D.th);
       const out = [];
-      const ext = (p, p2) => { const d = M.sub(p2, p); const l = M.len(d); if (l < 1e-9) return; const dn = M.mul(d, 1 / l); out.push(L(M.add(p, M.mul(dn, S1 * 0.8)), M.add(p2, M.mul(dn, S1 * 1.5)), { lw: 13 })); };
+      const ext = (p, p2) => { const d = M.sub(p2, p); const l = M.len(d); if (l < 1e-9) return; const dn = M.mul(d, 1 / l); out.push(L(M.add(p, M.mul(dn, Math.min(S1 * D.exo, l * 0.5))), M.add(p2, M.mul(dn, S1 * D.exe)), { lw: 13 })); };
       ext(a, a2); ext(b, b2);
-      out.push(L(a2, b2, { lw: 18 }));
       const dir = M.sub(b2, a2);
+      { const dl = M.len(dir), un = dl > 1e-9 ? M.mul(dir, 1 / dl) : [0, 0, 0], t = S1 * D.dle; out.push(L(M.sub(a2, M.mul(un, t)), M.add(b2, M.mul(un, t)), { lw: 18 })); }
       const tooSmall = M.len(dir) < ah * 2.5;
-      out.push(arrow(a2, tooSmall ? dir : M.mul(dir, -1), ah, set.dimTick), arrow(b2, tooSmall ? M.mul(dir, -1) : dir, ah, set.dimTick));
+      out.push(arrow(a2, tooSmall ? dir : M.mul(dir, -1), ah, D.tik), arrow(b2, tooSmall ? M.mul(dir, -1) : dir, ah, D.tik));
       let dg = readable(Math.atan2(u[1], u[0]) / RAD);
       const up = [-Math.sin(dg * RAD), Math.cos(dg * RAD), 0];
       const txt = e.txt != null && e.txt !== '' ? String(e.txt).replace('<>', C.dimFmt(val)) : C.dimFmt(val);
-      out.push(TX(M.add(M.lerp(a2, b2, 0.5), M.mul(up, th * 0.4)), th, txt, dg * RAD, 'C'));
+      out.push(TX(M.add(M.lerp(a2, b2, 0.5), M.mul(up, th * 0.4)), th, txt, dg * RAD, 'C', D.st ? { st: D.st } : undefined));
       return out;
     },
     radPrims: e => {
