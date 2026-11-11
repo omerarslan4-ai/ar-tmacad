@@ -41,6 +41,7 @@
   - Kum oluğu tabandan 0,50 m aşağıda; kum oluğu altındaki taban plağı 0,64 m.
   - Blowerlar tesis büyüklüğüne göre ana blower binasında ya da kum tutucunun yanında küçük binada (Çokal'da ana binada).
 - Ön arıtma yapıları (ızgara, terfi, kum tutucu) bitişik tek blok olarak yapılabilir; aralarında 5 cm derz bırakılır (Çokal).
+  Terfi istasyonu bazı projelerde ızgara ve kum tutucudan bağımsız, ayrı bir yapı olarak yapılır (seçimli; giriş ve çıkış saha borusuyla).
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
 - Son çökeltme havuzları dairesel.
 - Ön arıtma (ızgara, kum tutucu) gelecek kademeyi de kapsayacak şekilde boyutlandırılır; proses havuzları tek kademe için çözülür.

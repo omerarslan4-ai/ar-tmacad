@@ -150,6 +150,15 @@ t('terfi zincirde: yapı nihai kademeden, pompa sayısı iki kademeyle; pompa s�
   assert.ok(dar.uyari.some(u => u.includes('dar')));
 });
 
+t('terfi yerleşimi: bitişik (varsayılan) ya da ayrı yapı', () => {
+  const bit = K.kartlar(j, {}).su.find(y => y.id === 'ps');
+  assert.strictEqual(bit.bitisik, true); assert.ok(p(bit.kart, 'yer').v.includes('bitişik'));
+  const ayr = K.kartlar(j, { sec: { terfiYer: 'AYRI' } }).su.find(y => y.id === 'ps');
+  assert.strictEqual(ayr.bitisik, false); assert.ok(p(ayr.kart, 'zg').ad.includes('borusu'));
+  // ayak izi ve kotlar yerleşimden etkilenmez (Çokal'da bitişik yapılar duvar paylaşmaz)
+  assert.deepStrictEqual(ayr.ayakIzi, bit.ayakIzi);
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));

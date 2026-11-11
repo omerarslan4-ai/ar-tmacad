@@ -264,8 +264,9 @@
     ap: { ad: 'Pompa aks aralığı', v: 1.00, birim: 'm' },
     ak: { ad: 'Son pompa aksı → duvar', v: 0.95, birim: 'm' },
   };
-  K.terfiKart = (id, dim, par, dimM) => {
-    par = par || {}; dim = dim || {};
+  K.terfiKart = (id, dim, par, dimM, sec) => {
+    par = par || {}; dim = dim || {}; sec = sec || {};
+    const ayri = sec.terfiYer === 'AYRI';
     const P = [], uyari = [];
     const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
     const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
@@ -281,8 +282,9 @@
     // standart, katalog
     const S = {}; for (const [k, s] of Object.entries(K.STD_TERFI)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart');
     const Kt = {}; for (const [k, s] of Object.entries(K.KAT_TERFI)) Kt[k] = dz(k, s.ad, s.v, s.birim, 'katalog', 'Islak tip dalgıç pompa (Çokal)');
+    ek('yer', 'Yerleşim', ayri ? 'ayrı yapı (giriş ve çıkış saha borusuyla)' : 'ön arıtma bloğuna bitişik (aradaki derz 5 cm)', '', 'standart', { not: 'Seçenek: üstteki "Terfi yerleşimi"' });
     // elle
-    const zg = dz('zg', 'Giriş kanalı taban kotu', 0, 'm', 'elle', 'Önceki ünitenin çıkış tabanı; 3. parçada otomatik');
+    const zg = dz('zg', ayri ? 'Giriş borusu taban kotu' : 'Giriş kanalı taban kotu', 0, 'm', 'elle', ayri ? 'Gelen borunun haznedeki taban kotu; 3. parçada saha borulamasından' : 'Önceki ünitenin çıkış tabanı; 3. parçada otomatik');
     const zzVars = zg - S.pz;
     const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
     const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: 'Boşsa döşeme = giriş tabanı alınır. 2. parçada araziden okunacak' });
@@ -303,7 +305,7 @@
     if (Wmin > kenar + 0.005) uyari.push(`Hazne (${kenar.toFixed(2).replace('.', ',')} m) ${nb} pompa için dar; katalog aks aralığıyla en az ${Wmin.toFixed(2).replace('.', ',')} m gerekir.`);
     if (!Lh || !W) uyari.push('Terfi haznesi ölçüleri proses hesabında eksik (L, W).');
     return {
-      id, tip: 'terfi', params: P, uyari, koku: false,
+      id, tip: 'terfi', params: P, uyari, koku: false, bitisik: !ayri,
       ayakIzi: { en: r3(en), boy: r3(boy) },
       giris: { x: 0, y: r3(en / 2), z: zg }, cikis: { x: r3(boy), y: r3(en / 2), z: null }, // çıkış: basma hattı (saha borulamasında)
       kot: { giris: zg, ust: z1, durma: z0, taban: zt, temel: zf, doseme: zu, zemin: zz },
@@ -323,7 +325,8 @@
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'terfi') {
-        x.kart = K.terfiKart(x.id, veri(x.id).dim, par[x.id], (uM[x.id] || {}).dim);
+        x.kart = K.terfiKart(x.id, veri(x.id).dim, par[x.id], (uM[x.id] || {}).dim, sec);
+        x.bitisik = x.kart.bitisik; // 2. parça: bitişikse ön arıtma bloğunda, ayrıysa ayrı kutu
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'kum') {
         x.kart = K.kumKart(x.id, veri(x.id).dim, par[x.id], sec);
@@ -372,7 +375,8 @@
         ${sel('onaritma', 'Ön arıtma', [['A', 'A: kaba ızgara → terfi → ince ızgara'], ['B', 'B: kaba + ince aynı kanalda → terfi']], A.sec.onaritma || 'A')}
         ${sel('debimetre', 'Debimetre', [['MAN', 'Manyetik'], ['PAR', 'Parshall savağı']], A.sec.debimetre || 'MAN')}
         ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}
-        ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}</div>
+        ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
+        ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
       U.querySelectorAll('[data-sec]').forEach(s => s.onchange = () => { A.sec[s.dataset.sec] = s.value; C.changed && C.changed(); ciz(); });
