@@ -1,6 +1,6 @@
 /* Anaerobik havuz çizim geometrisi — Çokal AAT T-105 (3-Çokal_AAT_Anaerobik_R3.dwg) ile karşılaştırma.
    Çizim ölçüleri (sol alt dış köşeye göre, m): dış 17,20 × 10,60; halka merkezleri x 3,00 / 14,00, y 1,90 / 5,30 / 8,70;
-   kanal uçları y 0,90 – 9,70; ağız 95,75 – 96,75; orifis 8,95 – 9,45; pencere 9,50 – 11,00; köprü 11,10 – 12,60;
+   kanal uçları y 0,90 – 9,70; ağız 95,75 – 96,75; orifis 8,95 – 9,45; pencere 9,50 – 11,00; köprü 11,00 – 12,50;
    sağ kanal ara duvarı y 3,60, kapaklı geçiş x 16,10 – 16,70; giriş borusu x 0,70; RAS borusu x 16,40; taban 93,50.
    Çalıştır: node test/anaerobik.test.js */
 'use strict';
@@ -25,7 +25,7 @@ t('Çokal T-105: kotlar (taban, su, ağız)', () => {
 
 t('Çokal T-105: orifis, pencere, köprü, ara duvar ve borular', () => {
   yakin(G.pen.xo, 8.95, 'orifis'); yakin(G.pen.xw0, 9.50, 'pencere başı'); yakin(G.pen.xw1, 11.00, 'pencere sonu');
-  yakin(G.kopru.x0, 11.10, 'köprü'); yakin(G.kopru.x1, 12.60, 'köprü sonu');
+  yakin(G.kopru.x0, 11.00, 'köprü (çizim 16401,3)'); yakin(G.kopru.x1, 12.50, 'köprü sonu (çizim 16551,3)');
   yakin(G.ara.y, 3.60, 'ara duvar'); yakin(G.ara.g0, 16.10, 'kapaklı geçiş'); yakin(G.ara.g1, 16.70, 'kapaklı geçiş sonu');
   const b = k => G.boru.find(x => x.k === k);
   yakin(b('giris').p[0], 0.70, 'giriş borusu'); yakin(b('ras').p[0], 16.40, 'RAS borusu'); yakin(b('cikis').p[1], 6.80, 'çıkış borusu (çizim 6,80)', 0.21);
@@ -67,6 +67,21 @@ t('beton duvarlar tek plan şekli: alan, nokta testleri ve üçgenleme', () => {
 t('orta duvar ve yuvarlak perdeler halkanın içinde kalır (dışarı taşmaz)', () => {
   const ic = (p, h) => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
   for (const p of G.parca) for (const q of p.pts) assert.ok(G.bolge.delik.slice(0, G.n).some(h => ic(q, h)), p.k + ' noktası halka dışında: ' + q);
+});
+
+t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
+  const { ekipmanYer } = require('../app/anaerobik.js');
+  const E = ekipmanYer(G, { n: 2, D: 0.37, P: 2.5, rpm: 1400, name: 'Kompakt' }, 95.00), tur = k => E.filter(x => x.tur === k);
+  assert.strictEqual(tur('penstok').length, 9, '6 ağız + 2 pencere + 1 bölme');
+  const p0 = E.find(x => x.anahtar === 'pen-sol-0'); yakin(p0.p[0], 1.00, 'giriş kanalında'); yakin(p0.z, 95.75, 'eşik'); yakin(p0.D, 1.50, 'eşik → duvar üstü'); yakin(p0.B, 0.60, 'B');
+  assert.strictEqual(E.find(x => x.anahtar === 'pen-sag-0').aci, 180, 'RAS halkasına giriş'); assert.strictEqual(E.find(x => x.anahtar === 'pen-sag-1').aci, 0, 'çıkış');
+  const pp = E.find(x => x.anahtar === 'pen-pen-0'); yakin(pp.B, 1.50, 'pencere kapağı'); assert.strictEqual(pp.aci, 90);
+  const m = tur('merdiven')[0]; yakin(m.pts[1][0], 11.00, 'köprüye çıkar'); yakin(m.pts[0][1], 11.10, 'merdiven ekseni (çizim 11,10)'); yakin(m.z1, 97.45, 'köprü üstü');
+  assert.ok(Math.abs(m.pts[0][0] - 7.75) < 0.3, 'merdiven başı (çizim 7,75): ' + m.pts[0][0]); assert.ok(m.z1 - m.z0 <= m.nr * 0.19 + 1e-9);
+  const k = tur('korkuluk')[0].pts; yakin(Math.max(...k.map(p => p[0])), 12.45, 'sağ kenar (çizim 12,45)');
+  assert.ok(k.some(p => Math.abs(p[0] - 9.55) < 0.006 && Math.abs(p[1] - 3.45) < 0.006), 'sahanlık çevresi (çizim 9,55 / 3,45)');
+  yakin(G.sahanlik[1].y1, 7.50, 'sahanlık ucu (çizim −2924,5 → 7,50)');
+  assert.strictEqual(tur('mikser').length, 6, 'halka başına 2 mikser');
 });
 
 console.log(`\n${n} test geçti.`);

@@ -20,9 +20,10 @@
   const DEF = {
     n: 3, Ls: 11.0, Ro: 1.50, tw: 0.30, two: 0.40, rg: 0.70, tg: 0.30, ext: 0.60,
     bG: 0.80, bC: 1.00, tK: 0.30, ag: 0.60, ah: 1.00, dAg: 0.89, kp: 0.40,
-    or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.40, kbT: 0.20,
+    or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
+    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'EL',
   };
 
   /* yardımcılar (yerel 2B) */
@@ -105,7 +106,7 @@
     }
     // ---- ortak duvarlarda orifis ve kapaklı pencere; köprü ----
     const xk0 = Math.max(xc1 + 0.5, xc2 - q.kbX - q.kb);
-    let xw1 = xk0 - 0.10, xw0 = xw1 - q.ow, xo = xw0 - 0.05 - q.or;
+    let xw1 = xk0, xw0 = xw1 - q.ow, xo = xw0 - 0.05 - q.or;
     if (xo < xc1) { const kay = xc1 + 0.3 - xo; xo += kay; xw0 += kay; xw1 += kay; }
     G.kopru = { x0: xk0, x1: xk0 + q.kb, z0: zTop, z1: zTop + q.kbT };
     for (let i = 0; i + 1 < n; i++) {
@@ -160,10 +161,51 @@
     G.Ahalka = q.Ls * 2 * q.Ro - q.Ls * q.tw + Math.PI * q.Ro * q.Ro - ring;
     G.V = G.Ahalka * q.h * n;
     G.pen = { xo, xw0, xw1 };
+    // köprü dışarıda merdiven sahanlığı kadar uzar; pencere kapakları için köprüye bitişik işletme sahanlıkları
+    G.kopru.y0 = 0; G.kopru.y1 = Wo + q.mw;
+    G.sahanlik = [];
+    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two; G.sahanlik.push({ x0: xw0, x1: xk0, y0, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT }); }
+    // tretuvar (zemin kotunda, havuz çevresinde): kanallar boyunca dar, halkalar boyunca geniş, aralarda pahlı
+    const t = q.tre, xa = Math.max(0, xc1 - R2 - t), xb = Math.min(Lo, xc2 + R2 + t * 0.6);
+    G.tretuvar = { dis: [[-t, yb - t], [xa, yb - t], [xc1, -t], [xc2, -t], [xb, yb - t], [Lo + t, yb - t], [Lo + t, yt + t], [xb, yt + t], [xc2, Wo + t], [xc1, Wo + t], [xa, yt + t], [-t, yt + t]], kal: q.treT };
     return G;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati };
+  /* ekipman yerleri (yerel koordinat; ünite çizimine göre): penstok, mikser, merdiven, korkuluk.
+     mx: mikser seçimi {n, D, name, P, rpm} (yoksa mikser yok); zg: merdiven başındaki zemin kotu */
+  function ekipmanYer(G, mx, zg) {
+    const q = G.q, n = G.n, R2 = q.Ro + q.two, out = [], zK = G.kopru.z1;
+    const pen = (anahtar, etiket, p, aci, z0, B, H) => out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw: Math.max(0, G.zW - z0) });
+    for (let i = 0; i < n; i++) {
+      pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - 0.10, G.yc[i]], 0, G.zS, q.ag, q.ah); // giriş kanalından halkaya
+      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + 0.10, G.yc[i]], n > 1 && i === 0 ? 180 : 0, G.zS, q.ag, q.ah); // RAS halkasına giriş, diğerlerinde çıkış
+    }
+    for (let i = 0; i + 1 < n; i++) pen(`pen-pen-${i}`, `P/${LET[i]}`, [(G.pen.xw0 + G.pen.xw1) / 2, G.yc[i] + q.Ro + q.two + 0.10], 90, G.zS, q.ow, q.ah);
+    if (G.ara) pen('pen-bolme', 'B', [(G.ara.g0 + G.ara.g1) / 2, G.ara.y + q.tK / 2 + 0.10], 90, G.zB, q.ag, q.ah);
+    // mikserler: perdelerin çıkış ucundaki koridorlarda (sol grup +x, sağ grup −x akar)
+    if (mx && mx.n) {
+      const per = Math.ceil(mx.n / 2); let k = 0;
+      for (const H of G.halka) for (const [x, ust, aci, cnt] of [[G.xc1 + q.xm, H.yon > 0, 0, per], [G.xc2 - q.xm, H.yon < 0, 180, mx.n - per]])
+        for (let m = 0; m < cnt; m++) {
+          const y = ust ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt;
+          out.push({ anahtar: `mik-${H.i}-${aci}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, ad: mx.name, Hd: G.zTop - G.zB });
+        }
+    }
+    // merdiven: üst dış duvar boyunca, köprünün dışarı uzanan ucuna çıkar
+    const z0 = zg != null ? zg : G.zTop - 2.25, H = zK - z0;
+    if (H > 0.3) {
+      const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb, ym = G.Wo + q.mw / 2;
+      out.push({ anahtar: 'merdiven', tur: 'merdiven', pts: [[G.kopru.x0 - Lk, ym], [G.kopru.x0, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr });
+    }
+    // korkuluk: köprü dış ucu + sağ kenar + sol kenar (sahanlıkların çevresinden dolanır); merdiven korkuluğu merdivende
+    const a = 0.05, k0 = G.kopru.x0 + a, k1 = G.kopru.x1 - a, yU = G.kopru.y1 - a, kp = [[G.kopru.x0, yU], [k1, yU], [k1, a], [k0, a]];
+    for (const s of G.sahanlik) kp.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]);
+    kp.push([k0, G.Wo]);
+    out.push({ anahtar: 'korkuluk-kopru', tur: 'korkuluk', pts: kp, z: zK });
+    return out;
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati, ekipmanYer };
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
@@ -197,11 +239,13 @@
       // görünmeyen açıklıklar (kesikli): ağız, orifis, pencere, boru
       for (const a of G.acik) if (a.k !== 'bolme') out.push(PL(a.pts, true, { lt: 'DASHED', color: 8, lw: 18 }));
       // köprü
-      const k = G.kopru; out.push(PL([[k.x0, -0.3], [k.x1, -0.3], [k.x1, G.Wo + 0.3], [k.x0, G.Wo + 0.3]], true, { color: 30, lw: 35 }));
+      const k = G.kopru; out.push(PL([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], true, { color: 30, lw: 35 }));
+      for (const sh of G.sahanlik) out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, { color: 30, lw: 25 }));
+      out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, { color: 8, lw: 18 }));
       out.push(T1((k.x0 + k.x1) / 2, G.Wo + 0.9, `Servis köprüsü ${f2(q.kb)} m · ${kot(k.z1)}`, { color: 30 }));
       // kapaklar
       const un = unum(e);
-      G.kapak.forEach((c, i) => out.push(L(f.at(c.a[0], c.a[1], z), f.at(c.b[0], c.b[1], z), { color: 6, lw: 70 })));
+      if (!e.ekipman) G.kapak.forEach((c, i) => out.push(L(f.at(c.a[0], c.a[1], z), f.at(c.b[0], c.b[1], z), { color: 6, lw: 70 })));
       const agL = G.kapak.filter(c => c.k === 'agiz' && c.yan === 'sol'), agR = G.kapak.filter(c => c.k === 'agiz' && c.yan === 'sag');
       agL.forEach((c, i) => out.push(T1(c.a[0] - 0.15, c.b[1] + 0.25, `SK-${un}G/${LET[i]}`, { color: 6 }, 'R')));
       agR.forEach((c, i) => out.push(T1(c.a[0] + 0.15, c.b[1] + 0.25, `SK-${un}C/${LET[i]}`, { color: 6 }, 'L')));
@@ -215,7 +259,7 @@
           const xa = G.xc1 + q.Ls * 0.62, ln = Math.min(1.2, q.Ls * 0.08);
           out.push(L(f.at(xa - sg * ln, yy, z), f.at(xa + sg * ln, yy, z), { color: 5, lw: 35 }), L(f.at(xa + sg * ln, yy, z), f.at(xa + sg * (ln - 0.35), yy + 0.18, z), { color: 5, lw: 35 }), L(f.at(xa + sg * ln, yy, z), f.at(xa + sg * (ln - 0.35), yy - 0.18, z), { color: 5, lw: 35 }));
         }
-        if (mx) { // çıkış uçlarında: sol dönüş çıkışı ve sağ dönüş çıkışı koridorları
+        if (mx && !e.ekipman) { // çıkış uçlarında: sol dönüş çıkışı ve sağ dönüş çıkışı koridorları
           const per = Math.ceil(mx.n / 2);
           [[G.xc1 + 2.0, H.yon > 0 ? 1 : -1, 1, per], [G.xc2 - 2.0, H.yon > 0 ? -1 : 1, -1, mx.n - per]].forEach(([x, side, dir, cnt], j) => {
             for (let m = 0; m < cnt; m++) {
@@ -253,13 +297,61 @@
       out.push(e._ag);
       for (const p of G.parca) out.push(ext(f.at(0, 0, p.z0), f.ux, [0, 0, 1], p.pts, p.z1 - p.z0));
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
-      const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, 0], [k.x1, 0], [k.x1, G.Wo], [k.x0, G.Wo]], k.z1 - k.z0));
+      const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], k.z1 - k.z0));
+      for (const sh of G.sahanlik) out.push(ext(f.at(0, 0, sh.z0), f.ux, [0, 0, 1], [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], sh.z1 - sh.z0));
+      { // tretuvar: zemin kotunda havuz çevresi
+        const zg = zemin(e, G), uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
+        const Kt = bolgeKati({ dis: G.tretuvar.dis, delik: [G.bolge.dis.slice().reverse()] }, zg - G.tretuvar.kal, zg);
+        out.push({ t: 'tri', v: Kt.v.map(W), vn: Kt.vn.map(Wn), f: Kt.f, edges3: Kt.e.map(ab => ab.map(W)), fc: Kt.f.map(() => [0.62, 0.62, 0.60]) });
+      }
       return out;
     },
     snaps: e => { const G = geo(e), f = C.frame(e.o, e.rot); return [[0, 0], [G.Lo, 0], [G.Lo, G.Wo], [0, G.Wo]].map(p => ({ p: f.at(p[0], p[1], G.zTop), k: 'end' })); },
     xf: (e, X) => { const G = geo(e), f = C.frame(e.o, e.rot); const o2 = X.mir ? X.p(f.at(0, G.Wo)) : X.p(e.o); const v = X.v([Math.cos((e.rot || 0) * RAD), Math.sin((e.rot || 0) * RAD), 0]); e.rot = Math.atan2(v[1], v[0]) / RAD; e.o = [o2[0], o2[1], 0]; },
     info: e => { const G = geo(e); return `${e.code || ''} anaerobik havuz: ${G.n} halka, düz ${f2(G.q.Ls)} m, koridor ${f2(G.b)} m, V=${f0(G.V)} m³, ${f2(G.Lo)} × ${f2(G.Wo)} m`; },
   };
+
+  /* ================= EKİPMAN (penstok, mikser, merdiven, korkuluk) ================= */
+  /* merdiven başındaki zemin kotu: arazi (ARAZI) varsa oradan, yoksa e.zg, yoksa duvar üstü − 2,25 (Çokal) */
+  function zemin(e, G) {
+    const f = C.frame(e.o, e.rot), pw = f.at(G.kopru.x0 - 2, G.Wo + G.q.mw / 2, 0);
+    for (const a of C.doc.ents.filter(x => x.type === 'arazi')) { const z = C.araziKot && C.araziKot(a, pw); if (z != null) return z - (a.ref || 0); }
+    return e.zg != null && isFinite(+e.zg) ? +e.zg : G.zTop - 2.25;
+  }
+  const mm = v => Math.round(v * 1000);
+  const imza = x => JSON.stringify(x.type === 'aile' ? [x.p, x.rot, x.z, x.par] : [x.pts, x.z0, x.z1]);
+  /* yerel ekipman yeri → çizim nesnesi özellikleri (dünya koordinatı) */
+  function nesne(e, y) {
+    const f = C.frame(e.o, e.rot), un = unum(e), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; };
+    if (y.tur === 'penstok' || y.tur === 'mikser') {
+      const fam = y.tur === 'penstok' ? 'penstock_kanal' : 'dalgic_mikser', d = C.AILELER && C.AILELER[fam]; if (!d) return null;
+      const t0 = d.tipler && d.tipler[0], par = Object.assign({}, t0 ? t0.p : {}, y.tur === 'penstok'
+        ? { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: e.tahrik === 'AKT' ? 'AKT' : 'EL', konum: 'K' }
+        : { D: mm(y.D), P: y.P, rpm: y.rpm, hm: Math.max(300, mm(y.D) / 2 + 250), Hd: mm(y.Hd) });
+      return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par, p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: y.tur === 'penstok' ? `SK-${un}${y.etiket}` : `Z-${un}/${y.etiket}`, layer: d.katman || C.doc.cur.layer } };
+    }
+    if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'izgara', kork: 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'H', as: 'H', sah: 0, nos: 0, t: 0, rk: 'H' } };
+    if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } };
+    return null;
+  }
+  /* yerleştir / güncelle: programın koyduğu ve yerinde duran ekipman güncellenir; elle taşınan korunur; kullanıcının sildiği yeniden konmaz */
+  C.anaerobikEkipman = (e, sessiz) => {
+    const G = geo(e), yer = ekipmanYer(G, mix(e, G), zemin(e, G)), once = new Set(e.ekAnahtar || []), yeniK = new Set(yer.map(y => y.anahtar));
+    const mevcut = new Map(C.doc.ents.filter(x => x.bag === e.id && x.anahtar).map(x => [x.anahtar, x]));
+    let n = 0, g = 0, el = 0, s = 0;
+    for (const y of yer) {
+      const x = mevcut.get(y.anahtar), o = nesne(e, y); if (!o) continue;
+      if (!x) { if (once.has(y.anahtar)) continue; const z = C.add(C.newEnt(o.type, Object.assign({}, o.props, { bag: e.id, anahtar: y.anahtar }))); delete z.sp; z.oto = imza(z); n++; continue; }
+      if (x.oto !== imza(x)) { el++; continue; } // elle taşınmış / değiştirilmiş
+      const eski = x.oto; Object.assign(x, o.props); delete x._c; delete x._g; delete x._q; x.oto = imza(x); if (x.oto !== eski) { g++; if (C.touch) C.touch(x); }
+    }
+    const sil = [...mevcut.values()].filter(x => !yeniK.has(x.anahtar) && x.oto === imza(x)); if (sil.length && C.remove) { C.remove(sil); s = sil.length; }
+    e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot]); delete e._c;
+    if (n || g || s) C.changed && C.changed();
+    if (!sessiz || n || s) C.log(`✓ ${e.code || ''} ekipman: ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}${s ? `, ${s} kaldırıldı` : ''}.`);
+  };
+  // havuz değişince (ölçü, konum, dönüş) ekipman kendiliğinden güncellenir
+  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot]); if (e._ekK !== k) { if (e._ekK == null) { e._ekK = k; continue; } C.anaerobikEkipman(e, true); } } });
 
   /* ================= KOMUT ================= */
   const takeKV = () => { const kv = {}; C.cmd.queue = C.cmd.queue.filter(t => { const m = t.match(/^([A-Za-zÇĞİÖŞÜçğıöşü_0-9]+)=(.*)$/); if (m) { kv[C.up(m[1])] = m[2]; return false; } return true; }); return kv; };
@@ -286,12 +378,18 @@
     const a = await I.angle('Dönüş açısı', p, 0); C.cmd.preview = null; e.rot = typeof a === 'number' ? a : 0;
     C.add(e); if (C.uniteNumarala) C.uniteNumarala(true);
     C.log(`✓ ${T.anaerobik.info(e)}`);
+    if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
+  });
+  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT]', async (I) => {
+    const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');
+    if (!s.length) return C.warn('Çizimde anaerobik havuz yok (önce ANAEROBIK).');
+    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; C.anaerobikEkipman(e); }
   });
 
   /* şerit: Arıtma › Proses */
   if (C.ribbon && C.ribbon.tabs) {
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
-    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }); try { C.ribbon.render(); } catch (err) { } }
+    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));

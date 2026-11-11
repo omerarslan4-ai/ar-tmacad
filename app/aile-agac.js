@@ -71,7 +71,7 @@
     if (tur === 'Vana') return ['Vanalar', 'Diğer vanalar'];
     return ['Diğer ekipman', 'Diğer'];
   };
-  const AILEYOL = { dalgic_pompa_ksb_amarexn: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_wilo_supra: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_grundfos: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], penstock_kanal: ['Kapaklar ve savaklar', 'Penstock / kanal kapağı'], kaba_izgara: ['Izgaralar ve elekler', 'Kaba ızgara'] };
+  const AILEYOL = { dalgic_pompa_ksb_amarexn: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_wilo_supra: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_grundfos: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], penstock_kanal: ['Kapaklar ve savaklar', 'Penstock / kanal kapağı'], dalgic_mikser: ['Diğer ekipman', 'Mikser'], kaba_izgara: ['Izgaralar ve elekler', 'Kaba ızgara'] };
 
   /* ---------------- öğeleri topla ---------------- */
   const dnOf = d => d.dn || (C.parseBlockName ? C.parseBlockName(d.name).dn : null) || null;

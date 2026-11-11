@@ -170,4 +170,47 @@
       g.olcu([Ht / Math.tan(a) + 1.5, 0], [Ht / Math.tan(a) + 1.5, D], 'v', 0.3, `D = ${q.D}`);
     },
   });
+
+  /* ================= DALGIÇ MİKSER (kılavuz direkli) =================
+     Karusel ve anaerobik halkalarda: mikser programının (C.mikserSec) seçtiği pervane çapı, güç ve devirle.
+     Yerel: y = itki (akış) yönü, x = enine, z = tabandan yukarı. Gövde direğin önünde, pervane gövdenin önünde;
+     kılavuz direk tabandan duvar üstüne + 1,0 m, üstte kaldırma vinci (dönen kollu). */
+  const MCOL = { body: [0.20, 0.38, 0.62], prop: [0.85, 0.62, 0.15], mast: [0.70, 0.72, 0.74], davit: [0.95, 0.75, 0.10] };
+  C.aileKaydet({
+    id: 'dalgic_mikser', ad: 'Dalgıç mikser — kılavuz direkli', kisaAd: 'MİKSER', kat: 'Mikser', katman: 'MEK_MIKSER', renk: 1, ifc: 'IfcFlowMovingDevice',
+    aciklama: 'Kılavuz direğe takılı dalgıç mikser. Pervane çapı, güç ve devir mikser programının itki dengesinden gelir; direk tabandan duvar üstüne kadar, üstünde kaldırma vinci.',
+    params: [
+      { k: 'D', ad: 'Pervane çapı', d: 370, min: 150, max: 3000, grup: 'Mikser' },
+      { k: 'P', ad: 'Motor gücü', birim: 'kW', d: 2.5, grup: 'Mikser' },
+      { k: 'rpm', ad: 'Devir', birim: 'd/dk', d: 1400, grup: 'Mikser' },
+      { k: 'lm', ad: 'Gövde boyu', d: 700, grup: 'Mikser' },
+      { k: 'hm', ad: 'Eksen yüksekliği (tabandan)', d: 600, grup: 'Yerleşim' },
+      { k: 'Hd', ad: 'Taban → duvar üstü', d: 3750, min: 500, max: 15000, grup: 'Yerleşim' },
+      { k: 'kol', ad: 'Vinç kolu', d: 800, grup: 'Yerleşim' },
+      { k: 'rb', ad: 'Gövde yarıçapı', f: 'max(120, D*0.32)', grup: 'Hesaplanan' },
+    ],
+    tipler: [{ ad: 'MIK-K-370', p: { D: 370, P: 2.5, rpm: 1400, lm: 700, hm: 600, Hd: 3750, kol: 800 } }],
+    etiket: q => `Ø${q.D} · ${q.P} kW`,
+    etiketYer: q => [0, -(m(q.lm) / 2 + 0.55), 0],
+    liste: q => `Pervane Ø${q.D} mm · ${q.P} kW · ${q.rpm} d/dk · kılavuz direk ${Math.round(q.Hd + 1000)} mm + kaldırma vinci`,
+    bilgi: q => `Pervane Ø${q.D} mm, ${q.P} kW, ${q.rpm} d/dk; eksen tabandan ${q.hm} mm; direk ${Math.round(q.Hd + 1000)} mm`,
+    plan: (q, g) => {
+      const L = m(q.lm), rb = m(q.rb), r = m(q.D) / 2, ym = -L / 2 - 0.12;
+      g.dik(-rb, -L / 2, rb, L / 2, { lw: 35 });
+      g.dik(-r, L / 2 + 0.08, r, L / 2 + 0.14, { lw: 50 }); // pervane
+      g.dik(-0.05, ym - 0.05, 0.05, ym + 0.05, { lw: 25 }); // kılavuz direk
+      g.cizgi([0, ym], [m(q.kol), ym], { lw: 18, lt: 'DASHED' }); // vinç kolu
+      g.cizgi([0, L / 2 + 0.3], [0, L / 2 + 0.9], { lw: 25 }); g.cizgi([0, L / 2 + 0.9], [0.08, L / 2 + 0.75], { lw: 25 }); g.cizgi([0, L / 2 + 0.9], [-0.08, L / 2 + 0.75], { lw: 25 });
+    },
+    mesh: (q, g) => {
+      const L = m(q.lm), rb = m(q.rb), r = m(q.D) / 2, z = m(q.hm), ym = -L / 2 - 0.12, top = m(q.Hd) + 1.0;
+      g.silindir([0, -L / 2, z], [0, L / 2, z], rb, MCOL.body, 16);
+      g.silindir([0, L / 2, z], [0, L / 2 + 0.06, z], 0.05, MCOL.body, 10);
+      g.silindir([0, L / 2 + 0.08, z], [0, L / 2 + 0.14, z], r, MCOL.prop, 24);
+      g.kutu(-0.05, 0.05, ym - 0.05, ym + 0.05, 0, top, MCOL.mast);
+      g.kutu(-0.04, 0.04, ym + 0.05, -L / 2, z - 0.04, z + 0.04, MCOL.mast); // bağlantı
+      g.kutu(-0.04, 0.04, ym - 0.04, ym + 0.04, top, top + 0.5, MCOL.davit);
+      g.kutu(-0.04, m(q.kol), ym - 0.03, ym + 0.03, top + 0.45, top + 0.5, MCOL.davit);
+    },
+  });
 })(window.C);
