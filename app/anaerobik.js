@@ -368,10 +368,19 @@
     const ad = k => k.replace(/^sol-(\d+)/, (m, i) => `Y${+i + 1}S`).replace(/^sag-(\d+)/, (m, i) => `Y${+i + 1}D`).replace(/^orta-(\d+)/, (m, i) => `O${+i + 1}`).replace(/^perde-sol-(\d+)/, (m, i) => `YP${+i + 1}S`).replace(/^perde-sag-(\d+)/, (m, i) => `YP${+i + 1}D`).replace(/^ortak-(\d+)/, (m, i) => `OR${+i + 1}`).replace('kanal-sol', 'KG').replace('kanal-sag', 'KC').replace('alt', 'DA').replace('ust', 'DU').replace('ara', 'AR');
     const walls = G.bantlar.map(b => Object.assign({ id: `${e.id}:${b.anahtar}`, ad: ad(b.anahtar), pts: b.pts.map(W), kapali: !!b.closed, zt: r3(G.zTop) }, tur(b.anahtar)));
     const radye = { id: e.id, pts: G.taban.pts.map(W), t: r3(q.tb), kAlt: r3(G.zF) };
+    // su bölmeleri: halkalar (iç yüze kadar oval) ve iki kanal (dış duvarla halka yaylarının dış yüzü arası); senaryolar (kullanıcı kabulü):
+    // hepsi dolu · her ara halka boş, öbürleri dolu (3 halkada "iki yan dolu, orta boş") · iki uç halka için de bir yanı boş
+    const bolmeler = [], R2b = q.Ro + q.two, ks = G.bantlar.find(b => b.anahtar === 'kanal-sol').pts, yA = ks[1][1] + q.tK / 2, yU = ks[2][1] - q.tK / 2;
+    G.yc.forEach((yc, i) => { const P = []; for (let k = 0; k <= 24; k++) { const a = (-90 + 180 * k / 24) * Math.PI / 180; P.push([G.xc2 + q.Ro * Math.cos(a), yc + q.Ro * Math.sin(a)]); } for (let k = 0; k <= 24; k++) { const a = (90 + 180 * k / 24) * Math.PI / 180; P.push([G.xc1 + q.Ro * Math.cos(a), yc + q.Ro * Math.sin(a)]); } bolmeler.push({ ad: 'H' + (i + 1), pts: P.map(W) }); });
+    const kanal = (sag) => { const P = [], x0 = sag ? G.Lo - q.tK : q.tK, xs = y => { let x = sag ? G.xc2 : G.xc1; for (const yc of G.yc) { const d = Math.abs(y - yc); if (d < R2b) { const s = Math.sqrt(R2b * R2b - d * d); x = sag ? Math.max(x, G.xc2 + s) : Math.min(x, G.xc1 - s); } } return x; };
+      const N = Math.max(8, Math.ceil((yU - yA) / 0.1)); P.push([x0, yA]); for (let k = 0; k <= N; k++) { const y = yA + (yU - yA) * k / N; P.push([xs(y), y]); } P.push([x0, yU]); return P.map(W); };
+    bolmeler.push({ ad: 'KG', pts: kanal(false) }, { ad: 'KC', pts: kanal(true) });
+    const tum = bolmeler.map(b => b.ad), senaryolar = [{ ad: 'Hepsi dolu', dolu: tum }];
+    for (let i = 0; i < G.n; i++) if (G.n === 1 ? false : (i > 0 && i < G.n - 1) || G.n === 2) senaryolar.push({ ad: G.n === 3 ? 'İki yan dolu, orta boş' : `H${i + 1} boş, diğerleri dolu`, dolu: tum.filter(a => a !== 'H' + (i + 1)) });
     const xs = walls.flatMap(w => w.pts.map(p => p[0])), ys = walls.flatMap(w => w.pts.map(p => p[1]));
     const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t)), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t));
     const geo0 = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: radye.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: radye.kAlt, kUst: r3(G.zTop), kSu: r3(G.zW), ust: 'S' };
-    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [] }, geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
+    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [], bolmeler, senaryolar }, geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
       ozet: `${e.code || ''} anaerobik havuz: ${walls.length} perde (${walls.filter(w => w.tip === 'dis').length} dış), radye ${Math.round(radye.t * 100)} cm · kot ${r3(radye.kAlt)} → ${r3(G.zTop)}, su ${r3(G.zW)}`, uyar: [] };
   };
   C.bolgeKati = bolgeKati; C.ucgenle = ucgenle; // ortak: delikli plan şeklinden katı (ön arıtma vb. de kullanır)

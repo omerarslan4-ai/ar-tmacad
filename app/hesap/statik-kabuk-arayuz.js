@@ -52,6 +52,21 @@
         return p => { let v = 0; if (d) { v = (fn.EHt(p[2]) + fn.EQs(p[2]) + fn.E_YAS(p[2])) * k; if (!isFinite(v)) { v = 0; nanUyar.add('Mononobe-Okabe dinamik toprak itkisi tanımsız (φ ≤ θ = atan(kh/(1−kv))): toprak deprem artışı alınamadı — Wood yöntemini seçin ya da φ / S_DS / r değerlerini kontrol edin.'); } } return [-dir[0] * at + (d ? d[0] * v : 0), -dir[1] * at + (d ? d[1] * v : 0), 0]; }; },
     });
     const DX = deprem([1, 0]), DY = deprem([0, 1]);
+    // bölme senaryoları (model M.bolmeler + M.senaryolar verirse; ör. anaerobik halkalar): her senaryoda dolu bölmeler bellidir.
+    // Perde: iki yüzdeki su derinliği farkı (yüz noktası perde dışında, bölme poligonundan bulunur) · radye: dolu bölmenin altında su ağırlığı.
+    // Kombinasyonlarda Hs ve Hd yerine bu durumlar kullanılır (kombler).
+    if (Array.isArray(M.bolmeler) && M.bolmeler.length && Array.isArray(M.senaryolar) && M.senaryolar.length) {
+      const bolmeAt = q => { for (let i = 0; i < M.bolmeler.length; i++) if (pip(q, M.bolmeler[i].pts)) return M.bolmeler[i].ad; return null; };
+      const orta = e => { const X = e.n.map(i => AG.nodes[i]); return [X.reduce((s, q) => s + q[0], 0) / X.length, X.reduce((s, q) => s + q[1], 0) / X.length]; };
+      M.senaryolar.forEach((sn, j) => { const dolu = new Set(sn.dolu || []);
+        L['B' + j] = e => {
+          if (e.tur === 'radye') { if (!(hw > 0)) return null; const c = orta(e), b = bolmeAt(c); return b && dolu.has(b) ? () => [0, 0, -gw * hw] : null; }
+          if (e.tur !== 'perde') return null;
+          const n = e.F.e3, m = orta(e), off = (W[e.wi].t || 0.3) / 2 + 0.15, a = bolmeAt([m[0] + n[0] * off, m[1] + n[1] * off]), b = bolmeAt([m[0] - n[0] * off, m[1] - n[1] * off]);
+          const k = (b && dolu.has(b) ? 1 : 0) - (a && dolu.has(a) ? 1 : 0); if (!k) return null;
+          return p => { const d = Math.max(0, g.kSu - p[2]); if (!d) return null; const v = gw * d * k; return [n[0] * v, n[1] * v, 0]; }; };
+        DURUMAD['B' + j] = 'SU — ' + (sn.ad || 'senaryo ' + (j + 1)); });
+    }
     return { L: Object.assign(L, { EWX: DX.EW, ESX: DX.ES, EWY: DY.EW, ESY: DY.ES }), IT, YK, IC, hw, disYon, nanUyar };
   };
 
@@ -60,6 +75,12 @@
     const out = [];
     for (const k of S.komb) for (const tip of ['tsm', 'emn']) { const f = k[tip] || {}; const dep = ['EHt', 'EHs', 'EQs', 'E_YAS'].some(c => f[c]);
       const base = { G: f.G || 0, Q: f.Q || 0, Hs: f.Hs || 0, Ht: f.Ht || 0, Qs: f.Qs || 0, YAS: f.YAS || 0 };
+      const SN = S.kabuk && Array.isArray(S.kabuk.senaryolar) && S.kabuk.senaryolar.length && Array.isArray(S.kabuk.bolmeler) && S.kabuk.bolmeler.length ? S.kabuk.senaryolar : null;
+      if (SN && base.Hs) { // bölme senaryoları: hidrostatik yük Hs/Hd yerine her senaryonun kendi su durumu
+        const hs = base.Hs, b0 = Object.assign({}, base, { Hs: 0 }), depV2 = dep ? [['X', 1], ['X', -1], ['Y', 1], ['Y', -1]] : [[null, 0]];
+        SN.forEach((sn, j) => { for (const [yon, s] of depV2) { const c = Object.assign({}, b0, { ['B' + j]: hs }); if (yon) { c['EW' + yon] = s * (f.EHs || 0); c['ES' + yon] = s * Math.max(f.EHt || 0, f.EQs || 0, f.E_YAS || 0, 1); }
+          out.push({ ad: `${k.ad} [${sn.ad || 'S' + (j + 1)}]` + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : ''), komb: k.ad, tip, f: c }); } });
+        continue; }
       const hdV = base.Hs ? [1, -1] : [0], depV = dep ? [['X', 1], ['X', -1], ['Y', 1], ['Y', -1]] : [[null, 0]];
       for (const hd of hdV) for (const [yon, s] of depV) { const c = Object.assign({}, base); if (hd) c.Hd = hd * base.Hs; if (yon) { c['EW' + yon] = s * (f.EHs || 0); c['ES' + yon] = s * Math.max(f.EHt || 0, f.EQs || 0, f.E_YAS || 0, 1); }
         out.push({ ad: k.ad + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : '') + (hd ? (hd > 0 ? ' Hd+' : ' Hd−') : ''), komb: k.ad, tip, f: c }); } }
