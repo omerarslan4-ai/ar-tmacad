@@ -1,0 +1,24 @@
+/* ArıtmaCAD — Statik: donatı seçim tercihi (ayarlar "Tasarım ayarları" bölümünde)
+   - S.tas.sTercih : tercih edilen aralık (varsayılan 0.15 m). Yeterliyse o aralıkta en küçük çap; yetmezse en az çelikli seçim.
+   - S.tas.agEsit  : perdede yatay = düşey (iç ve dış katman aynı çap / aralık; iki yüz zaten eşit). Varsayılan açık.
+   Seçimi statik-pafta-dsi.js → P.esitle yapar; burada kısa perdeler de (sonradan eklendikleri için) aynı kurala sokulur. */
+(function () {
+  'use strict';
+  const P = window.STATIK; if (!P || !P.hesapla || P.hesapla._tercih) return;
+  const h0 = P.hesapla;
+  P.hesapla = function (S) { const R = h0.apply(this, arguments); try { if (P.esitle && !(S && S.tas && S.tas.esitCap === false) && R && R.kisa && R.kisa.length) P.esitle(R); } catch (e) { console.error('donatı tercihi', e); } return R; };
+  P.hesapla._tercih = true;
+
+  try {
+    if (typeof FORM !== 'undefined' && typeof S !== 'undefined') {
+      const sec = FORM.find(x => /Tasarım ayarları/.test(x[0]));
+      if (sec && !sec[2].some(f => f.k === 'tas.sTercih')) {
+        sec[2].push({ k: 'tas.sTercih', label: 'Tercih edilen donatı aralığı', t: 'sel', opts: [[0.15, '15 cm (mümkünse)'], [0.2, '20 cm (mümkünse)'], [0.125, '12.5 cm (mümkünse)'], [0, 'Serbest — en az çelik']] },
+          { k: 'tas.agEsit', label: 'Perde yatay / düşey donatı', t: 'sel', opts: [[true, 'Aynı (iç ve dış katman tek ağ)'], [false, 'Her doğrultu ayrı']] });
+        const vars = () => { if (S && S.tas) { if (S.tas.sTercih == null) S.tas.sTercih = 0.15; if (S.tas.agEsit == null) S.tas.agEsit = true; } };
+        vars(); const bf = window.buildForm; if (typeof bf === 'function') { window.buildForm = buildForm = function () { vars(); return bf.apply(this, arguments); }; } // eslint-disable-line no-global-assign
+        try { buildForm(); } catch (e) { }
+      }
+    }
+  } catch (e) { console.error('donatı tercihi formu', e); }
+})();

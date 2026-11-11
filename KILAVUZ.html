@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ArıtmaCAD Kılavuzu</title>
+<style>
+body{font-family:"Segoe UI",system-ui,Arial,sans-serif;max-width:900px;margin:0 auto;padding:24px 20px 60px;line-height:1.6;color:#1d2330;background:#fafbfc}
+h1{margin-bottom:0}h1+p{color:#5b6475;margin-top:4px}
+h2{margin-top:34px;border-bottom:2px solid #e3e7ee;padding-bottom:4px}
+code,kbd{background:#eef1f6;padding:1px 6px;border-radius:4px;font-family:Consolas,monospace;font-size:13px}
+pre{background:#11161f;color:#d7e3f4;padding:12px 14px;border-radius:8px;overflow:auto;font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #dde2ea;padding:5px 8px;text-align:left;vertical-align:top}th{background:#f0f3f8}
+.note{background:#fff7e6;border-left:4px solid #f0a020;padding:8px 12px;border-radius:4px}
+</style></head><body>
+<h1>ArıtmaCAD</h1>
+<p>Arıtma tesisi ve pompa istasyonu tasarımı için hafif, komutla ve sohbetle çalışan 2B/3B CAD programı.</p>
+
+<div style="border:1px solid #3a7;padding:8px 12px;border-radius:6px;margin:10px 0"><b>Sürüm 2026.11.03e — yenilikler:</b> Korkuluk (merdivenle birleşik), Su doldurma (dalgalı), sol Eleman tarayıcısı, 3B yüz okları ile ebat (toplam ölçü + yakalama).  <b>Merdiven</b> (betonarme / çelik ızgaralı / CTP; düz, L, U, helezon; tekmelikli korkuluk, malzeme seçimi). Yüze tek tek doku.  <b>Malzeme dokusu</b> (MALZEME): tuğla, gazbeton, brüt beton, taş, ahşap … ya da kendi resminiz; gerçek ölçüde karo ve kabartma (bump).  3B'de yakınlaştırma: tekerlek, <kbd>+</kbd> / <kbd>−</kbd>, <kbd>Home</kbd> = tümünü göster, <code>Z</code> komutu 3B'de çalışır.  <b>Çizgiden yapı elemanı</b> (ELEMANYAP): planda / 3B'de çizgiyle çizilen şekli seçip temel, perde, duvar, kiriş, döşeme, kolon … yapın.  Çizgi / dikdörtgen / daire / yay / elips / çoklu çizgi geometrisi Özellikler penceresinden değiştirilebilir (koordinat, uzunluk, açı, genişlik, yükseklik, yarıçap, alan). Mekanik kaba ızgara (Arıtma › Boru ve ekipman › Kaba ızgara, komut <code>KABAIZGARA</code>) — üretici çiziminden ölçülendirilmiş parametrik 3B ekipman; DXF'e plan + 3B gövde olarak yazılır, tekrar açıldığında düzenlenebilir nesne olarak gelir. <br><b>Güncelleme:</b> yeni AritmaCAD klasörünü eskisinin üzerine kopyalayın (ya da tek dosya AritmaCAD.html'i kullanın); çizimleriniz etkilenmez.</div>
+<h2>1. Kurulum (Windows)</h2>
+<ol>
+<li>Zip dosyasını bir klasöre çıkarın (ör. <code>C:\AritmaCAD</code>). Kurulum gerekmez, internet olmadan da çalışır.</li>
+<li><b>AritmaCAD-Baslat.bat</b> dosyasına çift tıklayın. Program Google Chrome ya da Microsoft Edge içinde kendi penceresinde açılır.</li>
+<li>Masaüstü kısayolu için: <code>AritmaCAD-Baslat.bat</code> › sağ tık › <i>Gönder › Masaüstü (kısayol oluştur)</i>.</li>
+</ol>
+<p class="note">Sesli komut için Chrome ya da Edge ve internet bağlantısı gerekir (ses tanıma tarayıcının hizmetiyle yapılır). İlk kullanımda mikrofon izni sorulur. Uydu haritası da internet ister; çizim, kaydetme ve dışa aktarma internetsiz çalışır.</p>
+
+<h2>2. Ekran</h2>
+<table>
+<tr><th>Bölüm</th><th>Ne işe yarar</th></tr>
+<tr><td>Sol araç çubuğu</td><td>Çiz, Arıtma, Ölçü, Düzenle ve Pafta komutları. Tıklayınca komut başlar.</td></tr>
+<tr><td>Üst sekmeler</td><td><b>Plan</b> (2B çizim) · <b>3B</b> (döndür: sol sürükle, kaydır: sağ sürükle, yakınlaş: tekerlek) · <b>Harita</b> (uydu görüntüsü üzerinde çizim)</td></tr>
+<tr><td>Alt komut satırı</td><td>AutoCAD gibi komut yazılır. Sarı yazı programın sizden ne beklediğini söyler.</td></tr>
+<tr><td>Sağ panel</td><td><b>Sohbet</b> (yazılı/sesli istek) · <b>Katmanlar</b> · <b>Özellikler</b> (seçili nesneyi düzenleme) · <b>Eklentiler</b></td></tr>
+<tr><td>Durum çubuğu</td><td>YAKALA (F3), ORTO (F8), IZGARA (F7), IZG.YAK (F9), KALINLIK (çizgi kalınlığı gösterimi)</td></tr>
+</table>
+
+<h2>3. Komutla çizim</h2>
+<p>Birim <b>metre</b>, Z ekseni yukarı. Noktaları fareyle tıklayabilir ya da yazabilirsiniz:</p>
+<table>
+<tr><td><code>10,5</code></td><td>mutlak nokta (3B için <code>10,5,-2</code>)</td></tr>
+<tr><td><code>@3,0</code></td><td>son noktaya göre</td></tr>
+<tr><td><code>@5&lt;45</code></td><td>5 m, 45° yönünde</td></tr>
+<tr><td><code>4</code></td><td>imleç yönünde 4 m (orto açıkken yatay/düşey)</td></tr>
+</table>
+<p><kbd>Boşluk</kbd> ya da <kbd>Enter</kbd> onaylar, <kbd>Esc</kbd> iptal eder, sağ tık = Enter, boşken Enter son komutu tekrarlar. Komutu tek satırda da verebilirsiniz: <code>LINE 0,0 10,0 10,5</code>. Ondalık ayırıcı <b>nokta</b>dır.</p>
+<p>Seçim isteyen komutlarda: tıklayın, soldan sağa pencere (tam içindekiler) ya da sağdan sola pencere (kesişenler) çizin, veya <code>HEPSI</code>, <code>SON</code>, <code>KATMAN=BORU</code>, <code>TIP=POMPA</code>, <code>#12</code> yazın.</p>
+
+<h2>4. Komut listesi (seçme)</h2>
+<table>
+<tr><th>Komut</th><th>Kısa / Türkçe</th><th>Açıklama</th></tr>
+<tr><td>LINE, PLINE, RECTANG, CIRCLE, ARC, TEXT</td><td>L, PL, REC, C, A, T / CIZGI, COKLUCIZGI, DIKDORTGEN, DAIRE, YAY, YAZI</td><td>Temel çizim</td></tr>
+<tr><td>MOVE, COPY, ROTATE, SCALE, MIRROR, OFFSET, TRIM, EXTEND, FILLET, ARRAY, EXPLODE, ERASE</td><td>TASI, KOPYALA, DONDUR, OLCEKLE, AYNA, OTELE, BUDA, UZAT, KOSE, DIZI, PATLAT, SIL</td><td>Düzenleme</td></tr>
+<tr><td>DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, KOT</td><td>OLCU, OLCUHIZALI, OLCUYARICAP, OLCUCAP</td><td>Ölçülendirme ve kot işareti</td></tr>
+<tr><td>LAYER</td><td>KATMAN</td><td><code>KATMAN YENI BORU 4 CENTER 0.35</code> · <code>KATMAN AYARLA BORU</code> · KAPAT/AC/KILIT/SIL</td></tr>
+<tr><td>COLOR, LINETYPE, LWEIGHT, LTSCALE, CHPROP, MATCHPROP</td><td>RENK, CIZGITIPI, KALINLIK, DEGISTIR</td><td>Renk (1-255), çizgi tipleri (CONTINUOUS, DASHED, HIDDEN, CENTER, PHANTOM, DOT, DASHDOT, DIVIDE, BORDER), kalınlık (mm)</td></tr>
+<tr><td>OLCEK</td><td></td><td>Çizim ölçeği 1:N. Yazı, ölçü ve çizgi tipi boyutları kağıda göre ayarlanır.</td></tr>
+<tr><td>DUVAR, DOSEME, HAVUZ, DHAVUZ, BORU, POMPA, VANA, KUTU, SILINDIR</td><td></td><td>3B arıtma nesneleri (planda çizilir, 3B'de ve IFC'de gövde olur)</td></tr>
+<tr><td>POMPAISTASYONU</td><td>PI, TERFI</td><td>Komple atıksu pompa istasyonu</td></tr>
+<tr><td>KABAIZGARA</td><td>MEKANIKIZGARA, IZGARA</td><td>Mekanik kaba ızgara (eğimli, zincirli tırmıklı) — parametrik 3B ekipman</td></tr>
+<tr><td>HAZNEHESAP, BORUHESAP</td><td></td><td>V = 0.9·Q/z ; hız ve Hazen-Williams yük kaybı</td></tr>
+<tr><td>PAFTA, YAZDIR, SVGOUT</td><td></td><td>Antetli pafta, yazdırma/PDF</td></tr>
+<tr><td>DIST, AREA, ID, LIST</td><td>MESAFE, ALAN</td><td>Sorgu</td></tr>
+<tr><td>UNDO / REDO</td><td>U, GERIAL / YINELE</td><td>Geri al / yinele (Ctrl+Z / Ctrl+Y)</td></tr>
+</table>
+<p>Tüm liste için komut satırına <code>YARDIM</code> yazın.</p>
+
+<h2>5. Pompa istasyonu üreteci</h2>
+<pre>POMPAISTASYONU 0,0 Q=60 N=3 Z=10 ZG=0 ZIN=-3.5 DIN=300 HEFF=1 HM=15</pre>
+<table>
+<tr><td>Q</td><td>toplam tasarım debisi (l/s)</td><td>N</td><td>pompa sayısı (1 yedek dahil)</td></tr>
+<tr><td>Z</td><td>saatte en fazla kalkış</td><td>ZG</td><td>zemin kotu</td></tr>
+<tr><td>ZIN</td><td>giriş borusu alt kotu</td><td>DIN</td><td>giriş borusu çapı</td></tr>
+<tr><td>HEFF</td><td>start-stop arası yükseklik (m)</td><td>HM</td><td>manometrik yükseklik (bilgi)</td></tr>
+</table>
+<p>Çıktı: ıslak hazne ve vana odası (betonarme, 3B), dalgıç pompalar, çekvalf ve sürgülü vanalar, basma hatları ve kollektör, giriş borusu, A-A kesiti (su seviyeleri, kotlar), ölçüler, hesap özeti ve antetli pafta. Hacim <code>V = 0.9·Qp/z</code>, boru çapı yaklaşık 1.5 m/s hıza göre seçilir. <b>Sonuçlar ön boyutlandırmadır; projeyi mühendis olarak siz kontrol etmelisiniz.</b></p>
+
+<h2>6. Sohbet ve sesli komut</h2>
+<p>Sağdaki <b>Sohbet</b> sekmesine yazın ya da 🎤 düğmesine (veya <kbd>F2</kbd>) basıp konuşun. Örnekler:</p>
+<pre>60 l/s, 3 pompalı pompa istasyonu çiz, giriş kotu -3.5
+yeni katman SU_HATTI mavi kesikli 0.35 mm
+DN150 boru 30,0 50,0 50,10 kot -1.2
+5x3 havuz 4 metre derinlik 20,20
+hazne hacmi 40 l/s saatte 12
+Revit'e aktar · Google Earth KMZ · 3B yazıcı STL · kaydet</pre>
+<p><b>Çevrimdışı mod</b> (anahtarsız) bu tür kalıpları anlar. <b>Claude modu</b> için ⚙ Ayarlar'a Anthropic API anahtarınızı girin (console.anthropic.com, kullanım ücretli). O zaman serbest Türkçe isteklerinizi komutlara çevirir ve sırayla çizer.</p>
+
+<h2>7. Programı geliştirme (Geliştir modu)</h2>
+<p>Sohbetteki <b>Geliştir</b> düğmesine geçin ve programa ne eklenmesini istediğinizi yazın ya da söyleyin. Örnekler:</p>
+<pre>Seçtiğim boruların DN'e göre metrajını çıkaran bir komut ekle
+Dairesel çöktürme havuzu için sıyırıcı köprüsü ve merkez kuyusu çizen komut yap
+Paket arıtma ünitesi üreteci: Q'ya göre havalandırma ve çöktürme hacmi hesaplasın</pre>
+<ul>
+<li><b>API anahtarı varsa:</b> Claude eklenti kodunu yazar, size gösterir. "Kur ve çalıştır" deyince yeni komut hemen kullanılabilir ve kalıcı olur.</li>
+<li><b>Anahtar yoksa:</b> "İsteği kopyala" düğmesi hazır bir metin oluşturur. Bunu claude.ai'deki sohbete yapıştırın, gelen kodu "Gelen kodu yapıştır" ile kurun.</li>
+<li>Eklentiler sekmesinden kapatabilir, silebilir, kodu düzenleyebilir ve <code>.js</code> olarak paylaşabilirsiniz.</li>
+<li>Daha büyük değişiklikler (çekirdek, yeni dosya formatı) için <code>app</code> klasöründeki dosyaları Claude'a ekleyerek istekte bulunabilirsiniz; her modül tek iş yapar (aşağıya bakın).</li>
+</ul>
+
+<h2>8. Dosya formatları</h2>
+<table>
+<tr><th>Format</th><th>Kullanım</th><th>Not</th></tr>
+<tr><td><b>DXF 2000</b> (Kaydet)</td><td>AutoCAD, BricsCAD, ZWCAD, NetCAD, LibreCAD</td><td>Katman, renk, çizgi tipi, <b>çizgi kalınlığı</b>. Pompa, vana, havuz gibi nesneler blok olur; 3B gövdeleri <code>KATMAN_3B</code> katmanlarında çok yüzlü ağdır (planda yazdırmak için bu katmanları dondurun). ArıtmaCAD'de tekrar açınca nesneler parametrik olarak geri gelir.</td></tr>
+<tr><td><b>DXF R12</b></td><td>Eski ya da sorun çıkaran programlar</td><td>En geniş uyumluluk, çizgi kalınlığı yok.</td></tr>
+<tr><td><b>IFC 4</b></td><td>Revit, ArchiCAD, Tekla, Navisworks, BIMvision</td><td>Duvar, döşeme, boru (IfcPipeSegment), pompa (IfcPump), vana (IfcValve) sınıflarıyla, DN/debi gibi özelliklerle. Revit: <i>Ekle › IFC Bağla</i> ya da <i>Aç › IFC</i>. Koordinat sistemi tanımlıysa coğrafi konum da yazılır.</td></tr>
+<tr><td><b>STL</b></td><td>3B yazıcılar (Cura, PrusaSlicer, Bambu)</td><td>mm cinsinden, ölçek sorulur (ör. 1/100).</td></tr>
+<tr><td><b>OBJ</b></td><td>Blender, SketchUp, 3ds Max, Unreal</td><td>Renkli, Y yukarı, metre.</td></tr>
+<tr><td><b>KMZ / KML</b></td><td>Google Earth, QGIS, NetCAD</td><td>Katman başına klasör; havuzlar dolgulu, borular çizgi, pompa/vana işaretli. KMZ/KML içe de aktarılabilir.</td></tr>
+<tr><td><b>Yazdır / PDF</b></td><td>Pafta çıktısı</td><td>Gerçek ölçekte ve gerçek çizgi kalınlığıyla. Yazdırma penceresinde "PDF olarak kaydet" seçin, kenar boşluğu "Yok".</td></tr>
+</table>
+<p class="note">DWG formatı Autodesk'e ait kapalı bir formattır; ArıtmaCAD DXF ile çalışır. AutoCAD DXF'i doğrudan açar. DWG gerekirse AutoCAD'de "Farklı Kaydet" ya da ücretsiz ODA File Converter kullanılabilir. Revit'in kendi .rvt formatına hiçbir bağımsız program yazamaz; Revit'e aktarmanın standart yolu IFC'dir.</p>
+
+<h2>9. Harita ve Google Earth</h2>
+<ol>
+<li><b>Harita</b> sekmesinde sahayı arayın (yer adı ya da <code>39.92, 32.85</code>).</li>
+<li>Koordinat sistemi seçin:
+ <ul><li><b>TM3 (ITRF96)</b>: Türkiye'deki halihazır/aplikasyon koordinatlarıyla çalışıyorsanız (orta meridyen 27, 30, 33, 36, 39, 42, 45).</li>
+ <li><b>UTM</b>: WGS84 UTM dilimi (Türkiye 35-38, Libya 33-35).</li>
+ <li><b>Merkezi orijin yap</b>: yerel koordinatla çiziyorsanız, harita merkezini çizimin 0,0 noktası yapar.</li></ul></li>
+<li>Artık tüm çizim komutları uydu görüntüsü üzerinde çalışır. Yakalama, ölçü ve 3B nesneler dahil.</li>
+<li><b>Dışa aktar › KMZ</b> ile Google Earth'te açın.</li>
+</ol>
+<p>Not: ED50 datumlu eski paftalar ile WGS84/ITRF96 arasında yaklaşık 100 m fark vardır; ArıtmaCAD WGS84/ITRF96 kullanır.</p>
+
+
+<h2>Yeni: DWG açma ve kaydetme</h2>
+<ol>
+<li><b>ODA File Converter</b>'ı kurun. Ücretsizdir; opendesign.com adresinde "ODA File Converter" (Windows) olarak bulunur.</li>
+<li>ArıtmaCAD'i her zaman <b>AritmaCAD-Baslat.bat</b> ile açın. Başlatıcı, DWG yardımcısını arka planda çalıştırır. Yardımcı yalnızca bu bilgisayardan bağlantı kabul eder ve dosyalar internete gitmez.</li>
+<li><b>Dosya › Aç</b> ile .dwg seçin. <b>Dosya › DWG olarak kaydet</b> ile AutoCAD 2000–2018 DWG kaydedin. DWG açtıysanız <kbd>Ctrl+S</kbd> da DWG olarak kaydeder.</li>
+</ol>
+<p class="note">Antivirüs programı, PowerShell ile çalışan yardımcıyı ilk seferde sorabilir. Dosya <code>app\dwg-yardimci.ps1</code> olarak paketin içindedir ve açık metindir.</p>
+
+<h2>Yeni: Düzen (layout), paftalama ve kendi anteti</h2>
+<ul>
+<li><b>Düzen</b> sekmesi kağıt alanıdır. Kağıt boyutu, antet ve ölçekli görünüm pencereleri buradadır.</li>
+<li><b>+ Pencere</b> (<code>MVIEW</code>) ile kağıda iki köşe verip ölçek seçin. Pencereye tıklayınca Özellikler'de ölçek, merkez ve gizlenecek katmanlar görünür. <kbd>Ctrl</kbd> + sürükle ile pencerenin içi kaydırılır.</li>
+<li><b>Ölçüler ölçeğe göre:</b> Ölçü, kot, boru, havuz, pompa ve vana yazıları <b>her görünüm penceresinin kendi ölçeğinde</b> doğru boyutta çizilir. Örneğin 1/50 ve 1/200 pencerelerde yazılar kağıtta aynı boyda görünür. Model alanında ise <code>OLCEK</code> değeri kullanılır.</li>
+<li><b>Paftala</b> (<code>PAFTALA</code>): Modelde bir alan seçin, kağıt ve ölçeği verin. Alan bindirmeli paftalara bölünür (Pafta 01, 02…). Pafta sınırları modelde <code>PAFTA_INDEKS</code> katmanında gösterilir. <b>Tümünü yazdır</b> ile çok sayfalı PDF alınır.</li>
+<li><b>Kendi antetiniz:</b> Anteti AutoCAD'de <b>mm, 1:1</b> çizip DXF ya da DWG kaydedin ve <b>Düzen › Kendi antetimi yükle</b> deyin.
+ <ul>
+ <li>Yazılara <code>{PROJE}</code> <code>{BASLIK}</code> <code>{CIZEN}</code> <code>{KONTROL}</code> <code>{ONAY}</code> <code>{TARIH}</code> <code>{OLCEK}</code> <code>{NO}</code> <code>{REV}</code> <code>{FIRMA}</code> yazarsanız bu alanlar paftadan otomatik doldurulur. ATTDEF etiketleri de çalışır.</li>
+ <li>Yalnız antet kutusu çizdiyseniz kutu sağ alt köşeye yerleşir. Tüm pafta çerçevesini çizdiyseniz çerçeve kağıda sığdırılır.</li>
+ <li>"Bu anteti tüm çizimlerde kullan" ile anteti sabitleyebilirsiniz.</li>
+ </ul></li>
+</ul>
+
+<h2>Yeni: Vana / blok kütüphanesi ve malzeme listesi</h2>
+<ul>
+<li><b>Arıtma › Vana çizimlerimi kütüphaneye yükle</b> ile DWG/DXF dosyanızdaki tüm bloklar kütüphaneye alınır.
+ <ul>
+ <li>Blok adındaki <i>surgulu, kelebek, cekvalf, DN150, plan, kesit</i> gibi ifadelerden cins, çap ve görünüş otomatik tanınır. Kartta ✎ ile düzeltebilirsiniz.</li>
+ <li>Blok içermeyen bir dosya tek bir blok olarak alınır.</li>
+ </ul></li>
+<li><b>Kütüphane</b> penceresinde cinse, DN'e ve plan/kesit görünüşüne göre filtreleyin. Karta tıklayın, noktayı verin, <b>ölçek çarpanını</b> (1 = gerçek boyut) ve boru yönünü girin. Komutla da yerleştirebilirsiniz: <code>VANAEKLE TUR=surgulu DN=200 GORUNUS=kesit</code>.</li>
+<li><b>Hazır şematik vanalar:</b> sürgülü vana, kelebek vana, çekvalf, pislik tutucu ve demontaj parçası; DN50–600, plan ve kesit. Boylar EN 558, flanşlar PN16 ölçülerine göre yaklaşıktır.</li>
+<li><b>Seçimden blok yap</b> (<code>BLOKYAP</code>): Çizdiğiniz bir vanayı kütüphaneye ekler.</li>
+<li><b>BOM</b> (<code>BOM</code>): Bloklar, parametrik vanalar ve pompalar adet olarak, borular DN'e göre metre olarak listelenir. Aynı vana planda ve kesitte çizildiyse bir kez sayılır. Liste çizime tablo olarak eklenebilir ya da CSV (Excel) olarak indirilebilir.</li>
+<li>AutoCAD'den gelen DXF/DWG'lerdeki bloklar artık patlatılmaz, blok olarak kalır ve BOM'da sayılır. Kaydederken de gerçek AutoCAD bloğu olarak yazılır.</li>
+</ul>
+
+<h2>Yeni: Diğer</h2>
+<ul>
+<li><b>Özellikler penceresi:</b> <kbd>Ctrl+1</kbd>, üstteki ☰ düğmesi ya da nesneye çift tıklama ile açılır. Sürüklenebilir ve boyutlandırılabilir.</li>
+<li><b>Geometri (çizim araçları):</b> çizgi, çoklu çizgi, dikdörtgen, daire, yay, elips ve nokta çizildikten sonra Özellikler penceresinin <b>Geometri</b> bölümünden değiştirilir — değeri yazıp Enter:
+ <ul><li><b>Çizgi:</b> başlangıç / bitiş X-Y-Z, uzunluk (başlangıç sabit kalır), açı (başlangıç etrafında döner); Delta X / Y gösterilir.</li>
+ <li><b>Dikdörtgen:</b> başlangıç köşesi X / Y (taşır), genişlik, yükseklik, açı; alan ve çevre.</li>
+ <li><b>Çoklu çizgi:</b> köşe no seçip o köşenin X / Y'si, tüm köşelerin kotu (Z), kapalı / açık (E / H); uzunluk ve alan.</li>
+ <li><b>Daire:</b> merkez X-Y-Z, yarıçap, çap, çevre ya da alan (biri değişince diğerleri hesaplanır).</li>
+ <li><b>Yay:</b> merkez, yarıçap, başlangıç / bitiş açısı, toplam açı; yay uzunluğu. <b>Elips:</b> merkez, büyük / küçük yarı eksen, eksen açısı. <b>Nokta:</b> X-Y-Z.</li>
+ <li><b>Döşeme / radye / tretuvar / dolgu:</b> dikdörtgense <b>en, boy, açı</b>; değilse <b>X boyu, Y boyu</b> (sol alt köşe sabit kalarak ölçeklenir); sol alt köşe X / Y (taşır), köşe no ile tek köşe X / Y, alan, çevre ve tüm <b>kenar boyları</b> (kontrol için). Döşemeye bağlı parapet otomatik izler.</li>
+ <li><b>Yüz ortası tutamaçları (sürükleyerek ebat):</b> bir döşeme, radye, perde, duvar, kolon, tekil temel, kiriş ya da dolgu seçin (3B'de yüzüne tıklamak da yeter). Her kenarın / yüzün ortasında <b>mavi 3B ok</b> çıkar (okun yönü yüzün dışa baktığı yön): oku basılı tutup sürükleyin — yüz kendine paralel kayar, komşu kenarlar uzar / kısalır (döşeme genişler, perde yüzü kayar, kolon b / d büyür). Üst / alt yüz tutamacı kalınlığı / yüksekliği değiştirir, perde ve kiriş uç tutamacı uzatır. Hareket yüz normaline kilitlidir; nesne yakalama açıksa (F3) imleç başka bir nesnenin köşesine / orta noktasına gelince <b>o hizaya yakalanır</b> (yeşil kare). Sürüklerken okun yanında <b>değişim (Δ) ve yeni toplam ölçü</b> yazılır (ör. <i>boy = 8.000 m</i>); imleci okun üstüne getirince de mevcut ölçü görünür. Serbest sürüklemede toplam ölçü tam santimetreye oturur (Shift basılı: milimetre). <b>Yakalama her zaman açıktır:</b> başka bir nesnenin köşesine / kenar ortasına / yüzüne gelince yüz o hizaya kilitlenir (yeşil kare, <i>⟂ yakalandı</i>). Ctrl+Z geri alır. Planda da aynı kenar ortası tutamaçları vardır.</li>
+ <li>Aynı türden birden çok nesne seçiliyse (ör. 5 daire) ortak değer hepsine birden uygulanır; farklı değerler boş görünür. Her değişiklik <kbd>Ctrl+Z</kbd> ile geri alınır.</li></ul></li>
+<li><b>Otomatik ölçülendirme</b> (<code>QDIM</code>): Pencereyle bir alan seçin. <b>H</b> seçeneği alandaki her çizgiyi, duvarı ve havuzu ölçülendirir ve daireler için çap ekler. <b>Z</b> seçeneği yatay ve düşey zincir ölçüyle toplam ölçü verir.</li>
+<li><b>3B'de çizim:</b> 3B sekmesinde komutu verip tıklayın.
+ <ul>
+ <li>Noktalar uç noktalara, merkezlere ve orta noktalara yakalanır. Boşluğa tıklarsanız nokta "Çalışma Z" kotuna düşer.</li>
+ <li>Sol sürükle döndürür, Shift ile sürükle ya da sağ tuşla sürükle kaydırır.</li>
+ </ul></li>
+<li><b>Renk paleti:</b> Katman renginde ya da "Diğer…" seçeneğinde AutoCAD renk dizini (255 renk) penceresi açılır.</li>
+<li><b>Sohbet paneli:</b> Sağ üstteki ◧ düğmesi ya da <kbd>Ctrl+Shift+S</kbd> ile açılıp kapanır.</li>
+<li><b>Hesaplar menüsü:</b> ATV-A 131 proses, blower hava, pompa hidrolik ve dalgıç mikser hesapları ayrı pencerede açılır ve Word raporu internetsiz üretilir.</li>
+</ul>
+
+<h2>Yeni: Boru hattı, fitingler, hatta vana, 3B vanalar ve kesit</h2>
+<ul>
+<li><b>Dirsekler:</b> <code>BORU</code> ile çizilen hatların her dönüşüne standart dirsek (R = 1.5·DN) otomatik konur. Plan ve kesitte boru eksenleri eksen çizgisiyle çizilir. BOM dirsekleri 90°, 45°, 30°, 22,5° ve 11,25° olarak ayrı ayrı sayar.</li>
+<li><b>TE:</b> Yeni boruyu başka bir borunun gövdesinde başlatır ya da bitirirseniz <b>eşit TE</b> (aynı çap) veya <b>inegal TE</b> (farklı çap) eklenir. Boru gövdesine yakalama otomatiktir.</li>
+<li><b>Malzeme:</b> <code>BORU DN=200 Z=-1.5 MAL=PE</code> (ya da <code>PVC</code>, <code>CELIK</code>, <code>DUKTIL</code>).</li>
+<li><b>Hatta vana</b> (<code>VB</code>): Cinsi seçip boru üzerine tıklayın. Vana boru eksenine ve kotuna oturur, boru vana boyu kadar kesilir.
+ <ul>
+ <li><b>PE / PVC</b> borularda iki yana flanş adaptörü ve gevşek flanş eklenir.</li>
+ <li><b>Çelik</b> borularda iki yana kaynak boyunlu flanş eklenir.</li>
+ <li><b>Duktil</b> borularda flanşlı bağlantı kabul edilir; ek parça konmaz.</li>
+ </ul>
+ Peş peşe tıklayarak hızlıca birden çok vana koyabilirsiniz.</li>
+<li><b>3B vanalar:</b> Hazır şematik vanaların 3B gövdesi vardır. Kendi 3B modellerinizi şu yollarla ekleyebilirsiniz:
+ <ul>
+ <li>DWG/DXF bloklarındaki <b>MESH, çok yüzlü ağ (polyface) ve 3DFACE</b> nesneleri 3B gövde olarak alınır.</li>
+ <li>Gövdeleriniz AutoCAD <b>3DSOLID</b> ise önce AutoCAD'de <code>MESHSMOOTH</code> ile ağa çevirin ya da <code>STLOUT</code> ile STL olarak kaydedin.</li>
+ <li><b>3B vana modeli (STL/OBJ) yükle</b> menüsüyle STL/OBJ dosyası doğrudan eklenir.</li>
+ </ul>
+ Modelde akış X yönünde, Z yukarı ve orijin vana ekseninin ortasında olmalıdır. <code>VB</code> komutu, kütüphanede aynı cins ve DN'de modeliniz varsa onu kullanır.</li>
+<li><b>Su tutucu bant (PERDE penceresi)</b>: "Su tutucu bant" kutusunu işaretleyin, bant ölçüsünü (15/5, 20/5, 25/5, 32/5) ve yerini seçin. "Bant alt ucu temel üst kotunda" seçilirse bant temel üstünden başlar; döküm derzi bant merkezindedir: derzin altındaki perde ayağı temelle birlikte (temel katmanında, kesitte temelle tek gövde), üstü ayrı perde olarak çizilir. Perde değişince bant ve ayak da güncellenir, perde silinince ikisi de silinir. Betikte: <code>PERDE BANT=E BANTW=20 BANTYER=ALT …</code></li>
+<li><b>Kesitte su tutucu bant</b>: I tipi profil sembolü (şerit, dişler, orta bulb) ve "SU TUTUCU BANT (PVC 20/5)" açıklama oku ile çizilir (<code>KESIT_SU_TUTUCU_BANT</code>). Yazı istemezseniz <code>KESITAL YAZI=H</code>.</li>
+<li><b>Kesitte tretuvar</b>: kaplama, harç, beton, stabilize, bordür ve bordür yatağı ayrı ayrı taranır (yazısız).</li>
+<li><b>Zemin kaplaması döşeme / radye / temel üstüne</b>: <code>ZEMINKAPLAMA</code> artık oda olmasa da çalışır — tıkladığınız yerin altındaki döşeme, radye, dolgu ya da tekil temelin üst yüzeyinin tamamı kaplanır (süpürgelik konmaz). <b>T</b> = tüm odalar, <b>Y</b> = odası olmayan tüm döşeme / radye / temel yüzeyleri. 3B'de yüzeye tıklamak da olur.</li>
+<li><b>3B boru hattı (BORUHAT)</b>: bitti diyene kadar çizer. Başlangıca tıklayın (bir boru / ek parça ucuna tıklarsanız cins, çap ve yön oradan alınır; S = boru seçimi). Her adımda: noktaya tıklayın, imleç yönünde uzunluk yazın ya da yön harfi + uzunluk: <b>D</b> +X (doğu), <b>B</b> −X, <b>K</b> +Y (kuzey), <b>G</b> −Y, <b>Y</b> yukarı, <b>A</b> aşağı. Köşelere gerçek ölçülü dirsek otomatik konur (çelik / paslanmaz ASME B16.9 uzun yarıçap, duktil EN 545 flanşlı FFK, PE R = 1,5·Ø, PVC / PP-R muflu). Ek parçalar: <b>F</b> flanşlı bağlantı, <b>FA</b> flanş adaptörü, <b>R</b> redüksiyon (konsantrik / eksantrik), <b>T</b> TE (branş yönü, eşit ya da inegal; ana hattan ya da branştan devam), <b>M</b> manşon, <b>KF</b> kör flanş (hattı bitirir), <b>C</b> çap / cins değiştir (aynı cinste çap değişirse redüksiyon), <b>U</b> geri al, <b>Enter</b> bitti. Açık kalan TE ağzından devam etmek için BORUHAT ile o uca tıklayın.</li>
+<li><b>Ek parça (EKPARCA)</b>: dirsek 90 / 45 / 30 / 22,5 / 11,25°, eşit / inegal TE, konsantrik / eksantrik redüksiyon, kaynak boyunlu flanş, flanşlı bağlantı, flanş adaptörü, kör flanş, manşon, kapak — tüm boru cinsleri için gerçek ölçülü ve içi boş. Boru ucuna tıklayınca çap ve yön otomatik; boşlukta yön harfi sorulur.</li>
+<li><b>Kot planında borular</b>: KOTPLANI ile üretilen planda borular ve ek parçalar için eksen çizgileri (…_EKSEN, CENTER), boru adları (…_BORU_YAZI, en uzun parça boyunca) ve poz numarası balonları (…_POZ) otomatik çıkar; GORUNUSGUNCELLE ile birlikte yenilenir.</li>
+<li><b>Kesitte 3B ekipman</b>: pompa, blower gibi 3B ekipmanlar kesitte kesilmez; 3B görünümdeki gibi bakış yönünden görünüşü çizilir (dış hat + belirgin kenarlar, kendi içinde gizli çizgiler ayıklanır; kesilen beton arkasında kalanlar gizlenir). Eski davranış (keserek) için: <code>KESITAL EKIPMAN=KES</code>. GORUNUS ile alınan görünüşlerde de ekipman kenarları çizilir.</li>
+<li><b>Poz numaraları (POZNO)</b>: tüm mekanik elemanlara (borular, ek parçalar, vanalar, pompalar, 3B ekipmanlar) malzeme listesindeki numarayla balon + kılavuz çizgisi konur (MEK_POZ katmanı; T = tümü, E = elle, S = yalnız liste). Aynı cins / çaptaki parçalar aynı numarayı alır; BORULISTE tablosu aynı numaraları kullanır. KESITAL kesitte görünen mekanik elemanlara da aynı numaralı balon koyar (KESIT_POZ; kapatmak: <code>KESITAL POZ=H</code>). Kesitte boruların iç yüzeyi ve iç ağız çizgisi, boru kesilmedikçe görünmez. Balonlar birbirine ve kılavuz çizgilerine binmeyecek yere konur; boyu ve kılavuz uzunluğu kağıt mm cinsindendir, paftada her pencerenin ölçeğine göre değişir (1/50'de de 1/100'de de aynı boyda görünür).</li>
+<li><b>Ölçü birimi (sekmeye göre)</b>: ölçü yazıları <b>Tasarım</b> (model) sekmesinde ve <b>Mimari / Statik</b> paftalarında <b>santimetre</b> (80), <b>Mekanik</b> paftalarında <b>milimetre</b> (800), <b>Genel</b> paftalarda <b>metre</b> (0.80) yazılır. Aynı ölçü her paftada kendi biriminde görünür. Kotlar her zaman metredir (±0.00). Değiştirmek: <code>OLCUBIRIM Mekanik CM</code>, <code>OLCUBIRIM TASARIM M</code>, liste: <code>OLCUBIRIM LISTE</code>.</li>
+<li><b>Seçili nesnenin katmanı</b>: bir nesne seçince (ör. kesitte perde) sağdaki Katmanlar listesinde o nesnenin katmanı sarı vurgulanır ve liste o satıra kayar.</li>
+<li><b>Balonları çekmek (AutoCAD çok kılavuzlu gibi)</b>: balona tıklayın, iki mavi tutamaç çıkar. <b>Balon tutamacını</b> istediğiniz yöne çekin: balon oraya gider, kılavuz çizgisi uzar/kısalır. <b>Uçtaki tutamaç</b> kılavuzun gösterdiği noktayı taşır, balon yerinde kalır. Elle taşıdığınız balonlar POZNO T, GORUNUSGUNCELLE ya da KOTPLANI yenilenince yerini korur.</li>
+<li><b>Boru listesi (BORULISTE)</b>: borular (cins, sınıf, çap, metre), dirsek, TE, redüksiyon, flanş, adaptör, conta ve cıvata takımları; pencerede gösterir, CSV indirir, çizime (Mekanik paftasına) tablo olarak ekler.</li>
+<li><b>Borulama (Mekanik › Borulama, komut BORU)</b>: pencerede boru cinsi (çelik EN 10220 / DIN 2448, çelik ASME B36.10 Sch40-80, paslanmaz 5S / 10S / 40S, galvaniz EN 10255, duktil EN 545 K9 / K10, PE100 EN 12201 SDR 7.4…33, PVC-U basınçlı EN 1452, PVC-U kanalizasyon EN 1401 SN2 / SN4 / SN8, PP-R PN10 / PN20, CTP / GRP ve beton — son ikisi yaklaşık), sınıf ve çap seçilir; dış çap, et kalınlığı, iç çap, iç kesit ve 1 m'deki su hacmi gösterilir. Boru 3B'de içi boş çizilir (uçlarda halka kesit, köşelerde standart dirsek); kesitte halka olarak taranır. Katman: MEK_BORU_&lt;CİNS&gt;. Betikte: <code>BORU CINS=pe SINIF=SDR11 CAP=110 Z=-1.5 x,y x,y …</code> (eski <code>BORU DN= MAL=</code> biçimi de çalışır).</li>
+<li><b>3B esnetme (STRETCH, 3B görünümde)</b>: ekranda kesişen pencerenin iki köşesine tıklayın (yeşil pencere görünür), sonra taban ve ikinci nokta (ya da mesafe). Penceredeki köşeler taşınır — ekipman bloğunda (ör. dalgıç pompanın kılavuz borusu) model esner; o ekipman bu çizimde ayrı bir blok olur, kütüphanedeki asıl model değişmez. Tamamı içerideki nesneler bütün taşınır. Komut: <code>STRETCH</code> / <code>ESNET3B</code>.</li>
+<li><b>3B düzenleme (AutoCAD 3DROTATE gibi)</b>: <code>DONDUR3B</code> — nesneleri seçin, taban noktası (Enter = seçimin ortası), sonra kırmızı (X), yeşil (Y), mavi (Z) halkalardan birine tıklayın (ya da X / Y / Z / İ = iki noktalı eksen yazın); açıölçer çıkar: 15°'lik çentikler, 45°'de etiketler, kesikli çizgi 0° referansı, sarı çizgi ve sayı anlık açı. İmleç 15° adımla yakalar, Shift basılıyken serbest; açıyı yazabilirsiniz. 3B görünümde <code>DONDUR</code>, <code>AYNA</code>, <code>OLCEKLE</code>, <code>DIZI</code> otomatik 3B sürümleriyle çalışır: <code>AYNA3B</code> (XY / YZ / ZX / 3 nokta), <code>OLCEKLE3B</code> (Z dahil), <code>DIZI3B</code> (satır × sütun × kat ya da eksen etrafında kutupsal). <code>STRETCH</code> (ESNETME): kesişen pencere + taban + hedef; penceredeki köşeler taşınır, tamamen içeridekiler bütün taşınır. Yüz esnetmek için <code>ESNET</code>. X / Y etrafında döndürme: ekipman (3B blok), katı, kutu, silindir, 3B ağ, çizgi, çoklu çizgi, gruplar; perde, döşeme, kolon gibi düşey yapı elemanları yalnız Z etrafında döner.</li>
+<li><b>Mekanik sekmesi ve 3B ekipman kütüphanesi</b>: alt çubukta <b>Mekanik</b>e tıklayınca üst şerit Mekanik sekmesine geçer (çizim alanı değişmez). <b>Ekipman yükle</b>: GLB, glTF (ZIP), OBJ, STL dosyalarını (birden çok) kategori (pompa, dalgıç pompa, blower, mikser, difüzör, sıyırıcı, ızgara, vana, dozaj, dekantör, tank, vinç, ölçüm, diğer), birim ve yükseklikle kütüphaneye ekler; önizleme resmi otomatik çıkar. <b>Kütüphane</b>: arama, kategori, karta tıkla → planda nokta, ölçek, açı ile yerleştir; 3B sekmesinde gerçek model, planda üstten sınır, BOM'da sayım. Kartta ✎ ad, ⇄ kategori, 🗑 sil. Son kullanılanlar şeritte listelenir. Komutlar: <code>EKIPMAN</code>, <code>EKIPMAN KAT=Pompa</code>, <code>EKIPMANYUKLE</code>, <code>EKIPMANEKLE ID=…</code>. STEP / IGES / DWG 3B dosyalarını önce GLB ya da STL'e çevirin.</li>
+<li><b>3B'de izleme referansları (2B ile aynı)</b>: 3B görünümde çizerken de <b>kutupsal izleme</b> (tabandan 0-30-45-60-90° … çalışma düzleminde), <b>nesne izleme</b> (çizginin önceki köşelerinden ve imlecin üzerinden geçtiği uç / orta / merkez noktalarından X / Y hizalama çizgileri) ve <b>Z izleme</b> (tabandan ve bu noktalardan dikey Z+ / Z− çizgileri) kesik yeşil çizgiyle gösterilir. İki izleme çizgisinin kesişimi yakalanır (ör. <i>Kesişim: 0° × 90°</i>); dikey Z çizgisinde başka bir noktanın yüksekliği <i>yükseklik hizası</i> olarak yakalanır. Nokta önce düzlemde (alttaki seviyeye) izdüşürülür, böylece farklı kottaki köşelerle de hizalanabilirsiniz. <b>Dinamik ölçü</b>: lastik çizginin üzerinde uzunluk, tabanda açı yayı ve açı, eğik çizgide Δz. Yön belirlendikten sonra sayı yazıp Enter: o yönde o uzunluk. Aç / kapa 2B ile ortak: <kbd>F10</kbd> KUTUPSAL, <kbd>F11</kbd> N.İZLEME, <kbd>F12</kbd> DİNAMİK; <kbd>Shift</kbd> basılıyken izleme yapılmaz. Kırmızı / yeşil / mavi eksen çıkarımı aynen sürer.</li>
+<li><b>2B plan + kesitlerden 3B model (2B3B)</b>: İnşaat › DXF → 3B › <b>Plan + kesitten 3B</b> (komut <code>2B3B</code>). Panelde <b>+ Çizim ekle</b> ile DXF / DWG çizimlerinizi ekleyin (ya da sürükleyip bırakın; eklenenler mevcutların sağına konur). Program çizimdeki planları (başlıkta kot ve PLAN / PLANI, ör. <i>-8.30 ELEVATION PLAN</i>, <i>93.25 KOTU PLANI</i>, <i>ZEMİN KAT PLANI (+0.00)</i>) ve kesitleri (<i>SECTION A-A</i>, <i>KESİT B-B</i>, <i>A-A KESİTİ</i>, <i>1-1 KESİTİ</i>) kendisi bulur ve listeler: planlar aks balonlarıyla (1, 2… / A, B…) üst üste oturtulur; kesit çizgisi plandaki harflerden (A … A; kesitte harfli akslar görünüyorsa çizgi düşey, rakamlı akslar görünüyorsa yatay aranır), kesitin yatay konumu aks balonlarından, kotu kot işaretlerinden okunur. Satırda <i>Eşleşme</i> sütunu ✓ ise hazırdır; ⚠ ise türünü değiştirin, plan kotunu düzeltin ya da <b>Çizgiyi seç</b> ile kesit çizgisini planda iki noktayla verin. <b>3B oluştur</b>: betonarme (dolu / SOLID tarama) perde, kolon, radye, döşeme ve grobeton olarak modellenir; kesitlerin kesmediği yerler planda aynı duvar ya da oda içinden ulaşılan en yakın kesitten tamamlanır. Model en alttaki planın üzerine oturur. Yeniden oluşturmak öncekini siler; Geri al yalnız modeli geri alır. Hassasiyet 5 cm (10 cm hızlı, 2.5 cm ince). Eğimli yüzeyler hassasiyet adımında basamaklı çıkar; ekipman, boru ve tuğla duvarlar bu sürümde modellenmez.</li>
+<li><b>Çizim sekmeleri (birden fazla çizim aynı anda)</b>: çizim alanının üstünde AutoCAD dosya sekmeleri gibi açık çizimler listelenir. <b>Dosya › Aç</b> penceresinde birden çok dosya seçilebilir (DXF, DWG, .aritma); her biri kendi sekmesinde açılır. Mevcut çizim boşsa ilk dosya aynı sekmeye açılır. <b>+</b> yeni boş çizim, <b>✕</b> ya da orta tuş sekmeyi kapatır (kaydedilmemişse sorar). Kaydedilmemiş sekmede adın yanında <b>*</b> görünür. Her sekmenin kendi geri al / yinele geçmişi, kayıt dosyası, paftaları ve görünümü (plan yakınlığı, 3B açısı, seviye) vardır. <kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd>: sonraki / önceki sekme. Komutlar: <code>SEKMEYENI</code>, <code>SEKMEKAPAT</code> (<code>CLOSE</code>). Sekmeler arasında kopyala-yapıştır (Ctrl+C / Ctrl+V) ile nesne taşınabilir.</li>
+<li><b>Alt sekmeler (AutoCAD Model / Layout gibi)</b>: komut satırının altında <b>Tasarım</b> (model, çizim alanı) ve disiplin grupları <b>Mimari, Mekanik, Statik, Elektrik, Genel</b>. Bir gruba tıklayınca o grubun paftaları yanında sekme olarak açılır (boşsa ilk pafta otomatik açılır, ör. Statik-01). <b>+</b> yeni grup, <b>+ Pafta</b> o gruba yeni pafta. Sekmeye çift tık: yeniden adlandır; sağ tık: aç, yeniden adlandır, kopyala, sola/sağa taşı, başka gruba taşı, sil. Komut: <code>PAFTAGRUP YENI / AD / SIL / LISTE</code>.</li>
+<li><b>Perde parçası it / çek (SketchUp gibi) — PERDEPARCA</b>: perdenin bir kısmını ayırıp üstünü indirir / kaldırır, tabanını derinleştirir ya da parçayı aşağı / yukarı taşır. Perdeyi seçin (ya da komutta tıklayın) → parçanın başlangıcına tıklayın ya da imlece en yakın uçtan mesafe yazın (0 = uç) → parça boyunu yazın (ör. 2) → <b>Ü</b> üst yüz / <b>A</b> alt yüz / <b>T</b> taşı → mesafe (eksi = aşağı, ör. −4). İmleç duvarda gezerken iki uca olan mesafeler yazar. Perde parçalara bölünür; kapı / pencere açıklıkları, perde ayağı ve su tutucu bant parçalarla birlikte gider. Kapalı (havuz) perdede de çalışır. Sağ tık menüsünde ve şeritte (İnşaat, 3B Modelleme › Modelle) de var. <code>PERDEBOL</code>: perdeyi tıklanan noktalardan böler; her parça 3B'de kendi oklarıyla ayrıca düzenlenir. 3B'deki yüz okları daha kısa ve kompakt.</li>
+<li><b>Sıkıştırılmış dolgu (kolay) — DOLGU</b>: 1) dolgu yapılacak alana tıklayın: 3B'de perdelerle çevrili alanın tabanına (temelin üstüne), planda alanın içine. Kapalı alan yoksa <b>S</b> yazıp sınırı tıklayarak çizin ya da önce kapalı bir çoklu çizgi / dikdörtgen seçip komutu verin. 2) yüksekliği verin: <b>kalınlık yazın</b> (ör. <code>1.20</code> = alt kottan 1.20 m yukarı) · <b>K</b> yazıp <b>üst kotu</b> girin (ör. <code>-0.30</code>) · <b>referans noktaya tıklayın</b>: 3B'de dolgu imleçle birlikte yükselir, perde üstü, basamak, döşeme altı gibi noktalara yakalanır, kot ve kalınlık imleç yanında yazar; planda tıkladığınız elemanın (perde, döşeme, temel, dolgu) üst kotu alınır · <b>Enter</b> = otomatik (üstte döşeme varsa altı, yoksa çevre perdelerin üstü). Alt kot alanın altındaki radye / temel üstüdür. <b>T</b> = tüm iç alanlar otomatik, <b>M</b> = malzeme (stabilize / kum-çakıl / toprak). Sonradan kotları Özellikler'den ya da 3B'de üst yüz okuyla (mesafe yazarak) değiştirebilirsiniz. Eski ayar pencereli sürüm: <code>DOLGUAYAR</code>.</li>
+<li><b>3B'de eleman köşelerini yakalamak</b>: bir elemanın kenarı başka elemanın yüzüne girdiği yerde (ör. döşemenin perdeye değdiği köşe, kirişin perde yüzüne girdiği yer) <b>Kesişim</b> yakalanır; köşe iki elemanın da kendi köşesi olmasa bile. Bir yüzün arkasında ya da elemanın içinde kalan (görünmeyen) noktalar artık yakalanmaz; yalnız gördüğünüz noktalara yapışır.</li>
+<li><b>3B'de dik / düz çizmek (SketchUp gibi hizalama)</b>: çizerken imleç kırmızı (X), yeşil (Y) ya da mavi (Z) eksenin üstündeyken bir noktaya yakalanırsa nokta eksene izdüşürülür: çizgi tam dik / düz kalır, ucu o noktanın hizasında olur (etikette "Kırmızı eksen (X) · hizada: Uç nokta", turuncu kesik çizgi referansı gösterir). ORTO (F8) açıkken de yakalanan nokta yatay / düşey hizaya alınır. <b>Dik</b> yakalama (bir kenara dik ayak) artık varsayılan olarak açık. Shift basılıyken hizalama yapılmaz (noktanın kendisi). Uzunluğu yazarak da verebilirsiniz (ör. <code>.3</code> = 0,30 m).</li>
+<li><b>3B'de çizip perde yapmak</b>: 3B görünümde ÇİZGİ / ÇOKLU ÇİZGİ / DİKDÖRTGEN / DAİRE ile temelin ya da döşemenin üstüne çizin (çizgi tıkladığınız yüzeyin kotunda olur). Sonra çizgiye sağ tıklayıp <b>🧱 Bu çizgiden perde yap…</b> seçin ya da şeritte 3B Modelleme › Modelle › <b>Çizgiden perde</b>. Uç uca çizgiler tek perde olur, kapalı şekil kapalı perde; perdenin altı çizginin kotundadır (−3.00'daki temele çizdiyseniz perde −3.00'dan başlar). Kalınlık, yükseklik, hiza, su tutucu bant perde penceresinden. Aynı sağ tık menüsünde duvar, kiriş, temel, döşeme için <b>Çizgiden başka eleman</b> da var (ELEMANYAP).</li>
+<li><b>3B okla tam ölçü (SketchUp gibi)</b>: oku tutup sürüklerken ya da bıraktıktan hemen sonra mesafeyi klavyeden yazın (ör. <code>3.25</code> ya da <code>3,25</code>) ve Enter'a basın; yazdığınız değer görünümde ve komut satırında görünür. Sayı sürükleme yönünde uygulanır (aşağı sürüklediyseniz 4 = 4 m aşağı); başına <code>-</code> yazarsanız okun tersine, <code>+</code> okun yönüne. Oka tıklayıp bırakıp da yazabilirsiniz. Backspace siler, Esc vazgeçer, Ctrl+Z geri alır.</li>
+<li><b>Perdeleri birleştirmek (BİRLEŞTİR)</b>: uç uca değen perdeleri seçip <b>Birleştir</b>'e basın (3B Modelleme › Katı › Birleştir ya da <code>BIRLESTIR</code>). Kalınlığı, yüksekliği, alt kotu ve yüz hizası aynı olan perdeler <b>tek perde</b> olur: düz devamda ara çizgi kalmaz, köşede gönyeli tek köşe olur (iki ayrı perdenin köşesinde kalan boşluk da dolar), dört parça kapanıyorsa kapalı (havuz) perdesi olur. Ters yönde çizilmiş perdeler de birleşir. Kapı / pencere açıklıkları birleşen perdeye geçer. Perdeler artık grup (birleşik katı) yapılmaz, perde olarak kalır (metraj, kesit, oklar çalışır). Daha önce Birleştir ile grup yapılmış perdeleri seçip yeniden Birleştir derseniz onlar da gerçek tek perdeye çevrilir. Yüksekliği farklı perdeler birleşmez ama aynı hizada devam ediyorlarsa tek yüzey görünür.</li>
+<li><b>AutoCAD'e paftalar ve 2B çizimler</b>: <b>Dosya › Farklı kaydet (DXF)</b> ile kaydedilen dosyada ArıtmaCAD paftaları AutoCAD'de gerçek <b>Layout sekmeleri</b> olarak açılır: antet, başlık ve pencere yazıları kağıt alanında (mm), görünüm pencereleri gerçek <b>viewport</b> (merkez ve ölçek aynı, kilitli pencere kilitli). Kesitler, kot planları ve tüm 2B çizimler model alanındadır; yazı, ölçü, kot ve poz balonları onları gösteren pencerenin ölçeğinde yazılır, paftada ArıtmaCAD'deki boyda görünür. Viewport ölçeği AutoCAD'de 1 mm kağıt = 1 birim olduğundan 1/100 → 10:1, 1/50 → 20:1 olarak görünür (çıktı doğru ölçekte). Gizli çerçeveli pencereler PAFTA_PENCERE_GIZLI katmanında (kapalı). ArıtmaCAD dosyayı geri açınca paftalar yine kendi verisinden gelir.</li>
+<li><b>Eleman tipleri (Revit duvar / döşeme tipleri gibi)</b>: <code>TIPLER</code> (ya da Seviyeler › <i>Tipler…</i>, eleman özelliklerinde <i>Tipleri düzenle</i>). Perde / duvar tipi: taşıyıcı kalınlık, malzeme, beton sınıfı, <b>dış katmanlar</b> (en dıştan perdeye: ör. drenaj levhası, XPS, bitümlü su yalıtımı) ve <b>iç katmanlar</b> (perdeden odaya: ör. sıva, boya). Döşeme ve radye tipi: <b>üst katmanlar</b> (seramik, yapıştırıcı, şap…) ve <b>alt katmanlar</b> (koruma betonu, su yalıtımı, grobeton / tavan sıvası, boya). Her satır <i>malzeme ; kalınlık cm</i>. Hazır tipler: P-01…P-04, D-01…D-04, R-01, R-02.
+<ul><li><i>Yeni çizimlerde bu tipi kullan</i>: o türde yeni çizilen elemanlar bu tiple çizilir (kalınlık tipten gelir). Var olan elemana: seçip özelliklerde <b>Eleman tipi</b> ya da <code>TIPATA P-02</code>. Tip kaydedilince o tipteki tüm elemanların kalınlığı güncellenir.</li>
+<li>Malzeme açılımı ve mahal listesi tip katmanlarından dolar; ayrıca kaplama / yalıtım modellemeniz gerekmez. Duvarda iç-dış yönü odaya bakarak bulunur. Zemin kaplaması verilmemişse odalar her seviyede perdelerin çevrelediği alanlardan bulunur; oda adı için <code>MAHALADI</code> ile odanın içine ad yazın.</li></ul></li>
+<li><b>Proje şablonları</b>: <code>SABLON</code> (Seviyeler › <i>Şablonlar…</i>): bu çizimin katmanlarını, kat seviyelerini, eleman tiplerini, kot stilini, dil ve çeviri tablosunu, pafta gruplarını ve pafta düzenlerini (pencereler hariç), yazı / ölçü ayarlarını şablon olarak kaydeder. Yeni projede önce şablon sorulur. Şablon dosyaya verilip başka bilgisayara taşınabilir (.aritmasablon).</li>
+<li><b>ArıtmaCAD proje dosyası (.aritma)</b>: çizimin tamamı (model, katmanlar, paftalar, seviyeler, tipler, canlı görünümler, tüm ayarlar) tek dosyada, kayıpsız saklanır. Yeni çizimde <b>Ctrl+S</b> .aritma kaydeder; DXF ya da DWG açtıysanız Ctrl+S o biçimde kaydeder. <b>Dosya › Proje olarak farklı kaydet</b>; açmak için Dosya › Aç (.aritma seçilebilir). Önerilen çalışma: projeyi .aritma olarak tutun, AutoCAD'e Dosya › AutoCAD'e … çıktılarıyla verin.</li>
+<li><b>Canlı kesit ve kot planları</b>: <code>KESITAL</code> ve <code>KOTPLANI</code> ile alınan görünümler sağ panel › <b>Görünümler</b> sekmesinde listelenir. 3B model değişince (perde, döşeme, kot…) kendiliğinden aynı yerde yeniden üretilir; kapatmak için <i>Model değişince otomatik güncelle</i> kutusu, tek görünüm için <i>Dondur</i>. Elle: <i>Güncelle / Hepsini güncelle</i> ya da <code>GORUNUMGUNCELLE</code>. Görünümün ürettiği çizgileri elle değiştirmeyin (güncellemede yeniden çizilir); üzerine eklediğiniz ölçü, yazı ve malzeme açılımları korunur, açılımlar modelden yeniden okunur. Bu sürümden önce alınmış kesitleri bir kez yeniden alın.</li>
+<li><b>Kolon gusesi (vinç kirişi konsolu)</b>: <code>KOLON</code> ayar penceresinde <b>Guse (vinç konsolu)</b> sekmesi: Guse = Var, yön (sağ, sol, ön, arka, sağ + sol, ön + arka, dört yön), üst kot (kolon üstünden aşağı mesafe ya da mutlak proje kotu), çıkma, kolon yüzünde ve uçta yükseklik (alt yüz eğik), genişlik (0 = kolon yüzü kadar). Dikdörtgen ve dairesel kolonda çalışır; 3B'de, kesitte (eğik alt yüzle) ve metrajda (hacme eklenir) görünür, planda kesikli çizilir. Guse üst yüzünün ortasına ve uç köşelerine yakalanılır (vinç kirişi buraya oturur). Var olan kolon: sağ tık › Ölçüleri düzenle › Guse sekmesi. Betikte: <code>KOLON GUSE=E GYON=RL GZ=1.5 GL=50 GHF=70 GHU=35 …</code></li>
+<li><b>Kat seviyeleri (Revit Levels gibi)</b>: yeni projede (ve ilk açılışta) <b>Yeni proje — kot sistemi</b> penceresi açılır: doğal toprak (arazi) kotu ve ±0.00 kotu mutlak olarak girilir, yapı tipi (pompa istasyonu, arıtma havuzu, bina) seçilince hazır seviyeler gelir; satırlar düzenlenir, eklenir, silinir. Sonradan: sağ panel › <b>Seviyeler</b> sekmesi ya da <code>SEVIYEKUR</code>.
+<ul><li><b>Seviyeler paneli</b>: ad ve proje kotu düzenlenir (mutlak kot yanında), aktif seviye seçilir (3B çalışma kotu bu olur; durum çubuğunda da <i>Seviye</i> seçimi var). <i>Plan</i>: Tasarım'da yalnız o seviyenin elemanları görünür (o katta çizilen 2B yazı / ölçüler de o kata ait olur). <i>Kot planı</i>: seviyenin 1.20 m üstünden kesilmiş kot planı çizer. <i>Paftaya</i>: o seviyenin planını yeni paftaya ölçekli pencere olarak koyar. <i>Kat çoğalt</i>: en üste kat yüksekliğiyle yeni seviye. Komutlar: <code>SEVIYE ad kot</code>, <code>SEVIYEKOT ad yeniKot</code>.</li>
+<li><b>Elemanlar seviyelere bağlıdır</b>: perde, döşeme, radye, temel, kolon, kaplama… kendi seviyesine (döşeme ve temel üst yüzüyle), perde ve kolon ayrıca üst seviyeye bağlanır. Bir seviyenin kotunu değiştirince bağlı elemanlar birlikte kayar; perde ve kolonun boyu üst seviyeye göre kendiliğinden uzar / kısalır (ör. temel kotu yükselince radye ve perde tabanı yükselir, perde üstü çatıda kalır). Eleman seçiliyken özelliklerde <b>Alt seviye / Alt öteleme / Üst seviye / Üst öteleme</b>. Eski çizimlerde elemanlar kotlarına göre en yakın seviyeye otomatik bağlanır.</li>
+<li><b>Kesitte</b>: her kesitte seviye çizgileri ve etiketleri (ad, proje kotu, mutlak kot) ile toprak çizgisi ve taraması kendiliğinden çizilir. Seviye çizgisinin sağ ucundaki tutamacı yukarı / aşağı çekince seviye kotu değişir. Çıktıda istemezseniz: Seviyeler › <i>Seviye çizgileri çıktıda</i> / <i>Toprak çizgisi çıktıda</i> kutularını kapatın (paftada, PDF'te ve AutoCAD çıktısında görünmez, Tasarım'da görünür).</li>
+<li><b>3B'de</b>: her seviye yarı saydam bir düzlem ve kot etiketiyle görünür, aktif seviye vurgulanır; toprak kotu kahverengi kesikli düzlemdir. Seviyeler › <i>3B'de düzlemler</i> ile gizlenir.</li></ul></li>
+<li><b>Malzeme açılımı (kesitte katman notu)</b>: <code>MALZEMEACILIM</code> — kesitte döşeme, çatı, duvar ya da temelin üzerine tıklayın, sonra yazının yerini gösterin. O noktadaki katmanlar 3B modelden sırasıyla yazılır: üstten alta (karo / seramik, yapıştırıcı, şap, donatılı zemin betonu, radye / döşeme, koruma betonu, su yalıtımı, grobeton, dolgu…) ya da duvarda dıştan içe (drenaj levhası, XPS, su yalıtımı, perde, sıva, boya). Satır aralığı ve yazı boyu kağıtta sabittir, ölçek değişince aralık bozulmaz. <code>MALZEMEACILIM T</code>: kesite bir kez tıklayın, kesitteki tüm farklı katmanlaşmalar otomatik konur. <code>MALZEMEACILIM G</code>: model değişince tüm açılımları yeniden okur. Açılıma sağ tık › <i>Açılım satırlarını düzenle</i>. Kesit bu sürümle alınmış olmalıdır (KESITAL).</li>
+<li><b>Mahal listesi</b>: <code>MAHALLISTESI</code> — örnekteki Room Finish Schedule gibi: her mahal bir satır; Temel, Döşeme / Zemin kaplaması, Duvar kaplaması, Tavan / Çatı, Kapı, Pencere grupları altında numaralı, dikey yazılı malzeme sütunları ve kullanılan malzemede nokta; her grubun NOT sütunu. Mahaller zemin kaplaması verilmiş odalardır; adları <code>MAHALADI</code> (ya da kaplamaya sağ tık › Mahal adı, ya da odanın içine yazı). Tablo modelden canlıdır, kaplama değişince kendiliğinden güncellenir.</li>
+<li><b>Disipline özel açıklamalar</b>: malzeme açılımı, mahal listesi ve su tutucu bant yazısı yalnız <b>Mimari</b> paftalarda; poz balonları yalnız <b>Mekanik</b> paftalarda görünür. Herhangi bir nesne için: seçip özelliklerde <b>Disiplin</b> (ya da <code>DISIPLINATA</code>). Pafta penceresinin içinde (model alanında) eklenen yazı, ölçü ve açıklamalar o paftanın disiplinine ait olur. Disiplin başına AutoCAD dosyası alırken de bu kural uygulanır.</li>
+<li><b>Proje dili (Türkçe / English)</b>: Çizim ayarları › <b>Proje dili</b> ya da <code>DIL EN</code> / <code>DIL TR</code>. Çizimdeki yazılar — malzeme adları, açılımlar, mahal listesi, kesit başlıkları (A-A KESİTİ → SECTION A-A), antet, kot açıklamaları ve sözlükteki terimler — seçilen dilde gösterilir ve DXF / PDF'e öyle yazılır; çizim Türkçe olarak saklanır, geri dönünce Türkçe görünür. Sözlükte olmayan kendi yazılarınız için <code>CEVIRI</code> (Çeviri tablosu): her yazının İngilizce karşılığını bir kez yazarsınız, tüm çizimde kullanılır.</li>
+<li><b>Kot işareti stili</b>: sağ paneldeki <b>Çizim ayarları</b> (hiçbir şey seçili değilken) › <b>Kot işareti</b> düğmesi ya da <code>KOTSTIL</code> komutu. Açılan pencerede 6 şekilden biri seçilir: <i>Standart</i> (boş üçgen, dikme, üst çizgi, zemin çizgisi), zemin çizgisiz standart, dolu üçgen, yarım dolu üçgen, dikmesiz boş üçgen + çizgi ve eski ArıtmaCAD işareti. Seçim çizimdeki <b>tüm kotlara</b> (kesit, görünüş, elle konan, yeni konacak) aynı anda uygulanır; geri al ile dönülür. Kot yazıları <b>KOT</b> yazı stilindedir: Romans çizgi fontu (AutoCAD'de <i>romans.shx</i>), ekranda, paftada ve AutoCAD'de aynı görünür. Yazının sola / sağa bakması: kotu seçip özelliklerde "Yazı üçgenin solunda" = 1 / 0. Komut satırından: <code>KOTSTIL ORNEK</code> (ORNEK_Z, DOLU, YARIM, BASIT, KLASIK).</li>
+<li><b>AutoCAD'e ayrı çıktılar</b> (Dosya menüsü):
+<ul><li><b>AutoCAD'e 2B: plan, kesit, tablo, paftalar (DXF)…</b> (<code>DXF2B</code>): sadece 2B çizim — plan, kot planları, kesitler, görünüşler, tablolar, ölçü/kot/yazı/balon ve tüm paftalar. 3B katılar alınmaz.</li>
+<li><b>AutoCAD'e paftalar: her disiplin ayrı dosya…</b> (<code>DISIPLINDXF</code>): her pafta grubu (Mekanik, Mimari, Statik, Elektrik, Genel…) <b>ayrı dosya</b> olur: <i>Proje_Mekanik.dxf</i>, <i>Proje_Statik.dxf</i>… Her dosyada yalnız o grubun paftaları (Layout sekmeleri) ve pencerelerinde görünen çizim vardır. Bir klasör seçersiniz; dosyalar ve <b>DWG-YAP.bat</b> oraya yazılır. <b>DWG-YAP.bat'a çift tıklayınca</b> klasördeki tüm DXF'ler bilgisayarınızdaki AutoCAD ile (açmadan, arka planda) <b>AutoCAD 2018 DWG</b> olur. Tek grup için: alt sekmede gruba sağ tık › <i>AutoCAD dosyası olarak kaydet</i>.</li>
+<li><b>AutoCAD'e 3B model (DXF)…</b> (<code>DXF3B</code>): yalnız 3B model (perde, döşeme, temel, boru, ekipman…) kendi katmanlarında yüzey ağı olarak; istediğiniz zaman ayrıca alınır.</li></ul></li>
+<li><b>Birleşen perdeler tek yüzey</b>: uç uca devam eden ve yüzleri aynı hizada olan perdeler (PERDEPARCA / PERDEBOL parçaları ya da ayrı çizilmiş perdeler) 3B'de ara birleşim çizgisi ve iç yüzü olmadan tek yüzey görünür. Yükseklikleri farklıysa yalnız gerçek basamak (yüksek perdenin açıkta kalan ucu) çizilir. Planda aynı yükseklikteki birleşimde ara çizgi yoktur.</li>
+<li><b>Su tutucu bantlı perdede döküm derzi</b>: derz bandın ekseninde; bandın altındaki perde ayağı temelle birlikte dökülür, kesitte temelin taramasıyla ve temelle tek parça gösterilir, derz çizgisi bandın ortasından geçer. Eski çizimlerdeki bantlı perdeler açılışta kendiliğinden düzeltilir (elle: <code>BANTDERZ</code>).</li>
+<li><b>Paftada çizimi düzenlemek (AutoCAD MSPACE)</b>: paftadaki görünüm penceresine çift tıklayın; pencere yeşil çerçeveli olur ve çizim aynı ekranda, pencerenin içinde düzenlenir: seçim, tutamaçlar, yakalama, çizim ve düzenleme komutları (ÇİZGİ, TAŞI, SİL, POZNO…) çalışır, değişiklik doğrudan modele işler. Orta tuşla sürükleme kaydırır, tekerlek standart ölçekler arasında pencere ölçeğini değiştirir. Yazı, ölçü ve balonlar pencerenin ölçeğinde görünür. Kilitli pencerede kaydırma ve ölçek kapalıdır, düzenleme açıktır. Kağıda dönmek için pencere dışına çift tıklayın ya da Esc (önce seçim temizlenir, ikinci Esc çıkar).</li>
+<li><b>Kot planı (KOTPLANI) katmanları elemana özel</b>: <code>PLAN+5.00_KESIT_PERDE</code>, <code>PLAN+5.00_GORUNEN_DOSEME</code>, <code>PLAN+5.00_TARAMA_PERDE</code>, <code>PLAN+5.00_KESIT_KORKULUK</code> … Korkuluk, merdiven ve su tutucu banda planda kot yazılmaz.</li>
+<li><b>Kesitte otomatik ölçülendirme</b>: altta perde kalınlıkları, perdeler arası iç açıklıklar, döşeme taşmaları zinciri ve toplam genişlik; solda temel kalınlığı, perde yüksekliği, döşeme kalınlığı zinciri ve toplam yükseklik (<code>KESIT_OLCU</code> katmanı). Kapatmak için <code>KESITAL OLCU=H</code>.</li>
+<li><b>Otomatik kotlar</b>: kesitteki tüm üst yüzeylere (döşeme, perde üstü, radye üstü, tretuvar…) kot konur; merdiven basamakları, korkuluk, bant ve grobeton hariç. Kapatmak için <code>KESITAL KOT=H</code>.</li>
+<li><b>Kesit katmanları elemana özel</b>: her elemanın kesiti kendi katmanına yazılır — kesilen sınır <code>KESIT_&lt;eleman&gt;</code> (ör. <code>KESIT_PERDE</code>, <code>KESIT_TEMEL_RADYE</code>, <code>KESIT_DOSEME</code>, <code>KESIT_KIRIS</code>, <code>KESIT_DUVAR_TUGLA</code>, <code>KESIT_GROBETON</code>), taraması <code>KESIT_&lt;eleman&gt;_TARAMA</code>, görünen (kesilmeyen) çizgileri <code>GORUNEN_&lt;eleman&gt;</code>. Katman adı elemanın plan katmanından gelir (INS_ öneki atılır), rengi de onunkiyle aynıdır; böylece kesitte yalnız perdeleri ya da yalnız taramayı açıp kapatabilirsiniz.</li>
+<li><b>Korkuluk, boru ve yuvarlak gövdeler kesitte / görünüşte</b>: kenar çizgisi olmayan gövdelerin (korkuluk dikmesi ve küpeştesi, tekmelik, silindir tank, boru) bakış yönündeki dış hatları (siluet) otomatik çizilir. Korkuluklar <code>GORUNEN_KORKULUK</code> / <code>KESIT_KORKULUK</code> katmanına yazılır.</li>
+<li><b>Kesit al</b> (<code>KESITAL</code>): Planda kesit çizgisinin iki noktasını, bakış yönünü ve görüş derinliğini verin, sonra kesiti nereye yerleştireceğinizi seçin.
+ <ul>
+ <li>Kesilen duvar, havuz ve borular <code>KESIT</code> katmanına kalın çizilir.</li>
+ <li>Görünen elemanlar <code>GORUNEN</code> katmanına, boru eksenleri <code>EKSEN</code> katmanına çizilir.</li>
+ <li>Planda kesit işareti (B–B) konur.</li>
+ </ul>
+ Gizli çizgiler otomatik ayıklanmaz.</li>
+<li><b>Duvar birleşimleri:</b> Aynı katman ve kottaki duvarlar köşelerde gönyelenir; T birleşimde duvar karşı yüze kadar uzar. Bu hem planda hem 3B'de geçerlidir.</li>
+<li><b>Pürüzsüz dirsekler:</b> Boru ve dirsekler tek parça yumuşak yüzeyle çizilir; halka çizgileri yalnız boru uçlarında ve dirsek başlangıç/bitişinde görünür.</li>
+<li><b>Malzeme kataloğu</b> (<code>FITEKLE</code>, Kütüphane → Standart fitingler): Çelik (EN 10220 / ASME B16.9), duktil (EN 545), PE100 ve PVC dış çapları ve fiting ölçüleri standart tablolardan üretilir. Örnek: <code>FITEKLE TUR=TE MAL=CELIK DN=200 DN2=150</code>. Üretici modelleri internetten indirilemediği için kendi STL/OBJ/DWG modellerinizi kütüphaneye ekleyebilirsiniz.</li>
+<li><b>Z ekseninde çizim:</b> 3B'de <b>Shift</b> basılıyken imleç önceki noktadan düşey gider; mesafe yazarsanız o yönde uygulanır. Düzlem listesinden XZ / YZ düşey düzlemleri de seçebilirsiniz.</li>
+</ul>
+<h2>Yeni: SketchUp tarzı 3B modelleme</h2>
+<p>3B sekmesinin solunda bir <b>araç paleti</b> vardır: Seç, Yörünge, Çizgi, Çoklu çizgi, Dikdörtgen, Daire, İt/Çek, Yüz yap, Ekstrüzyon, Taşı, Kopyala, Döndür, Ölçekle, Dizi, Sil, Mesafe, Kesit al. Plandaki tüm komutlar (duvar, havuz, boru, pompa…) 3B'de de çalışır; tıkladığınız nokta 3B modelden alınır.</p>
+<ul>
+<li><b>Yüzeye çizim:</b> Düzlem <b>Otomatik (yüzeye)</b> iken imleç, altındaki yüzeye oturur (etikette "Yüzeyde" yazar). Duvarın yan yüzüne, havuzun üstüne doğrudan çizebilirsiniz. Boş alanda tıklarsanız zemine (Çalışma Z kotuna) çizer.</li>
+<li><b>Eksen hizalama:</b> Bir noktadan sonra imleci X, Y ya da Z yönüne yaklaştırırsanız lastik çizgi <b style="color:#d33">kırmızı</b> (X), <b style="color:#2a2">yeşil</b> (Y) ya da <b style="color:#36c">mavi</b> (Z) olur ve o eksene kilitlenir. İmleç yanındaki etiket yakalanan noktayı (Uç nokta, Orta nokta, Merkez…) ve uzunluğu gösterir. Mesafe yazıp Enter'a basarsanız o yönde o kadar gider.</li>
+<li><b>Dikdörtgen / Daire:</b> Tıkladığınız yüzün düzleminde çizilir. Eğik ya da düşey bir yüzde <code>@3,2</code> yazarsanız 3 × 2 m'lik dikdörtgen o yüzün üzerinde oluşur.</li>
+<li><b>İt / Çek</b> (<code>ITCEK</code>, <code>PP</code>): İmleci bir yüzün ya da kapalı bir şeklin üstüne getirin. Şekil sarı çerçeveyle belli olur. Tıklayın, sonra imleci sürükleyip tıklayın ya da mesafe yazın (eksi değer = içeri).
+ <ul>
+ <li>Kapalı çoklu çizgi, dikdörtgen, daire ve uç uca çizgilerle kapatılmış alanlar katıya dönüşür.</li>
+ <li>ArıtmaCAD katılarının, kutuların, silindirlerin ve döşemelerin üst/alt (kutuda yan) yüzleri büyür ya da küçülür.</li>
+ <li>Diğer nesnelerin (duvar, havuz, boru…) yüzlerinden yeni bir katı çıkar.</li>
+ <li>Araç Esc'ye basana kadar açık kalır. Enter son mesafeyi tekrarlar.</li>
+ </ul>
+ Komut satırından: <code>ITCEK 2,1.5,0 3</code> (bu noktadaki yüzü 3 m çek).</li>
+<li><b>Yüz yap</b> (<code>YUZYAP</code>): Kapalı şekilleri kalınlığı sıfır 3B yüzlere çevirir.</li>
+<li><b>Ekstrüzyon</b> (<code>EXTRUDE</code>): Seçili kapalı şekilleri verilen yükseklikle katıya çevirir. Planda da çalışır.</li>
+<li><b>Seçim:</b> Nesneye tıklayın (Ctrl / Shift ile ekleyin). Boş yerde sol sürükleme pencereyle seçer: soldan sağa = tamamen içinde kalanlar, sağdan sola (yeşil, kesikli) = değenler. Seçili nesneler mavi görünür. Çift tıklayınca özellikler penceresi açılır; katının yüksekliğini ve taban kotunu buradan değiştirebilirsiniz.</li>
+<li><b>Gezinme:</b> Orta tuşla sürükle = döndür (yörünge), Shift + orta tuş ya da sağ tuşla sürükle = kaydır, tekerlek = yakınlaş. Orta tuşunuz yoksa paletteki <b>Yörünge</b> düğmesini açın; sol sürükleme döndürür. Komut nokta beklerken sol sürükleme zaten döndürür.</li>
+<li><b>Dışa aktarım:</b> Katılar DXF'te blok olarak (2B kontur + 3B ağ, <code>_3B</code> katmanında) yazılır ve ArıtmaCAD'de geri açıldığında yeniden düzenlenebilir. IFC'de BIM nesnesi olarak, STL/OBJ'da ağ olarak çıkar.</li>
+<li><b>Delik ve cep (SketchUp gibi):</b> Bir küpün / katının / döşemenin yüzüne daire, dikdörtgen ya da kapalı şekil çizin. İt/Çek ile şekle tıklayıp imleci içeri doğru sürükleyin. Arka yüzde turuncu bir <b>bitiş noktası</b> belirir ("Arka yüz — tıklayın: boydan boya delik"). Oraya tıklarsanız boydan boya delik açılır. Daha önce tıklarsanız ya da bir derinlik yazarsanız (ör. <code>-0.5</code>) o derinlikte cep açılır. Aynı küpe üstten ve yanlardan ayrı ayrı delik açabilirsiniz. Katının bilgisinde net hacim görünür.</li>
+<li><b>Yüz seçme:</b> 3B'de bir katının yüzüne tek tıklayınca yalnız o yüz seçilir: mavi dolgu ve çerçeveyle gösterilir, Özellikler'de alanı ve yönü görünür. Çift tıklayınca nesnenin tamamı seçilir. Çizgiye tıklamak çizgiyi seçer. Esc seçimi kaldırır.</li>
+<li><b>Yüzü ötele (Offset, <code>O</code>):</b> Bir yüz seçiliyken <b>Ötele</b>'ye basın. Seçili yüz yoksa komuttan sonra yüze tıklayın. İmleci yüzün içine doğru götürünce kenarlar SketchUp'taki gibi paralel olarak içeri kayar; dışarı götürünce dışarı kayar. Etikette mesafe görünür; tıklayın ya da mesafe yazın (eksi = dışarı). Yüzün üstünde yeni bir iç yüz oluşur. Bu iç yüzü <b>İt/Çek</b> ile aşağı iterseniz cep (örneğin havuz) olur, yukarı çekerseniz çıkıntı olur. Örnek havuz: 4×3×2 kutu → üst yüzü 0,3 içeri ötele → iç yüzü −1,5 it. Planda OFFSET eskisi gibi çizgileri öteler.</li>
+<li><b>Havuz duvarına delik / boru geçişi:</b> Delik artık her yüzden açılır: dış yüzler, havuz cebinin iç duvarları ve cep tabanı. Havuzun iç duvarına bir dikdörtgen ya da daire çizin. İt/Çek ile duvarın içine doğru itin; turuncu arka yüz noktasına tıklayınca duvar boydan boya delinir. Havuza doğru çekerseniz duvardan çıkıntı (konsol, kiriş başı) oluşur. Havuz tabanına çizilen daireyi iterseniz tabanda delik açılır.</li>
+<li><b>Yüz / şekil merkezi ⊕:</b> İmleci bir yüzün ortasına yaklaştırınca o yüzün tam ağırlık merkezi yakalanır; etikette "Yüz merkezi" yazar. Örneğin bir duvarın tam ortasına daire çizebilirsiniz. Plan'da kapalı çoklu çizgi, dikdörtgen ve döşemelerin merkezi de aynı şekilde yakalanır. Yakalama panelinden kapatılabilir.</li>
+<li><b>Yüzü esnetme (ölçülü):</b> Bir yüz seçiliyken <b>Esnet (yüz)</b> (<code>ESNET</code>) ya da <b>Taşı</b> komutunu verin. Taban noktasında Enter'a basarsanız yüzün merkezi alınır. İmleci istediğiniz yöne götürün; kırmızı / yeşil / mavi eksene kilitlenir. Mesafeyi yazıp Enter'a basın (ör. <code>1.5</code>) ya da <code>@0,0,0.5</code> gibi göreli değer verin.
+ <ul>
+ <li>Yan yüzü dışarı çekmek katıyı uzatır.</li>
+ <li>Üst yüzü yukarı çekmek katıyı yükseltir.</li>
+ <li>Üst yüzü yana kaydırmak katıyı eğik (şev, eğimli duvar) yapar. Eğik katılar "çokyüzlü katı" olur; yüzleri tekrar esnetilebilir ya da İt/Çek yapılabilir.</li>
+ </ul>
+ Delikli katılar yalnız yüz doğrultusunda esnetilebilir.</li>
+<li><b>Sabit görünüm:</b> 3B'de yeni bir şey çizdiğinizde mevcut nesneler ve ızgara yerinden kaymaz.</li>
+<li><b>Yakalama (snap) türleri:</b> Durum çubuğunda YAKALA'nın yanındaki <b>▾</b> düğmesi, YAKALA'ya sağ tık, 3B paletteki <b>🧲 Yakalama…</b> ya da <code>OSAYAR</code> komutu bir panel açar. Buradan onay kutularıyla şunları seçersiniz: uç □, orta △, merkez ○, çeyrek ◇, kesişim ✕, dik ⊥, en yakın ⧗, ekleme, ızgara. 3B'de ayrıca "yüzeye yapış" ve "eksen hizalama" vardır. Seçiminiz saklanır. 3B'de yakalanan nokta, Plan'daki gibi yeşil işaretle gösterilir. Küplerin kenar orta noktaları da yakalanır.</li>
+<li><b>Sınırlar:</b> Duvar, havuz ve borularda delik henüz açılamaz; delik katı, kutu ve döşemede çalışır. Birbirini kesen delikler doğru görünmez. Eğri (silindir) yan yüzde delik açılamaz. Döndürme yalnız düşey eksen etrafındadır. Yüz öteleme (Offset) henüz yoktur.</li>
+</ul>
+<h2>Yeni: Birleştir / Ayır, pah, konik, yol boyunca uzatma</h2>
+<ul>
+<li><b>BİRLEŞTİR</b> (<code>BIRLESTIR</code> / <code>UNION</code>, 3B paletinde ⊕): Seçtiğiniz 3B nesneler tek parça olur; katı, kutu, silindir, havuz, boru ya da model olabilir. Birlikte seçilir, taşınır, kopyalanır ve silinir. Birbirine değen iç yüzler gizlenir. Özellikler penceresinde parça sayısı ve toplam hacim görünür. Birleşik parçanın yüzlerinde İt/Çek, Esnet, delik, Pah ve Konik çalışır. <b>AYIR</b> (<code>AYIR</code>) parçalarına geri böler.</li>
+<li><b>İt/Çek artık tek parça üretir:</b>
+ <ul>
+ <li>Katının tam yan yüzünü çekince katının kendisi uzar.</li>
+ <li>Yüzeye çizilen bir şekli dışarı çekince oluşan çıkıntı, otomatik olarak aynı nesneye katılır.</li>
+ <li>Bu davranışı kapatmak için: <code>OTOBIRLESTIR KAPAT</code>.</li>
+ </ul></li>
+<li><b>PAH</b> (<code>PAH</code> / <code>CHAMFER</code>): Mesafe (<b>M</b>) ve açı (<b>A</b>) verilir; 45° eşit pah, başka açıda farklı pah demektir.
+ <ul>
+ <li><b>3B'de:</b> Kenarın üstüne gelince kenar sarı yanar; tıklayınca pahlanır. Üst/yan kenarlar ve düşey köşeler pahlanabilir; art arda birden çok kenara tıklayabilirsiniz.</li>
+ <li><b>Yüzün tüm kenarları:</b> Bir üst/alt yüz seçiliyken PAH ya da <b>Y</b> seçeneğini kullanın; bordür ve kapak kenarı gibi pahlar için.</li>
+ <li><b>Planda:</b> İki çizgiye tıklayın ya da çoklu çizginin bir köşesine tıklayın. <b>P</b> seçeneği çoklu çizginin bütün köşelerini pahlar.</li>
+ <li>Komut satırı örneği: <code>PAH M=0.1 A=45</code>.</li>
+ </ul></li>
+<li><b>YUVARLA</b> (<code>YUVARLA</code> / <code>FILLET</code> / <code>F</code>, 3B paletinde ◜): Yarıçap (<b>R</b>) ile köşe ve kenarları yuvarlatır.
+ <ul>
+ <li><b>3B'de:</b> Kenara tıklayın (düşey kenar, üst/yan kenar). Bir üst/alt yüz seçiliyken ya da <b>Y</b> seçeneğiyle o yüzün bütün kenarları yuvarlatılır; silindirde de çalışır. Yuvarlak yüzeylerde ara çizgiler gizlenir.</li>
+ <li><b>Planda:</b> İki çizgi arasına yay koyar. Çoklu çizgi köşesine tıklayınca o köşeye, <b>P</b> seçeneğiyle bütün köşelere yay konur (DXF'te gerçek yay olarak yazılır).</li>
+ <li>Komut satırı örneği: <code>YUVARLA R=0.2</code>.</li>
+ </ul></li>
+<li><b>KONİK</b> (<code>KONIK</code> / <code>TAPER</code>): Seçili katıların yan yüzlerini düşeyden verilen açıyla içe eğer (kesik piramit, koni, şevli temel). Eksi açı dışa açar. Önce tek bir yan yüz seçerseniz yalnız o yüz eğilir (şevli duvar); üst yüz seçerseniz bütün katı eğilir.</li>
+<li><b>YOL BOYUNCA (süpür)</b> (<code>SUPUR</code> / <code>SWEEP</code>): Planda çizdiğiniz kapalı bir profili (çoklu çizgi, dikdörtgen, daire) bir yol boyunca uzatır. Yol çizgi, çoklu çizgi, 3B çoklu çizgi, yay, daire ya da boru olabilir. Kanal, kiriş, bordür, korkuluk ve boru gibi şeyler için kullanılır.
+ <ul>
+ <li>Profil yolun başına dik yerleşir: profilin X'i sağa, Y'si yukarı gelir.</li>
+ <li>Profilin yola oturacak noktası seçilebilir: merkez, alt orta ya da seçilen bir nokta.</li>
+ <li>Köşelerde gönyeli birleşir.</li>
+ </ul></li>
+<li><b>Sınırlar:</b>
+ <ul>
+ <li>Birleştirme, nesneleri gerçekten kaynaştırmaz (iç içe geçen hacimler ayrı kalır); hacim parçaların toplamıdır.</li>
+ <li>Bir köşede 3'ten fazla yüz birleşiyorsa o köşeye değen kenarlar tek tek pahlanamayabilir (önce komşu pahları yapın).</li>
+ <li>Delikli katılarda yüz pahı ve konik yapılamaz.</li>
+ </ul></li>
+</ul>
+<h2>Yeni: Ücretsiz 3B model kütüphanesi (kapı, pencere, ekipman)</h2>
+<p>Pencereyi açmak için: <b>Arıtma → Ücretsiz 3B modeller</b>, 3B paletteki <b>🌐 3B modeller</b>, Kütüphane penceresindeki <b>🌐 Ücretsiz 3B modeller</b> ya da <code>MODELKUTUPHANESI</code> komutu. İnternet bağlantısı gerekir.</p>
+<ul>
+<li><b>Poly Haven:</b> Anahtar gerekmez. Modeller CC0 lisanslıdır (serbest, atıf gerekmez). Daha çok mobilya ve donatı vardır.</li>
+<li><b>Sketchfab:</b> En geniş kaynaktır (kapı, pencere, pompa, vana, blower…). Arama serbesttir; indirmek için ücretsiz bir Sketchfab hesabının <b>API anahtarı</b> gerekir. Anahtarı almak için Sketchfab'a girip <i>Settings → Password &amp; API</i> sayfasındaki API Token'ı kopyalayın ve penceredeki alana yapıştırın. Anahtar yalnız bu bilgisayarda saklanır ve yalnız Sketchfab'a gönderilir. Çoğu model CC-BY'dir: kullanırken yazarını belirtin; yazar ve lisans bloğa kaydedilir ve kütüphane kartında görünür.</li>
+<li><b>Arama:</b> Kategori düğmelerine (Kapı, Pencere, Pompa, Dalgıç pompa, Vana, Blower, Mikser, Tank, Merdiven, Korkuluk, Elektrik panosu…) tıklayın ya da Türkçe yazın; kelimeler İngilizceye çevrilerek aranır.</li>
+<li><b>Ölçek:</b> "Gerçek yükseklik" girerseniz model o yüksekliğe ölçeklenir. Kapı düğmesi 2,1 m, pencere 1,5 m, insan 1,75 m önerir. Boş bırakırsanız modeldeki ölçü kullanılır. Model ortalanır ve zemine oturtulur.</li>
+<li><b>Kütüphaneye ekle / Yerleştir:</b> Model blok kütüphanenize kaydedilir. Planda üstten görünüş sınırı olarak, 3B'de malzeme renkleriyle görünür. Cinsine göre katmana konur (MIMARI_KAPI, MIMARI_PENCERE, EKIPMAN, POMPA…). Malzeme listesinde (BOM) sayılır, DXF'e blok olarak yazılır.</li>
+<li><b>Diğer siteler:</b> Pencerede Poly Pizza, Kenney, SketchUp 3D Warehouse, BIMobject, GrabCAD, Grundfos, Free3D ve CGTrader bağlantıları vardır. Oradan <b>GLB, glTF (ZIP), OBJ ya da STL</b> indirip dosyayı pencereye sürükleyin. SKP, FBX, DWG katı ve IFC doğrudan okunmaz: SketchUp modellerini SketchUp'ta açıp STL/OBJ olarak dışa aktarın.</li>
+<li>Draco ile sıkıştırılmış glTF dosyaları okunamaz; sıkıştırmasız olanı seçin.</li>
+</ul>
+<h2>Yeni: Yazı — TEXT, MTEXT, yazı stilleri, taşıma noktası, eğri yazı</h2>
+<ul>
+<li><b>TEXT (tek satır)</b> (<code>TEXT</code> / <code>DT</code>, araç çubuğunda <b>Yazı</b>): AutoCAD DTEXT gibi çalışır. Başlangıç noktasında <b>J</b> yazarak taşıma noktasını, <b>S</b> yazarak stili seçersiniz. Sonra yükseklik, açı ve metni girersiniz. Enter ile alt satıra geçer; boş Enter bitirir. <b>A (Hizalı)</b>: iki nokta arasına sığdırır, yüksekliği ayarlar. <b>F (Sığdır)</b>: yükseklik sabit kalır, genişliği iki noktaya göre ayarlar.</li>
+<li><b>Taşıma (ekleme) noktaları:</b> AutoCAD'deki 13 nokta vardır.
+ <ul>
+ <li>Üst: TL Üst sol · TC Üst orta · TR Üst sağ</li>
+ <li>Orta: ML Orta sol · MC Orta merkez · MR Orta sağ</li>
+ <li>Alt: BL Alt sol · BC Alt orta · BR Alt sağ</li>
+ <li>Taban çizgisi: L Sol · C Orta · R Sağ · M Merkez</li>
+ </ul>
+ Komut satırı örneği: <code>TEXT J=MC 10,5 0.3 0 POMPA</code>.</li>
+<li><b>MTEXT (paragraf)</b> (<code>MTEXT</code>, araç çubuğunda <b>Paragraf</b>): Kutunun iki köşesini verin; kutu genişliği satır kaydırma genişliği olur. Ardından bir düzenleyici açılır:
+ <ul>
+ <li>Stil, yükseklik, dönme, genişlik çarpanı ve eğiklik ayarlanır.</li>
+ <li>3×3 taşıma noktası düğmeleri vardır.</li>
+ <li>Kutu genişliği ve satır aralığı girilir; metin canlı önizlemede görünür.</li>
+ <li>Ctrl+Enter = Tamam. <code>%%c</code> = Ø, <code>%%d</code> = °, <code>%%p</code> = ±.</li>
+ </ul>
+ Komut satırı örneği: <code>MTEXT J=TL 0,0 12,-5 "1. satır\P2. satır"</code>.</li>
+<li><b>Düzenleme:</b> Plan'da bir yazıya çift tıklayın (ya da <code>YAZIDUZENLE</code>); aynı düzenleyici açılır. Özellikler penceresinden de metin, yükseklik, taşıma noktası, stil, genişlik çarpanı, eğiklik ve MTEXT genişliği değiştirilebilir.</li>
+<li><b>YAZIHIZALA</b> (<code>JUSTIFYTEXT</code>): Seçili yazıların taşıma noktasını değiştirir; yazı ekranda yerinden kıpırdamaz.</li>
+<li><b>Yazı stilleri</b> (<code>STYLE</code>, araç çubuğunda <b>Y. stili</b>): Stil oluşturun ya da silin. Her stil için şunlar ayarlanır:
+ <ul>
+ <li>Yazı tipi: Arial, Arial Narrow, Calibri, Times, Courier, ISOCPEUR, Romans… ya da bilgisayarınızda kurulu başka bir yazı tipi.</li>
+ <li>Kalın / italik.</li>
+ <li>Sabit yükseklik (0 = her yazıda sorulur).</li>
+ <li>Genişlik çarpanı ve eğiklik açısı.</li>
+ </ul>
+ "Geçerli stil yap" ile yeni yazılar o stille yazılır. Stil değişince o stildeki bütün yazılar güncellenir. Komut satırı örneği: <code>STYLE AD=Baslik FONT=Arial Y=0 G=0.9 E=15 KALIN=E</code>.</li>
+<li><b>Eğri boyunca yazı</b> (<code>EGRIYAZI</code> / <code>ARCTEXT</code>, araç çubuğunda <b>Eğri yazı</b>): Bir yay, daire, çoklu çizgi ya da çizgi seçin, metni girin. Konum: Orta / Baş / Son / Sığdır. Taraf: Üst-dış / Alt-iç / Ters yön. Eğriden mesafeyi de verin. Yazı harf harf eğriyi izler; üst yaylarda ve dairelerde soldan sağa okunur.</li>
+<li><b>DXF/DWG:</b> Stiller STYLE tablosuna yazılır (yazı tipi dosyası, genişlik, eğiklik, kalın/italik). TEXT tüm hizalama kodlarıyla, MTEXT gerçek MTEXT olarak (kutu genişliği, taşıma noktası, satır aralığı) yazılır. AutoCAD'de düzenlenebilir ve geri açıldığında aynen okunur. PDF/SVG çıktısında da yazı tipi, kalınlık, genişlik ve eğiklik korunur.</li>
+</ul>
+<h2>Yeni: Kapatırken "kaydedilsin mi?" ve kurtarma kopyası</h2>
+<ul>
+<li><b>Kaydedilmemiş değişiklik göstergesi:</b> Çizimde kaydedilmemiş değişiklik varsa pencere başlığında ● ve çizim adının yanında * görünür.</li>
+<li><b>Dosya → Kapat / çıkış</b> (<code>CIKIS</code>, <kbd>Ctrl+Q</kbd>): Kaydedilmemiş değişiklik varsa <b>Kaydet / Kaydetme / İptal</b> diye sorar. DWG açtıysanız DWG olarak, yoksa DXF olarak kaydeder.</li>
+<li><b>Pencerenin × düğmesi:</b> Tarayıcı güvenlik gereği burada yalnız kendi "Ayrıl / İptal" sorusunu gösterebilir. <b>İptal</b>'e basarsanız hemen ardından programın <b>Kaydet / Kaydetme / İptal</b> penceresi açılır. Kaydettikten sonra pencere kendisi kapanır; kapanmazsa × ile kapatabilirsiniz, bir daha sorulmaz.</li>
+<li><b>Aç</b> ve <b>Yeni</b> komutları da kaydedilmemiş değişiklik varsa önce aynı soruyu sorar.</li>
+<li><b>Kurtarma kopyası:</b> Değişiklikler dakikada bir ve program kapanırken bu bilgisayarda saklanır. Kaydetmeden kapatırsanız, elektrik kesilirse ya da program çökerse, bir sonraki açılışta "Kaydedilmemiş çizim bulundu → Geri yükle" önerilir. Kaydettiğiniz anda kurtarma kopyası silinir.</li>
+</ul>
+<h2>Yeni: Açıklama ölçeği (AutoCAD "annotative" benzeri, daha gelişmiş)</h2>
+<p>Yazı, ölçü, kot, tarama ve etiketler kağıt üzerindeki boylarına göre tutulur; hangi ölçekte gösterilirlerse o ölçeğe göre otomatik boyutlanır. Durum çubuğundaki <b>Ö 1/100</b> kutusu geçerli açıklama ölçeğidir.</p>
+<ul>
+<li><b>Her pencerenin kendi ölçeği vardır.</b> Düzen'de pencereye tıklayın; Özellikler'de ölçeği listeden seçin. "Modelde yerini seç" ile pencerenin göstereceği yeri, "Alan seç" ile alanı (ölçek alana göre ayarlanır) seçebilirsiniz.</li>
+<li><b>Ölçeğe bağlı açıklamalar:</b> <code>OLCEKAYAR YENI=GECERLI</code> ile bundan sonra yazdığınız yazı/ölçüler yalnız geçerli ölçekteki pencerelerde görünür (detayın yazıları genel planda kalabalık yapmaz). <code>OLCEKEKLE</code> / <code>OLCEKCIKAR</code> ile mevcut açıklamalara ölçek ekleyip çıkarın; Özellikler'de "Ölçekler" alanından da yazılabilir (boş = tüm ölçekler).</li>
+<li><b>Ölçeğe özel konum:</b> <code>OLCEKKONUM</code> ile bir yazıyı yalnız geçerli ölçekte taşıyın — aynı yazı 1/100 planda bir yerde, 1/20 detayda başka yerde durur. <code>OLCEKKONUM … S</code> sıfırlar.</li>
+<li><b>OTO-Ö</b> düğmesi: ölçeği değiştirdiğinizde, eski ölçekteki açıklamalara yeni ölçek otomatik eklenir. <b>TÜM AÇK.</b> kapalıyken modelde yalnız geçerli ölçeğin açıklamaları görünür.</li>
+<li>Pencere özelliklerinde "Açıklamalar: Hepsi" seçilirse ölçek ayrımı yapılmaz.</li>
+</ul>
+<h2>Yeni: Detay paftası — daire, üçgen, yamuk, çokgen</h2>
+<p><code>DETAY</code> (Düzen menüsü ya da düzen üstündeki "+ Detay"): modelde detay alanını çizin — <b>D</b> dikdörtgen, <b>C</b> daire, <b>U</b> üçgen, <b>Y</b> yamuk (4 köşe), <b>P</b> çokgen, <b>N</b> var olan kapalı çoklu çizgi/daire. Detay adını (A, B, …) ve ölçeği (ör. 20) verin, kağıtta yerini tıklayın. Kağıtta o şekilde kırpılmış pencere, altında "DETAY A — Ö: 1/20" başlığı; modelde DETAY katmanında kesikli detay çerçevesi ve etiketi oluşur.</p>
+<p><code>MVIEW</code> artık şekilli pencere de açar: iki köşe (dikdörtgen), <b>C</b> daire, <b>P</b> çokgen; ardından ölçek ve modelde gösterilecek yer (merkez, alan, sığdır). Pencerenin başlığı ve çerçevesi Özellikler'den değiştirilir.</p>
+<h2>Yeni: Tarama (HATCH) — AutoCAD desenleri</h2>
+<p><code>TARAMA</code> (H): desen penceresinde ANSI31–38, AR-CONC (beton), AR-SAND (kum), AR-B816, AR-BRSTD (tuğla), AR-HBONE, AR-PARQ1, AR-RROOF, BRICK, EARTH (toprak), GRAVEL (çakıl), HONEY, NET, NET3, LINE, CROSS, DOTS, SQUARE, STEEL, ZIGZAG, DASH, SWAMP, GRASS, SOLID ve SU, ISOLASYON, DOLGU desenlerinden birini seçin, ölçek ve açı verin.</p>
+<ul>
+<li><b>Alan içine tıklama:</b> sınır otomatik bulunur; iç içe adalar (daire, iç kutu…) delik olarak çıkarılır, adanın içindeki ada yeniden taranır. Çizgi + yay gibi ayrı parçalardan oluşan kapalı alanlar da bulunur; ucu açıkta kalan çizgiler yok sayılır. Birden fazla alana tıklayıp Enter'a basın; <b>G</b> son seçimi geri alır.</li>
+<li><b>Nesne seçme:</b> <b>N</b> ile kapalı çoklu çizgi, daire, dikdörtgen seçin.</li>
+<li>"Paftada ölçeğe göre ayarla" işaretliyken (varsayılan) her görünüm penceresinde desen o pencerenin ölçeğine göre yeniden üretilir; desen aralığı kağıt üzerinde sabittir. AutoCAD/DXF'ten gelen taramalar da bu şekilde açılır; Özellikler'deki kutu ile kapatılabilir (1/50 ve 1/100 paftada aynı sıklıkta görünür). Briket/tuğla/parke/çatı desenleri gerçek boyutludur.</li>
+<li>Taramanın içinde herhangi bir yere (boşluğa da) çift tıklayın ya da <code>TARAMADUZENLE</code>: tarama penceresi açılır; desen, ölçek (−/+ düğmeleri, 0.25…25 hızlı değerler, virgüllü değer de yazılabilir) ve açı değiştirilir, değişiklik çizimde anında görünür; İptal eski hâline döndürür. Tek tıklama da taramayı seçer; Özellikler'deki “Tarama desenini / ölçeğini düzenle…” düğmesi aynı pencereyi açar. <code>TARAMASINIR</code> sınırı çoklu çizgi olarak çizer. Taramalar diğer çizgilerin arkasında çizilir.</li>
+<li>DXF'e gerçek HATCH olarak yazılır (AutoCAD'de düzenlenebilir); AutoCAD'den gelen taramalar (çizgi/yay/elips kenarlı, gömülü desenli) okunur.</li>
+</ul>
+<h2>Yeni: Ölçekle — Referans ve Kopya</h2>
+<p><code>OLCEKLE</code>: seçim, taban noktası, sonra çarpan; <b>R</b> = referans (ör. 2 m olan bir şeyi 5 m yap: R 2 5 ya da noktalarla), <b>C</b> = aslını bırakıp ölçekli kopya oluştur. Paftalarken (<code>PAFTALA</code>) her ölçek için çıkacak pafta sayısı listelenir.</p>
+<h2>Yeni: BUDA (TRIM) ve UZAT (EXTEND) — AutoCAD gibi</h2>
+<ul>
+<li><b>Hızlı mod</b> (varsayılan, AutoCAD 2021+ gibi): tüm nesneler kesicidir. Budanacak parçanın üzerine gelin — silinecek kısım kırmızı görünür — tıklayın. Hiçbir şeyle kesişmeyen nesne tıklanınca silinir.</li>
+<li><b>Standart mod</b>: <b>O</b> → <b>S</b> ya da <b>T</b> (kesici kenarlar): önce kesici kenarları seçin (Enter = tümü), sonra budayın.</li>
+<li><b>Shift + tık</b>: BUDA içindeyken uzatır, UZAT içindeyken budar.</li>
+<li><b>F</b> çit: çizdiğiniz çizginin kestiği tüm nesneler o noktalardan budanır. <b>C</b> kesişen pencere. Boş yere tıklamak da hızlı modda çit, standart modda kesişen pencere başlatır.</li>
+<li><b>E</b> kenar: <i>Uzat</i> seçilirse kesici çizgi/yayların görünmeyen uzantıları da kesici sayılır. <b>P</b> proje (plan görünümünde XY). <b>R</b> sil, <b>U</b> komuttan çıkmadan son budamayı geri al.</li>
+<li>Çizgi, yay, daire (yaya dönüşür), açık/kapalı çoklu çizgi (yaylı segmentler dahil; kendini kesen çoklu çizgi de) budanır ve uzatılır. Mod ve kenar ayarı hatırlanır.</li>
+</ul>
+<h2>Yeni: Özellik kopyala (MATCHPROP / MA) — fırça ile</h2>
+<p>Kaynak nesneyi seçin; imleç fırçaya dönüşür. Hedeflerin üzerine gelince sonucun nasıl görüneceği önizlenir; tıklayınca uygulanır. Boş yere tıklayıp pencere çizebilirsiniz (soldan sağa: tamamen içindekiler, sağdan sola: değenler). Önce tek nesne seçili ise kaynak o olur.</p>
+<p><b>A</b> (Ayarlar): kopyalanacak özellikler — renk, katman, çizgi tipi, çizgi kalınlığı; yazı (stil, yükseklik, genişlik, eğiklik), tarama (desen, ölçek, açı), açıklama ölçekleri, çoklu çizgi kotu. Düzen sekmesinde MA bir görünüm penceresinin ölçeğini ve ayarlarını diğer pencerelere fırçalar.</p>
+<h2>Yeni: Tutamaçlar (mavi noktalar) — AutoCAD gibi</h2>
+<ul>
+<li>Nesneyi seçin; uçlarında, ortasında, merkezinde mavi tutamaçlar çıkar. İmleç yaklaşınca tutamaç büyür, pembe bir halkayla parlar, artı imleç tutamağın merkezine yapışır ve yanında ne yapacağı yazar (Uzat, Taşı, Yarıçap…; köşede birden fazla nesne varsa sayısı).</li>
+<li>Tutamaca <b>tıklayıp bırakın</b> (kırmızı olur), imleci götürüp tekrar tıklayın — ya da <b>basılı tutup sürükleyip bırakın</b>. Nesne yakalama açıksa başka bir çizginin ucuna, ortasına, kesişimine yapışır; ORTO ve <code>@dx,dy</code>, uzunluk yazma da çalışır.</li>
+<li>Köşede birleşen iki çizgiyi birlikte seçip köşe tutamacını çekerseniz iki çizgi birlikte gider.</li>
+<li>Çizgi: uç tutamaçları uzatır, orta tutamaç taşır. Çoklu çizgi: köşe tutamacı köşeyi, segment ortası segmenti kaydırır (yaylı segmentte yayın şeklini değiştirir). Daire: merkez taşır, çeyrek noktaları yarıçapı değiştirir. Yay: uçlar ve orta nokta yayı yeniden şekillendirir. Ölçü, duvar, tarama köşeleri, bloklar (taşıma) da tutamaçla düzenlenir.</li>
+<li>Tutamaç sıcakken <b>Enter / Boşluk</b>: UZAT → TAŞI → DÖNDÜR → ÖLÇEKLE → AYNA. <b>K</b> kopya (çoklu), <b>T</b> taban noktası, <b>G</b> geri al, <b>X</b> / Esc çık.</li>
+</ul>
+<h2>Yeni: Google haritaları (2B uydu ve Google 3B)</h2>
+<ol>
+<li>Google Cloud'dan <b>Map Tiles API</b> anahtarı alın (faturalandırma açık, anahtar yalnız Map Tiles API ile kısıtlı, günlük kota sınırı konmuş).</li>
+<li>Harita sekmesinde ya da Google 3B sekmesinde <b>Google anahtarı</b> düğmesine basın, anahtarı yapıştırıp <b>Dene</b>, sonra <b>Kaydet</b>. Anahtar yalnız bu bilgisayarda saklanır, çizim dosyasına yazılmaz, yalnız Google'a gönderilir.</li>
+<li><b>Harita</b> sekmesi: altlık listesinden <i>Uydu (Google)</i>, <i>Uydu + yollar (Google)</i> ya da <i>Yol haritası (Google)</i>.</li>
+<li><b>Google 3B</b> sekmesi: Google'ın fotogerçekçi 3B şehir/arazi modeli ve üzerinde tesisinizin 3B modeli gerçek koordinatında. Önce Harita sekmesinde koordinat sistemi (TM3/UTM vb.) tanımlı olmalı.
+<ul><li><b>Zemine oturt</b>: Google modelinden zemin yüksekliğini okuyup tesisin kot 0'ını oraya koyar; <b>Kot 0</b> ve <b>±</b> ile elle düzeltilir.</li>
+<li><b>Tesis alanını Google modelinden kes</b>: Google'ın o alandaki bina/araziyi gizler; gömülü havuzlar görünür.</li>
+<li>Fare: sol tuş kaydır, tekerlek yakınlaştır, orta tuş ya da Ctrl + sol tuş döndür/eğ. Çizimi değiştirince model kendiliğinden güncellenir.</li></ul></li>
+</ol>
+<p class="hint">Google 3B için internet gerekir; 3B harita kütüphanesi (CesiumJS) ilk açılışta internetten yüklenir. Google kuralları gereği görüntüler kaydedilmez/çevrimdışı kullanılmaz, Google modelinden çizim çıkarılmaz; ekrandaki Google logosu ve kaynak yazısı kaldırılmamalıdır.</p>
+<h2>Yeni: Arazi al — 3B üçgen arazi modeli (TIN) ve eş yükselti eğrileri</h2>
+<p><code>ARAZI</code> (Harita sekmesinde "⛰ Arazi al" ya da Arıtma menüsü): planda ya da haritada alanın iki köşesini tıklayın, nokta aralığını (m) ve kot sistemini seçin. Program ücretsiz açık yükseklik verisini (Terrain Tiles on AWS — SRTM vb.) indirir ve:</p>
+<ul><li>3B üçgen arazi modeli oluşturur (yüksekliğe göre renkli); 3B ve Google 3B sekmelerinde görünür, <code>KESITAL</code> ile alınan kesitlerde arazi çizgisi çıkar, DXF'e 3B ağ olarak yazılır ve geri okunur.</li>
+<li>Planda eş yükselti eğrileri çizer (kalın eğriler kotlu). Aralık, kalın eğri sıklığı ve "kot 0 karşılığı" Özellikler'den değiştirilir.</li>
+<li>Kot sistemi: <b>G</b> göreli (alan ortası = kot 0, tesis modeliyle uyumlu), <b>M</b> mutlak (deniz seviyesi), <b>K</b> kot 0'ı kendiniz verin.</li>
+<li><code>ARAZIKOT</code>: tıkladığınız noktanın arazi kotunu (mutlak ve tesis kotu) yazar.</li></ul>
+<p class="hint">Koordinat sistemi tanımlı olmalı ve internet gerekir. Verinin çözünürlüğü ≈30 m, yükseklik hatası birkaç metre olabilir: yer seçimi ve ön proje içindir; uygulama projesi ve hafriyat için halihazır ölçüm kullanın. Google 3B modelinden arazi çıkarmak Google kurallarınca yasak olduğu için bu açık veri kullanılır.</p>
+<h2>Yeni: Kesitte tek parça sınır ve otomatik tarama</h2>
+<ul><li><code>KESITAL</code> artık kesilen yapı elemanlarını (havuz duvarı, taban, döşeme, katı modeller) birleştirip <b>tek parça kapalı çoklu çizgi</b> olarak çizer: ara köşe ve üst üste binen çizgi kalmaz; otomatik ölçülendirme yalnız gerçek köşeleri ölçer. Pompa, vana gibi ekipmanlar ayrı kapalı sınır olarak çizilir.</li>
+<li>Görünen çizgiler aynı doğru üzerindeyse birleştirilir; kesit sınırıyla çakışan görünen çizgiler silinir. Arazi kesiti ZEMIN katmanında tek çizgidir.</li>
+<li>Kesilen yapı alanı otomatik taranır (KESIT_TARAMA katmanı, varsayılan ANSI31). Deseni seçmek için <code>KESITAL T=AR-CONC …</code> (seçim hatırlanır), taramasız için <code>T=YOK</code>. Sonradan taramaya çift tıklayıp değiştirebilirsiniz.</li>
+<li><b>Malzemeye göre ayrı kesit</b>: kesilen elemanlar artık tek gövde değildir, malzeme gruplarına ayrılır:
+ <b>temel + betonarme perde</b> tek parça (ara çizgisiz, ANSI31 45°);
+ <b>döşeme + kiriş + kolon</b> ayrı parça, tarama ters yönde (135°) — kiriş üstüne tabliye bağlanınca kiriş ve döşeme tek parça görünür;
+ <b>tuğla duvar</b> yandan tuğla örgüsü deseniyle (AR-BRSTD; gazbeton/briket blok deseniyle);
+ her grup arasında kesit çizgisi kalır. Kat planı kesitlerinde (PLANAL) de aynı ayrım geçerlidir (duvar planda tek yön çizgi).</li>
+<li><b>Grobeton</b>: radye, tekil / sürekli temel ve havuz tabanlarının altına kesitte otomatik <b>10 cm grobeton</b> şeridi (iki yandan 10 cm taşkın, AR-CONC) çizilir — modelde çizmeniz gerekmez. Kalınlık: <code>KESITAL GB=15 …</code> (cm), kapatmak için <code>GROBETON=H</code>.</li></ul>
+<h2>Yeni: Düzende pencerenin içine girip kaydırma</h2>
+<p>Düzen sekmesinde bir görünüm penceresine <b>çift tıklayın</b>: çerçevesi yeşil olur, altta "MODEL · 1/50" yazar. Artık <b>sol ya da orta tuşla sürükleyerek</b> çizimi pencere içinde sağa-sola, yukarı-aşağı kaydırırsınız; <b>tekerlek</b> pencerenin ölçeğini standart ölçekler arasında değiştirir (imleç altındaki nokta yerinde kalır). Çıkmak için pencere dışına çift tıklayın ya da Esc. Özellikler'deki <b>Görünümü kilitle</b> yanlışlıkla kaymayı önler. Ctrl + sürükle de her zaman çalışır; Ctrl+Z ile geri alınır.</p>
+<h2>Yeni: Düzen (layout) — AutoCAD gibi pencere tutamaçları, kilit, sayfa düzeni</h2>
+<ul>
+<li><b>İmleç</b> düzende her zaman görünür (kağıt üstünde koyu, dışında açık; pencere içindeyken yeşil). Durum çubuğu pencere içindeyken model koordinatını gösterir.</li>
+<li><b>Pencere boyutu</b>: pencereye tıklayın; köşe ve kenar ortalarındaki mavi tutamaçları sürükleyin (ya da tıklayıp yeni yere tıklayın). Çizim kağıtta yerinde kalır, yalnız görünen alan değişir. Ortadaki yuvarlak tutamaç pencereyi taşır. Esc iptal eder; Ctrl+Z geri alır. Daire/çokgen pencereler de orantılı boyutlanır.</li>
+<li><b>Kilit</b>: pencerenin sol üstündeki 🔓/🔒 simgesi ya da üst çubuktaki "Kilitle" düğmesi. Kilitli pencerenin içi kaydırılamaz, ölçeği değiştirilemez; içindeyken sürükleme kağıdı kaydırır.</li>
+<li><b>Üst çubuk</b>: seçili pencerenin ölçeği (liste), kilit, "İçine gir", "Sayfa düzeni".</li>
+<li><b>Sayfa düzeni</b> (<code>SAYFADUZENI</code>): A0–A4 ya da özel boyut (mm), yatay/dikey, kenar boşlukları, antet aç/kapa; "pencereleri yeni çerçeveye uydur" ile pencereler yeni kağıda yayılır (ölçekler korunur).</li>
+</ul>
+<h2>Yeni: Pencere çerçevesi (sınır çizgisi) ayarları</h2>
+<p>Düzende pencereyi seçin, Özellikler'de <b>Çerçeve (sınır çizgisi)</b> sekmesine geçin: çerçeveyi çiz/yazdır, <b>katman</b>, <b>renk</b>, <b>çizgi tipi</b>, <b>çizgi kalınlığı</b> ve kağıttaki çizgi tipi ölçeği. "Bu düzendeki tüm pencerelere uygula" ile hepsine aynı ayar verilir. Daire, üçgen, yamuk, çokgen pencerelerde çerçeve şeklin kendisidir ve çıktıda (PDF/yazdır) çizilir. Detay ve yeni pencereler varsayılan olarak PENCERE katmanında çerçeveli gelir; çerçeveyi gizlemek için o katmanı kapatabilirsiniz.</p>
+<h2>Yeni: Katman araçları (AutoCAD LAYISO, LAYUNISO, LAYON, LAYOFF …)</h2>
+<table>
+<tr><td><code>LAYISO</code> (YALIT)</td><td>Seçilen nesnelerin katmanları dışındaki katmanları kapatır — ya da ayara göre kilitler ve soldurur (hiç seçmeden Enter = ayarlar: K kapat / L kilitle ve soldur %).</td></tr>
+<tr><td><code>LAYUNISO</code></td><td>Son LAYISO öncesine döner (geçerli katman da).</td></tr>
+<tr><td><code>LAYON</code></td><td>Tüm katmanları açar (dondurulmuşları da).</td></tr>
+<tr><td><code>LAYOFF</code></td><td>Tıkladığınız nesnenin katmanını kapatır; art arda tıklayın, U geri alır, Enter bitirir.</td></tr>
+<tr><td><code>LAYFRZ</code> / <code>LAYTHW</code></td><td>Katman dondur / tüm dondurulmuşları çöz.</td></tr>
+<tr><td><code>LAYLCK</code> / <code>LAYULK</code></td><td>Tıklanan nesnenin katmanını kilitle / kilidini aç.</td></tr>
+<tr><td><code>LAYMCUR</code>, <code>LAYMCH</code>, <code>LAYCUR</code></td><td>Nesnenin katmanını geçerli yap · nesneleri hedef nesnenin katmanına taşı · nesneleri geçerli katmana taşı.</td></tr>
+</table>
+<p>Katmanlar sekmesinde bu komutların düğmeleri de vardır.</p>
+<h2>Yeni: SNAP ve GRID — girdiğiniz aralıkla yakalamalı çizim</h2>
+<ul><li><code>SNAP 0.5</code>: yakalama aralığı 0,5 m ve açık; imleç bu ızgaraya atlar (F9 ile aç/kapa). <code>SNAP A</code> X ve Y ayrı aralık, <code>SNAP T</code> tür: Izgara ya da <b>Kutupsal</b> (son noktadan uzaklık 2, 4, 6 m…), <code>SNAP D</code> ızgarayı taban noktası etrafında döndürür, <code>SNAP O</code> otomatik (yakınlaştırmaya göre).</li>
+<li><code>GRID 1</code>: ızgara aralığı; <code>GRID S</code> yakalamayı izler, <code>GRID M</code> ana çizgi sıklığı. F7 aç/kapa.</li>
+<li><code>IZGARAAYAR</code> ya da durum çubuğunda IZG.YAK / IZGARA düğmesine sağ tık: hepsini tek pencerede ayarlayın. Nesne yakalama her zaman önceliklidir.</li></ul>
+<h2>Yeni: Kesit / görünüş başlığı ölçekle güncellenir</h2>
+<p><code>KESITAL</code> artık "A-A KESİTİ" başlığını altı çizili (kalın + ince çift çizgi) yazar; altında yarı boyda <b>Ölçek 1/50</b> yazısı vardır. Başlık bir açıklama nesnesidir: her düzen penceresinde o pencerenin ölçeğini yazar ve kağıtta hep aynı boyda (varsayılan 5 mm) görünür. Modelde geçerli açıklama ölçeğini gösterir. <code>BASLIK</code> komutuyla PLAN, GÖRÜNÜŞ gibi kendi başlıklarınızı da koyabilirsiniz; metin, yükseklik ve "Ölçek" ön yazısı Özellikler'den değişir.</p>
+<h2>Yeni: JOIN (Bağla) ve ALIGN (Hizala)</h2>
+<ul><li><code>JOIN</code> (J, BAGLA): seçilen nesneleri birleştirir — aynı doğru üzerindeki çizgiler tek çizgi, aynı çemberdeki yaylar tek yay (tamamlanırsa daire), uç uca gelen çizgi/yay/açık çoklu çizgiler tek çoklu çizgi olur (yaylar yaylı segment olarak korunur; uçlar birleşirse kapalı). Uçlar arasında küçük boşluk varsa <code>JOIN T</code> ile tolerans verin.</li>
+<li><code>ALIGN</code> (AL, HIZAYLA): nesneleri seçin; 1. kaynak → 1. hedef (taşır), 2. kaynak → 2. hedef (döndürür), sonra "ölçeklensin mi?" Evet derseniz iki hedef noktası arasına sığacak şekilde ölçeklenir. 2. kaynakta Enter yalnız taşır.</li></ul>
+<h2>Yeni: Revit gibi — 3B model, kot planları ve görünüşler</h2>
+<ul>
+<li><b>Planda 3B model görünmez.</b> 3B sekmesinde çizdikleriniz ve katılar (kutu, katı, çokyüzlü…) Plan sekmesinde ve paftalarda gizlidir; durum çubuğundaki <b>3B MODEL</b> düğmesi (PLAN3B) ile geçici gösterilebilir. Havuz, duvar, boru, pompa gibi arıtma nesneleri plan sembolleriyle görünmeye devam eder.</li>
+<li><b>Kesitler ve planlar 3B'de görünmez.</b> KESITAL, KOTPLANI ve GORUNUS ile üretilenler yalnız planda (ve paftada) durur.</li>
+<li><code>KOTPLANI</code> (Kot planı): kesit kotu (ör. 2 → "+2.00 KOTU PLANI"), aşağı görüş derinliği ve yer (Enter: modelin yanına, Y: yerinde). Kesilen elemanlar tek parça kalın sınır + tarama, altta kalanlar görünen çizgi olarak çizilir; gizli çizgiler ayıklanır. Her plan kendi katmanlarında: PLAN+2.00_KESIT / _GORUNEN / _TARAMA.</li>
+<li><b>Kapsam</b>: KOTPLANI ve GORUNUS kesit kotundan sonra sorar — <b>T</b> tüm model, <b>A</b> alan (planda iki köşe; plan bu dikdörtgene kırpılır, kesilen duvarlar kırpma sınırında kapanır ve taranır), <b>N</b> nesne seç (yalnız seçtiğiniz havuz/katılar). Seçim sırasında 3B model planda geçici olarak görünür. Seçilen alan/nesneler GORUNUSGUNCELLE'de de korunur.</li>
+<li><code>GORUNUS</code>: ön, arka, sağ, sol, üst ya da izometrik (GB, GD, KD, KB) görünüş; gizli çizgiler ayıklanır.</li>
+<li>Her ikisi de sonunda "Paftaya yerleştirilsin mi?" diye sorar: ölçeği (ör. 50) ve paftadaki yeri verin; pencere yalnız o görünüşü gösterir. Sonradan <code>GORUNUSPAFTA</code> ile de yerleştirilir.</li>
+<li>Model değişince <code>GORUNUSGUNCELLE</code>: üretilmiş planlar/görünüşler aynı yerinde yeniden üretilir.</li>
+</ul>
+<h2>Yeni: Kesit işaretleri ve kesit stilleri</h2>
+<p>Plandaki kesit çizgisi ve harfleri artık tek bir <b>kesit işareti</b> nesnesidir ve <b>KESIT_ISARET</b> katmanındadır; bu katman varsayılan olarak <b>kapalıdır</b> (planda görünmez). Eski çizimlerdeki işaretler açılışta bu katmana alınır.</p>
+<p><code>KESITAYAR</code> (Arıtma menüsü › Kesit stilleri): işaretleri planda göster/gizle (yeni çizimlerde varsayılan: görünür, üçgen + daire sembolü), sembol (<b>üçgen + daire içinde harf</b> — dolu üçgen, ortasında harf, dairenin arka yarısı kesik; <b>yarısı dolu üçgen + harf altta</b>; <b>daire içinde harf + dolu ok</b>; <b>bayrak</b>, <b>ok</b>, <b>daire içinde harf</b>, <b>dolu üçgen</b>; pencerede her sembolün önizlemesi görünür, karta tıklayarak seçilir), tam boy ya da yalnız uçlarda çizgi, çizgi tipi, kalınlık, renk, yazı yüksekliği; kesit çiziminde kesilen ve görünen çizgi kalınlıkları ile tarama deseni. "Mevcutlara uygula" ile çizimdeki tüm kesitler güncellenir. Tek bir işaretin harfi/sembolü Özellikler'den, uçları tutamaçlarla değiştirilir.</p>
+<h2>Yeni: Yüz üzerine çizilen şekille halka/duvar it-çek (SketchUp gibi)</h2>
+<p>Bir katının yüzüne (ör. silindirin üstüne) daire, dikdörtgen ya da kapalı çoklu çizgi çizin. İt/Çek ile <b>şeklin dışında kalan alana</b> (dış kenar ile çizdiğiniz şekil arasındaki halkaya) tıklayıp yukarı çekerseniz yalnız o halka yükselir: ortası boş bir duvar oluşur ve alttaki katıyla tek parça olur. Şeklin içine tıklarsanız eskisi gibi yalnız iç bölge çekilir. İki iç içe çizilmiş daire arasına tıklamak da halka verir.</p>
+<h2>Yeni: Önceki seçimi geri çağırma (P)</h2>
+<p>"Nesne seçin" isteminde <b>P</b> yazıp Enter'a basın: bir önceki seçim seti (bir önceki komutta seçtikleriniz ya da en son tıklayarak seçtikleriniz) yeniden seçilir; ekleme yapıp Enter ile devam edebilirsiniz. <b>L</b> son çizilen nesneyi, <b>HEPSI</b> tümünü seçer.</p>
+<h2>Yeni: Aks sistemi — otomatik aks ve ölçü</h2>
+<p><code>AKS</code> (Arıtma menüsü ya da sol araç çubuğu "Aks"):</p>
+<ul><li><b>N — nesnelerden otomatik</b>: duvar, havuz ya da yapı çizgilerini seçin; duvarların orta çizgilerinden aks konumları bulunur (iki havuzun ortak duvarı tek aks olur).</li>
+<li><b>A — aralık girerek</b>: başlangıç noktası (1-A), X aralıkları (ör. <code>5 5 4</code> ya da <code>3*5 4</code>) ve Y aralıkları.</li>
+<li>Aks çizgileri eksen çizgi tipiyle, iki uçta balonlar (X: 1, 2, 3 … · Y: A, B, C …), altta ve solda zincir ölçüler + toplam ölçü otomatik çizilir. Balon ve ölçü boyları pafta ölçeğine göre ayarlanır.</li>
+<li>Özellikler'den aralıkları değiştirince aks ve ölçüler kendini günceller; dönme açısı, balon boyu, aks uzantısı da oradadır. Aks kesişimleri nesne yakalamada "kesişim" olarak yakalanır.</li></ul>
+<h2>Yeni: Kesit/planlarda gerçek daire ve yaylar</h2>
+<p>KESITAL, KOTPLANI ve GORUNUS artık 3B modeldeki daire ve yay kesitlerini parça parça çizgi olarak değil, <b>tek parça daire</b> ya da <b>yaylı çoklu çizgi</b> olarak üretir (dairesel havuz duvarı → iki daire; yarım daire duvar → iki yay + iki çizgi). Alan seçerek kırpılan planlarda da kırpılmış yaylar sürekli yay olarak kalır. Tarama sınırı da gerçek eğriye oturur. TARAMASINIR ile çıkarılan sınırlar da aynı şekilde yay olur.</p>
+<p>DXF'e yaylı çoklu çizgiler artık gerçek yay (bulge) olarak yazılır; AutoCAD'de açınca parçalı değil, düzgün yay görünür.</p>
+<h2>Yeni: ELİPS (ELLIPSE / EL)</h2>
+<ul>
+<li><b>EL</b> → eksenin bir ucu, diğer ucu, diğer eksene uzaklık (AutoCAD'deki gibi). Uzaklık yerine <b>D</b>: ana eksen çevresinde döndürme açısı.</li>
+<li><b>EL M</b> → merkezden: merkez, eksen ucu, diğer eksen.</li>
+<li><b>EL Y</b> → eliptik yay: elipsi tanımlayın, sonra başlangıç ve bitiş açısı (ilk eksene göre; <b>I</b> = içerilen açı, <b>P</b> = parametre).</li>
+<li>Merkez, çeyrek ve uç noktaları yakalanır; tutamaçlarla eksenler uzatılır, merkez taşınır, yay uçları değiştirilir.</li>
+<li>TRIM/EXTEND ile budanır (budanan elips eliptik yaya dönüşür), OFFSET ile ötelenir (ötelenmiş elips, AutoCAD'deki gibi elips değil düzgün eğridir — çoklu çizgi olarak oluşur), DXF'e gerçek ELLIPSE olarak yazılır ve okunur.</li>
+</ul>
+<h2>Yeni: Düzende pencere (layout kutusu) silme</h2>
+<p>Düzen sekmesinde pencereyi kenarından ya da içinden bir kez tıklayıp seçin, sonra <b>Delete</b> tuşuna basın, üst çubuktaki <b>🗑 Sil</b> düğmesine tıklayın ya da <b>SIL</b> (E) yazın. Seçim yokken SIL yazarsanız silinecek pencerelere tek tek tıklarsınız, Enter ile silinir. Yalnızca pencere silinir, modeldeki çizim yerinde kalır. Ctrl+Z ile geri alınır. Pencerenin içindeyken (çift tıkla girilmiş) Delete, AutoCAD'deki gibi modeldeki seçili nesneleri siler. Paftanın tamamını silmek için: DUZEN SIL.</p>
+<h2>Yeni: Menüler gruplandı</h2>
+<p>Üst menü artık AutoCAD'deki gibi gruplu: <b>Dosya</b> (açma, kaydetme, dışa aktarma), <b>Çiz</b> (çizgi, daire, yay, elips, yazı, tarama, blok), <b>Değiştir</b> (taşı, kopyala, ötele, buda, uzat, köşe, bağla, hizala, özellik kopyala, sil), <b>Ölçü</b> (doğrusal, hizalı, otomatik, yarıçap, çap, kot, koordinat, mesafe, alan, açıklama ölçeği), <b>Arıtma</b>, <b>3B / Kesit</b> (katı model, kesit, kot planı, görünüş), <b>Pafta</b>, <b>Hesaplar</b>, <b>Ayarlar</b> (katmanlar, snap/ızgara, kesit stilleri, yan panel). Soldaki araç çubuğu da aynı gruplara göre düzenlendi.</p>
+<h2>Yeni: Koordinat ölçüsü (DIMORDINATE / DOR / KOORDOLCU)</h2>
+<ul>
+<li><b>DOR</b> → noktaya tıklayın, yazının yerini gösterin: iki satırlık <b>Y = … / X = …</b> etiketi (harita düzeni: Y sağa/doğu, X yukarı/kuzey).</li>
+<li><b>E</b> seçeneği ile etiket biçimi: <b>H</b> = harita (Y/X), <b>A</b> = AutoCAD (X = doğu, Y = kuzey).</li>
+<li><b>X</b> / <b>Y</b> seçenekleri: AutoCAD ordinat ölçüsü (tek değer, kılavuz çizgisi ucunda).</li>
+<li>Nokta taşınınca değer kendini günceller; açıklama ölçeğine göre boyutlanır; DXF'e kaydedilip geri okunur. Ondalık hane ve etiket biçimi Özellikler'den değiştirilir.</li>
+</ul>
+<h2>Yeni: Otomatik ölçüde çap ve yarıçap</h2>
+<p>QDIM (Otomatik ölçü) artık düz kenarların yanında daireleri <b>Ø çap</b>, yayları (yaylı çoklu çizgiler dahil) <b>R yarıçap</b> ölçüsüyle verir; elipslerin büyük ve küçük eksenini ölçer. Kapalı şekillerin ölçüleri her zaman şeklin dışına konur, iç içe dairelerin çap ölçüleri farklı açılarda yerleştirilir.</p>
+<h2>Yeni: Kot planında otomatik plan kotları</h2>
+<p>KOTPLANI artık plana kendiliğinden plan kotu işaretleri koyar: kesilen gövdenin içine yapının <b>üst kotu</b> ("+3.00 üst"), havuz/oda gibi boşlukların içine görünen <b>taban kotu</b> ("-4.00"). İşaret, karşılıklı çeyrekleri dolu daire biçimindeki plan kotu sembolüdür ve PLAN…_KOT katmanındadır. Model değişince GORUNUSGUNCELLE ile kotlar da güncellenir.</p>
+<h2>Yeni: Pürüzsüz daire ve yaylar (3B ve 2B)</h2>
+<p>Daire, yay ve yaylı çoklu çizgiler artık yarıçapa göre yeterince ince bölünür (kiriş hatası en fazla ~1 mm): 2 m yarıçaplı bir daire 72, 10 m'lik bir havuz 160 parçaya kadar bölünür. 3B'de silindir, dairesel havuz ve yuvarlak kenarlı katıların yan yüzleri pürüzsüz gölgelenir; köşeli/kırık görünüm ve buna bağlı kesit/plan hataları giderildi. İt/çek ile açılan oyuk ve deliklerin (yuvarlak uçlu havuz içi gibi) eğri iç duvarları da artık şerit şerit değil, pürüzsüz görünür; eski çizimlerdeki kaba bölünmüş yaylar açılışta kendiliğinden ince bölünür.</p>
+<h2>Yeni: Akslar kesit, plan ve görünüşlere otomatik</h2>
+<p>Modelde (2B planda ya da 3B sekmesinde) AKS ile aks sistemi yerleştirdiyseniz:</p>
+<ul>
+<li><b>KOTPLANI</b>: akslar balonları ve zincir ölçüleriyle kot planına kopyalanır (PLAN…_AKS katmanı); başlık aksların altına iner.</li>
+<li><b>KESITAL</b>: kesit çizgisinin kestiği akslar kesitte düşey eksen çizgisi + üstte balon (1, 2, 3 / A, B …) + aks arası ölçülerle çizilir. İstemezseniz: KESITAL AKS=H …</li>
+<li><b>GORUNUS</b> ön/arka/sağ/sol: bakış doğrultusuna paralel akslar görünüşte gösterilir; üst görünüşte plan gibi kopyalanır.</li>
+<li>Akslar ya da model değişince GORUNUSGUNCELLE ile planlardaki/görünüşlerdeki akslar da güncellenir.</li>
+</ul>
+<h2>Yeni: Yapıları araziye oturtma — kazı, şev, geri dolgu, tesviye ve kübaj</h2>
+<h3>Arazi saydamlığı ve zemin bloğu (ARAZIAYAR)</h3>
+<p>Arıtma › Arazi saydamlığı… (ya da arazinin Özellikler'i): <b>yüzey saydamlığı</b> (%), arazinin altında devam eden <b>zemin bloğunun derinliği</b> (m) ve <b>saydamlığı</b> (%). Böylece temeller, kazı çukuru ve gömülü borular 3B'de toprağın içinden görünür. Betikte: <code>ARAZIAYAR S=35 D=10 B=70</code>.</p>
+<h3>KAZI</h3>
+<ol>
+<li>Yapıları (katı, havuz…) ya da kazı tabanı için kapalı bir çoklu çizgiyi seçin.</li>
+<li><b>Çalışma payı</b> (yapı kenarından, m), <b>kazı taban kotu</b> (önerilen: yapı alt kotu − 0,10), <b>kazı şevi</b> (yatay/düşey: 1, 1.5 ya da 1:1, 3:2 yazılabilir).</li>
+<li><b>Tesviye kotu</b> (isteğe bağlı): yapı çevresindeki bitmiş zemin; arazi daha alçaksa <b>dolgu şevi</b> sorulur. Boş bırakılırsa geri dolgu mevcut arazi kotuna kadar yapılır.</li>
+</ol>
+<p>3B'de arazi kazı bölgesinde açılır ve şevli kazı çukuru görünür. 2B planda kazı taban sınırı, kazı üst sınırı, şev çizgileri (uzun/kısa), köşelerde arazi kotları (AK), kazı tabanı kotu ve kübaj yazısı çizilir. Değerleri sonradan Özellikler'den değiştirebilirsiniz; her şey kendini günceller.</p>
+<p><b>KAZIDURUM</b> (Geri dolgu yap): açık kazı ↔ geri doldurulmuş / tesviye edilmiş görünüm. Geri dolgu açık sarı, tesviye dolgusu sarı, kalıcı kazılan şev kahverengi gösterilir.</p>
+<h3>KAZIKESIT — kot tablolu kazı kesiti</h3>
+<p>Kesit çizgisini çizin, istasyon aralığını girin, yerleştirin: mevcut arazi (kesik), kazı çizgisi, tesviye / bitmiş zemin çizgisi, kesilen yapı, kazı (EARTH), geri dolgu (AR-SAND) ve dolgu (DOLGU) taramaları; altta <b>İSTASYON – ARAZİ KOTU – KAZI KOTU – TESVİYE KOTU – KAZI DERİNLİĞİ – DOLGU YÜKSEKLİĞİ</b> tablosu, kıyas kotu, kesit alanları ve başlık. İstasyonlara şev üstü / topuk noktaları da eklenir. Plana kesit çizgisi ve adı konur. Kesilen yapı, kesit stilindeki desenle (KESITAYAR) taranır. Kazı kesiti ve kübaj cetveli 2B çizimdir: 3B sekmesinde çalıştırsanız da Plan sekmesinde görünür.</p>
+<h3>KAZIHACIM — kübaj cetveli</h3>
+<p>Her kazı için kazı, geri dolgu, dolgu ve fazla/eksik malzeme hacmi (m³) hesaplanır (yaklaşık 0,3 m'lik ızgarada prizmoidal hesap); istenirse kübaj cetveli tablo olarak çizime konur.</p>
+<p>KESITAL ile alınan normal kesitlerde de zemin çizgisi artık kazı ve dolguya göre çizilir.</p>
+<h2>Yeni: 3B kesit düzlemi (KESITDUZLEMI)</h2>
+<p>AutoCAD SECTIONPLANE / Revit kesit kutusu gibi: modeli 3B'de canlı keser, düzlemin önündeki kısım gizlenir, kesilen yapılar <b>kırmızı</b>, kesilen ekipman <b>turuncu</b> kapakla dolar; arazi ve kazı kesim izi kahverengi çizilir. Düzlemin sınırı mavi çerçeveyle gösterilir.</p>
+<ul>
+<li><b>KESITDUZLEMI N</b> (çizgi seçiliyse varsayılan): çizdiğiniz çizgiye (ya da çoklu çizginin bir parçasına) dik duran <b>sınırsız</b> düşey düzlem. Çizgiyi taşıdığınızda, döndürdüğünüzde ya da tutamacından çektiğinizde düzlem de birlikte döner ve kayar. <b>KESITDUZLEMI D</b>: plan izinde iki nokta + bakış yönü (düşey düzlem). <b>KESITDUZLEMI Y</b>: kot girerek yatay düzlem (üstten kesilmiş plan görünümü).</li>
+<li>Düzlemi planda tutamaçlarından (uçlar / orta) sürükleyerek kaydırın; 3B görünüm anında güncellenir. Yatay düzlemin kotunu Özellikler'den değiştirin.</li>
+<li><b>K</b> = kesmeyi kapat, <b>A</b> = bir düzlemi yeniden aç, <b>S</b> = sil. Birden çok düzlem tutulabilir, aynı anda biri etkindir.</li>
+<li>Düzlem sınırsızdır: plan izi model boyunca kesik çizgiyle uzar, 3B'de bütün model kesilir. <b>KDKESIT</b>: etkin düzlemden (model boyunca) 2B çizim üretir — düşey düzlem → KESITAL (taralı kesit), yatay düzlem → KOTPLANI (kot planı).</li>
+<li>Kesilip gizlenen kısım 3B'de seçilmez; görünen kısımda çizim ve seçim normal çalışır.</li>
+</ul>
+<h2>Düzeltme: kesitte taranmayan yüzeyler</h2>
+<p>Kesit çizgisinin değdiği her gövde artık bütün olarak kesilir (çizgi gövdenin ortasında bitse bile kesit kapalı çıkar ve taranır); model ağındaki küçük boşluklar otomatik kapatılır; pompa, vana gibi ekipman kesitleri de ANSI37 ile taranır. KESITAL, KOTPLANI, GORUNUS ve 3B kesit düzleminde geçerlidir.</p>
+
+<h3>Mekanik kaba ızgara (KABAIZGARA)</h3>
+<p>Arıtma › Boru ve ekipman › <b>Kaba ızgara</b>. Önce ayarlar sorulur, sonra kanal tabanında ızgaranın <b>ön alt orta noktasına</b> ve <b>akış yönüne</b> tıklanır (ızgara akış yönüne yatıktır; deşarj kaputu mansap tarafındadır). Varsayılan ölçüler üretici çiziminden (02-FF-010102010301 MECHANICAL COARSE SCREEN) alınmıştır:</p>
+<ul><li>açı 75°, kanal tabanından toplam yükseklik 6.945 m (eğim boyu ≈7.19 m), çerçeve dış genişliği 630 mm, derinlik 354 mm;</li>
+<li>net ızgara / kanal genişliği 500 mm, çubuk 10 mm, açıklık 20 mm (17 çubuk), ızgara boyu eğim boyunca 1.0 m;</li>
+<li>tahrik kafası 3.45 m (4 muayene kapağı), deşarj ağzı tabandan +5.615 m, motor-redüktör sol / sağ tarafta (akışa bakarken), taban ayakları ve duvar konsolları;</li>
+<li>taban kotu (Z) olarak 3B'de tıklanan noktanın kotu, yoksa girilen değer kullanılır. Bilgi satırı deşarj ağzının mutlak kotunu verir.</li></ul>
+<p>Planda: çerçeve izdüşümü, çubuklar, deşarj kaputu (kesikli), motor, akış oku ve etiket. Kendi katmanında (ARI_IZGARA). Özellikler panelinden tüm ölçüler sonradan değiştirilebilir; TAŞI / DÖNDÜR / KOPYALA ile çalışır. Örnek: <code>KABAIZGARA B=500 BG=20 A=75 H=6.945 Z=-4.5 0,0 5,0</code>.</p>
+<p><i>Not:</i> Üretici DXF'i yalnız 2B görünüşlerden oluşur (3B katı yoktur); bu yüzden model, çizimdeki ölçülerden parametrik olarak yeniden kurulmuştur — görsel ve yerleşim / çakışma kontrolü içindir, imalat çizimi yerine geçmez.</p>
+
+
+
+
+<h3>Korkuluk (KORKULUK)</h3>
+<p>İnşaat › Taşıyıcı sistem › <b>Korkuluk</b>. Yürüyüş yolu, platform, havuz / döşeme kenarı için; merdiven korkuluğuyla aynı yapı ve malzemeler (galvaniz, paslanmaz 304 / 316, CTP, boyalı, alüminyum, ahşap): 110 cm küpeşte, ara küpeşte, dikmeler, 15 cm tekmelik.</p>
+<ul><li><b>Döşeme kenarlarını seç:</b> yürüyüş yolu döşemesine tıklayın, sonra korkuluk olacak kenarlara tıklayın (tekrar tıklamak kaldırır, T = tüm kenarlar), Enter. Ardışık kenarlar tek, köşeleri birleşik korkuluk olur; kenardan içeri payı ayarlanır.</li>
+<li><b>Noktalarla çiz:</b> 3B'de yürüme yüzeyine tıklayarak (eğimli olabilir).</li>
+<li><b>Merdivenle tam birleşim:</b> korkuluğun ucu bir merdiven korkuluğunun ucuna 60 cm'den yakınsa tam o noktaya bağlanır — küpeşteler aynı kotta buluşur, merdivenin üst küpeşte uzatması kaldırılır. Merdiven korkuluk uçları yakalama noktasıdır (noktalarla çizerken üstüne tıklayın).</li></ul>
+<h3>Su (SU) — havuz içine su doldurma</h3>
+<p>Arıtma › Yapılar › <b>Su doldur</b>. Tür: <b>atıksu</b> (bulanık), <b>temiz su</b> (saydam mavi), <b>arıtılmış su</b>, <b>havalandırma havuzu</b> (köpüklü), <b>çamur</b>, yağmur suyu. Su seviyesi: tabandan <b>su yüksekliği</b> ya da mutlak <b>su kotu</b>; taban otomatik (radye / döşeme üstü) ya da elle. Perdelerle çevrili alana tıklayın (ya da kapalı çoklu çizgi / döşeme içine). 3B'de yarı saydam, <b>hafif dalgalanan</b> su yüzeyi (güneş parıltısı, havalandırmada hareketli köpük); planda kesikli sınır, "~" işareti ve su kotu (S.K.). Bilgi satırında yüzey alanı ve hacim (m³).</p>
+<h3>Dairesel perde (DAIRESELPERDE)</h3>
+<p>İnşaat › Taşıyıcı sistem › Perde düğmesinin oku › <b>Dairesel perde</b>. Merkeze tıklayın, yarıçapı yazın ya da tıklayın (perde ekseni; D = çap girin). <b>Enter</b> = tam daire (yuvarlak havuz, çöktürme, tank); yay perde için başlangıç ve bitiş noktalarına tıklayın (saat yönü tersine). Ardından perde ayar penceresi (kalınlık, yükseklik, alt kot, hiza, beton sınıfı) açılır. Daire pürüzsüz, sık bölünür; 3B'de seçince yarıçap oku ile büyütülüp küçültülebilir.</p>
+<h3>Eleman tarayıcısı (sol panel)</h3>
+<p>İki yerde açılır: <b>sağ paneldeki Elemanlar sekmesi</b> (Sohbet / Katmanlar / Eklentiler yanında; sağ panel gibi » ile kapanır, 📌 ile otomatik gizlenir) ya da ekranın solundaki <b>☰ Elemanlar</b> sekmesi (« ile kapanır; Görünüm › Arayüz › Eleman tarayıcısı, <code>ELEMANLAR</code> komutu). <b>Yeniden adlandırma:</b> listede ismin üstüne <b>çift tıklayın</b> (ya da seçip F2), yazın, Enter; ⌖ simgesi o elemana yakınlaştırır. Çizimdeki elemanlar türlerine göre (Kolon, Perde / duvar, Radye / döşeme, Merdiven, Su …) sayılarıyla listelenir. <b>Ara</b> kutusu isim, katman ya da #no ile süzer; <i>model</i> işareti kaldırılırsa ölçü, yazı gibi açıklamalar da listelenir. Listeden tıklanan eleman çizimde <b>seçilir</b> (Ctrl / Shift ile çoklu). Seçili elemana <b>İsim</b> verin (ör. "Havalandırma havuzu 1") — listede ve bilgi satırında bu isim görünür. Altta Özellikler penceresi panele yerleşir: tüm özellikler, geometri ve ebatlar buradan kontrol edilip değiştirilir.</p>
+<h3>Merdiven (MERDIVEN) — betonarme, çelik ızgaralı, CTP; düz / L / U / helezon</h3>
+<p>İnşaat › Taşıyıcı sistem › <b>Merdiven</b> (oktan tip seçilebilir). Açılan pencerede:</p>
+<ul><li><b>Tip:</b> betonarme · çelik ızgaralı (galvaniz ızgara basamak, UPN 200 limon, sahanlıkta çerçeve ve □100 ayaklar) · CTP / FRP (sarı CTP ızgara, CTP limon).</li>
+<li><b>Alt / üst kot:</b> rıht sayısı = yükseklik / en büyük rıht (standart 17.5 cm) yukarı yuvarlanır, gerçek rıht eşit bölünür; <b>basamak</b> 0 bırakılırsa 2h + b = 63 cm (Blondel) kuralıyla hesaplanır. Bilgi satırı 2h + b kontrolünü (60–65 cm ✓) ve eğimi gösterir. 3B'de bir yüzeye (döşeme, sahanlık) tıklarsanız alt kot oradan alınır — merdiven o düzleme oturur.</li>
+<li><b>Genişlik</b> (cm), <b>basamak burnu</b> çıkıntısı, <b>sahanlık derinliği</b> (0 = merdiven genişliği), tıkladığınız çizginin <b>eksen / sol kenar / sağ kenar</b> olması.</li>
+<li><b>Beton plak kalınlığı:</b> değer girerseniz (ör. 15 cm) eğik plaklı merdiven ve sahanlık plağı; <b>0 / boş</b> bırakırsanız merdivenin altı <b>zemine kadar dolu beton</b> olur.</li>
+<li><b>Korkuluk:</b> iki yanda / sol / sağ / yok; <b>malzeme:</b> galvaniz, paslanmaz AISI 304, paslanmaz AISI 316 (arıtma / korozif ortam), CTP sarı / gri / yeşil, boyalı çelik (antrasit, trafik sarısı), alüminyum, ahşap küpeşte — 3B'de rengi malzemeye göre değişir. Yükseklik 110 cm (iş güvenliği), ara küpeşte (yarı yükseklikte), dikme aralığı, <b>15 cm tekmelik</b>, uçlarda <b>küpeşte uzatma</b> (Revit'teki gibi). Sahanlıklarda boş kenarlara korkuluk otomatik devam eder.</li>
+<li><b>Çelik merdivende</b> açık ya da kapalı rıht (rıht levhası).</li></ul>
+<p><b>Çizim:</b> başlangıç noktasına (ilk rıht) tıklayın, sonra çıkış yönüne tıklayın — kol boyu standarda göre kendiliğinden hesaplanır. <b>Köşeli dönüş</b> için sonraki kolun yönüne tıklayın: köşede sahanlık oluşur (L merdiven). <b>U merdiven</b> için: 1. kol yönü, kısa yan geçiş (iki kol arası), dönüş yönü — kısa ara parça sahanlık olur. Rıhtlar kollara boylarına göre paylaştırılır. Enter = bitir, G = geri al.</p>
+<p><b>En kolay: iki yüzey seç</b> (Yerleştirme = <i>İki yüzey seç</i>, 3B görünümde): <b>1)</b> ALT yüzeye tıklayın (ör. tretuvar ortası — merdivenin oturacağı yüzey ve hattı), <b>2)</b> ÜST yüzeye tıklayın (ör. perde üstü — merdivenin çıkacağı yer). Alt ve üst kot yüzeylerden alınır, rıht / basamak standarda göre hesaplanır, merdiven tıkladığınız üst noktaya varacak şekilde geri doğru yerleşir. Üst yüzün kenarına yakın bir yöndeyse merdiven <b>duvara paralel</b> hizalanır. Korkuluğu boşluk tarafına (sol / sağ) alın; duvar üstüne geçiş için üst sahanlık ekleyebilirsiniz.</p>
+<p><b>Kolay yerleştirme — kenar çizgisi seçerek</b> (pencerede <i>Yerleştirme</i>):</p>
+<ul><li><b>Merdiven bu kenara OTURUR:</b> bir döşeme / sahanlık / zemin kenarına (3B'de kenarın üstüne, planda çizginin üstüne) tıklayın, sonra merdivenin uzanacağı tarafa tıklayın. Alt kot kenarın kotundan alınır; merdivenin ortası tıkladığınız yerde olur.</li>
+<li><b>Merdiven bu kenara ÇIKAR:</b> üst döşemenin / platformun kenarına tıklayın, sonra merdivenin ineceği tarafa tıklayın. Üst kot kenarın kotundan alınır, alt kot pencereden; kol boyu standarda göre hesaplanıp son rıht tam kenara gelir.</li>
+<li>Genişliği 0 girerseniz merdiven genişliği <b>kenarın boyu</b> olur.</li></ul>
+<p><b>Üst sahanlık / alt sahanlık:</b> pencerede <i>Var</i> seçip <b>boy</b> (merdiven yönünde) ve <b>en</b> (cm; 0 = merdiven genişliği) girin. Üst sahanlık son rıhttan sonra, alt sahanlık ilk rıhtın önünde (zemin kotunda) oluşur; çelik / CTP'de ayaklar ve çerçeve, serbest kenarlarda korkuluk otomatik.</p>
+<p><b>Helezon:</b> şekil = helezon seçin; merkez ve ilk basamak yönüne tıklayın; dış yarıçap, orta direk yarıçapı ve dönüş yönü pencereden.</p>
+<p>Planda: merdiven ve sahanlık sınırı, rıht çizgileri, yürüme çizgisi ve <b>YUKARI</b> oku, kesim (kırık) çizgisi, korkuluk çizgisi, alt / üst kot ve "n × rıht / basamak" yazısı. Kendi katmanında (INS_MERDIVEN); özellikler penceresinden tüm değerler sonradan değiştirilebilir; IFC'de IfcStair. Komut satırı örneği: <code>MERDIVEN TIP=izgara Z0=0 Z1=3.2 W=100 KM=paslanmaz316 0,0 4,0 4,4</code>.</p>
+<h3>Malzeme dokusu (MALZEME) — tuğla, beton, taş … görseli ve kabartma (bump)</h3>
+<p>İnşaat › Taşıyıcı sistem › <b>Malzeme dokusu</b> (3B Modelleme › Modelle'de de var), komut <code>MALZEME</code> / <code>DOKU</code>. Perde, duvar, döşeme, kolon, kiriş, temel, katı gibi elemanları seçin; açılan kütüphaneden dokuyu seçin:</p>
+<ul><li><b>Hazır dokular:</b> tuğla (24×7.1 cm, yarım şaşırtmalı), klinker, harman tuğlası, gazbeton (60×25), briket (40×20), brüt beton (kalıp izi + tij delikleri), düz beton, sıva / boya, doğal taş, kilitli parke taşı, seramik karo, ahşap tahta. İnternet gerekmez.</li>
+<li><b>Kendi resminiz:</b> <i>+ Resim ekle</i> ile jpg / png seçin, adını ve resmin <b>gerçek enini / boyunu (m)</b> girin; kütüphaneye eklenir (bu bilgisayarda saklanır, <i>Sil</i> ile kaldırılır).</li>
+<li><b>Karo eni × boyu (m):</b> resmin bir tekrarının gerçek ölçüsü — en / boy oranı buna göre ayarlanır, böylece duvar ölçüsüne göre gerçek boyutta tuğla görünür. <b>Açı</b> ile döndürülür.</li>
+<li><b>Kabartma (bump, %):</b> 3ds Max'teki bump gibi; derzler içeride, tuğla / taş yüzü kabarık görünür, ışıkla gölgelenir. 0 = düz.</li>
+<li><b>Uygulanacak yüzler:</b> tüm yüzler ya da yalnız düşey (duvar) yüzler. Kıvrımlı (dairesel) perdelerde tuğla sıraları duvar boyunca kesintisiz devam eder.</li>
+<li><b>Yalnız bir yüze doku (iç / dış ayrı):</b> 3B görünümde önce yüze <b>tıklayın</b> (yüz seçilir, mavi), sonra <b>Malzeme dokusu</b>'na basın — doku yalnız o yüze verilir. Komutu seçim yapmadan verip <b>Enter</b>'a basarsanız da yüze tıklamanız istenir. <b>Perdede</b> bir yan yüze tıklamak o tarafın <b>tamamını</b> (yuvarlak havuzda bütün iç ya da bütün dış yüz) boyar: ör. dış yüz tuğla, iç yüz sıva / su yalıtımı rengi. Üst yüz, alın gibi düz yüzler tek tek boyanır. Yüz dokusu elemanın genel dokusunun önüne geçer; <i>Bu yüzün dokusunu kaldır</i> ile geri alınır.</li>
+<li><i>Dokuyu kaldır</i> ile eski görünüme döner. Doku bilgisi çizimle (DXF) kaydedilir; kendi resim dokularınız bu bilgisayardaki kütüphanede durur.</li></ul>
+<p>Komut satırı: <code>MALZEME K=tugla W=0.5 H=0.162 BUMP=70 YUZ=dikey</code> (K: tugla, klinker, harman, gazbeton, briket, brut, beton, siva, tas, parke, seramik, ahsap; K=YOK kaldırır).</p>
+<h3>Çizgiden yapı elemanı (ELEMANYAP)</h3>
+<p>İnşaat › Taşıyıcı sistem › <b>Çizgiden eleman</b> (3B Modelleme › Modelle'de de var). Planda ya da 3B'de <b>çizgi, çoklu çizgi, dikdörtgen, daire veya yay</b> ile çizdiğiniz şekli seçin (önce seçip sonra komutu da verebilirsiniz), açılan pencerede eleman türünü seçin:</p>
+<ul><li><b>Perde</b> (daire seçerseniz yuvarlak havuz duvarı), <b>Duvar</b> (tuğla / gazbeton / briket), <b>Kiriş</b>, <b>Sürekli temel</b> — açık ya da kapalı şekil; çizgi elemanın ekseni / hiza çizgisi olur.</li>
+<li><b>Radye</b>, <b>Döşeme</b>, <b>Çatı döşemesi</b> — kapalı şekil gerekir.</li>
+<li><b>Kolon</b> ve <b>Tekil temel</b> — her kapalı dikdörtgen (ölçü ve açı şekilden) ya da daire (dairesel kolon) bir eleman olur.</li></ul>
+<p><b>Köşeler tam birleşir:</b> başlangıç ve bitiş noktası 5 cm'den yakın olan yollar kapalı sayılır, köşe gönyeli birleşir (elle PERDE / DUVAR çizerken de). Çizgiler arasındaki 2 cm'ye kadar kaçıklıklar ve boşluklar otomatik kapatılır; konturun tek bir parçasını seçmeniz yeterlidir, uç uca bağlı diğer parçalar kendiliğinden eklenir. <b>ÖTELE</b> ile perde / duvar üstüne (delikli halka yüz) çizgi atarsanız dış kenardan verilen mesafede <b>tek kapalı çizgi</b> oluşur.</p>
+<p><b>3B'de katı / yüz üzerinden:</b> bir katının (ör. döşeme, radye) üst yüzüne <b>ÖTELE</b> ile çizdiğiniz iç çizgiyi kullanmak için katıyı ya da çizgiyi seçip komutu verin — katı seçiliyse üst yüzündeki ötelenmiş çizgi / yüz otomatik bulunur. Katının <b>dış kenarı</b> boyunca eleman için katının yüzüne tıklayın (yüz seçilir), sonra komutu verin. Yaylı / yuvarlak kenarlar, elips ve 3B yüzler de desteklenir.</p>
+<p>Uç uca değen ayrı çizgiler kendiliğinden birleştirilir: 4 ayrı çizgiyle çizilmiş dikdörtgen tek kapalı perde olur. Ardından elemanın kendi ayar penceresi (kalınlık, yükseklik, beton sınıfı …) bir kez açılır; birden çok şekil seçtiyseniz hepsi aynı ayarla yapılır.</p>
+<p><b>Kot:</b> <i>Otomatik</i> — çizgiler 3B'de bir kotta (Z ≠ 0) çizildiyse çizgi elemanın <b>alt yüzü</b> kabul edilir (ör. −4.00'da çizilmiş daire → tabanı −4.00 olan havuz perdesi); Z = 0 ise ayar penceresindeki kot kullanılır. İsterseniz <i>Çizgi = elemanın ÜST yüzü</i> (ör. döşeme üst kotu) ya da <i>Ayar penceresindeki kot</i> seçilebilir. <b>Seçilen çizgiler:</b> kalsın ya da silinsin.</p>
+<p>Komut satırı: <code>ELEMANYAP TIP=PERDE KOT=ALT SIL=H</code> (TIP: PERDE, DUVAR, KIRIS, STEMEL, RADYE, DOSEME, CATI, KOLON, TTEMEL).</p>
+<h2>Yeni: İnşaat menüsü (Revit benzeri yapı elemanları)</h2>
+<p>Her komut önce bir <b>ayar penceresi</b> açar (değerler hatırlanır), sonra çizime geçersiniz. Betikte ayarlar ANAHTAR=değer ile verilir.</p>
+<ul>
+<li><b>PERDE</b>: hazır tip (perde 25/30/40, <b>istinat perdesi alt 80 / üst 30</b>, özel), alt ve üst kalınlık (farklıysa perde <b>eğimli</b> çizilir), eğimli yüz (sağ / sol / iki yüz), çizim hizası (orta / sol yüz / sağ yüz), yükseklik, alt kot, <b>beton sınıfı</b> (C16/20 … C50/60). Noktaları çizgi gibi tıklayın: K = kapat, G = geri al, Enter = bitir. Köşeler gönyeli birleşir. Örnek: <code>PERDE ALT=80 UST=30 EGIM=R H=4 BETON=C30/37 0,0 12,0 12,8</code></li>
+<li><b>IDUVAR</b>: tuğla / gazbeton / briket duvar (kalınlık, yükseklik, alt kot).</li>
+<li><b>Kolondan kolona duvar</b>: duvar (ve perde) kolonların içinden geçemez — çizgi kolonu kestiği yerde otomatik kesilir; 3B, plan, tarama ve metraj (hacim) kolon aralarına göre hesaplanır. Kolonu sonradan eklerseniz / taşırsanız duvar kendini yeniler.</li>
+<li><b>Otomatik alt kot / yükseklik</b>: diyalogda <i>Alt kot = OTO</i> seçilince duvar, altındaki döşemenin, betonarme (su basman) perdenin, kirişin veya temelin <b>üst kotundan</b> başlar; <i>Yükseklik = OTO</i> ise üstündeki ilk döşemenin / kirişin <b>altına</b> kadar çıkar. Planda çizerken üstü kapalı en üst kat tabanı alınır; 3B'de tıkladığınız noktanın kotu esas alınır. Elle değer için EL seçin (komut satırı: <code>ZOTO=OTO HOTO=OTO</code>).</li>
+<li><b>3B kesişim yakalama</b>: kolon köşeleri ile döşeme üst/alt, perde üstü, kiriş üst/alt ve temel üstü kotlarının kesiştiği dış köşe noktaları 3B'de kesişim (×) olarak yakalanır — duvarı tam kolon-döşeme birleşiminden başlatabilirsiniz.</li>
+<li><b>KOLON</b>: dikdörtgen (b×d, açı) ya da dairesel (Ø); tıklayarak çoklu yerleştirme (aks kesişimleri yakalanır).</li>
+<li><b>Kolon yerleşim noktası</b> (diyalogda <i>Yerleşim noktası</i>): kolonu merkezinden değil, istediğiniz yerinden tutun — <b>Otomatik</b> (varsayılan): döşeme, radye, tekil temel, kapalı perde ya da kapalı çoklu çizginin <b>köşesine</b> tıklarsanız kolon köşesi o köşeye oturur ve kolon içeri yerleşir; <b>kenarına</b> tıklarsanız kolon yüzü kenara dayanır; eğik kenarlarda kolon kenar doğrultusuna döner. Elle seçim: Merkez, Sol alt / Sağ alt / Sağ üst / Sol üst köşe, alt / üst / sol / sağ kenar ortası. Yerleştirirken <code>B</code> + Enter sırayla değiştirir; <code>SA</code>, <code>SGU</code>, <code>M</code>, <code>OTO</code> … doğrudan seçer. Önizleme seçilen noktaya göre çizilir.</li>
+<li><b>Kolonlar süreklidir — hiçbir eleman kolonla üst üste binmez</b>: döşeme / çatı döşemesi kolon izinden otomatik kesilir (köşede çentik, ortada delik), kiriş kolon yüzleri arasında kalır (net boy), perde ve duvar kolon aralarında kesilir. Bu hem 3B'de hem metrajda geçerlidir; kolonu taşıdığınızda döşeme / kiriş / perde kendini yeniler. Perde hacmi köşe birleşimlerinde bir kez sayılır.</li>
+<li><b>Ölçü değişince bağlı elemanlar kendini ayarlar</b>: kolonun ölçüsünü değiştirdiğinizde (ör. 40×40 → 40×60, sağ tık › Ölçüleri düzenle, Özellikler ya da MA ile) uzayan taraftaki duvar, perde ve kiriş otomatik kısalır, döşemedeki kolon çentiği büyür; küçültünce geri uzar. Aynı kural betonarme perdeler için de geçerlidir: perde kalınlaşırsa / taşınırsa ona dayanan tuğla duvar ve kiriş kısalır. Öncelik: kolon › betonarme perde › kiriş / duvar / döşeme. 3B, plan, kesit ve metraj birlikte güncellenir.</li>
+<li><b>Lento</b>: kâgir (tuğla / gazbeton / briket) duvara konan her pencere ve kapının üstüne otomatik <b>demirsiz beton lento</b> dökülür: eni duvar kalınlığı, yüksekliği varsayılan duvar kalınlığı (ör. 19 cm), iki yandan <b>10 cm taşma</b>. Taşma, yükseklik ve var / yok seçimi PENCERE / KAPI ayarlarından ya da sonradan sağ tık › Ölçüleri düzenle'den değişir. Lento duvardan kesilir (duvar hacminden düşülür), 3B'de beton renginde görünür; metrajda "Lento betonu, demirsiz C16/20 (adet)" m³ olarak çıkar. Betonarme perdelerde lento oluşmaz.</li>
+<li><b>CATI — Çatı</b> (İnşaat › Çatı): çatı yapılacak döşemeye tıklayın (<code>T</code> = tüm üst döşemeler). Türler: <b>Kırma</b> (dört yana eğimli), <b>Beşik</b> (iki yana eğimli, uçlarda tuğla alınlık), <b>Tek eğimli / sundurma</b> (alçak taraf seçilir), <b>Mansart</b> (dik alt + yatık üst eğim; çatı katı), <b>Kullanılabilir çatı arası</b> (ayak duvarlı; ayak duvarı yüksekliği ve malzemesi seçilir), <b>Teras</b> (düz: parapet + eğim betonu + XPS + bitümlü örtü + çakıl). Sorulanlar: <b>eğim (°)</b>, saçak (cm), XPS kalınlığı, su yalıtımı (nefes alan membran / bitümlü örtü), kaplama altı (OSB / tahta), <b>çatı örtüsü</b> (Marsilya / alaturka / beton kiremit, bitümlü shingle, onduline, trapez sac, sandviç panel, kenet sac, arduaz).
+ <ul><li>Çatı yüzeyi <b>döşemenin şekline göre</b> otomatik kurulur: dikdörtgen, L, T, U gibi dik açılı planlarda kırma, mahya ve <b>dere</b> hatları kendiliğinden oluşur; diğer şekillerde dışbükey zarf kullanılır.</li>
+ <li><b>Ahşap iskelet</b> (oturtma çatı): duvar üstü tabla 10×10, döşeme üstünde tabla + <b>dikmeler</b> 10×10 (2.5 m ara), <b>aşıklar</b> 10×12 (2 m ara), <b>mahya aşığı</b>, <b>mertekler</b> 5×12 (45 cm ara), <b>kırma ve dere mertekleri</b> 8×16, <b>alın tahtası</b>. Aralıklar ve mertek yüksekliği ayarlanabilir; iskelet Şeffaflık kaydırıcısıyla görülür.</li>
+ <li>Katmanlar: mertek üstü OSB / tahta › XPS › su yalıtımı › çatı örtüsü.</li>
+ <li>Planda çatı planı: saçak çizgisi, duvar hattı (kesik), mahya / kırma / dere çizgileri ve her yüzeyde eğim oku + %.</li>
+ <li>Metraj (<code>INSMETRAJ</code>): eğik çatı alanı (örtü, XPS, membran, OSB), her ahşap eleman için boy ve m³ ile toplam ahşap, yağmur oluğu (m), mahya kiremidi (m), dere sacı (m), alınlık duvarı (m²).</li>
+ <li>Döşemeyi taşıdığınızda / değiştirdiğinizde çatı da güncellenir; eğim, saçak, örtü vb. Özellikler'den değişir.</li></ul></li>
+<li><b>DXFMODEL — DXF / DWG planından 3B model</b> (İnşaat › DXF → 3B › Plandan 3B model): başka programda çizilmiş planı açın (birim sorulur: m / cm / mm), komutu çalıştırın: betonarme, duvar ve kapı-pencere katmanlarını seçin (isimden tahmin edilir), <b>alt ve üst kotu</b> girin (çizimdeki kot yazıları komut satırında listelenir — kesitlerden okuyun), istenirse radye ve üst döşeme kalınlığı. Sonra planı pencereyle seçin ve bir <b>aks kesişimini</b> referans olarak tıklayın. Program: karşılıklı paralel çizgi çiftlerinden perde / duvarı (aradaki mesafe = kalınlık, orta aks = eksen), küçük kapalı dikdörtgen / dairelerden kolonu, aynı eksendeki duvar parçaları arasındaki boşlukta kapı-pencere çizimi varsa kapı (yay varsa) ya da pencereyi, betonarmenin dış sınırından radye / üst döşemeyi oluşturur. İkinci planı (ör. üst kat) dönüştürürken <b>aynı aks kesişimini</b> tıklayın: kat, ilk planın üstüne oturur. <code>DXFMODELREF</code> referansı sıfırlar. Tanıma yarı otomatiktir: temiz katmanlı çizimlerde elemanların çoğu doğru çıkar; yanlış tanınanları silip düzeltin, tamamı Geri al ile geri alınır.</li>
+<li><b>TRETUVAR</b> (İnşaat › Çevre › Tretuvar): bina dış çevresine otomatik kaldırım (kolon taşmaları düzlenir, mantolama / dış sıva payı otomatik eklenir). Ayarlar: genişlik (bina yüzünden bordür dışına), dışa eğim (%2), zemin kotu ve <b>tretuvar üst kotu (zeminden, ör. 15 cm)</b>, kaplama (beton karo 40×40, kilitli parke, doğal taş, granit, perdahlı beton), harç / kum yatak, beton C16/20 ve sıkıştırılmış stabilize kalınlıkları, <b>gömülü beton bordür</b> (en × yükseklik) ve bordür yatak betonu, derz aralığı. Bilgi satırı toplam kalınlığı ve <b>zeminden ne kadar gömüldüğünü</b> verir. 3B'de katmanlar ve bordür, planda iç / dış kenar, bordür, derzler ve eğim okları; metrajda kaplama m², harç m², beton m³, stabilize m³, bordür m, yatak betonu m³, kazı m³, elastik derz m, dilatasyon derzi adet.
+ <ul><li><b>TRETUVARDETAY</b>: 1/10 kesit detayı — bina duvarı ve mantolama, kaplama / harç / beton / stabilize (taramalı), gömülü bordür ve yatak betonu, zemin çizgisi, bina dibinde elastik derz, kotlar (tretuvar üstü, zemin, stabilize altı), genişlik ve kalınlık ölçüleri, <b>gömülü derinlik</b> ve eğim.</li></ul></li>
+<li><b>Her elemanın kendi katmanı</b>: yeni çizilen her eleman otomatik kendi katmanına girer — INS_KOLON, INS_KIRIS, INS_PERDE, INS_DUVAR_TUGLA / _GAZBETON / _BRIKET, INS_DOSEME, INS_CATI_DOSEMESI, INS_PARAPET, INS_AYAK_DUVARI, INS_TEMEL_RADYE / _TEKIL / _SUREKLI, INS_PENCERE, INS_KAPI, INS_DOLGU, INS_KAPLAMA_ZEMIN / _IC_DUVAR / _DIS_CEPHE / _TAVAN, INS_YALITIM_CEPHE / _CATI / _ZEMIN / _TEMEL, INS_SU_YALITIMI, INS_SU_TUTUCU_BANT, INS_CATI (her biri ayrı renk ve kalınlıkta). Katmanlar panelinden ayrı ayrı açıp kapatabilir, dondurabilir, renk verebilirsiniz. Eski çizimlerde <code>INSKATMAN</code> (İnşaat › Metraj › Katmanları düzenle) elemanları kendi katmanlarına taşır ve boşalan eski genel katmanları siler. Sizin verdiğiniz (INS_ ile başlamayan) katmanlara dokunulmaz. <b>Katmanlar teker teker kapatılabilir</b> (Katmanlar panelinde göz simgesi): kapatmak yalnız görünürlüğü etkiler — örneğin kolon katmanı kapalıyken duvar / kiriş yine kolon kadar kesik kalır, kotlar ve metraj değişmez.</li>
+<li><b>Döşeme saçağı</b>: <code>ICATI</code> (çatı döşemesi) ve <code>IDOSEME</code> ayarlarında <i>Saçak</i> (cm): döşeme, çizdiğiniz kenardan (duvar / aks hattı) bu kadar dışarı konsol yapar; çatı döşemesinde varsayılan 60 cm. <code>OTOKIRIS</code> ile oluşturulan döşemede de saçak verilebilir. Çatı (CATI) döşeme saçaklıysa saçağı otomatik olarak döşeme kenarında bitirir (Saçak = −1 otomatik).</li>
+<li><b>Kırma çatı — örnek projeye göre</b>: varsayılanlar örnek pafta gibidir: eğim <b>%33</b> (yüzde ya da derece girilebilir), alaturka geniş tip kiremit, bitümlü örtü ile su yalıtımı, kaplama tahtası 1.8×10, <b>mertek 5×10 / 50 cm</b>, aşık 10×10 (≈2.10 m ara), dikme 10×10, yastık 2.5×10, <b>kuşaklama 2×(5×10)</b> (dikmeleri yatayda bağlar), <b>göğüsleme 2×(5×10)</b> (dikmeler arası çapraz), saçak aşığı ve duvar hattında aşık, alın tahtası, yağmur oluğu ve köşelerde yağmur boruları; ısı yalıtımı <b>çatı arası döşeme üstünde cam yünü şilte</b> (ya da mertek üstü XPS ya da ikisi). Planda (İNŞ_ÇATI katmanı) mertekler, aşıklar, kırma mertekler, dikmeler (çarpılı kare), kuşaklama, oluk / boru, eğim okları ve kotlar örnekteki gibi çizilir.</li>
+<li><b>CATIPAFTA — Çatı paftası</b> (İnşaat › Çatı › Çatı paftası): çatıyı seçin; otomatik olarak <b>ÇATI PLANI</b> başlığı ve ölçüleri (saçak ve duvar hattı), detay çağrı daireleri "A" / "B", <b>A-A</b> (mahyaya dik) ve <b>B-B</b> (mahya boyunca) kesitleri (ahşap iskelet, kuşaklama ve göğüslemeler görünür), <b>DETAY-A</b> (saçak: döşeme konsolu, kiriş, mantolama, cam yünü, saçak aşığı, aşık, mertek, kaplama tahtası, su yalıtımı, kiremit, alın tahtası, yağmur oluğu, eğim) ve <b>DETAY-B</b> (mahya: mahya kiremidi + harç dolgu, mertekler, mahya aşığı, dikme, kuşaklama, göğüsleme) 1/10 olarak çizilir. Hepsi yalnız 2B'de görünür, düzenlenebilir çizgi / yazı / taramalardır; detaylar düzende 1/10 pencereyle paftaya konabilir.</li>
+<li><b>PENCERE / KAPI — kolay yerleştirme</b>: 1) duvarın <b>dış yüzüne</b> tıklayın (seçilen yüz kalın vurgulanır; açılış yönü bu yüzdür). 2) İmleci duvar boyunca kaydırın: pencerenin solunda ve sağında kalan boş mesafe (kolon yüzüne, duvar ucuna ya da yandaki pencereye kadar) <b>ölçü çizgileriyle</b> ve imleç yanında "Sol … cm · Sağ … cm" olarak görünür, konum <b>5 cm adımlarla</b> kayar (adım ayarlanabilir). Tıklayın ya da sol mesafeyi cm olarak yazıp Enter'a basın. Aynı duvara arka arkaya yerleştirebilirsiniz; <code>D</code> = başka duvar, Enter = bitir. Pencerenin <b>zeminden yüksekliği varsayılan 80 cm</b>; ayar penceresinden ya da sonradan sağ tık › Ölçüleri düzenle'den değişir.</li>
+<li><b>OTOKIRIS — Kolonlardan otomatik kiriş</b> (İnşaat › Taşıyıcı sistem › Kolonlardan kiriş): kolonları tek tek tıklayın ya da pencereyle seçin, Enter. Kolonlar aks ızgarasına ayrılır; aynı sıradaki yan kolonlar ve karşılıklı kolonlar kirişle bağlanır. <b>Kenar (dış) kirişler kolonun dış yüzüyle aynı hizada</b>, <b>ara kirişler kolon merkezinden</b> geçer (L, U gibi girintili planlarda girinti kenarları da dış kiriş sayılır). Kiriş üst kotu otomatik kolon üstü ya da elle; genişlik, yükseklik, beton sınıfı ayarlanır. <b>Saçak</b>: döşeme kenar kirişi / kolon dış yüzünden istenen kadar konsol yapar (otomatik: çatı döşemesinde 60 cm; şeritteki seçeneklerde 60 cm saçaklı, parapetli ya da eğimli çatı için parapetsiz hazır ayarlar var) — üstüne CATI ile kırma / beşik çatı kurulduğunda saçak kenarında biter. İsteğe bağlı <i>Döşeme</i>: normal döşeme ya da <b>parapetli çatı döşemesi</b> (parapet yüksekliği / kalınlığı / malzemesi ICATI'deki gibi) — dört köşesinde kolon olan gözlerin birleşimi, kolon dış yüzlerine kadar otomatik çizilir. Aynı kiriş iki kez oluşmaz. Döndürülmüş kolon aksları da desteklenir.</li>
+<li><b>ICATI — Çatı döşemesi</b> (İnşaat › Taşıyıcı sistem › Çatı döşemesi): kalınlık, üst kot ve <b>parapet yüksekliği</b> (1 yazarsanız 1.00 m, 0.5 yazarsanız 0.50 m; 0 = parapet yok), parapet kalınlığı ve malzemesi (betonarme / tuğla / gazbeton / briket). Parapet döşeme kenarında, dış yüzü döşeme kenarıyla aynı hizada ayrı bir perde olarak oluşur (metraj, kesit, kalıp otomatik); döşemeyi taşıdığınızda ya da kotunu değiştirdiğinizde parapet de gelir. Sağ tık › Ölçüleri düzenle'den parapet yüksekliği / kalınlığı sonradan değişir. <code>IDOSEME</code> da aynı parapet seçeneğine sahiptir.</li>
+<li><b>Yalıtım</b> — İnşaat › Yalıtım paneli (her biri ayrı komut, ayrı seçenekler):
+ <ul>
+ <li><b>CEPHEYALITIM</b> — dış cephe ısı yalıtımı (mantolama): EPS, XPS, taşyünü, PIR, camyünü; kalınlık; bina dış çevresi ve her cephenin yüksekliği otomatik. Dış cephe sıva / boyası (DUVARKAPLAMA YON=DIS) yalıtımın üstüne kayar.</li>
+ <li><b>CATIYALITIM</b> — çatı / teras: buhar dengeleyici, eğim betonu (ort. cm, m³), ısı yalıtımı, su yalıtımı (bitümlü örtü 2 kat, TPO/PVC, sıvı PU, …), koruma (çakıl / şap). <code>T</code> = üstünde başka döşeme olmayan tüm çatı döşemeleri.</li>
+ <li><b>ZEMINYALITIM</b> — zemin betonu altı: su yalıtımı membranı + ısı yalıtımı; odadaki zemin kaplaması (zemin betonu, şap, kaplama) otomatik olarak bunun üstüne çıkar.</li>
+ <li><b>TEMELYALITIM</b> — temel altı su yalıtımı + koruma betonu (grobeton › su yalıtımı › koruma betonu › temel sırası, kesitte de böyle), temel kenarı ve perde dış yüzüne düşey su yalıtımı + XPS + drenaj levhası (girdiğiniz zemin kotuna kadar).</li>
+ <li><b>SUYALITIM</b> — ıslak hacim ya da havuz iç yüzeyi: çimento esaslı, kristalize, sıvı PU, polyurea, epoksi (içme suyuna uygun), bentonit, HDPE; taban + duvar (yükseklik otomatik ya da elle). HAVUZ / DHAVUZ nesnelerine ve radye üstündeki perde gözlerine (<code>T</code>) uygulanır.</li>
+ <li><b>SUTUTUCUBANT</b> — PVC iç / dış tip (genişlik cm), hidrofilik, bentonitli bant, enjeksiyon hortumu, galvaniz sac. <i>Otomatik</i>: radye / temel / döşeme üstüne oturan tüm betonarme perdelerin taban derzi ile HAVUZ / DHAVUZ duvar–taban derzleri; <i>Elle</i>: derz çizgisini çizin. Metraj metre olarak.</li>
+ <li>Metraj: <code>INSMETRAJ</code> tablosundaki <b>KAPLAMA / YALITIM METRAJI</b>. Kesitte ısı yalıtımları zikzak taramayla gösterilir.</li>
+ </ul></li>
+<li><b>Kaplama (ince işler)</b> — İnşaat › Kaplama paneli. Hepsinde odanın içine tıklarsınız (oda sınırı duvar / perde / kolonlardan otomatik bulunur), <code>T</code> = tüm odalar:
+ <ul>
+ <li><b>ZEMINKAPLAMA</b>: alttan üste <i>zemin betonu</i> (cm, m³ metraj), <i>ısı yalıtımı XPS</i>, <i>tesviye şapı</i> ve son kat: seramik, granit seramik, mozaik karo, mermer, doğal taş, laminat / lamine / masif parke, vinil-PVC, halı, epoksi, endüstriyel zemin, kauçuk; <i>süpürgelik</i> (m). Taban kotu otomatik: döşeme, dolgu ya da radye üstü. Planda karo ızgarası / parke çizgileri ve "KAPLAMA · alan" yazısı, 3B'de katmanlar kendi renginde görünür; bilgi satırı bitmiş döşeme kotunu verir.</li>
+ <li><b>DUVARKAPLAMA</b> (iç ya da dış): sıva (kaba+ince, alçı, makine sıvası, dış cephe sıvası, mantolama) + bitiş (plastik / saten / yağlı boya, silikonlu / akrilik dış cephe boyası, duvar kağıdı, ahşap lambri, seramik fayans, doğal taş, kompozit panel, alçıpan). <i>Alt kaplama yüksekliği</i> ile ör. 1.50 m fayans + üstü boya yapılır. İç duvar yüksekliği döşemeden üst döşeme altına kadar; pencere / kapı boşlukları alandan düşülür ve 3B'de açık kalır. <code>YON=DIS</code>: bina dış çevresi otomatik bulunur, her cephe parçası kendi duvar / döşeme yüksekliğine kadar kaplanır.</li>
+ <li><b>TAVANKAPLAMA</b>: tavan sıvası + tavan boyası ya da asma tavan (alçıpan, taşyünü/mineral karo 60×60, metal clip-in, ahşap lambri; sarkma cm, isteğe bağlı üstüne boya).</li>
+ <li><code>INSMETRAJ</code> beton tablosunun altına <b>KAPLAMA METRAJI</b> tablosunu (imalat · birim · miktar) koyar. Kesitlerde kaplama katmanları ayrı (taramasız) çizilir.</li>
+ </ul></li>
+<li><b>IDOLGU — Sıkıştırılmış dolgu</b> (İnşaat › Taşıyıcı sistem › Sıkıştırılmış dolgu): perdelerle (ve kolonlarla) çevrili iç alana tıklayın — alan sınırı otomatik bulunur; <code>T</code> = tüm iç alanlar tek seferde. Alt kot radye / temel üstünden, üst kot üstte döşeme varsa <b>döşeme altından</b> (isteğe bağlı pay, ör. 10 cm grobeton/yalıtım için), yoksa <b>perde üstünden</b> otomatik alınır; elle de verilebilir. Malzeme: stabilize / kum-çakıl / toprak. 3B'de toprak renginde görünür, planda kesik çizgili sınır + nokta deseni, kesitte çakıl (GRAVEL) taramasıyla çizilir; <code>INSMETRAJ</code> dolgu hacmini m³ olarak verir (kolon vb. içine giren kısımlar minha edilir). Sağ tık › Ölçüleri düzenle ile alt / üst kot değişir.</li>
+<li><b>Özellik eşleştir (MA / MATCHPROP) — 3B'de ve yapı elemanlarında seçmeli</b>: kaynağı seçin (ör. bir kolon), sonra hedefleri tıklayın ya da pencereyle seçin ve Enter'a basın: kaynağın <b>tüm özellikleri</b> değerleriyle bir listede açılır (kolonda b, d, çap, yükseklik, alt kot, açı, beton sınıfı, kesit; perdede kalınlıklar, yükseklik, kot, malzeme …; genel: katman, renk, çizgi tipi, kalınlık). İstediğinizi işaretleyip <b>Uygula</b> deyin — yalnız onlar uygulanır; konumlar değişmez. Türe özel özellikler yalnız aynı türdeki hedeflere uygulanır, genel özellikler hepsine. Son seçiminiz her tür için hatırlanır. 3B Modelleme › Düzenle ve İnşaat › Metraj panellerinde düğmesi var. Planda çizgi / yazı / taramada eski fırça davranışı sürer.</li>
+<li><b>3B görünüm ayarları</b> (3B sekmesi üst paneli): <i>Arka plan</i> — <b>Gökyüzü + ufuk</b> (SketchUp gibi açık gökyüzü, ufuk çizgisi ve zemin), <b>Beyaz</b> ya da <b>Siyah</b> (düz, ufuk ayrımı yok); seçim hatırlanır. <i>Şeffaflık</i> kaydırıcısı binayı yarı saydam yapar (röntgen): içerideki odalar, kapılar, döşemeler ve tüm kenarlar görünür. <i>Doku</i>: malzemelerde hafif beton / yüzey dokusu; <i>Izgara</i>: zemin ızgarası aç / kapa. Gölgelendirme güneş + dolgu ışığı + gökyüzü ortam ışığıyla daha gerçekçi.</li>
+<li><b>Kolon alt kotu</b>: <i>Alt kot kaynağı = 3B'de tıklanan nokta</i> ise 3B'de döşeme / temel üstündeki köşeye tıkladığınızda kolon o kottan başlar.</li>
+<li><b>KIRIS</b>: genişlik × yükseklik, üst kot; zincirleme uç noktaları.</li>
+<li><b>TEMEL</b>: radye (köşe noktaları), sürekli (temel hattı; genişlik × yükseklik), tekil (bx × by × h).</li>
+<li><b>IDOSEME</b>: betonarme döşeme (kalınlık, üst kot).</li>
+<li><b>PENCERE / KAPI</b>: genişlik, yükseklik, parapet / kanat sayısı; perde ya da duvarın üzerine tıklayın. 3B'de duvarda boşluk açılır (camlı pencere, kapı kanadı), planda pencere ve kapı açılış sembolü çizilir, tıkladığınız taraf kapının açılış yönüdür.</li>
+<li><b>INSMETRAJ</b> (tablo 3B sekmesinde çalıştırılsa da Plan'da çizgileri ve yazılarıyla tam görünür; 3B'de gizlidir): beton sınıfına göre temel / perde / kolon / kiriş / döşeme hacmi (m³), perde kalıp alanı, duvar alanı, pencere-kapı adedi; istenirse tablo olarak çizime konur.</li>
+<li><b>Minha (kesişim düşümü)</b>: elemanların birbirine giren hacimleri iki kez sayılmaz. Öncelik sırası <b>temel &gt; kolon &gt; perde &gt; döşeme &gt; kiriş &gt; duvar</b>: kolon tam boy sayılır; döşemeden kolon/perde içindeki kısım, kirişten kolon içindeki ve döşeme kalınlığındaki kısım (kiriş döşeme altından), duvardan betonarmeye giren kısım (alan olarak) düşülür. Aynı tür iki eleman üst üste gelirse (iki kiriş, iki perde) ortak hacim sonradan çizilenden düşülür. Tabloda <b>BRÜT / MİNHA (−) / NET TOPLAM</b> satırları vardır; komut satırında hangi elemanın hangisiyle ne kadar kesiştiği yazılır.</li>
+<li><b>INSCAKISMA</b> (İnşaat › Metraj › Çakışma / minha): her elemanın brüt − minha = net hacmini listeler; olağan dışı çakışmaları (perde∩perde, kiriş∩kiriş, döşeme∩döşeme, duvarın betonarmeye girmesi) seçerek gösterir.</li>
+</ul>
+<p>Planda perdeler taralı (betonarme çapraz, duvar tek yön), eğimli perdenin üst yüzü ince çizgiyle; kirişler ve döşeme kesik çizgiyle görünür. Tüm ölçüler Özellikler'den değiştirilebilir. KESITAL, KOTPLANI ve 3B kesit düzlemi bu elemanları beton olarak keser ve tarar.</p>
+<h2>Yeni: Şerit menü (AutoCAD / ZWCAD gibi)</h2>
+<p>Üstte sekmeler: <b>Giriş</b> (Çiz, Değiştir, Açıklama, Katmanlar, Özellikler), <b>Açıklama</b> (ölçü, kot, koordinat, yazı, tarama, açıklama ölçeği, ölçme), <b>İnşaat</b>, <b>Arıtma</b> (yapılar, boru/ekipman, arazi, kazı), <b>3B Modelleme</b> (seç/yörünge, çiz, it-çek, ekstrüzyon, birleştir/ayır, kesit düzlemi, kesit, kot planı, görünüş), <b>Pafta</b>, <b>Görünüm</b>, <b>Hesap</b>. Her panelde büyük ve küçük düğmeler vardır; büyük düğmedeki <b>▾</b> seçenekleri (ör. Daire ▾: elips, eliptik yay; Ölçü ▾: hizalı, yarıçap, çap, koordinat; Kesit düzlemi ▾), panel başlığındaki ▾ ek komutları açar.</p>
+<ul>
+<li>3B sekmesine geçince şerit kendiliğinden <b>3B Modelleme</b> sekmesine geçer; eski uzun 3B araç sütunu kaldırıldı, komut satırı artık kapanmaz.</li>
+<li>Bir sekmeye çift tıklayınca (ya da sağdaki ▴) şerit küçülür, yalnız sekme adları kalır; yeniden tıklayınca açılır.</li>
+<li>Görünüm › Arayüz: <b>Sol araç çubuğu</b> ve <b>Klasik menüler</b> isteğe bağlı yeniden açılabilir (seçim hatırlanır). Dosya ve Yardım menüleri her zaman üstte durur.</li>
+</ul>
+<h2>Yeni: Düzen pencereleri — modelden ekle, sağ tık menüsü, çerçeve ayarı</h2>
+<ul>
+<li><b>Pencere ekle</b> (Pafta sekmesi, Düzen'deki "+ Pencere", MVIEW M): Plan'a geçer, göstermek istediğiniz alanı iki köşeyle seçersiniz; düzene döner, sayfaya sığan uygun ölçek önerilir (Enter = kabul), pencere imleçle birlikte gelir, istediğiniz yere tıklayıp bırakırsınız.</li>
+<li><b>Sağ tık</b> (pencerenin üzerinde): Sil, Kilitle / Kilidi aç, İçine gir, Çerçeve…, Modelde yerini seç, Özellikler.</li>
+<li><b>Silme</b>: pencereye tıklayıp Delete (ya da Backspace) — üst çubuktaki ölçek listesi gibi bir kutu seçili kalsa bile çalışır; ayrıca 🗑 Sil düğmesi ve sağ tık menüsü.</li>
+<li><b>Çerçeve</b> (üst çubukta ▭ Çerçeve, sağ tık ya da Pafta › Çerçeve): görünür / görünmez, katman, renk, çizgi tipi, kalınlık, çizgi tipi ölçeği; değişiklikler anında görünür. "Tüm pencerelere uygula" ve "Yeni pencereler için varsayılan yap" seçenekleri vardır. Çerçevesi kapalı pencere yalnız seçiliyken ekranda kesik çizgiyle görünür, yazdırılmaz.</li>
+</ul>
+<h2>Düzeltme: plan / kesit başlığı çizimin üstüne binmiyor</h2>
+<p>KOTPLANI, GORUNUS ve KESITAL başlıkları (ör. "+3.00 KOTU PLANI") artık çizimin altına <b>kağıtta sabit mesafede</b> konur; düzende pencere ölçeği değişse de (1/100, 1/500 …) aks balonlarının ve çizimin üstüne binmez. Eski planlar için GORUNUSGUNCELLE.</p>
+<h2>Yeni: Kutupsal izleme, nesne izleme ve dinamik ölçü (AutoCAD POLAR / OTRACK / DYN)</h2>
+<ul>
+<li><b>Dinamik ölçü (F12, DİNAMİK)</b>: çizerken lastik çizginin üzerinde <b>uzunluk</b>, tabanda <b>açı</b> yayı ve değeri görünür. 3B'de imleç etiketinde uzunluk, açı ve Δz yazar.</li>
+<li><b>Kutupsal izleme (F10, KUTUPSAL)</b>: taban noktasından 0°, 30°, 45°, 60°, 90°, 120°, 135°… doğrultularında kesik yeşil izleme çizgisi; imleç yaklaşınca çizgiye oturur. Açıları değiştirmek için: <code>POLAR 15</code> ya da <code>POLAR 30,45</code>.</li>
+<li><b>Nesne izleme (F11, N.İZLEME)</b>: çizdiğiniz çizginin önceki noktalarından (ör. karenin ilk köşesi) ve imlecin üzerinden geçtiği uç / orta / merkez noktalarından da izleme çizgileri çıkar; iki izleme çizgisinin <b>kesişimi</b> (dik köşe) yakalanır ve "Kesişim: 90° × 180°" diye gösterilir.</li>
+<li>Nesne yakalama (uç, orta…) her zaman önceliklidir; ORTO açıkken izleme devre dışıdır.</li>
+</ul>
+<h2>Yeni: Daha rahat 3B gezinme</h2>
+<ul>
+<li>Döndürme artık <b>imlecin altındaki noktanın çevresinde</b> yapılır (tıkladığınız köşe ekranda yerinde kalır); hassasiyet düşürüldü, 3B üst çubuğundaki <b>Dönüş hızı</b> ile ayarlanır.</li>
+<li><b>Kaydırma (pan)</b>: orta tuşla sürükleyin (AutoCAD gibi) ya da şeritteki <b>✋ Kaydır</b> düğmesini açıp sol tuşla sürükleyin. <b>Döndürme</b>: sağ tuş ya da Shift + orta tuşla sürükleyin. Tekerlek <b>imlecin olduğu yere</b> yakınlaşır / uzaklaşır.</li>
+<li><b>Ok tuşları</b>: ileri / geri / sağ / sol yürüme, <b>PageUp / PageDown</b>: yukarı / aşağı, Shift ile hızlı (komut satırı boşken).</li>
+</ul>
+<h2>İnşaat — düzeltmeler ve yeni ayarlar</h2>
+<ul>
+<li><b>Kapalı perde köşesi</b>: başlangıç noktasına geri tıklayınca çizgi kendiliğinden kapanır, son köşe de gönyeli birleşir (K ile kapatmak gerekmez). Eskiden böyle çizilmiş perdeler de kapalı sayılır.</li>
+<li><b>Hiza</b>: "Dış yüz" seçilirse çizdiğiniz kapalı çizgi perdenin dış yüzü olur, perde içeride kalır (temel kenarına çizmek için); "İç yüz" tersi. Çizim yönü (saat yönü / tersi) fark etmez.</li>
+<li><b>Çizgiden içeri öteleme (cm)</b>: perdeyi çizilen çizgiden içeri kaydırır (kapalı şekilde her zaman şeklin içine), ör. temel kenarından 10 cm içeride perde.</li>
+<li><b>Döşeme / radye seviyesi</b>: "Üst kotu girdiğim değer", "Tıkladığım nokta döşemenin ÜSTÜ" ya da "ALTI" — 3B'de perdenin üst yüzüne tıklayarak döşemeyi doğrudan üstüne oturtabilirsiniz.</li>
+<li><b>Taşıma</b>: perde, kolon, kiriş, temel ve döşeme artık 3B'de yukarı / aşağı da taşınır (MOVE ile kot değişir).</li>
+</ul>
+<h2>Yeni: Sağ tık menüsü ve ölçüleri düzenleme</h2>
+<p>Plan ya da 3B'de bir elemanın üzerine <b>sağ tıklayın</b>: <b>Ölçüleri düzenle</b>, Özellikler, Taşı, Kopyala, Döndür, Ölçekle, Sil. "Ölçüleri düzenle" penceresinde:</p>
+<ul>
+<li><b>Perde / duvar</b>: alt ve üst kalınlık, yükseklik, alt kot, öteleme, hiza, eğimli yüz, beton sınıfı / malzeme.</li>
+<li><b>Kolon</b>: kesit, en b, boy d, çap, yükseklik, alt kot, açı. <b>Kiriş</b>: genişlik, yükseklik, <b>boy</b>, üst kot, hiza. <b>Tekil temel</b>: en, boy, yükseklik, üst kot.</li>
+<li><b>Döşeme / radye</b>: dikdörtgense <b>en ve boy</b>, kalınlık, üst kot ya da alt kot. <b>Pencere / kapı</b>: genişlik, yükseklik, parapet, kanat, açılış yönü, konum.</li>
+<li>Kutu, silindir, katı, havuz, dairesel havuz, duvar, daire için de en / boy / yükseklik alanları vardır. Komutla: OLCUDUZENLE.</li>
+</ul>
+<p>Boş yere sağ tık eskisi gibi son komutu tekrarlar (Enter).</p>
+<h2>Kiriş — kolon köşesinden başlama</h2>
+<p>Kolonların <b>köşeleri</b> (uç nokta) ve <b>kenar ortaları</b> artık yakalanır; tekil temellerin köşeleri de. Kirişin ayar penceresindeki <b>hiza</b> ile çizilen çizgi kirişin ekseni, sol yüzü ya da sağ yüzü olur — kolon köşesinden köşesine çizip "Sol / Sağ yüz" seçerek kiriş yüzünü kolon yüzüyle aynı hizaya getirirsiniz.</p>
+<h2>10. Kısayollar</h2>
+<p><kbd>F2</kbd> sesli komut · <kbd>Ctrl+1</kbd> özellikler · <kbd>Ctrl+Shift+S</kbd> sohbet paneli · <kbd>F3</kbd> yakalama · <kbd>F7</kbd> ızgara · <kbd>F8</kbd> orto · <kbd>F9</kbd> ızgara yakalama · <kbd>Ctrl+Z/Y</kbd> · <kbd>Ctrl+S</kbd> kaydet · <kbd>Ctrl+O</kbd> aç · <kbd>Ctrl+Q</kbd> kapat · <kbd>Ctrl+A</kbd> tümünü seç · <kbd>Del</kbd> sil · orta tuş sürükle ya da <kbd>Alt</kbd>+sol sürükle = kaydır · tekerlek = yakınlaş · orta tuş çift tık = tümünü göster</p>
+<p><b>3B görünümde yakınlaştırma:</b> fare tekerleği / touchpad (imlecin altındaki noktaya doğru; çok yaklaşınca model içine doğru ilerler, takılmaz) · <kbd>+</kbd> yakınlaş · <kbd>−</kbd> uzaklaş (<kbd>Shift</kbd> ile iki kat) · <kbd>Home</kbd> ya da <kbd>*</kbd> = tümünü göster (zoom extents) · orta tuş çift tık ya da boş yere çift tık = tümünü göster · komut satırında <code>Z</code> Enter (ya da <code>ZOOM E</code>) 3B'de de tümünü gösterir, <code>Z 2</code> 2 kat yakınlaştırır · 3B ayar panelindeki <b>Tümü</b> düğmesi.</p>
+
+<h2>11. Program yapısı (geliştirmek isteyenler için)</h2>
+<table>
+<tr><td>app/core.js</td><td>belge modeli, katmanlar, renkler (ACI), çizgi tipleri, geri al</td></tr>
+<tr><td>app/entities.js</td><td>nesne tipleri: 2B görünüş, 3B gövde, yakalama noktaları, dönüşümler</td></tr>
+<tr><td>app/commands.js</td><td>komut motoru ve temel CAD komutları</td></tr>
+<tr><td>app/gen.js</td><td>arıtma nesneleri, hesaplar, pompa istasyonu üreteci, pafta</td></tr>
+<tr><td>app/io_dxf.js</td><td>DXF okuma/yazma</td></tr>
+<tr><td>app/io_export.js</td><td>IFC, STL, OBJ, KML/KMZ, pafta SVG</td></tr>
+<tr><td>app/view2d.js, view3d.js, mapview.js</td><td>plan, 3B (WebGL) ve harita görünümleri</td></tr>
+<tr><td>app/chat.js</td><td>sohbet, çevrimdışı Türkçe anlayıcı, Claude API, ses, eklentiler</td></tr>
+<tr><td>app/anno.js, hatch.js</td><td>açıklama ölçeği, detay paftaları, şekilli pencereler; tarama</td></tr>
+<tr><td>app/ui.js</td><td>arayüz, paneller, dosya işlemleri</td></tr>
+</table>
+<p>Çalışmanız her değişiklikte tarayıcıya otomatik yedeklenir. Program açılınca kaydedilmemiş iş varsa geri yükleme önerilir. Yine de çalışmanızı düzenli olarak DXF kaydedin.</p>
+</body></html>

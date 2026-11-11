@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Statik Hesap — Su Tutucu Betonarme Yapı (ArıtmaCAD)</title>
+<style>
+:root{--bg:#eef2f2;--surface:#fff;--sunk:#e3e9ea;--ink:#13242b;--muted:#566a71;--line:#cdd8da;--accent:#0a6f7a;--accent-ink:#fff;--accent-soft:#d5eced;--ok:#1f7a45;--ok-soft:#dcefe3;--bad:#b3261e;--bad-soft:#f7dedb;--warn:#9a6200;--warn-soft:#f6ead2;--r:6px;
+--f-body:"Segoe UI",Barlow,Arial,sans-serif;--f-mono:Consolas,"IBM Plex Mono",ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);padding:16px 18px 48px}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+h1{font-size:26px;margin:0}h2{font-size:17px;margin:0 0 8px}h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0}
+header p{margin:4px 0 0;color:var(--muted);max-width:90ch}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+button{font:600 13px/1 var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r);padding:9px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}button:disabled{opacity:.5}
+.grid{display:grid;grid-template-columns:minmax(330px,430px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+details.sec{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+details.sec>summary{cursor:pointer;padding:9px 12px;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+details.sec>summary::after{content:'▾';color:var(--muted)}details.sec:not([open])>summary::after{content:'▸'}
+details.sec>.body{padding:4px 12px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.body .full{grid-column:1/-1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin:6px 0}
+label.f{display:block;font-size:12px;color:var(--muted)}
+label.f input,label.f select{display:block;width:100%;margin-top:3px;font:500 13px var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:6px 7px}
+label.f select{font-family:var(--f-body)}
+.hint{font-size:12px;color:var(--muted)}
+table.t{border-collapse:collapse;width:100%;font-size:12.5px}
+table.t th,table.t td{border:1px solid var(--line);padding:4px 6px;text-align:center}
+table.t th{background:var(--sunk);font-weight:600}
+table.t td.l,table.t th.l{text-align:left}
+table.t input{width:52px;font:12px var(--f-mono);border:1px solid var(--line);border-radius:3px;padding:2px 3px;background:var(--bg)}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.pill.ok{background:var(--ok-soft)}.pill.bad{background:var(--bad-soft)}
+.msg{padding:8px 10px;border-radius:5px;background:var(--warn-soft);color:var(--warn);font-size:13px}
+.msg.info{background:var(--accent-soft);color:var(--accent)}
+.prev{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.prev svg{width:100%;height:auto;background:#fbfdfd;border:1px solid var(--line);border-radius:5px}
+#busy{position:fixed;inset:0;background:rgba(10,30,35,.35);display:none;align-items:center;justify-content:center;z-index:9;color:#fff;font-size:18px;font-weight:600}
+/* RAPOR */
+#rapor{background:#fff;color:#000;border:1px solid var(--line);padding:24px 32px;font:12px/1.45 "Times New Roman",serif}
+#rapor h1{font-size:20px;text-align:center;margin:10px 0}#rapor h2{font-size:15px;border-bottom:1px solid #000;margin:18px 0 8px}#rapor h3{font-size:13px;color:#000;text-transform:none;letter-spacing:0;margin:12px 0 6px}
+#rapor table{border-collapse:collapse;margin:6px 0;width:100%}#rapor td,#rapor th{border:1px solid #444;padding:3px 6px;text-align:center}#rapor td.l,#rapor th.l{text-align:left}#rapor th{background:#eee}
+#rapor .kapak{text-align:center;padding:120px 0 60px;page-break-after:always}#rapor .kapak .b{font-size:28px;font-weight:700;margin:20px 0}
+#rapor .sayfa{page-break-before:always}#rapor img{max-width:100%;border:1px solid #999}
+#rapor .f{font-family:"Cambria Math","Times New Roman",serif}
+@media print{body{padding:0;background:#fff}.wrap>*:not(#raporKutu){display:none!important}#raporKutu{display:block!important}#rapor{border:0;padding:0}#raporKutu>h2{display:none}@page{size:A4;margin:16mm 14mm}}
+</style></head><body>
+<div id="busy">Hesaplanıyor…</div>
+<div class="wrap">
+<header class="top">
+  <div><h1>Statik Hesap — Su Tutucu Betonarme Yapı</h1>
+  <p>Dikdörtgen havuz / kanal / ızgara yapısı / ıslak hacim. Plak sonlu eleman analizi (perdeler, Winkler zemininde radye, üst döşeme), TS 500 kesit hesabı, çatlak kontrolü, zemin ve kaldırma kontrolü, kalıp ve donatı paftası.</p></div>
+  <div class="toolbar">
+    <button id="bModel" title="ArıtmaCAD modelindeki perde / radye / döşeme ölçülerini, kotlarını ve eleman numaralarını alır (seçim varsa yalnız seçilenler)">Modelden al</button>
+    <button class="primary" id="bHesap">Hesapla</button>
+    <button id="bOner" title="Yetersiz elemanların kalınlığını 5 cm adımlarla artırır">Kalınlık öner</button>
+    <button id="bCiz" disabled title="Kalıp ve donatı paftasını ArıtmaCAD çizimine ekler">Çizime aktar</button>
+    <button id="bDon3" disabled title="Hesaplanan donatıyı modeldeki betonun içine 3B çubuk olarak yerleştirir (3B → Disiplin: Statik)">Donatıyı modele yerleştir</button>
+    <button id="bDxf" disabled>DXF indir</button>
+    <button id="bYaz" disabled>Rapor yazdır / PDF</button>
+    <button id="bKaydet">Kaydet (.json)</button>
+    <button id="bAc">Aç</button><input type="file" id="fAc" accept=".json" hidden>
+    <button id="bOrnek" title="Saray AAT ızgara yapısına benzer örnek girdiler">Örnek</button>
+  </div>
+</header>
+<div class="grid">
+  <div class="panel" id="form"></div>
+  <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+    <div class="panel"><h3>Yapı önizleme</h3><div class="prev"><div id="pPlan"></div><div id="pKesit"></div></div><div id="pMsg"></div></div>
+    <div class="panel" id="sonuc"><h3>Sonuçlar</h3><p class="hint">Girdileri düzenleyip <b>Hesapla</b>'ya basın.</p></div>
+  </div>
+</div>
+<div id="raporKutu" style="display:none"><h2>Hesap raporu</h2><div id="rapor"></div></div>
+</div>
+<script src="statik-plak.js"></script>
+<script src="statik-motor.js"></script>
+<script src="statik-cizim.js"></script>
+<script src="statik-cerceve.js"></script>
+<script>
+'use strict';
+const P = window.STATIK, $ = s => document.querySelector(s), KEY = 'aritmacad.statik.v1';
+const f2 = (v, d = 2) => (v == null || !isFinite(v) ? '—' : (+v).toFixed(d).replace('.', ',')), cm = v => String(Math.round(v * 1000) / 10).replace('.', ',');
+let S, R = null, RC = null;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) { }
+if (!S || !S.geo) S = P.ornekSaray();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } };
+
+/* ---------------- FORM ---------------- */
+const F = (k, label, o = {}) => ({ k, label, ...o });
+const FORM = [
+  ['Proje', true, [F('proj.ad', 'Yapı adı', { t: 'text', full: 1 }), F('proj.tesis', 'Tesis / proje', { t: 'text', full: 1 }), F('proj.idare', 'İdare', { t: 'text', full: 1 }), F('proj.hazirlayan', 'Hazırlayan', { t: 'text' }), F('proj.kontrol', 'Kontrol', { t: 'text' }), F('proj.no', 'Proje no', { t: 'text' }), F('proj.tarih', 'Tarih', { t: 'text' })]],
+  ['Geometri (dış ölçüler, m)', true, [F('geo.Lx', 'Dış uzunluk Lx'), F('geo.Ly', 'Dış genişlik Ly'), F('geo.tw', 'Dış perde kalınlığı'), F('geo.ti', 'Ara perde kalınlığı'), F('geo.hr', 'Radye kalınlığı'), F('geo.toe', 'Radye taşması (pabuç)'),
+    F('geo.bolX', 'Ara perdeler X (eksen, virgülle)', { t: 'list' }), F('geo.bolY', 'Ara perdeler Y (eksen, virgülle)', { t: 'list' }),
+    F('geo.ust', 'Perde üst kenarı', { t: 'sel', opts: [['S', 'Serbest (açık havuz)'], ['M', 'Mafsallı (döşemeli)'], ['Z', 'Zarf: ikisi birden']] })]],
+  ['Kotlar (m)', true, [F('geo.kAlt', 'Radye alt kotu'), F('geo.kUst', 'Perde üst kotu'), F('geo.kZemin', 'Doğal / dolgu zemin kotu'), F('geo.kSu', 'Maks. su seviyesi'), F('geo.kYAS', 'Yeraltı suyu kotu (boş = yok)', { t: 'opt' })]],
+  ['Üst döşemeler', false, [F('geo.doseme', '', { t: 'dos', full: 1 })]],
+  ['Kiriş · kolon · döşeme', false, [F('cer', '', { t: 'cer', full: 1 })]],
+  ['Malzeme', false, [F('mal.fck', 'Beton fck (MPa)', { t: 'sel', opts: [[25, 'C25'], [30, 'C30'], [35, 'C35'], [40, 'C40']] }), F('mal.fyk', 'Çelik fyk (MPa)', { t: 'sel', opts: [[420, 'B420C (S420)'], [500, 'B500C']] }), F('mal.gc', 'Beton birim ağ. (kN/m³)'), F('mal.cP', 'Pas payı perde (m)'), F('mal.cR', 'Pas payı radye (m)'), F('mal.cD', 'Pas payı döşeme (m)')]],
+  ['Zemin', false, [F('zemin.g', 'γ doğal (kN/m³)'), F('zemin.gs', 'γ doygun (kN/m³)'), F('zemin.phi', 'φ içsel sürtünme (°)'), F('zemin.dR', 'δ/φ oranı'), F('zemin.K', 'Statik itki katsayısı', { t: 'sel', opts: [['K0', 'K0 = 1 − sinφ (rijit, önerilen)'], ['KA', 'Ka Coulomb (δ ile)'], ['KAR', 'Ka Rankine']] }), F('zemin.kw', 'Yatak katsayısı ks (kN/m³)'), F('zemin.sig', 'Zemin emniyet gerilmesi (kN/m²)'), F('zemin.q', 'Sürşarj q (kN/m²)')]],
+  ['Deprem', false, [F('dep.yon', 'Yönetmelik', { t: 'sel', opts: [['TBDY2018', 'TBDY 2018 (S_DS)'], ['DBYBHY2007', 'DBYBHY 2007 (A0)']] }), F('dep.SDS', 'S_DS (AFAD TDTH)'), F('dep.r', 'r azaltma (rijit perde = 1)'), F('dep.A0', 'A0 (2007)'), F('dep.I', 'I önem katsayısı (2007)'),
+    F('dep.yontem', 'Dinamik toprak itkisi', { t: 'sel', opts: [['MO', 'Mononobe-Okabe (TBDY 16.12)'], ['WOOD', 'Wood — rijit duvar (EC8-5 Ek E)']] }), F('dep.eYAS', 'Yeraltı suyu hidrodinamiği', { t: 'sel', opts: [[true, 'Hesaba kat'], [false, 'Katma (geçirimsiz zemin)']] })]],
+  ['Tasarım ayarları', false, [F('tas.phiMin', 'En küçük çap Ø (mm)'), F('tas.sMax', 'En büyük aralık (m)'), F('tas.wmax', 'İzin verilen çatlak w (mm)'), F('tas.rhoMin', 'ρmin (her yüz, b·d)'), F('tas.FSk', 'Kaldırma güvenlik say.'), F('tas.mesh', 'SEY ağ boyu (m)'),
+    F('tas.kenarZarf', 'Perde düşey kenarları', { t: 'sel', opts: [[true, 'Ankastre + mafsal zarfı'], [false, 'Yalnız ankastre']] }), F('tas.olcek', 'Pafta ölçeği (yazı boyları)', { t: 'sel', opts: [[50, '1/50'], [100, '1/100'], [25, '1/25'], [200, '1/200']] }), F('tas.azalt', 'TS500 13.3.2 çatlak azaltması', { t: 'sel', opts: [[false, 'Uygulama (önerilen)'], [true, 'Uygula (As/As_ger oranında)']] })]],
+  ['Yük kombinasyonları', false, [F('komb', '', { t: 'komb', full: 1 })]],
+];
+const get = k => k.split('.').reduce((o, p) => (o == null ? o : o[p]), S);
+const set = (k, v) => { const ps = k.split('.'), last = ps.pop(); ps.reduce((o, p) => o[p], S)[last] = v; };
+function buildForm() {
+  const root = $('#form'); root.innerHTML = '';
+  for (const [title, open, fields] of FORM) {
+    const d = document.createElement('details'); d.className = 'sec'; d.open = open;
+    d.innerHTML = `<summary>${title}</summary><div class="body"></div>`; const b = d.querySelector('.body');
+    for (const f of fields) {
+      const v = get(f.k);
+      if (f.t === 'dos') { b.appendChild(dosEditor()); continue; }
+      if (f.t === 'komb') { b.appendChild(kombEditor()); continue; }
+      if (f.t === 'cer') { b.appendChild(cerEditor()); continue; }
+      const l = document.createElement('label'); l.className = 'f' + (f.full ? ' full' : ''); l.textContent = f.label;
+      let inp;
+      if (f.t === 'sel') { inp = document.createElement('select'); f.opts.forEach(([val, t]) => { const o = document.createElement('option'); o.value = String(val); o.textContent = t; inp.appendChild(o); }); inp.value = String(v); inp.onchange = () => { const o = f.opts.find(q => String(q[0]) === inp.value); set(f.k, o[0]); changed(); }; }
+      else { inp = document.createElement('input'); inp.type = f.t === 'text' ? 'text' : 'text'; inp.inputMode = f.t === 'text' ? 'text' : 'decimal';
+        inp.value = f.t === 'list' ? (v || []).join('; ') : v == null ? '' : String(v);
+        inp.onchange = () => { const s = inp.value.trim();
+          if (f.t === 'text') set(f.k, s);
+          else if (f.t === 'list') set(f.k, s ? s.split(/[;\s]+/).map(x => parseFloat(x.replace(',', '.'))).filter(x => isFinite(x)) : []);
+          else if (f.t === 'opt') set(f.k, s === '' ? null : parseFloat(s.replace(',', '.')));
+          else { const x = parseFloat(s.replace(',', '.')); if (isFinite(x)) set(f.k, x); else inp.value = get(f.k); }
+          changed(); }; }
+      l.appendChild(inp); b.appendChild(l);
+    }
+    root.appendChild(d);
+  }
+}
+function dosEditor() {
+  const w = document.createElement('div'); w.className = 'full';
+  const draw = () => {
+    w.innerHTML = `<p class="hint">Dış ölçü koordinatında (sol alt köşe 0,0). Döşeme kenarları perdelere oturur kabul edilir.</p><table class="t"><tr><th>Ad</th><th>x0</th><th>y0</th><th>x1</th><th>y1</th><th>h (m)</th><th>kaplama g</th><th>hareketli q</th><th></th></tr>` +
+      S.geo.doseme.map((d, i) => `<tr>${['ad', 'x0', 'y0', 'x1', 'y1', 't', 'g', 'q'].map(k => `<td><input data-i="${i}" data-k="${k}" value="${d[k]}"></td>`).join('')}<td><button data-del="${i}">×</button></td></tr>`).join('') + `</table><button id="dosEkle" style="margin-top:6px">+ Döşeme ekle</button>`;
+    w.querySelectorAll('input').forEach(inp => inp.onchange = () => { const d = S.geo.doseme[+inp.dataset.i], k = inp.dataset.k; d[k] = k === 'ad' ? inp.value : parseFloat(inp.value.replace(',', '.')) || 0; changed(); });
+    w.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { S.geo.doseme.splice(+b.dataset.del, 1); draw(); changed(); });
+    w.querySelector('#dosEkle').onclick = () => { S.geo.doseme.push({ ad: 'D' + (S.geo.doseme.length + 1), x0: 0, y0: 0, x1: 2, y1: S.geo.Ly, t: 0.15, g: 1.5, q: 5 }); draw(); changed(); };
+  };
+  draw(); return w;
+}
+function kombEditor() {
+  const w = document.createElement('div'); w.className = 'full'; const C = P.CASES;
+  w.innerHTML = `<p class="hint">tsm: taşıma gücü, emn: işletme (çatlak + zemin). Deprem içeren kombinasyonlar TS 500 / TBDY'ye göre 1,0 katsayılıdır.</p><div style="overflow:auto"><table class="t"><tr><th class="l">Komb.</th><th></th>${C.map(c => `<th>${c}</th>`).join('')}</tr>` +
+    S.komb.map((k, i) => ['tsm', 'emn'].map(ty => `<tr>${ty === 'tsm' ? `<td rowspan="2" class="l" title="${k.acik}">${k.ad}</td>` : ''}<td>${ty}</td>${C.map(c => `<td><input data-i="${i}" data-t="${ty}" data-c="${c}" value="${k[ty][c] || ''}"></td>`).join('')}</tr>`).join('')).join('') + `</table></div><button id="kVars" style="margin-top:6px">Varsayılana dön</button>`;
+  w.querySelectorAll('input').forEach(inp => inp.onchange = () => { const k = S.komb[+inp.dataset.i][inp.dataset.t], v = parseFloat(inp.value.replace(',', '.')); if (v) k[inp.dataset.c] = v; else delete k[inp.dataset.c]; changed(); });
+  w.querySelector('#kVars').onclick = () => { S.komb = P.kombVars(); buildForm(); changed(); };
+  return w;
+}
+function changed() { save(); onizle(); R = null; RC = null; ['#bCiz', '#bDxf', '#bYaz', '#bDon3'].forEach(s => $(s).disabled = true); }
+
+/* ---------------- ÖNİZLEME ---------------- */
+function onizle() {
+  if (S.suYapisi === false) { cerOnizle(); return; }
+  let GM; try { GM = P.geometri(S); } catch (e) { $('#pMsg').innerHTML = `<div class="msg">${e.message}</div>`; return; }
+  const g = S.geo, R0 = GM.R, pad = 0.6, W = R0.x1 - R0.x0 + 2 * pad, H = R0.y1 - R0.y0 + 2 * pad, Y = y => R0.y1 + pad - y + (R0.y0 - pad) * 0 - (R0.y0 - pad) * 0;
+  const yy = y => (R0.y1 + pad) - y;
+  let s = `<svg viewBox="${R0.x0 - pad} 0 ${W} ${H}"><rect x="${R0.x0}" y="${yy(R0.y1)}" width="${R0.x1 - R0.x0}" height="${R0.y1 - R0.y0}" fill="#e9eef0" stroke="#7a8c92" stroke-width="0.02"/>`;
+  s += `<rect x="0" y="${yy(g.Ly)}" width="${g.Lx}" height="${g.Ly}" fill="#9fb0b5" stroke="#13242b" stroke-width="0.025"/>`;
+  GM.comps.forEach(c => s += `<rect x="${c.x0}" y="${yy(c.y1)}" width="${c.x1 - c.x0}" height="${c.y1 - c.y0}" fill="#cfe7f0" stroke="#13242b" stroke-width="0.02"/>`);
+  (g.doseme || []).forEach(d => s += `<rect x="${d.x0}" y="${yy(d.y1)}" width="${d.x1 - d.x0}" height="${d.y1 - d.y0}" fill="none" stroke="#9a6200" stroke-dasharray="0.15 0.08" stroke-width="0.03"/><text x="${(d.x0 + d.x1) / 2}" y="${yy((d.y0 + d.y1) / 2)}" font-size="0.28" text-anchor="middle" fill="#9a6200">${d.ad}</text>`);
+  s += `<text x="${g.Lx / 2}" y="${yy(R0.y0) + 0.45}" font-size="0.3" text-anchor="middle" fill="#566a71">${f2(g.Lx)} × ${f2(g.Ly)} m — ${GM.comps.length} bölme</text></svg>`;
+  $('#pPlan').innerHTML = s;
+  // kesit
+  const hT = g.kUst - g.kAlt, wK = g.Ly + 2 * g.toe + 3, z = v => (g.kUst + 0.8) - v, hS = Math.max(g.kUst, g.kZemin) - Math.min(g.kAlt, g.kYAS || g.kAlt) + 1.6;
+  let k = `<svg viewBox="${-g.toe - 1.5} 0 ${wK} ${hS}">`;
+  k += `<rect x="${-1.5 - g.toe}" y="${z(g.kZemin)}" width="${1.5}" height="${g.kZemin - g.kAlt}" fill="#e8d9bf"/><rect x="${g.Ly + g.toe}" y="${z(g.kZemin)}" width="1.5" height="${g.kZemin - g.kAlt}" fill="#e8d9bf"/>`;
+  k += `<rect x="${g.tw}" y="${z(g.kSu)}" width="${g.Ly - 2 * g.tw}" height="${g.kSu - g.kAlt - g.hr}" fill="#b9dcef"/>`;
+  k += `<path d="M${-g.toe},${z(g.kAlt)} h${g.Ly + 2 * g.toe} v${-g.hr} h${-g.toe} V${z(g.kUst)} h${-g.tw} V${z(g.kAlt + g.hr)} H${g.tw} V${z(g.kUst)} h${-g.tw} V${z(g.kAlt + g.hr)} h${-g.toe} z" fill="#9fb0b5" stroke="#13242b" stroke-width="0.02"/>`;
+  S.geo.bolY.forEach(y => k += `<rect x="${y - g.ti / 2}" y="${z(g.kUst)}" width="${g.ti}" height="${g.kUst - g.kAlt - g.hr}" fill="#9fb0b5" stroke="#13242b" stroke-width="0.02"/>`);
+  if (g.kYAS != null) k += `<line x1="${-1.5 - g.toe}" x2="${-g.toe}" y1="${z(g.kYAS)}" y2="${z(g.kYAS)}" stroke="#1565c0" stroke-width="0.04" stroke-dasharray="0.15 0.1"/>`;
+  [[g.kUst, 'üst'], [g.kSu, 'su'], [g.kZemin, 'zemin'], [g.kAlt, 'alt']].forEach(([v, t]) => k += `<text x="${g.Ly + g.toe + 0.05}" y="${z(v) - 0.05}" font-size="0.22" fill="#13242b">${f2(v)} ${t}</text>`);
+  k += `</svg>`; $('#pKesit').innerHTML = k;
+  const m = [];
+  if (g.kSu > g.kUst) m.push('Su seviyesi perde üst kotunun üzerinde.');
+  if (g.kZemin > g.kUst) m.push('Zemin kotu perde üst kotunun üzerinde (gömülü yapı): üst kenar koşulunu "Mafsallı" seçin.');
+  if (S.dep.yon === 'TBDY2018' && !(S.dep.SDS > 0)) m.push('S_DS girin (AFAD Türkiye Deprem Tehlike Haritası, tdth.afad.gov.tr).');
+  $('#pMsg').innerHTML = m.map(x => `<div class="msg">${x}</div>`).join('');
+}
+
+/* ---------------- HESAP ---------------- */
+const busy = (on, t) => { $('#busy').style.display = on ? 'flex' : 'none'; if (t) $('#busy').textContent = t; };
+function hesapla() {
+  busy(true, 'Hesaplanıyor…');
+  setTimeout(() => {
+    try { hepsi(null); }
+    catch (e) { console.error(e); $('#sonuc').innerHTML = `<h3>Sonuçlar</h3><div class="msg">Hesap hatası: ${e.message}</div>`; }
+    busy(false);
+  }, 30);
+}
+function oner() {
+  busy(true, 'Kalınlıklar deneniyor…');
+  setTimeout(() => {
+    try { if (S.suYapisi === false) hepsi(null); else { const o = P.kalinlikOner(S); S = o.S; save(); buildForm(); onizle(); hepsi(o); } }
+    catch (e) { console.error(e); alert(e.message); }
+    busy(false);
+  }, 30);
+}
+const durum = ok => `<span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'UYGUN' : 'YETERSİZ'}</span>`;
+function goster(log) {
+  const r = R;
+  let h = `<h3>Sonuçlar ${durum(r.ok)} <span class="hint">(${r.sure} ms)</span></h3>`;
+  if (log && log.length) h += `<div class="msg info">Kalınlık önerisi: ${log.join(' · ')}</div>`;
+  r.uyar.forEach(u => h += `<div class="msg">${u}</div>`);
+  h += `<table class="t"><tr><th class="l">Eleman</th><th>Donatı yönü / yüz</th><th>Md (kNm/m)</th><th>Ms (kNm/m)</th><th>As ger. (cm²/m)</th><th>Seçilen</th><th>As (cm²/m)</th><th>σs (MPa)</th><th>w (mm)</th><th></th></tr>`;
+  for (const t of r.tasarim) {
+    t.katman.forEach((k, i) => { const s = k.sec;
+      h += `<tr>${i === 0 ? `<td class="l" rowspan="${t.katman.length + 1}"><b>${t.eleman}</b></td>` : ''}<td class="l">${k.yon} — ${k.yuz}</td><td>${f2(k.M, 1)}</td><td>${f2(k.Ms, 1)}</td><td>${f2((s.req || 0) * 1e4)}</td><td>${s.ok ? `Ø${s.F}/${cm(s.s)}` : '—'}</td><td>${s.ok ? f2(s.As * 1e4) : '—'}</td><td>${s.ok && k.suYuz ? f2(s.ss, 0) : '—'}</td><td>${s.ok && k.suYuz ? f2(s.w, 3) : '—'}</td><td>${s.ok ? '<span class="ok">✓</span>' : `<span class="bad" title="${s.msg}">✗ ${s.msg}</span>`}</td></tr>`; });
+    h += `<tr><td class="l">Kesme (etriyesiz)</td><td colspan="7">Vd = ${f2(t.kesme.Vd, 1)} kN/m ≤ Vcr = 0,65·fctd·b·d = ${f2(t.kesme.Vcr, 1)} kN/m</td><td>${t.kesme.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr>`;
+  }
+  h += `</table>`;
+  h += `<table class="t" style="margin-top:10px"><tr><th class="l">Kontrol</th><th>Değer</th><th>Sınır</th><th></th></tr>
+   <tr><td class="l">Zemin gerilmesi (ortalama / yay basıncı maks., emn)</td><td>${f2(r.zem.sOrt, 1)} / ${f2(r.zem.sMax, 1)} kN/m²</td><td>${r.zem.sig} kN/m²</td><td>${r.zem.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr>
+   <tr><td class="l">Kaldırma (boş yapı)</td><td>GS = ${isFinite(r.kald.FS) ? f2(r.kald.FS) : 'YAS yok'}</td><td>≥ ${r.kald.gerekli}</td><td>${r.kald.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr>
+   <tr><td class="l">Donatı / beton metrajı</td><td>${f2(r.metraj.top / 1000, 2)} t / ${f2(r.metraj.beton.top, 1)} m³</td><td>${f2(r.metraj.top / r.metraj.beton.top, 0)} kg/m³</td><td></td></tr></table>`;
+  if (!r.ok) h += `<div class="msg" style="margin-top:8px">Yetersiz elemanlar var. <b>Kalınlık öner</b> ile kalınlıkları otomatik artırabilir ya da girdileri elle değiştirebilirsiniz.</div>`;
+  $('#sonuc').innerHTML = h;
+}
+
+/* ---------------- ISI HARİTASI ---------------- */
+function isi(xs, ys, val, baslik, birim) {
+  const W = 560, H = Math.max(140, Math.min(360, W * (ys[ys.length - 1] - ys[0]) / (xs[xs.length - 1] - xs[0]))) , padL = 34, padB = 26, padT = 24, padR = 70;
+  const c = document.createElement('canvas'); c.width = W + padL + padR; c.height = H + padT + padB; const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+  let mn = Infinity, mx = -Infinity; for (const v of val) { if (v < mn) mn = v; if (v > mx) mx = v; }
+  const A = Math.max(Math.abs(mn), Math.abs(mx)) || 1, nx = xs.length, sx = W / (xs[nx - 1] - xs[0]), sy = H / (ys[ys.length - 1] - ys[0]);
+  const col = v => { const t = v / A; const r = t > 0 ? 255 : Math.round(255 * (1 + t)), b = t < 0 ? 255 : Math.round(255 * (1 - t)), g = Math.round(255 * (1 - Math.abs(t))); return `rgb(${r},${g},${b})`; };
+  for (let j = 0; j < ys.length - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const v = (val[j * nx + i] + val[j * nx + i + 1] + val[(j + 1) * nx + i] + val[(j + 1) * nx + i + 1]) / 4;
+    x.fillStyle = col(v); x.fillRect(padL + (xs[i] - xs[0]) * sx, padT + H - (ys[j + 1] - ys[0]) * sy, (xs[i + 1] - xs[i]) * sx + 0.6, (ys[j + 1] - ys[j]) * sy + 0.6);
+  }
+  x.strokeStyle = '#000'; x.strokeRect(padL, padT, W, H);
+  x.fillStyle = '#000'; x.font = '12px Times New Roman'; x.fillText(baslik, padL, 16);
+  x.fillText('0', padL - 10, padT + H + 14); x.fillText(f2(xs[nx - 1] - xs[0]) + ' m', padL + W - 30, padT + H + 14); x.fillText(f2(ys[ys.length - 1] - ys[0]) + ' m', 2, padT + 10);
+  for (let k = 0; k <= 10; k++) { const v = A - 2 * A * k / 10; x.fillStyle = col(v); x.fillRect(padL + W + 10, padT + k * H / 11, 14, H / 11); x.fillStyle = '#000'; x.fillText(f2(v, 1), padL + W + 28, padT + k * H / 11 + 10); }
+  x.fillText(birim, padL + W + 10, padT + H + 14);
+  return c.toDataURL('image/png');
+}
+
+/* ---------------- RAPOR ---------------- */
+function rapor() {
+  const r = R, S0 = r.S, g = S0.geo, M = r.MAL, IT = r.IT, YK = r.YK, pr = S0.proj, z = S0.zemin, d = S0.dep;
+  const deg = v => f2(v, 2) + '°';
+  let h = `<div class="kapak"><div>${pr.idare || ''}</div><div style="margin-top:12px">${pr.tesis || ''}</div><div class="b">${pr.ad || ''}</div><div style="font-size:22px">STATİK – BETONARME HESAP RAPORU</div><div style="margin-top:60px">${pr.no ? 'Proje no: ' + pr.no + '<br>' : ''}${pr.hazirlayan ? 'Hazırlayan: ' + pr.hazirlayan + '<br>' : ''}${pr.kontrol ? 'Kontrol: ' + pr.kontrol + '<br>' : ''}${pr.tarih || ''}</div></div>`;
+  h += `<h2>İÇİNDEKİLER</h2><p>1. Açıklama raporu &nbsp; 2. Yanal itki katsayıları &nbsp; 3. Yükleme durumları ve kombinasyonlar &nbsp; 4. Yanal itkiler &nbsp; 5. Analiz modeli &nbsp; 6. Perde hesapları &nbsp; 7. Radye temel hesabı &nbsp; 8. Üst döşeme hesabı &nbsp; 9. Zemin gerilmesi ve kaldırma kontrolü &nbsp; 10. Sonuç ve metraj</p>`;
+  h += `<h2>1. AÇIKLAMA RAPORU</h2><p>Bu rapor ${pr.tesis || ''} kapsamında yapılacak <b>${pr.ad || ''}</b> yapısının statik ve betonarme hesaplarını içermektedir. Yapı ${f2(g.Lx)} × ${f2(g.Ly)} m dış ölçülü, ${r.GM.comps.length} bölmeli, radye temelli su tutucu betonarme yapıdır.</p>`;
+  h += `<h3>1.1 Deprem durumu</h3>` + (d.yon === 'TBDY2018' ? `<p>Türkiye Bina Deprem Yönetmeliği 2018, Bölüm 16.12 (dayanma yapıları) esas alınmıştır. Kısa periyot tasarım spektral ivme katsayısı S<sub>DS</sub> = ${d.SDS}, statik-eşdeğer deprem azaltma katsayısı r = ${d.r} (yer değiştirmesi engellenmiş rijit perde).</p><p class="f">k<sub>h</sub> = 0,4·S<sub>DS</sub> / r = ${f2(IT.kh, 3)} &nbsp;&nbsp; k<sub>v</sub> = 0,5·k<sub>h</sub> = ${f2(IT.kv, 3)}</p>` : `<p>Deprem Bölgelerinde Yapılacak Binalar Hakkında Yönetmelik 2007 esas alınmıştır. A<sub>0</sub> = ${d.A0}, I = ${d.I}.</p><p class="f">C<sub>h</sub> = ${f2(IT.kh, 3)} &nbsp;&nbsp; C<sub>v</sub> = ${f2(IT.kv, 3)} &nbsp; (${IT.notu})</p>`);
+  h += `<h3>1.2 Esas alınan yönetmelik ve şartnameler</h3><p>TS 500:2000 Betonarme Yapıların Tasarım ve Yapım Kuralları · ${d.yon === 'TBDY2018' ? 'Türkiye Bina Deprem Yönetmeliği 2018' : 'DBYBHY 2007'} · DSİ Su Tutucu Betonarme Yapıların Hesap ve Yapımına Ait Teknik Şartname · TS 498 Yapı elemanlarının boyutlandırılmasında alınacak yüklerin hesap değerleri${d.yontem === 'WOOD' ? ' · EN 1998-5 Ek E (rijit yapılarda dinamik zemin itkisi)' : ''}.</p>`;
+  h += `<h3>1.3 Malzeme</h3><table><tr><th>Beton</th><th>f<sub>ck</sub></th><th>f<sub>cd</sub></th><th>f<sub>ctd</sub></th><th>E<sub>c</sub></th><th>Çelik</th><th>f<sub>yk</sub></th><th>f<sub>yd</sub></th><th>n = E<sub>s</sub>/E<sub>c</sub></th><th>l<sub>b</sub></th></tr><tr><td>C${M.fck}</td><td>${M.fck} MPa</td><td>${f2(M.fcd)} MPa</td><td>${f2(M.fctd)} MPa</td><td>${f2(M.Ec, 0)} MPa</td><td>B${M.fyk}C</td><td>${M.fyk} MPa</td><td>${f2(M.fyd, 1)} MPa</td><td>${f2(M.n)}</td><td>${M.lb}Ø</td></tr></table><p>Net pas payları: perde ${cm(S0.mal.cP)} cm, radye ${cm(S0.mal.cR)} cm, döşeme ${cm(S0.mal.cD)} cm. Su ile temas eden yüzlerde izin verilen çatlak genişliği w<sub>maks</sub> = ${S0.tas.wmax} mm (DSİ şartnamesi, tesir sınıfı A).</p>`;
+  h += `<h3>1.4 Zemin parametreleri</h3><table><tr><th>γ<sub>n</sub></th><th>γ<sub>doygun</sub></th><th>φ</th><th>δ</th><th>k<sub>s</sub> (yatak kats.)</th><th>σ<sub>zem</sub></th><th>Sürşarj q</th></tr><tr><td>${z.g} kN/m³</td><td>${z.gs} kN/m³</td><td>${z.phi}°</td><td>${deg(IT.delta)}</td><td>${z.kw} kN/m³</td><td>${z.sig} kN/m²</td><td>${z.q} kN/m²</td></tr></table>`;
+  h += `<h3>1.5 Kotlar</h3><table><tr><th>Radye alt</th><th>Radye üst</th><th>Perde üst</th><th>Zemin</th><th>Maks. su</th><th>Yeraltı suyu</th></tr><tr><td>${f2(g.kAlt)}</td><td>${f2(g.kAlt + g.hr)}</td><td>${f2(g.kUst)}</td><td>${f2(g.kZemin)}</td><td>${f2(g.kSu)}</td><td>${g.kYAS != null ? f2(g.kYAS) : 'yok'}</td></tr></table>`;
+  // 2. itki
+  h += `<h2 class="sayfa">2. YANAL İTKİ KATSAYILARI</h2><h3>2.1 Statik</h3><table><tr><th class="l">Katsayı</th><th>Formül</th><th>Değer</th></tr>
+   <tr><td class="l">Sükûnetteki itki K<sub>0</sub></td><td>1 − sin φ</td><td>${f2(IT.K0, 3)}</td></tr><tr><td class="l">Aktif itki K<sub>a</sub> (Rankine)</td><td>tan²(45 − φ/2)</td><td>${f2(IT.KAr, 3)}</td></tr><tr><td class="l">Aktif itki K<sub>a</sub> (Coulomb, δ = ${deg(IT.delta)})</td><td>cos²φ / {cosδ·[1+√(sin(φ+δ)·sinφ/cosδ)]²}</td><td>${f2(IT.KA, 3)}</td></tr>
+   <tr><td class="l"><b>Hesapta kullanılan K</b></td><td>${S0.zemin.K === 'K0' ? 'K<sub>0</sub> — perdeler radye ve birbirine ankastre, yer değiştiremez' : 'K<sub>a</sub>'}</td><td><b>${f2(IT.Ks, 3)}</b></td></tr></table>`;
+  h += `<h3>2.2 Dinamik (Mononobe-Okabe, TBDY 16.12)</h3><table><tr><th class="l"></th><th>Kuru zemin</th><th>Su altındaki zemin</th></tr>
+   <tr><td class="l">θ = arctan[k<sub>h</sub>/(1 − k<sub>v</sub>)] (su altı: γ<sub>doygun</sub>/γ′ ile)</td><td>${deg(IT.th1)}</td><td>${deg(IT.thw1)}</td></tr>
+   <tr><td class="l">θ = arctan[k<sub>h</sub>/(1 + k<sub>v</sub>)]</td><td>${deg(IT.th2)}</td><td>${deg(IT.thw2)}</td></tr>
+   <tr><td class="l">K<sub>AE</sub> (1 − k<sub>v</sub>) / (1 + k<sub>v</sub>)</td><td>${f2(IT.KAE1, 3)} / ${f2(IT.KAE2, 3)}</td><td>${f2(IT.KAEw1, 3)} / ${f2(IT.KAEw2, 3)}</td></tr>
+   <tr><td class="l">Toplam K<sub>at</sub> = maks[(1∓k<sub>v</sub>)·K<sub>AE</sub>]</td><td>${f2(IT.KatK, 3)}</td><td>${f2(IT.KatW, 3)}</td></tr>
+   <tr><td class="l"><b>Dinamik artış ΔK<sub>ad</sub> = K<sub>at</sub> − K<sub>a</sub></b> (aynı Coulomb bağıntısı ile)</td><td><b>${f2(IT.dK, 3)}</b></td><td><b>${f2(IT.dKw, 3)}</b></td></tr></table>
+   <p>Not: Dinamik artış, statik ve dinamik katsayıların aynı bağıntıdan (Coulomb/M-O, δ dahil) hesaplanmasıyla bulunmuştur; farklı bağıntılardan (ör. Rankine K<sub>a</sub> ile M-O K<sub>at</sub>) fark alınması artışı olduğundan çok küçük gösterir.</p>`;
+  // 3. kombinasyon
+  h += `<h2>3. YÜKLEME DURUMLARI VE KOMBİNASYONLAR</h2><table><tr><th>Kod</th><th class="l">Açıklama</th></tr>${P.CASES.map(c => `<tr><td>${c}</td><td class="l">${P.CASE_AD[c]}</td></tr>`).join('')}</table>`;
+  h += `<p>Betonarme kesit hesabında taşıma gücü (tsm), çatlak ve zemin gerilmesi kontrolünde işletme (emn) kombinasyonları kullanılmıştır. Deprem içeren kombinasyonlarda TS 500 ve TBDY 2018 yük birleşimleri uyarınca yük katsayıları 1,0 alınmıştır. Ara perdelerde su itkisi her iki yönden ayrı ayrı uygulanmıştır.</p><table><tr><th>Komb.</th><th class="l">Durum</th><th class="l">tsm</th><th class="l">emn</th></tr>` +
+    S0.komb.map(k => `<tr><td>${k.ad}</td><td class="l">${k.acik}</td><td class="l">${Object.entries(k.tsm).map(([c, v]) => f2(v, 1) + c).join(' + ')}</td><td class="l">${Object.entries(k.emn).map(([c, v]) => f2(v, 1) + c).join(' + ')}</td></tr>`).join('') + `<tr><td>ZARF</td><td class="l" colspan="3">Her düğümde tüm kombinasyonların en büyük ve en küçük değeri (Wood-Armer: M ± |M<sub>xy</sub>|)</td></tr></table>`;
+  // 4. itkiler
+  const pz = (c, zz) => f2(Math.abs(YK.fn[c](zz)), 2);
+  h += `<h2 class="sayfa">4. YANAL İTKİLER (dış perdeler)</h2><table><tr><th class="l">Yükleme</th><th class="l">Dağılım</th><th>Radye üstünde (${f2(r.GM.zTop)})</th><th>Radye altında (${f2(g.kAlt)})</th></tr>
+   <tr><td class="l">Hs — hidrostatik su</td><td class="l">γ<sub>w</sub>·h, su derinliği h<sub>w</sub> = ${f2(YK.hw)} m</td><td>${pz('Hs', r.GM.zTop)}</td><td>${pz('Hs', g.kAlt)}</td></tr>
+   <tr><td class="l">Ht — statik toprak</td><td class="l">K·σ′<sub>v</sub>, H = ${f2(YK.Ht)} m</td><td>${pz('Ht', r.GM.zTop)}</td><td>${pz('Ht', g.kAlt)}</td></tr>
+   <tr><td class="l">Qs — sürşarj</td><td class="l">K·q (üniform)</td><td>${pz('Qs', r.GM.zTop)}</td><td>${pz('Qs', g.kAlt)}</td></tr>
+   <tr><td class="l">YAS — yeraltı suyu</td><td class="l">γ<sub>w</sub>·h<sub>YAS</sub> = ${f2(YK.hgw)} m</td><td>${pz('YAS', r.GM.zTop)}</td><td>${pz('YAS', g.kAlt)}</td></tr>
+   <tr><td class="l">EHt — dinamik toprak artışı</td><td class="l">${d.yontem === 'WOOD' ? 'ΔP = k<sub>h</sub>·γ*·H²' : 'ΔP = ½·ΔK·γ*·H²'} = ${f2(YK.dPt)} kN/m, H/2'de → üniform ${f2(YK.pEHt)} kN/m²</td><td>${pz('EHt', r.GM.zTop)}</td><td>${pz('EHt', g.kAlt + 0.001)}</td></tr>
+   <tr><td class="l">EQs — dinamik sürşarj</td><td class="l">ΔP = ΔK·q·H = ${f2(YK.dPq)} kN/m, 2H/3'te → ters üçgen</td><td>${pz('EQs', r.GM.zTop)}</td><td>${pz('EQs', g.kAlt + 0.001)}</td></tr>
+   <tr><td class="l">EHs — hidrodinamik (Westergaard)</td><td class="l">p(y) = 7/8·k<sub>h</sub>·γ<sub>w</sub>·√(h<sub>w</sub>·y); toplam 7/12·k<sub>h</sub>·γ<sub>w</sub>·h<sub>w</sub>² = ${f2(7 / 12 * IT.khSu * 10 * YK.hw ** 2)} kN/m, 0,4h<sub>w</sub>'de</td><td>${pz('EHs', r.GM.zTop)}</td><td>${pz('EHs', g.kAlt)}</td></tr>
+   <tr><td class="l">E_YAS — yeraltı suyu hidrodinamiği</td><td class="l">${d.eYAS ? 'Westergaard (dış)' : 'hesaba katılmadı'}</td><td>${pz('E_YAS', r.GM.zTop)}</td><td>${pz('E_YAS', g.kAlt)}</td></tr></table><p>Değerler kN/m² cinsindendir. Yükler perde orta düzleminde, kot boyunca gerçek dağılımlarıyla plak modeline uygulanmıştır.</p>`;
+  // 5. model
+  h += `<h2>5. ANALİZ MODELİ</h2><p>Perdeler, radye ve üst döşemeler ACM (Adini-Clough-Melosh) dikdörtgen plak elemanlarıyla modellenmiştir (düğümde w, ∂w/∂x, ∂w/∂y; ağ boyu ≤ ${S0.tas.mesh} m). Eleman Timoshenko plak çözümleriyle doğrulanmıştır (dört kenarı mafsallı ve ankastre kare plak, konsol şerit: fark < %1).</p>
+   <p><b>Perdeler:</b> Her perde, kesişen perdeler arasındaki panel olarak çözülmüştür. Taban radyeye ankastre; düşey kenarlar ${S0.tas.kenarZarf ? 'ankastre ve mafsallı olmak üzere iki ayrı kabulle çözülüp zarf alınmış' : 'ankastre kabul edilmiş'}; üst kenar ${g.ust === 'S' ? 'serbest' : g.ust === 'M' ? 'mafsallı (döşeme)' : 'serbest ve mafsallı iki ayrı kabulle zarf'}tir. Panel yüksekliği radye orta düzleminden perde üstüne ${f2(r.GM.Hm)} m'dir.</p>
+   <p><b>Radye:</b> ${f2(r.GM.R.x1 - r.GM.R.x0)} × ${f2(r.GM.R.y1 - r.GM.R.y0)} m, Winkler zemini (k<sub>s</sub> = ${z.kw} kN/m³). Perde ağırlıkları perde eksenlerinde çizgisel yük, dış perdelerin taban momentleri (düğüm dengesi gereği) radyeye çizgisel moment olarak aktarılmıştır. Su ağırlığı bölme tabanlarına, yeraltı suyu kaldırma basıncı tüm tabana uygulanmıştır.</p>`;
+  // 6-8 elemanlar
+  const tablo = t => `<table><tr><th class="l">Donatı</th><th>M<sub>d</sub><br>kNm/m</th><th>M<sub>s</sub><br>kNm/m</th><th>d<br>cm</th><th>A<sub>s,ger</sub><br>cm²/m</th><th>A<sub>s,min</sub><br>cm²/m</th><th>Seçilen</th><th>A<sub>s</sub><br>cm²/m</th><th>σ<sub>s</sub><br>MPa</th><th>w<br>mm</th><th></th></tr>` +
+    t.katman.map(k => { const s = k.sec; return `<tr><td class="l">${k.yon} — ${k.yuz}</td><td>${f2(k.M, 1)}</td><td>${f2(k.Ms, 1)}</td><td>${f2((s.d || 0) * 100, 1)}</td><td>${f2((s.req || 0) * 1e4)}</td><td>${f2((s.Amin || 0) * 1e4)}</td><td>${s.ok ? `Ø${s.F}/${cm(s.s)}` : '—'}</td><td>${s.ok ? f2(s.As * 1e4) : '—'}</td><td>${s.ok && k.suYuz ? f2(s.ss, 0) : '—'}</td><td>${s.ok && k.suYuz ? f2(s.w, 3) : '—'}</td><td>${s.ok ? 'TAMAM' : 'YETERSİZ'}</td></tr>`; }).join('') + `</table>
+    <p class="f">Kesme: V<sub>d</sub> = ${f2(t.kesme.Vd, 1)} kN/m ${t.kesme.ok ? '≤' : '>'} V<sub>cr</sub> = 0,65·f<sub>ctd</sub>·b·d = ${f2(t.kesme.Vcr, 1)} kN/m (etriyesiz plak/perde) ; V<sub>d</sub> ≤ 0,22·f<sub>cd</sub>·b·d = ${f2(t.kesme.Vmax, 0)} kN/m → <b>${t.kesme.ok ? 'TAMAM' : 'YETERSİZ'}</b></p>`;
+  const yontem = `<p>Eğilme: dikdörtgen gerilme bloğu, M<sub>d</sub> = 0,85·f<sub>cd</sub>·b·a·(d − a/2), A<sub>s</sub> = 0,85·f<sub>cd</sub>·b·a / f<sub>yd</sub>; ρ ≤ 0,02. Asgari donatı her yüzde ρ<sub>min</sub>·b·d = ${S0.tas.rhoMin}·b·d. Çatlak: TS 500 Denklem 13.5, w = 1,3·∛(A<sub>t</sub>·c)·σ<sub>s</sub>·10⁻⁵ mm; σ<sub>s</sub> çatlamış elastik kesitten (k = −nρ + √((nρ)² + 2nρ), z = d(1 − k/3), σ<sub>s</sub> = M<sub>s</sub>/(A<sub>s</sub>·z)); A<sub>t</sub> = 2·d′·s, c = d′ (donatı ağırlık merkezinin yüze uzaklığı).${S0.tas.azalt ? ' Çatlak genişliği TS 500 13.3.2 uyarınca A<sub>s</sub>/A<sub>s,ger</sub> oranında azaltılmıştır.' : ' σ<sub>s</sub> mevcut donatıyla hesaplandığından ayrıca A<sub>s</sub>/A<sub>s,ger</sub> azaltması yapılmamıştır.'} Donatı, tüm koşulları sağlayan en az çelik alanlı çap/aralık bileşimi olarak seçilmiştir.</p>`;
+  let bol = 6;
+  const perdeImg = tip => { let best = null, bv = -1; r.GM.walls.forEach((w, i) => { if (w.tip !== tip) return; for (const p of r.perdeler[i].panels) for (const v of p.var) { const m = Math.max(...v.Z.tsm.yp, ...v.Z.tsm.yn.map(Math.abs)); if (m > bv) { bv = m; best = { w, p, v }; } } }); if (!best) return ''; const yy = best.v.Z.tsm, val = Array.from(yy.yp, (a, i) => (a >= -yy.yn[i] ? a : yy.yn[i])); return `<img src="${isi(best.p.xs, best.p.ys, val, `${best.w.ad} — panel ${f2(best.p.L)} m (üst ${best.v.ust === 'S' ? 'serbest' : 'mafsallı'}, kenarlar ${best.v.ken === 'A' ? 'ankastre' : 'mafsallı'}): düşey moment zarfı M_tsm (+ dış yüz, − iç yüz)`, 'kNm/m')}">`; };
+  h += `<h2 class="sayfa">6. PERDE HESAPLARI</h2>` + yontem;
+  r.tasarim.filter(t => /perde/i.test(t.eleman)).forEach((t, i) => { h += `<h3>6.${i + 1} ${t.eleman}</h3>` + perdeImg(/^Dış/.test(t.eleman) ? 'dis' : 'ic') + tablo(t); });
+  h += `<h3>6.${r.tasarim.filter(t => /perde/i.test(t.eleman)).length + 1} Panel bazında moment özeti (zarf, kNm/m)</h3><table><tr><th class="l">Perde</th><th>Uzunluk</th><th>Düşey + (dış)</th><th>Düşey − (iç)</th><th>Yatay + (dış)</th><th>Yatay − (iç)</th><th>V<sub>d</sub> kN/m</th></tr>` + r.GM.walls.map((w, i) => { const p = r.perdeler[i]; return `<tr><td class="l">${w.ad}</td><td>${f2(w.L)}</td><td>${f2(p.tsm.yp, 1)}</td><td>${f2(p.tsm.yn, 1)}</td><td>${f2(p.tsm.xp, 1)}</td><td>${f2(p.tsm.xn, 1)}</td><td>${f2(p.Vd, 1)}</td></tr>`; }).join('') + `</table>`;
+  // radye
+  const rd = r.radye, rt = r.tasarim.find(t => /^Radye/.test(t.eleman));
+  const rimg = (k1, k2, ad) => { const Z = rd.Z.tsm, val = Array.from(Z[k1], (a, i) => (a >= -Z[k2][i] ? a : Z[k2][i])); return `<img src="${isi(rd.xs, rd.ys, val, ad, 'kNm/m')}">`; };
+  h += `<h2 class="sayfa">7. RADYE TEMEL HESABI</h2>${rimg('xp', 'xn', 'Radye M_x zarfı (tsm) — X doğrultusu donatısı (+ üst, − alt)')}${rimg('yp', 'yn', 'Radye M_y zarfı (tsm) — Y doğrultusu donatısı (+ üst, − alt)')}` + tablo(rt);
+  // döşeme
+  if (r.dosemeler.length) { h += `<h2>8. ÜST DÖŞEME HESABI</h2><p>Döşemeler dört kenarı mafsallı ve ankastre iki kabulle çözülüp zarf alınmıştır (tsm: 1,4G + 1,6Q; emn: G + Q). Su ile temas etmediğinden çatlak kontrolü yapılmamıştır.</p>`; r.tasarim.filter(t => /döşeme/i.test(t.eleman)).forEach(t => h += `<h3>${t.eleman}</h3>` + tablo(t)); }
+  // zemin, kaldırma
+  const Z = r.zem, K = r.kald;
+  h += `<h2 class="sayfa">9. ZEMİN GERİLMESİ VE KALDIRMA KONTROLÜ</h2><table><tr><th class="l">Yük</th><th>kN</th></tr><tr><td class="l">Radye</td><td>${f2(Z.Wr, 1)}</td></tr><tr><td class="l">Perdeler</td><td>${f2(Z.Ww, 1)}</td></tr><tr><td class="l">Döşemeler (G)</td><td>${f2(Z.Wd, 1)}</td></tr><tr><td class="l">Döşemeler (Q)</td><td>${f2(Z.Qd, 1)}</td></tr><tr><td class="l">Su (bölmeler dolu)</td><td>${f2(Z.Wsu, 1)}</td></tr><tr><td class="l">Pabuç üstündeki zemin</td><td>${f2(Z.Wt, 1)}</td></tr><tr><td class="l">Yeraltı suyu kaldırması (−)</td><td>${f2(Z.U, 1)}</td></tr><tr><th class="l">Toplam net</th><th>${f2(Z.Ntop - Z.U, 1)}</th></tr></table>
+   <p class="f">Temel alanı A = ${f2(Z.A)} m² → ortalama zemin gerilmesi σ = ${f2(Z.sOrt, 1)} kN/m². Winkler modelinde emn kombinasyonlarında en büyük yay basıncı σ<sub>maks</sub> = ${f2(Z.sMax, 1)} kN/m² (en küçük ${f2(rd.qmin, 1)} kN/m²). σ<sub>zem</sub> = ${Z.sig} kN/m² → <b>${Z.ok ? 'TAMAM' : 'YETERSİZ'}</b></p>
+   <table><tr><th>Komb. (emn)</th>${rd.kombQ.map(k => `<th>${k.ad}</th>`).join('')}</tr><tr><td>σ<sub>maks</sub> kN/m²</td>${rd.kombQ.map(k => `<td>${f2(k.qmax, 1)}</td>`).join('')}</tr><tr><td>σ<sub>min</sub> kN/m²</td>${rd.kombQ.map(k => `<td>${f2(k.qmin, 1)}</td>`).join('')}</tr></table>
+   <h3>Kaldırma (yapı boş, yeraltı suyu ${g.kYAS != null ? f2(g.kYAS) : 'yok'})</h3><p class="f">GS = (radye + perde + döşeme + pabuç üstü zemin) / (γ<sub>w</sub>·h<sub>YAS</sub>·A) = ${f2(K.Wdir, 1)} / ${f2(K.U, 1)} = ${isFinite(K.FS) ? f2(K.FS) : '∞'} ${K.ok ? '≥' : '<'} ${K.gerekli} → <b>${K.ok ? 'TAMAM' : 'YETERSİZ'}</b></p>`;
+  // sonuç
+  const MT = r.metraj;
+  h += `<h2 class="sayfa">10. SONUÇ VE METRAJ</h2><table><tr><th class="l">Eleman</th><th class="l">Donatı</th></tr>` + r.tasarim.map(t => `<tr><td class="l">${t.eleman}</td><td class="l">${t.katman.map(k => `${k.yon} ${k.yuz.toLowerCase()}: ${k.sec.ok ? 'Ø' + k.sec.F + '/' + cm(k.sec.s) : 'YETERSİZ'}`).join(' · ')}</td></tr>`).join('') + `</table>
+   <table><tr><th>Poz</th><th>Ø</th><th>Boy (m)</th><th>Adet</th><th class="l">Eleman / tanım</th><th>Toplam (m)</th><th>kg</th></tr>${MT.poz.map(p => `<tr><td>${p.no}</td><td>${p.F}</td><td>${f2(p.boy)}</td><td>${p.adet}</td><td class="l">${p.eleman} — ${p.tanim}</td><td>${f2(p.top)}</td><td>${f2(p.kg, 1)}</td></tr>`).join('')}
+   ${MT.ozet.map(o => `<tr><th colspan="5" class="l">Ø${o.F} toplam (${f2(o.birim, 3)} kg/m)</th><th>${f2(o.L)}</th><th>${f2(o.kg, 1)}</th></tr>`).join('')}<tr><th colspan="6" class="l">GENEL TOPLAM</th><th>${f2(MT.top, 1)} kg</th></tr></table>
+   <p>Beton: radye ${f2(MT.beton.radye)} m³ + perde ${f2(MT.beton.perde)} m³ + döşeme ${f2(MT.beton.doseme)} m³ = <b>${f2(MT.beton.top)} m³</b> (≈ ${f2(MT.top / MT.beton.top, 0)} kg/m³ donatı).</p>
+   <p>Genel sonuç: ${r.ok ? '<b>Tüm kontroller sağlanmaktadır.</b>' : '<b>Yetersiz kontroller bulunmaktadır; kesit boyutları revize edilmelidir.</b>'}</p>`;
+  $('#rapor').innerHTML = h; $('#raporKutu').style.display = 'block';
+}
+
+/* ---------------- ÇIKTILAR ---------------- */
+function cizimeAktar() {
+  const spec = specAl(), payload = { t: Date.now(), ad: S.proj.ad, tesis: S.proj.tesis, hazirlayan: S.proj.hazirlayan, no: S.proj.no, olcek: S.tas.olcek || 50, katman: P.KATMANLAR, spec };
+  try { localStorage.setItem('aritmacad.statik.cizim', JSON.stringify(payload)); } catch (e) { alert('Çizim verisi aktarılamadı: ' + e.message); return; }
+  let direkt = false;
+  try { if (window.opener && window.opener.C && window.opener.C.cmd) { window.opener.C.cmd.run('STATIKCIZ'); window.opener.focus(); direkt = true; } } catch (e) { }
+  $('#pMsg').innerHTML = `<div class="msg info">Pafta ArıtmaCAD'e gönderildi (${spec.length} nesne): alt sekmelerde <b>Statik</b> grubunda bir pafta olarak açılır${direkt ? '' : '; açılmazsa komut satırına <b>STATIKCIZ</b> yazın'}.</div>`;
+}
+function dxfIndir() {
+  const bytes = P.dxf(specAl(), P.KATMANLAR), a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/dxf' })); a.download = (S.proj.ad || 'statik').replace(/[^\wçğıöşüÇĞİÖŞÜ-]+/g, '_') + '_kalip_donati.dxf'; a.click();
+}
+$('#bHesap').onclick = hesapla; $('#bOner').onclick = oner; $('#bCiz').onclick = cizimeAktar; $('#bDxf').onclick = dxfIndir;
+$('#bYaz').onclick = () => window.print();
+$('#bOrnek').onclick = () => { if (!confirm('Girdiler örnek değerlerle değiştirilsin mi?')) return; S = P.ornekSaray(); save(); buildForm(); changed(); };
+$('#bKaydet').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' })); a.download = (S.proj.ad || 'statik') + '_statik.json'; a.click(); };
+$('#bAc').onclick = () => $('#fAc').click();
+$('#fAc').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const o = JSON.parse(await f.text()); const d = P.ornekSaray(); S = { ...d, ...o, geo: { ...d.geo, ...o.geo }, mal: { ...d.mal, ...o.mal }, zemin: { ...d.zemin, ...o.zemin }, dep: { ...d.dep, ...o.dep }, tas: { ...d.tas, ...o.tas } }; save(); buildForm(); changed(); } catch (er) { alert('Dosya okunamadı: ' + er.message); } };
+// eski kayıtlarda eksik alanları tamamla
+(() => { const d = P.ornekSaray(); for (const k of ['proj', 'geo', 'mal', 'zemin', 'dep', 'tas']) S[k] = { ...d[k], ...(S[k] || {}) }; if (!Array.isArray(S.komb)) S.komb = d.komb; })();
+/* ---------------- MODEL BAĞLANTISI ---------------- */
+const K_MODEL = 'aritmacad.statik.model', K_ISTEK = 'aritmacad.statik.modelIstek', K_DON = 'aritmacad.statik.donati';
+let modelBekle = false;
+function modelUygula(d) {
+  if (!d) return;
+  if (d.hata) { $('#pMsg').innerHTML = `<div class="msg bad">Modelden alınamadı: ${d.hata}</div>`; return; }
+  if (d.geo) {
+    const g = S.geo, n = d.geo, dz = n.kUst - g.kUst;
+    if (!(g.kZemin >= n.kAlt && g.kZemin <= n.kUst + 3)) { g.kZemin = +(g.kZemin + dz).toFixed(3); g.kSu = +(g.kSu + dz).toFixed(3); if (g.kYAS != null) g.kYAS = +(g.kYAS + dz).toFixed(3); }
+    if (g.kSu > n.kUst) g.kSu = +(n.kUst - 0.3).toFixed(3);
+    S.geo = { ...g, ...n }; S.koken = d.koken; S.suYapisi = true;
+  } else S.suYapisi = false;
+  if (d.cerceve) { // önceki yük girdileri eleman kimliğine göre korunur
+    const o = S.cer || {}, gq = new Map((o.dosemeler || []).map(x => [x.id, x])), gd = new Map((o.kirisler || []).map(x => [x.id, x]));
+    d.cerceve.dosemeler.forEach(x => { const p = gq.get(x.id); if (p) { if (x.g == null) x.g = p.g; if (x.q == null) x.q = p.q; } }); // modelde tanımlı yük önceliklidir
+    d.cerceve.kirisler.forEach(x => { const p = gd.get(x.id); if (p) x.gd = p.gd; });
+    S.cer = { kolonlar: d.cerceve.kolonlar, kirisler: d.cerceve.kirisler, dosemeler: d.cerceve.dosemeler, perdeler: d.cerceve.perdeler, ayar: Object.assign(P.cerceveVars(), o.ayar || {}, d.cerceve.ayar || {}) }; // projeye kayıtlı ayarlar (C.doc.set.statikAyar) önceliklidir
+    if (d.cerceve.ayar && +d.cerceve.ayar.SDS > 0) S.dep = Object.assign(S.dep || {}, { SDS: +d.cerceve.ayar.SDS });
+  } else S.cer = null;
+  save(); buildForm(); changed();
+  $('#pMsg').innerHTML = `<div class="msg info">Modelden alındı: ${d.ozet}${d.uyar && d.uyar.length ? '<br>⚠ ' + d.uyar.join('<br>⚠ ') : ''}${d.geo ? '<br>Zemin, su ve yeraltı suyu kotlarını kontrol edin.' : ''}${d.cerceve ? '<br>Kiriş · kolon · döşeme bölümünde döşeme yüklerini ve deprem parametrelerini (S<sub>D1</sub>, R, D) kontrol edin.' : ''}</div>`;
+}
+$('#bModel').onclick = () => {
+  let direkt = false;
+  try { if (window.opener && window.opener.C && window.opener.C.cmds.STATIKMODEL) { window.opener.C.cmds.STATIKMODEL.fn(window.opener.C.I, window.opener.C); direkt = true; } } catch (e) { }
+  if (direkt) { try { modelUygula(JSON.parse(localStorage.getItem(K_MODEL))); } catch (e) { } return; }
+  modelBekle = true; localStorage.setItem(K_ISTEK, String(Date.now()));
+  $('#pMsg').innerHTML = '<div class="msg info">Model bilgisi istendi… (ArıtmaCAD açık olmalı; gelmezse komut satırına <b>STATIKMODEL</b> yazın)</div>';
+};
+window.addEventListener('storage', ev => { if (ev.key === K_MODEL && ev.newValue) { try { modelUygula(JSON.parse(ev.newValue)); } catch (e) { } modelBekle = false; } });
+$('#bDon3').onclick = () => {
+  if (!R && !RC) return;
+  const gr = (R ? P.donati3B(R) : []).concat(RC ? RC.donati : []), payload = { t: Date.now(), koken: S.koken || null, kAlt: R ? S.geo.kAlt : null, Lx: R ? S.geo.Lx : null, Ly: R ? S.geo.Ly : null, gruplar: gr };
+  try { localStorage.setItem(K_DON, JSON.stringify(payload)); } catch (e) { alert('Donatı verisi aktarılamadı: ' + e.message); return; }
+  let direkt = false;
+  try { if (window.opener && window.opener.C && window.opener.C.cmd) { window.opener.C.cmd.run('STATIKDONATI'); window.opener.focus(); direkt = true; } } catch (e) { }
+  const nb = gr.reduce((s, o) => s + o.bars.length, 0);
+  $('#pMsg').innerHTML = `<div class="msg info">${gr.length} poz grubu, ${nb} çubuk modele gönderildi${S.koken || !R ? '' : ' (model bağlantısı yok: yapının dış köşesi 0,0 noktasına konur — önce <b>Modelden al</b> önerilir)'}. ArıtmaCAD'de 3B görünümde <b>Disiplin: Statik</b> seçin${direkt ? '' : '; gelmezse komut satırına <b>STATIKDONATI</b> yazın'}.</div>`;
+};
+/* ---------------- KİRİŞ · KOLON · DÖŞEME ---------------- */
+const cerVar = () => !!(S.cer && ((S.cer.kolonlar || []).length || (S.cer.kirisler || []).length));
+function hepsi(o) {
+  R = S.suYapisi === false ? null : (o ? o.R : P.hesapla(S));
+  RC = cerVar() ? P.cerceveHesap(S) : null;
+  if (R) { goster(o ? o.log : null); rapor(); } else { $('#sonuc').innerHTML = '<h3>Sonuçlar</h3>'; $('#rapor').innerHTML = ''; }
+  if (RC) { cerGoster(); $('#rapor').insertAdjacentHTML('beforeend', P.cerceveRapor(RC, f2)); $('#raporKutu').style.display = 'block'; }
+  const var_ = !!(R || RC); ['#bCiz', '#bDxf', '#bYaz', '#bDon3'].forEach(s => $(s).disabled = !var_);
+  if (!var_) $('#sonuc').innerHTML += '<div class="msg">Hesaplanacak eleman yok: su yapısı kapalı ve modelden kiriş / kolon alınmamış.</div>';
+}
+function cerGoster() {
+  const r = RC, kot = r.dosemeler.filter(d => d.ok === false), kk = r.zincirler.flatMap(ch => (ch.acik || []).filter(a => !a.ok).map(a => ch.ad)), kc = r.kolonlar.filter(c => !c.ok), gk = r.gk.filter(q => !q.ok), D = r.deprem;
+  let h = `<h3 style="margin-top:14px">Kiriş · kolon · döşeme ${durum(r.ok)}</h3>`;
+  r.uyar.forEach(u => h += `<div class="msg">${u}</div>`);
+  h += `<table class="t"><tr><th class="l">Eleman</th><th>Sayı</th><th>Yetersiz</th></tr>
+   <tr><td class="l">Döşeme</td><td>${r.dosemeler.length}</td><td class="l">${kot.length ? kot.map(d => d.no + (d.hOk === false ? ' (kalınlık ≥ ' + Math.ceil(d.hmin * 100) + ' cm)' : '')).join(', ') : '<span class="ok">—</span>'}</td></tr>
+   <tr><td class="l">Kiriş (açıklık)</td><td>${r.zincirler.reduce((t, c) => t + (c.acik || []).length, 0)}</td><td class="l">${kk.length ? [...new Set(kk)].join(', ') : '<span class="ok">—</span>'}</td></tr>
+   <tr><td class="l">Kolon</td><td>${r.kolonlar.length}</td><td class="l">${kc.length ? kc.map(c => c.no + (c.don ? '' : ' (donatı sığmıyor)') + (c.eksenOk ? '' : ' (eksenel yük)')).join(', ') : '<span class="ok">—</span>'}</td></tr>
+   <tr><td class="l">Güçlü kolon</td><td>${r.gk.length}</td><td class="l">${gk.length ? gk.map(q => q.c.no + ' ' + q.d).join(', ') : '<span class="ok">—</span>'}</td></tr>
+   <tr><td class="l">Deprem</td><td colspan="2" class="l">W = ${f2(D.W, 0)} kN · T₁ = ${f2(D.T1, 3)} s · V<sub>t</sub> = ${f2(D.Vt, 1)} kN (S<sub>aR</sub> = ${f2(D.SaR, 3)} g)</td></tr>
+   <tr><td class="l">Donatı (çerçeve)</td><td colspan="2" class="l">${f2(r.metraj.reduce((t, m) => t + m.kg, 0) / 1000, 2)} t</td></tr></table>`;
+  if (!r.ok) h += `<div class="msg" style="margin-top:8px">Yetersiz elemanların kesitini modelde büyütüp <b>Modelden al</b> → <b>Hesapla</b> yapın. Ayrıntı raporda.</div>`;
+  $('#sonuc').insertAdjacentHTML('beforeend', h);
+}
+function cerEditor() {
+  const w = document.createElement('div'); w.className = 'full';
+  if (!cerVar()) { w.innerHTML = '<p class="hint">Modelde kolon / kiriş yok. Modelde çizip <b>Modelden al</b> düğmesine basın.</p>'; return w; }
+  const c = S.cer, a = c.ayar = Object.assign(P.cerceveVars(), c.ayar || {});
+  const inp = (k, t, v) => `<label class="f">${t}<input data-a="${k}" value="${v}"></label>`;
+  w.innerHTML = `<p class="hint">${c.kolonlar.length} kolon · ${c.kirisler.length} kiriş · ${c.dosemeler.length} döşeme (modelden). Ölçüleri modelde değiştirip yeniden <b>Modelden al</b>.</p>
+    ${S.geo ? `<label class="f full">Su yapısı (perde · radye) hesabı<select data-su><option value="1">Yap</option><option value="0">Yapma (yalnız çerçeve)</option></select></label>` : ''}
+    <div class="grid2">${inp('SD1', 'S<sub>D1</sub> (AFAD)', a.SD1)}${inp('R', 'R taşıyıcı sistem katsayısı', a.R)}${inp('D', 'D dayanım fazlalığı', a.D)}${inp('I', 'I bina önem katsayısı', a.I)}${inp('n', 'n hareketli yük katılım', a.n)}${inp('gD', 'Varsayılan kaplama g (kN/m²)', a.gD)}${inp('qD', 'Varsayılan hareketli q (kN/m²)', a.qD)}${inp('SDS3', 'S<sub>DS</sub> DD-3 (öteleme λ için)', a.SDS3 != null ? a.SDS3 : '')}${inp('SD13', 'S<sub>D1</sub> DD-3', a.SD13 != null ? a.SD13 : '')}${inp('kKolon', 'Etkin rijitlik: kolon', a.kKolon != null ? a.kKolon : 0.7)}${inp('kKiris', 'Etkin rijitlik: kiriş', a.kKiris != null ? a.kKiris : 0.35)}</div>
+    ${c.kolonlar.some(k => k.guse && k.guse.length) ? `<details open style="margin-top:6px"><summary>Guse (vinç kirişi konsolu) yükleri — her guse için</summary><div class="grid2">${inp('guseP', 'Vinç tekerlek yükü P (kN, darbe dahil)', a.guseP != null ? a.guseP : '')}${inp('guseG', 'Vinç kirişi + ray G (kN)', a.guseG != null ? a.guseG : '')}${inp('guseA', 'Yük–kolon yüzü uzaklığı a (m, boş = çıkma/2)', a.guseA != null ? a.guseA : '')}${inp('guseH', 'Yatay yük H (kN, boş = 0.2·V<sub>d</sub>)', a.guseH != null ? a.guseH : '')}</div></details>` : ''}
+    <details style="margin-top:6px"><summary>Başka programla karşılaştırma (ör. ProBina) — sonuçları girin, raporda yan yana gösterilir</summary><div class="grid2"><label class="f">Program / rapor adı<input data-s="refAd" value="${a.refAd || ''}"></label>${inp('refW', 'W toplam (t)', a.refW != null ? a.refW : '')}${inp('refTX', 'T<sub>X</sub> (s)', a.refTX != null ? a.refTX : '')}${inp('refTY', 'T<sub>Y</sub> (s)', a.refTY != null ? a.refTY : '')}${inp('refVX', 'V<sub>t,X</sub> (t)', a.refVX != null ? a.refVX : '')}${inp('refVY', 'V<sub>t,Y</sub> (t)', a.refVY != null ? a.refVY : '')}${inp('refDX', 'λ·δ/h en büyük X', a.refDX != null ? a.refDX : '')}${inp('refDY', 'λ·δ/h en büyük Y', a.refDY != null ? a.refDY : '')}</div></details>
+    <p class="hint">S<sub>DS</sub> Deprem bölümünden alınır. Betonarme çerçeve: süneklik yüksek R = 8, D = 3; sınırlı R = 4, D = 2.5.</p>
+    <table class="t"><tr><th>Döşeme</th><th>kot</th><th>h (cm)</th><th>g (kN/m²)</th><th>q (kN/m²)</th></tr>${c.dosemeler.map((d, i) => `<tr><td>${d.no}</td><td>${f2(d.zt)}</td><td>${Math.round(d.t * 100)}</td><td><input data-d="${i}" data-k="g" value="${d.g != null ? d.g : a.gD}"></td><td><input data-d="${i}" data-k="q" value="${d.q != null ? d.q : a.qD}"></td></tr>`).join('')}</table>
+    <table class="t" style="margin-top:6px"><tr><th>Kiriş</th><th>b/h (cm)</th><th>kot</th><th>Duvar yükü (kN/m)</th></tr>${c.kirisler.map((k, i) => `<tr><td>${k.no || k.id}</td><td>${Math.round(k.bw * 100)}/${Math.round(k.hb * 100)}</td><td>${f2(k.zt)}</td><td><input data-k2="${i}" value="${k.gd || 0}"></td></tr>`).join('')}</table>`;
+  const num = v => parseFloat(String(v).replace(',', '.'));
+  w.querySelectorAll('[data-a]').forEach(e => e.onchange = () => { const v = num(e.value); if (isFinite(v)) a[e.dataset.a] = v; else if (String(e.value).trim() === '') delete a[e.dataset.a]; changed(); });
+  w.querySelectorAll('[data-s]').forEach(e => e.onchange = () => { a[e.dataset.s] = e.value; changed(); });
+  w.querySelectorAll('[data-d]').forEach(e => e.onchange = () => { const v = num(e.value); if (isFinite(v)) c.dosemeler[+e.dataset.d][e.dataset.k] = v; changed(); });
+  w.querySelectorAll('[data-k2]').forEach(e => e.onchange = () => { const v = num(e.value); if (isFinite(v)) c.kirisler[+e.dataset.k2].gd = v; changed(); });
+  const su = w.querySelector('[data-su]'); if (su) { su.value = S.suYapisi === false ? '0' : '1'; su.onchange = () => { S.suYapisi = su.value === '1'; changed(); }; }
+  return w;
+}
+function cerOnizle() {
+  if (!cerVar()) { $('#pPlan').innerHTML = ''; $('#pKesit').innerHTML = ''; $('#pMsg').innerHTML = '<div class="msg">Su yapısı hesabı kapalı ve kiriş / kolon yok.</div>'; return; }
+  const c = S.cer, xs = [], ys = []; c.kolonlar.forEach(k => { xs.push(k.x); ys.push(k.y); }); c.kirisler.forEach(k => { xs.push(k.a[0], k.b[0]); ys.push(k.a[1], k.b[1]); }); c.dosemeler.forEach(d => d.pts.forEach(p => { xs.push(p[0]); ys.push(p[1]); }));
+  const x0 = Math.min(...xs) - 1, y1 = Math.max(...ys) + 1, W = Math.max(...xs) - x0 + 1, H = y1 - Math.min(...ys) + 1, Y = y => y1 - y, zs = Math.max(...c.kolonlar.map(k => k.zt), ...c.kirisler.map(k => k.zt));
+  let s = `<svg viewBox="${x0} 0 ${W} ${H}">`;
+  c.dosemeler.filter(d => Math.abs(d.zt - zs) < 0.15).forEach(d => s += `<polygon points="${d.pts.map(p => p[0] + ',' + Y(p[1])).join(' ')}" fill="#e9eef0" stroke="#9a6200" stroke-width="0.03"/><text x="${d.pts.reduce((t, p) => t + p[0], 0) / d.pts.length}" y="${Y(d.pts.reduce((t, p) => t + p[1], 0) / d.pts.length)}" font-size="${Math.max(0.25, W / 40)}" text-anchor="middle" fill="#9a6200">${d.no}</text>`);
+  c.kirisler.filter(k => Math.abs(k.zt - zs) < 0.15).forEach(k => s += `<line x1="${k.a[0]}" y1="${Y(k.a[1])}" x2="${k.b[0]}" y2="${Y(k.b[1])}" stroke="#13242b" stroke-width="${k.bw}" stroke-opacity="0.45"/>`);
+  c.kolonlar.forEach(k => s += `<rect x="${k.x - k.bx / 2}" y="${Y(k.y + k.by / 2)}" width="${k.bx}" height="${k.by}" fill="#13242b"/>`);
+  $('#pPlan').innerHTML = s + `</svg>`; $('#pKesit').innerHTML = `<p class="hint">Üst kat (${f2(zs)}) planı. ${c.kolonlar.length} kolon, ${c.kirisler.length} kiriş, ${c.dosemeler.length} döşeme.</p>`; $('#pMsg').innerHTML = '';
+}
+const specAl = () => {
+  let sp = R ? P.cizim(R, S.tas.olcek) : [];
+  if (RC) {
+    let c = P.cerceveCizim(RC, S.tas.olcek || 50); const b1 = P.specKutu(sp), b2 = P.specKutu(c), K = (S.tas.olcek || 50) / 50, k = 1000 / (S.tas.olcek || 50);
+    if (b2 && b1) { // su yapısı çizimlerinin altına ya da sağına: A0'a daha iyi sığan
+      const W1 = b1[2] - b1[0], H1 = b1[3] - b1[1], W2 = b2[2] - b2[0], H2 = b2[3] - b2[1], oran = (w, h) => Math.max(w * k / 1150, h * k / 770);
+      c = oran(Math.max(W1, W2), H1 + H2 + 6 * K) <= oran(W1 + W2 + 6 * K, Math.max(H1, H2)) ? P.specKaydir(c, b1[0] - b2[0], b1[1] - 6 * K - b2[3]) : P.specKaydir(c, b1[2] + 6 * K - b2[0], b1[3] - b2[3]);
+    } else if (b2) c = P.specKaydir(c, -b2[0], -b2[1]);
+    sp = sp.concat(c);
+  }
+  return sp;
+};
+buildForm(); onizle();
+</script>
+<script src="statik-rapor-dsi.js"></script>
+<script src="statik-pafta-dsi.js"></script>
+<script src="statik-kalinlik.js"></script>
+<script src="statik-paspayi.js"></script>
+<script src="statik-donati-aktar.js"></script>
+<script src="statik-pafta-3b.js"></script>
+<script src="statik-delik.js"></script>
+<script src="statik-kisaperde.js"></script>
+<script src="statik-donati-tercih.js"></script>
+<script src="statik-boru-detay.js"></script>
+<script src="statik-aradoseme.js"></script>
+<script src="statik-tbdy-rapor.js"></script>
+<script src="statik-cerceve3b.js"></script>
+<script src="statik-guse.js"></script>
+<script src="statik-kolon-pafta.js"></script>
+<script src="statik-cerceve-perspektif.js"></script>
+<script src="statik-kabuk.js"></script>
+<script src="statik-kabuk-arayuz.js"></script>
+<script src="statik-kabuk-rapor.js"></script>
+<script src="statik-kabuk-pafta.js"></script>
+<script src="statik-kabuk-donati.js"></script>
+<script src="statik-sap2000.js"></script>
+<script src="../dil.js"></script>
+<script src="../dil-en.js"></script>
+<script src="statik-dil.js"></script>
+</body></html>

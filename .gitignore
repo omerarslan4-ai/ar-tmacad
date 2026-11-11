@@ -1,0 +1,7 @@
+# Büyük ve üretilen içerik: sürüm takibine girmez
+yedek/
+sablon/
+3B_ciktilar/
+node_modules/
+*.bak
+Thumbs.db

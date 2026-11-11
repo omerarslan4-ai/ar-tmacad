@@ -1,0 +1,1990 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ATV-A 131 Proses Hesabı</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: çizim masası — solda ünite listesi, sağda girdi formu + sonuç/çizim paftası */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --panel2:#f6f8fa; --ink:#16222e; --muted:#5b6b7a; --line:#d5dce3;
+  --accent:#0b6e78; --accent-ink:#ffffff; --accent-soft:#dff1f2;
+  --ok:#1d7a46; --ok-bg:#e3f4ea; --bad:#b42318; --bad-bg:#fde8e6; --warn-bg:#fff4dc; --warn-ink:#7a4a00;
+  --draw:#1f3b57; --dim:#8a3b12; --water:#bfe0f2; --water-line:#2a7fb8; --concrete:#dfe4e8; --eq:#ffffff;
+  --zAN:#d9cdf0; --zAX:#c6dcf5; --zOX:#cdeedd; --zSIM:#d6ece6; --zINT:#e2ebd2; --brg:#f2d9a6; --cake:#b59a74; --chem:#f3d9a2; --uv:#5b3fa0; --uvb:#efe6ff;
+  --b1:#e8f4fb; --b2:#bfe0f2; --b3:#8fc3e3; --b4:#8b7a5c;
+  --f-disp:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif; --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"JetBrains Mono",Consolas,ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e141a; --panel:#151d25; --panel2:#1a242e; --ink:#e2e9ef; --muted:#93a3b2; --line:#2a3744;
+  --accent:#43b8c2; --accent-ink:#06262a; --accent-soft:#143338;
+  --ok:#5fd08f; --ok-bg:#13301f; --bad:#ff8a7d; --bad-bg:#3a1714; --warn-bg:#352a10; --warn-ink:#f5cf7a;
+  --draw:#a9c7e4; --dim:#f0a26f; --water:#1d4560; --water-line:#5fb2ea; --concrete:#2a3642; --eq:#1a242e;
+  --zAN:#3b3160; --zAX:#23405f; --zOX:#1f4a38; --zSIM:#21443d; --zINT:#34422a; --brg:#5c4a25; --cake:#6b5a42; --chem:#5a4a24; --uv:#c4a8ff; --uvb:#2c2346;
+  --b1:#17384d; --b2:#1d4560; --b3:#2b6a92; --b4:#6b5a42; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141a; --panel:#151d25; --panel2:#1a242e; --ink:#e2e9ef; --muted:#93a3b2; --line:#2a3744;
+  --accent:#43b8c2; --accent-ink:#06262a; --accent-soft:#143338;
+  --ok:#5fd08f; --ok-bg:#13301f; --bad:#ff8a7d; --bad-bg:#3a1714; --warn-bg:#352a10; --warn-ink:#f5cf7a;
+  --draw:#a9c7e4; --dim:#f0a26f; --water:#1d4560; --water-line:#5fb2ea; --concrete:#2a3642; --eq:#1a242e;
+  --zAN:#3b3160; --zAX:#23405f; --zOX:#1f4a38; --zSIM:#21443d; --zINT:#34422a; --brg:#5c4a25; --cake:#6b5a42; --chem:#5a4a24; --uv:#c4a8ff; --uvb:#2c2346;
+  --b1:#17384d; --b2:#1d4560; --b3:#2b6a92; --b4:#6b5a42; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button,input,select{font:inherit;color:inherit}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0;flex:1 1 260px}
+.brand b{font-family:var(--f-disp);font-weight:700;font-size:19px;letter-spacing:.02em;white-space:nowrap}
+.brand span{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.topc{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.topc label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.topc select{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;max-width:220px}
+.syslab{font-family:var(--f-disp);font-weight:600;font-size:14px;background:var(--accent-soft);color:var(--accent);padding:4px 10px;border-radius:999px}
+#navT{display:none}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);gap:0;min-height:calc(100% - 60px)}
+#nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);align-self:start;max-height:calc(100vh - 60px);overflow:auto;padding:14px 10px 30px max(10px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--line)}
+.nv{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:6px;text-align:left;background:none;border:0;border-radius:6px;padding:7px 8px;cursor:pointer;color:var(--ink)}
+.nv:hover{background:var(--panel2)}
+.nv.on{background:var(--panel);box-shadow:inset 3px 0 0 var(--accent)}
+.nv:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,.lnk:focus-visible,tr[data-sysrow]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.nc{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.nn{font-size:14px;line-height:1.25}
+.nf{font-family:var(--f-mono);font-size:11px;background:var(--bad-bg);color:var(--bad);border-radius:999px;padding:1px 7px}
+#main{min-width:0;padding-block:20px 60px;padding-left:24px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+.pg{display:flex;flex-direction:column;gap:16px;max-width:1280px}
+.ph h1{font-family:var(--f-disp);font-weight:700;font-size:32px;line-height:1.1;margin:2px 0 6px;text-wrap:balance}
+.eyebrow{margin:0;font-family:var(--f-mono);font-size:12px;color:var(--accent);letter-spacing:.04em}
+.lead{margin:0;color:var(--muted);max-width:75ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.card h2{font-family:var(--f-disp);font-weight:600;font-size:19px;margin:0 0 10px}
+.hint{color:var(--muted);font-size:13px;margin:4px 0 10px;max-width:80ch}
+.split{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:16px;align-items:start}
+#out{display:flex;flex-direction:column;gap:14px;min-width:0}
+.form{position:sticky;top:76px;max-height:calc(100vh - 90px);overflow:auto}
+.fh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fh h2{margin:0}
+.fg{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:14px 0 4px;padding-top:8px;border-top:1px dashed var(--line)}
+.fg:first-of-type{border-top:0}
+.fld{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px;align-items:center;padding:3px 0}
+.fld.wide{grid-template-columns:120px minmax(0,1fr)}
+.fl-l{font-size:13.5px;line-height:1.25}
+.fl-l small{display:block;color:var(--muted);font-size:11.5px}
+.fl-i{display:flex;align-items:center;gap:6px;min-width:0}
+.fl-i input,.fl-i select{width:100%;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:5px 7px;font-family:var(--f-mono);font-size:13px;text-align:right}
+.fl-i select{text-align:left;font-family:var(--f-body)}
+.fld.auto input{border-style:dashed}
+.fld.auto input:not(:placeholder-shown){border-style:solid;border-color:var(--accent)}
+.fl-i em{font-style:normal;font-size:11px;color:var(--muted);min-width:0;max-width:62px;line-height:1.1}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 24px}
+.fgrid .fld{grid-template-columns:110px minmax(0,1fr)}
+.fgrid .fl-i input{text-align:left;font-family:var(--f-body)}
+.ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.uc{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;column-gap:10px;border:1px solid var(--line);border-radius:7px;padding:10px;cursor:pointer;background:var(--panel2)}
+.uc input{grid-row:1/4;margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
+.uc.on{border-color:var(--accent);background:var(--accent-soft)}
+.ucc{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.ucn{font-weight:600}
+.ucr{font-size:12px;color:var(--muted)}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.sc{display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);border-radius:7px;padding:10px 12px;cursor:pointer;background:var(--panel2);position:relative}
+.sc input{position:absolute;opacity:0}
+.sc b{font-family:var(--f-disp);font-size:16px;font-weight:600}
+.sc small{color:var(--muted);font-size:12.5px}
+.sc .tag{font-family:var(--f-mono);font-size:11px;color:var(--accent)}
+.sc.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.sc:focus-within{outline:2px solid var(--accent)}
+.scl{display:flex;flex-direction:column;gap:6px}
+.sci{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px;border-radius:6px}
+.sci.on{background:var(--accent-soft)}
+.sci input{flex:1 1 200px;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);border-radius:6px;padding:7px 14px;font-weight:600;cursor:pointer;font-size:14px}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn.danger:not(.ghost){background:var(--bad);color:#fff}
+.btn:disabled{opacity:.6;cursor:wait}
+.ask{margin-top:10px;padding:10px;border-radius:6px;background:var(--bad-bg);color:var(--bad)}
+.lnk{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px;text-align:left}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.kpis>div{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;min-width:0}
+.kpis span{font-size:12px;color:var(--muted)}
+.kpis b{font-family:var(--f-mono);font-weight:500;font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kpis em{font-style:normal;font-size:12px;color:var(--muted)}
+.warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:7px;padding:9px 12px;font-size:14px}
+.err{color:var(--bad)}
+.tw{overflow-x:auto;min-width:0}
+table.rt{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+.rt th,.rt td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.rt thead th{font-family:var(--f-mono);font-size:11.5px;font-weight:500;color:var(--muted);background:var(--panel2);position:sticky;top:0}
+.rt td:not(:first-child){font-family:var(--f-mono);font-size:12.5px}
+.rt.res td.v{text-align:right;white-space:nowrap}
+.rt.res td.u{color:var(--muted);font-family:var(--f-body)}
+.rt.res td.c{white-space:nowrap}
+.rt tr.sec th{font-family:var(--f-disp);font-weight:600;font-size:14.5px;background:var(--panel2);color:var(--accent);padding-top:9px}
+.rt tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+.cmp tbody tr{cursor:pointer}
+.cmp tbody tr:hover{background:var(--panel2)}
+.cmp tbody tr.on{background:var(--accent-soft)}
+.cmp td.ok{color:var(--ok)} .cmp td.bad{color:var(--bad);font-weight:600}
+.chip{display:inline-block;font-family:var(--f-body);font-size:11.5px;border-radius:999px;padding:1px 8px}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.bad{background:var(--bad-bg);color:var(--bad)}
+.kv{display:inline-block;margin-right:12px;font-family:var(--f-mono);font-size:12.5px}
+.kv i{font-style:normal;color:var(--muted);font-family:var(--f-body)}
+figure.dwg{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;min-width:0}
+.dwg-scroll{overflow-x:auto}
+.dwgsvg{display:block;width:100%;height:auto;min-width:520px;color:var(--dim)}
+figure.dwg figcaption{font-size:12px;color:var(--muted);padding:4px 4px 0;font-family:var(--f-mono)}
+/* çizim sınıfları */
+.dwgsvg text{font-family:var(--f-body)}
+.vt{font:700 13px var(--f-disp);fill:var(--ink);letter-spacing:.08em}
+.lb{font-size:12px;fill:var(--ink)} .lbz{font-size:12px;font-weight:600;fill:var(--ink)} .lbs{font-size:11px;fill:var(--muted)}
+.dt{font:11px var(--f-mono);fill:var(--dim)}
+.dm{stroke:var(--dim);stroke-width:.8;fill:none} .ex{stroke:var(--dim);stroke-width:.5} .mk{fill:var(--dim)} .mkf{fill:var(--accent)}
+.ln{stroke:var(--draw);stroke-width:1.2;fill:none} .bg{fill:none} .lnd{stroke:var(--draw);stroke-width:1;stroke-dasharray:5 4;fill:none}
+.wl{fill:url(#hc);stroke:var(--draw);stroke-width:1} .hcb{fill:var(--concrete)} .hcl{stroke:var(--draw);stroke-width:.6;opacity:.5}
+.wt{fill:var(--water);stroke:none} .op5{opacity:.55} .ws{stroke:var(--water-line);stroke-width:1.4;stroke-dasharray:8 3;fill:none}
+.scr{stroke:var(--draw);stroke-width:3} .fl{stroke:var(--accent);stroke-width:2;fill:none}
+.eq{fill:var(--eq);stroke:var(--draw);stroke-width:1.2} .bub{fill:var(--eq);stroke:var(--water-line);stroke-width:.8} .roll{stroke:var(--water-line);stroke-width:1.2;fill:none;stroke-dasharray:4 3}
+.brg{fill:var(--brg);stroke:var(--draw);stroke-width:.8}
+.zAN{fill:var(--zAN);stroke:var(--draw);stroke-width:.6} .zAX{fill:var(--zAX);stroke:var(--draw);stroke-width:.6} .zOX{fill:var(--zOX);stroke:var(--draw);stroke-width:.6}
+.zSIM{fill:var(--zSIM);stroke:var(--draw);stroke-width:.6} .zINT{fill:var(--zINT);stroke:var(--draw);stroke-width:.6} .zST{fill:var(--water);stroke:var(--draw);stroke-width:.6}
+.part{fill:var(--draw)} .df{fill:var(--draw)} .dfl{stroke:var(--draw);stroke-width:2.5;stroke-dasharray:2 3} .mix{fill:none;stroke:var(--draw);stroke-width:1}
+.band{stroke:var(--draw);stroke-width:.6} .b1{fill:var(--b1)} .b2{fill:var(--b2)} .b3{fill:var(--b3)} .b4{fill:var(--b4)}
+.chem{fill:var(--chem)} .cake{fill:var(--cake);stroke:var(--draw);stroke-width:.8}
+.uvb{fill:var(--uvb);stroke:var(--uv);stroke-width:1} .lamp{stroke:var(--uv);stroke-width:1.2} .lampc{fill:var(--uvb);stroke:var(--uv);stroke-width:.8}
+.sbx{stroke:var(--draw);stroke-width:1} .rec{fill:none;stroke-width:1.6} .ras{stroke:var(--dim)} .ir{stroke:var(--water-line)} .rr{stroke:var(--uv)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;z-index:20;font-size:14px;max-width:calc(100% - 32px)}
+@media (max-width:980px){
+  .split{grid-template-columns:minmax(0,1fr)}
+  .form{position:static;max-height:none}
+}
+@media (max-width:760px){
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  #navT{display:inline-flex}
+  #nav{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line);flex-direction:row;overflow-x:auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+  .nv{grid-template-columns:auto auto auto;white-space:nowrap;flex:0 0 auto}
+  #main{padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .fld{grid-template-columns:minmax(0,1fr) 130px}
+  .ph h1{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+@media print{.top,#nav,.form,.btn{display:none!important}.wrap{display:block}.split{display:block}.card{break-inside:avoid}}
+</style>
+<header class="top">
+  <div class="brand"><b>ATV-A 131 Proses Hesabı</b><span id="pname"></span></div>
+  <div class="topc">
+    <label for="scsel">Kademe <select id="scsel"></select></label>
+    <span class="syslab" id="syslab"></span>
+    <button class="btn sm" data-cad title="Ünite ebatlarını ArıtmaCAD'e gönderir; çizimdeki üniteler güncellenir">ArıtmaCAD'e aktar</button>
+    <button class="btn sm" data-word>Word raporu</button>
+  </div>
+</header>
+<div class="wrap">
+  <nav id="nav" aria-label="Sayfalar"></nav>
+  <main id="main"></main>
+</div>
+<div id="toast" hidden role="status"></div>
+<script src="jszip-shim.js"></script>
+<script>
+/*ENGINE-START*/
+// ============================================================
+//  ATV/DWA-A 131 (2016) tabanlı arıtma proses hesap motoru
+// ============================================================
+const G9 = 9.81;
+const ceilTo = (x, st = 1) => Math.ceil(x / st - 1e-9) * st;
+const roundTo = (x, st = 1) => Math.round(x / st) * st;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+function interp(x, xs, ys) {
+  if (x <= xs[0]) return ys[0];
+  for (let i = 1; i < xs.length; i++) if (x <= xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]);
+  return ys[ys.length - 1];
+}
+const nz = (v, d) => (v === null || v === undefined || !isFinite(v)) ? d : v;
+
+// ---------- Proses sistemleri ----------
+const SYS = {
+  CONV: { n: 'Konvansiyonel Aktif Çamur', k: 'C', d: 'Yalnız karbon giderimi; nitrifikasyon hedeflenmez, kısa çamur yaşı.', nit: false, dn: 'none', an: false },
+  NIT:  { n: 'Nitrifikasyonlu Aktif Çamur', k: 'C+N', d: 'Karbon giderimi ve tam nitrifikasyon; ayrı denitrifikasyon hacmi yok.', nit: true, dn: 'none', an: false },
+  MLE:  { n: 'Ön Denitrifikasyon (MLE)', k: 'C+N+DN', d: 'Anoksik + oksik bölge; nitrat iç devri (IR) ile oksik bölgeden anoksik bölgeye döner.', nit: true, dn: 'pre', an: false, ir: true },
+  SIM:  { n: 'Simultane Denitrifikasyon', k: 'C+N+DN', d: 'Karusel / oksidasyon hendeği; aynı havuzda oksik ve anoksik alanlar birlikte bulunur.', nit: true, dn: 'sim', an: false },
+  INT:  { n: 'Kesikli (İntermittent) Denitrifikasyon', k: 'C+N+DN', d: 'Havalandırma zamana bağlı açılıp kapanır; V_D/V_AT anoksik süre oranına eşittir.', nit: true, dn: 'sim', an: false, intm: true },
+  STAB: { n: 'Uzun Havalandırma (Aerobik Stabilizasyon)', k: 'C+N+DN+Stab', d: 'Çamur havuzda stabilize olur; genellikle ön çöktürme yapılmaz, t_SS ≥ 20 gün.', nit: true, dn: 'sim', an: false, stab: true },
+  AO:   { n: 'A/O (Phoredox)', k: 'C+BioP', d: 'Anaerobik + oksik; biyolojik fosfor giderimi, nitrifikasyon hedeflenmez.', nit: false, dn: 'none', an: true, anIn: 'RAS' },
+  A2O:  { n: 'A²O', k: 'C+N+DN+BioP', d: 'Anaerobik + anoksik + oksik. RAS anaerobik bölgeye, nitrat iç devri anoksik bölgeye.', nit: true, dn: 'pre', an: true, anIn: 'RAS', ir: true },
+  BD4:  { n: '4 Kademeli Bardenpho', k: 'C+N+DN (düşük TN)', d: 'Anoksik-1 + oksik-1 + anoksik-2 (endojen DN) + oksik-2 (yeniden havalandırma).', nit: true, dn: 'pre', an: false, post: true, ir: true },
+  BD5:  { n: '5 Kademeli Bardenpho', k: 'C+N+DN+BioP (düşük TN/TP)', d: 'Bardenpho önüne anaerobik bölge eklenmiş hali (Modifiye Bardenpho).', nit: true, dn: 'pre', an: true, anIn: 'RAS', post: true, ir: true },
+  UCT:  { n: 'UCT', k: 'C+N+DN+BioP', d: 'RAS anoksik bölgeye; anoksik karışım anaerobik bölgeye geri verilir (r-devri), anaerobik bölge nitrattan korunur.', nit: true, dn: 'pre', an: true, anIn: 'R', ir: true },
+  MUCT: { n: 'Modifiye UCT', k: 'C+N+DN+BioP', d: 'Anoksik bölge ikiye ayrılır: RAS anoksik-1’e, IR anoksik-2’ye; anoksik-1 → anaerobik.', nit: true, dn: 'pre', an: true, anIn: 'R', ir: true, muct: true },
+  JHB:  { n: 'Johannesburg (JHB)', k: 'C+N+DN+BioP', d: 'RAS önce ön-anoksik bölgede denitrifiye edilir, sonra anaerobik bölgeye geçer.', nit: true, dn: 'pre', an: true, anIn: 'RAS', jhb: true, ir: true },
+};
+
+// ---------- Üniteler ve parametre şemaları ----------
+// Alan: k, l (etiket), u (birim), d (varsayılan), auto (boşsa otomatik), opts (seçim), g (grup başlığı)
+const SCREEN_FIELDS = (coarse) => [
+  { g: 'Kanal ve adet' },
+  { k: 'N', l: 'Çalışan kanal sayısı', u: 'adet', auto: true, h: 'Boş: kanal başına ≤ 1,5 m³/s' },
+  { k: 'Nsb', l: 'Yedek kanal sayısı', u: 'adet', d: 1 },
+  { k: 'h', l: 'Kanal su derinliği (Q_maks)', u: 'm', d: coarse ? 1.2 : 1.0 },
+  { k: 'b', l: 'Kanal genişliği', u: 'm', auto: true, h: 'Boş: hız kriterinden' },
+  { k: 'L', l: 'Kanal uzunluğu', u: 'm', d: 6 },
+  { k: 'fr', l: 'Hava payı', u: 'm', d: 0.5 },
+  { g: 'Izgara' },
+  { k: 'e', l: 'Çubuk aralığı (e)', u: 'mm', d: coarse ? 30 : 6 },
+  { k: 's', l: 'Çubuk kalınlığı (s)', u: 'mm', d: coarse ? 10 : 6 },
+  { k: 'th', l: 'Montaj açısı (θ)', u: '°', d: coarse ? 80 : 75 },
+  { k: 'beta', l: 'Çubuk şekil katsayısı β (Kirschmer)', u: '-', d: 2.42 },
+  { k: 'fb', l: 'Tıkanma oranı', u: '-', d: coarse ? 0.25 : 0.3 },
+  { k: 'vmax', l: 'Maks. çubuk arası hız (tıkalı)', u: 'm/s', d: 1.2 },
+  { g: 'Izgara atığı' },
+  { k: 'rate', l: 'Özgül atık miktarı', u: 'L/(EN·yıl)', d: coarse ? 4 : 10 },
+  { k: 'rho', l: 'Atık yoğunluğu', u: 'kg/m³', d: 900 },
+  { k: 'red', l: 'Preste hacim azalması', u: '%', d: 60 },
+];
+
+const UNITS = {
+  cs: { n: 'Kaba Izgara', c: 'T-101', ref: 'Kirschmer; ATV (1997) ızgara atığı', f: SCREEN_FIELDS(true) },
+  ps: { n: 'Giriş Pompa İstasyonu', c: 'T-102', ref: 'ATV-DVWK-A 134', f: [
+    { g: 'Pompalar' },
+    { k: 'Qp', l: 'Tek pompa maks. kapasitesi', u: 'm³/h', d: 1500 },
+    { k: 'N', l: 'Asil pompa sayısı', u: 'adet', auto: true },
+    { k: 'Nsb', l: 'Yedek pompa sayısı', u: 'adet', auto: true },
+    { k: 'Z', l: 'Saatlik maks. kalkış (Z)', u: '1/h', d: 6 },
+    { k: 'Hm', l: 'Manometrik yükseklik', u: 'm', d: 12 },
+    { k: 'eta', l: 'Pompa verimi', u: '-', d: 0.75 },
+    { g: 'Islak hazne' },
+    { k: 'nc', l: 'Bölme sayısı', u: 'adet', d: 1 },
+    { k: 'hu', l: 'Faydalı su yüksekliği (çalışma aralığı)', u: 'm', d: 1.5 },
+    { k: 'hd', l: 'Ölü hacim yüksekliği', u: 'm', d: 1.0 },
+    { k: 'hf', l: 'Giriş üstü ve hava payı', u: 'm', d: 1.5 },
+    { k: 'W', l: 'Hazne genişliği', u: 'm', auto: true },
+    { k: 'lw', l: 'Uzunluk / genişlik oranı', u: '-', d: 1.5 },
+    { k: 'sp', l: 'Pompa aks aralığı', u: 'm', d: 2.0 },
+  ] },
+  fs: { n: 'İnce Izgara', c: 'T-103', ref: 'Kirschmer; ATV (1997) ızgara atığı', f: SCREEN_FIELDS(false) },
+  gr: { n: 'Havalandırmalı Kum ve Yağ Tutucu', c: 'T-104', ref: 'DWA-M 369 / ATV-DVWK KA-5', f: [
+    { g: 'Hat sayısı ve kesit' },
+    { k: 'Qmax', l: 'Hat başına maks. debi', u: 'm³/h', d: 5000 },
+    { k: 'N', l: 'Hat sayısı', u: 'adet', auto: true },
+    { k: 'h', l: 'Su derinliği', u: 'm', d: 3.5 },
+    { k: 'bh', l: 'Kum bölmesi b/h oranı', u: '-', d: 1.0 },
+    { k: 'b', l: 'Kum bölmesi genişliği b_SF', u: 'm', auto: true },
+    { k: 'fF', l: 'Yağ bölmesi oranı b_FF/b_SF', u: '-', d: 0.5 },
+    { k: 'tw', l: 'Ayırma perdesi / duvar kalınlığı', u: 'm', d: 0.3 },
+    { k: 'L', l: 'Havuz uzunluğu', u: 'm', auto: true, h: 'Boş: bekleme süresinden' },
+    { g: 'Kriterler' },
+    { k: 'tD', l: 'Min. bekleme süresi (kuru hava)', u: 'dk', d: 10 },
+    { k: 'tW', l: 'Min. bekleme süresi (yağışlı)', u: 'dk', d: 5 },
+    { k: 'air', l: 'Özgül hava ihtiyacı', u: 'Nm³/(m³·h)', d: 1.0 },
+    { k: 'grit', l: 'Kum miktarı', u: 'L/(EN·yıl)', d: 8 },
+    { k: 'grease', l: 'Yağ miktarı', u: 'L/(1000 EN·gün)', d: 2 },
+  ] },
+  pc: { n: 'Ön Çöktürme Havuzu', c: 'T-105', ref: 'DWA-A 131 Tablo 2 (giderim oranları)', f: [
+    { g: 'Tip ve adet' },
+    { k: 'type', l: 'Havuz tipi', opts: [['circ', 'Dairesel'], ['rect', 'Dikdörtgen']], d: 'circ' },
+    { k: 'N', l: 'Havuz sayısı', u: 'adet', auto: true },
+    { k: 'Dmax', l: 'Maks. çap (dairesel) / genişlik (dikdörtgen)', u: 'm', d: 45 },
+    { g: 'Boyutlandırma' },
+    { k: 'tR', l: 'Hedef bekleme süresi (Q_DW,h,maks)', u: 'h', d: 1.5 },
+    { k: 'qA', l: 'Maks. yüzey yükü (Q_M)', u: 'm/h', d: 4.0 },
+    { k: 'h', l: 'Yan su derinliği', u: 'm', d: 3.0 },
+    { k: 'D', l: 'Çap (dairesel)', u: 'm', auto: true },
+    { k: 'Din', l: 'Giriş yapısı çapı', u: 'm', auto: true },
+    { k: 'W', l: 'Genişlik (dikdörtgen)', u: 'm', auto: true },
+    { k: 'lw', l: 'L/W oranı (dikdörtgen)', u: '-', d: 4 },
+    { k: 'slope', l: 'Taban eğimi', u: 'm/m', d: 0.08 },
+    { k: 'wl', l: 'Savak yükü sınırı (Q_M)', u: 'm³/(m·h)', d: 20 },
+    { g: 'Giderim oranları (boş: A131 Tablo 2)' },
+    { k: 'rCOD', l: 'KOİ / BOİ₅ giderimi', u: '%', auto: true },
+    { k: 'rSS', l: 'AKM giderimi', u: '%', auto: true },
+    { k: 'rN', l: 'TKN giderimi', u: '%', auto: true },
+    { k: 'rP', l: 'TP giderimi', u: '%', auto: true },
+    { g: 'Çamur' },
+    { k: 'ds', l: 'Ön çöktürme çamuru KM', u: '%', d: 2.5 },
+    { k: 'opH', l: 'Çamur pompası çalışma süresi', u: 'h/gün', d: 12 },
+  ] },
+  cp: { n: 'Kimyasal Fosfor Giderimi', c: 'T-106', ref: 'ATV-DVWK-A 202', f: [
+    { g: 'Kimyasal' },
+    { k: 'chem', l: 'Çöktürücü', opts: [['Fe', 'FeCl₃ (Fe³⁺)'], ['Al', 'Alüminyum tuzu (Al³⁺)']], d: 'Fe' },
+    { k: 'beta', l: 'Mol oranı β (Me/P)', u: 'mol/mol', d: 1.5 },
+    { k: 'metal', l: 'Üründeki metal oranı', u: '% (ağ.)', d: 13.8, h: 'FeCl₃ %40 → Fe %13,8' },
+    { k: 'rho', l: 'Ürün yoğunluğu', u: 'kg/L', d: 1.43 },
+    { g: 'Depolama' },
+    { k: 'days', l: 'Depolama süresi', u: 'gün', d: 14 },
+    { k: 'N', l: 'Depo sayısı', u: 'adet', d: 2 },
+    { k: 'h', l: 'Depo sıvı yüksekliği', u: 'm', d: 4.0 },
+    { k: 'D', l: 'Depo çapı', u: 'm', auto: true },
+    { k: 'Np', l: 'Asil dozaj pompası', u: 'adet', d: 1 },
+  ] },
+  an: { n: 'Anaerobik (Bio-P) Tank', c: 'T-107', ref: 'DWA-A 131 (2016) Bölüm 5.3', f: [
+    { g: 'Boyutlandırma' },
+    { k: 'tAN', l: 'Temas süresi (Q_DW,h,maks + devir)', u: 'h', d: 0.75, h: 'A131: 0,5–0,75 h' },
+    { k: 'N', l: 'Tank sayısı', u: 'adet', auto: true, h: 'Boş: biyolojik havuz sayısı' },
+    { k: 'nc', l: 'Seri bölme sayısı (her tankta)', u: 'adet', d: 2 },
+    { k: 'h', l: 'Su derinliği', u: 'm', auto: true, h: 'Boş: biyolojik havuzla aynı' },
+    { k: 'W', l: 'Genişlik', u: 'm', auto: true, h: 'Boş: biyolojik havuzla aynı' },
+    { k: 'mix', l: 'Karıştırma enerjisi', u: 'W/m³', d: 4 },
+    { k: 'fb', l: 'Hava payı', u: 'm', d: 0.5 },
+  ] },
+  bio: { n: 'Biyolojik Reaktör', c: 'T-108', ref: 'DWA-A 131 (2016)', f: [
+    { g: 'Havuz adedi ve geometri' },
+    { k: 'N', l: 'Havuz sayısı', u: 'adet', auto: true, h: 'Boş: havuz başına ≤ Vmaks' },
+    { k: 'Vmax', l: 'Havuz başına maks. hacim', u: 'm³', d: 30000 },
+    { k: 'h', l: 'Su derinliği', u: 'm', d: 6.0 },
+    { k: 'W', l: 'Havuz genişliği', u: 'm', auto: true, h: 'Boş: L/W oranından' },
+    { k: 'lw', l: 'L/W oranı', u: '-', d: 2.0 },
+    { k: 'fb', l: 'Hava payı', u: 'm', d: 0.6 },
+    { g: 'Çamur yaşı' },
+    { k: 'PF', l: 'Proses faktörü PF', u: '-', auto: true, h: 'Boş: BOİ yüküne göre 1,8 → 1,45' },
+    { k: 'tAerSel', l: 'Seçilen aerobik çamur yaşı', u: 'gün', auto: true, h: 'Boş: hesaplanan t_SS,aer' },
+    { k: 'tC', l: 't_SS (yalnız C giderimi)', u: 'gün', auto: true },
+    { k: 'tStab', l: 't_SS (aerobik stabilizasyon)', u: 'gün', d: 20 },
+    { k: 'VDmin', l: 'Min. V_D/V_AT', u: '-', d: 0.2 },
+    { k: 'VDmax', l: 'Maks. V_D/V_AT', u: '-', d: 0.6 },
+    { k: 'VD', l: 'Seçilen V_D/V_AT', u: '-', auto: true, h: 'Boş: iterasyonla' },
+    { g: 'KOİ / AKM fraksiyonları' },
+    { k: 'fS', l: 'Çözünmüş inert KOİ oranı f_S', u: '-', d: 0.05 },
+    { k: 'fA', l: 'Partikül inert KOİ oranı f_A', u: '-', d: 0.3 },
+    { k: 'fCOD', l: 'Kolay ayrışan KOİ oranı f_COD', u: '-', d: 0.15 },
+    { k: 'fB', l: 'AKM inorganik oranı f_B', u: '-', d: 0.3 },
+    { k: 'Y', l: 'Heterotrof verim Y', u: 'g/g', d: 0.67 },
+    { k: 'b', l: 'Ölüm katsayısı b (15 °C)', u: '1/gün', d: 0.17 },
+    { k: 'dos', l: 'Harici karbon dozu C_COD,dos', u: 'mg/L', d: 0 },
+    { k: 'Ydos', l: 'Harici karbon verimi', u: 'g/g', d: 0.42 },
+    { g: 'Çıkış hedefleri' },
+    { k: 'SorgN', l: 'Çıkış organik N', u: 'mg/L', d: 2 },
+    { k: 'SNH4', l: 'Çıkış NH₄-N (tasarım)', u: 'mg/L', d: 0 },
+    { k: 'SNO3', l: 'Çıkış NO₃-N (tasarım)', u: 'mg/L', auto: true, h: 'Boş: TN − orgN − NH₄' },
+    { k: 'CPest', l: 'Çıkış P hedefi C_P,AN', u: 'mg/L', auto: true, h: 'Boş: 0,7 × TP limiti' },
+    { k: 'fBioP', l: 'Bio-P katsayısı', u: 'gP/gKOİ', d: 0.006 },
+    { g: 'Devirler' },
+    { k: 'incRV', l: 'RZ hesabında RAS dahil', opts: [['1', 'Evet (IR = RZ − RV)'], ['0', 'Hayır (IR = RZ)']], d: '1' },
+    { k: 'IR', l: 'Seçilen iç devir oranı IR', u: '× Q', auto: true },
+    { k: 'nIR', l: 'Havuz başına asil IR pompası', u: 'adet', d: 1 },
+    { k: 'rU', l: 'UCT/MUCT r-devri (anoksik→anaerobik)', u: '× Q', d: 1.5 },
+    { k: 'split', l: 'Bardenpho/MUCT ikinci anoksik payı', u: '-', d: 0.3 },
+    { k: 'reaer', l: 'Bardenpho son oksik bölge payı', u: '-', d: 0.12 },
+    { k: 'SDNR', l: 'Endojen DN hızı (20 °C)', u: 'gN/(gUAKM·gün)', d: 0.025 },
+    { k: 'tPre', l: 'JHB ön-anoksik temas süresi (RAS)', u: 'h', d: 1.0 },
+    { g: 'Havalandırma' },
+    { k: 'alpha', l: 'α', u: '-', d: 0.8 },
+    { k: 'beta', l: 'β', u: '-', d: 0.95 },
+    { k: 'F', l: 'Difüzör kirlenme faktörü F', u: '-', d: 0.9 },
+    { k: 'Cx', l: 'Havuz O₂ konsantrasyonu', u: 'mg/L', d: 2.0 },
+    { k: 'Ot', l: 'Çıkış gazında O₂', u: '%', d: 19 },
+    { k: 'ssote', l: 'Özgül O₂ transferi SSOTE', u: 'g/(Nm³·m)', d: 18 },
+    { k: 'hd', l: 'Difüzör tabandan yüksekliği', u: 'm', d: 0.25 },
+    { k: 'qd', l: 'Difüzör başına hava', u: 'Nm³/h', d: 4 },
+    { k: 'ad', l: 'Difüzör membran alanı', u: 'm²', d: 0.037 },
+    { k: 'blmax', l: 'Tek blower maks. kapasitesi', u: 'Nm³/h', d: 12000 },
+    { k: 'Nbl', l: 'Asil blower sayısı', u: 'adet', auto: true },
+    { k: 'Nblsb', l: 'Yedek blower sayısı', u: 'adet', d: 1 },
+  ] },
+  sc: { n: 'Son Çöktürme Havuzu', c: 'T-109', ref: 'DWA-A 131 (2016) Bölüm 6', f: [
+    { g: 'Çamur özellikleri' },
+    { k: 'ISV', l: 'Çamur hacim indeksi ISV', u: 'mL/g', d: 100 },
+    { k: 'tE', l: 'Yoğunlaşma süresi t_E', u: 'h', d: 2.0 },
+    { k: 'RV', l: 'Geri devir oranı RV', u: '-', d: 0.75 },
+    { k: 'kRS', l: 'SS_RS / SS_BS (sıyırıcı 0,7; emme 0,5–0,7)', u: '-', d: 0.7 },
+    { k: 'SSAT', l: 'Seçilen MLSS (SS_AT)', u: 'kg/m³', auto: true },
+    { g: 'Yükler' },
+    { k: 'qSV', l: 'Maks. çamur hacim yükü q_SV', u: 'L/(m²·h)', d: 500 },
+    { k: 'qAmax', l: 'Maks. yüzey yükü q_A', u: 'm/h', d: 1.6 },
+    { k: 'DSVmax', l: 'Maks. seyreltik çamur hacmi DSV', u: 'L/m³', d: 600 },
+    { g: 'Geometri' },
+    { k: 'N', l: 'Havuz sayısı', u: 'adet', auto: true },
+    { k: 'Dmax', l: 'Maks. çap', u: 'm', d: 50 },
+    { k: 'D', l: 'Çap', u: 'm', auto: true },
+    { k: 'Din', l: 'Giriş yapısı çapı', u: 'm', auto: true },
+    { k: 'h1', l: 'Berrak su bölgesi h₁', u: 'm', d: 0.5 },
+    { k: 'H', l: 'Seçilen derinlik h_top (2/3 yarıçapta)', u: 'm', auto: true, h: 'Boş: hesaplanan, ≥ 3,0 m' },
+    { k: 'slope', l: 'Taban eğimi', u: 'm/m', d: 0.06 },
+    { k: 'sides', l: 'Savak tarafı', u: 'adet', d: 1 },
+    { k: 'wl', l: 'Savak yükü sınırı', u: 'm³/(m·h)', d: 10 },
+    { g: 'Pompalar' },
+    { k: 'Nras', l: 'Havuz başına asil RAS pompası', u: 'adet', d: 1 },
+    { k: 'wasH', l: 'Fazla çamur çekme süresi', u: 'h/gün', d: 24 },
+  ] },
+  pt: { n: 'Ön Çöktürme Çamuru Yoğunlaştırıcı', c: 'T-110', ref: 'Metcalf & Eddy; gravite yoğunlaştırıcı', f: [
+    { k: 'SLR', l: 'Katı madde yüzey yükü', u: 'kg/(m²·gün)', d: 100 },
+    { k: 'N', l: 'Yoğunlaştırıcı sayısı', u: 'adet', auto: true },
+    { k: 'Dmax', l: 'Maks. çap', u: 'm', d: 25 },
+    { k: 'D', l: 'Çap', u: 'm', auto: true },
+    { k: 'h', l: 'Yan su derinliği', u: 'm', d: 3.5 },
+    { k: 'slope', l: 'Taban eğimi', u: 'm/m', d: 0.17 },
+    { k: 'dsOut', l: 'Çıkış KM', u: '%', d: 5 },
+    { k: 'cap', l: 'Katı tutma verimi', u: '%', d: 95 },
+  ] },
+  et: { n: 'Fazla Çamur Depolama ve Yoğunlaştırma', c: 'T-111', ref: 'Metcalf & Eddy; mekanik yoğunlaştırıcı', f: [
+    { g: 'Depolama tankı' },
+    { k: 'tSt', l: 'Depolama süresi', u: 'h', d: 4 },
+    { k: 'h', l: 'Su derinliği', u: 'm', d: 4.0 },
+    { k: 'W', l: 'Tank genişliği', u: 'm', auto: true },
+    { g: 'Mekanik yoğunlaştırıcı (bant/tambur)' },
+    { k: 'opD', l: 'Haftalık çalışma', u: 'gün/hafta', d: 7 },
+    { k: 'opH', l: 'Günlük çalışma', u: 'h/gün', d: 16 },
+    { k: 'capU', l: 'Ünite kapasitesi', u: 'm³/h', d: 40 },
+    { k: 'N', l: 'Asil ünite sayısı', u: 'adet', auto: true },
+    { k: 'Nsb', l: 'Yedek ünite sayısı', u: 'adet', d: 1 },
+    { k: 'dsOut', l: 'Çıkış KM', u: '%', d: 5.5 },
+    { k: 'cap', l: 'Katı tutma verimi', u: '%', d: 95 },
+    { k: 'poly', l: 'Polimer dozu', u: 'kg/t KM', d: 4 },
+  ] },
+  dw: { n: 'Çamur Susuzlaştırma', c: 'T-112', ref: 'Metcalf & Eddy; dekantör santrifüj', f: [
+    { g: 'Dekantör' },
+    { k: 'opD', l: 'Haftalık çalışma', u: 'gün/hafta', d: 5 },
+    { k: 'opH', l: 'Günlük çalışma', u: 'h/gün', d: 16 },
+    { k: 'capU', l: 'Ünite kapasitesi', u: 'm³/h', d: 30 },
+    { k: 'N', l: 'Asil ünite sayısı', u: 'adet', auto: true },
+    { k: 'Nsb', l: 'Yedek ünite sayısı', u: 'adet', d: 1 },
+    { k: 'dsOut', l: 'Kek KM', u: '%', d: 22 },
+    { k: 'cap', l: 'Katı tutma verimi', u: '%', d: 95 },
+    { k: 'poly', l: 'Polimer dozu', u: 'kg/t KM', d: 9 },
+    { g: 'Kek silosu' },
+    { k: 'days', l: 'Depolama süresi', u: 'gün', d: 3 },
+    { k: 'Ns', l: 'Silo sayısı', u: 'adet', d: 1 },
+    { k: 'hs', l: 'Silo dolu yüksekliği', u: 'm', d: 6 },
+    { k: 'Ds', l: 'Silo çapı', u: 'm', auto: true },
+  ] },
+  uv: { n: 'UV Dezenfeksiyon', c: 'T-113', ref: 'Üretici verisi / US EPA UVDGM', f: [
+    { k: 'qL', l: 'Lamba başına kapasite (tasarım dozu, UVT)', u: 'm³/h', d: 25 },
+    { k: 'banks', l: 'Seri lamba sırası (bank)', u: 'adet', d: 2 },
+    { k: 'h', l: 'Kanal su derinliği', u: 'm', d: 1.0 },
+    { k: 'sp', l: 'Lamba aks aralığı', u: 'm', d: 0.076 },
+    { k: 'mMax', l: 'Kanal başına maks. modül', u: 'adet', d: 16 },
+    { k: 'N', l: 'Kanal sayısı', u: 'adet', auto: true },
+    { k: 'Lb', l: 'Bank uzunluğu', u: 'm', d: 2.0 },
+    { k: 'Lio', l: 'Giriş + çıkış düzlükleri', u: 'm', d: 6.0 },
+  ] },
+};
+const ORDER = ['cs', 'ps', 'fs', 'gr', 'pc', 'cp', 'an', 'bio', 'sc', 'pt', 'et', 'dw', 'uv'];
+
+const INPUTS = [
+  { g: 'Genel' },
+  { k: 'PE', l: 'Nüfus eşdeğeri', u: 'EN' },
+  { k: 'Tmin', l: 'Tasarım sıcaklığı (min, hacim)', u: '°C' },
+  { k: 'Tmax', l: 'Tasarım sıcaklığı (maks, oksijen)', u: '°C' },
+  { k: 'alt', l: 'Tesis kotu', u: 'm' },
+  { g: 'Debiler' },
+  { k: 'Qd', l: 'Günlük ortalama kuru hava debisi Q_DW,d', u: 'm³/gün' },
+  { k: 'Qdw', l: 'Kuru hava saatlik maks. debi Q_DW,h,maks', u: 'm³/h' },
+  { k: 'Qww', l: 'Yağışlı hava maks. debi Q_M', u: 'm³/h' },
+  { k: 'Qmin', l: 'Minimum debi', u: 'm³/h' },
+  { g: 'Ham atıksu kirlilik yükleri' },
+  { k: 'COD', l: 'KOİ', u: 'kg/gün' },
+  { k: 'BOD', l: 'BOİ₅', u: 'kg/gün' },
+  { k: 'TSS', l: 'AKM', u: 'kg/gün' },
+  { k: 'TKN', l: 'TKN', u: 'kg/gün' },
+  { k: 'TP', l: 'Toplam P', u: 'kg/gün' },
+  { g: 'Geri dönen sular (rejekt)' },
+  { k: 'rQ', l: 'Debi', u: 'm³/gün' },
+  { k: 'rCOD', l: 'KOİ', u: 'kg/gün' },
+  { k: 'rBOD', l: 'BOİ₅', u: 'kg/gün' },
+  { k: 'rTSS', l: 'AKM', u: 'kg/gün' },
+  { k: 'rTKN', l: 'TKN', u: 'kg/gün' },
+  { k: 'rTP', l: 'Toplam P', u: 'kg/gün' },
+  { g: 'Deşarj limitleri' },
+  { k: 'lBOD', l: 'BOİ₅', u: 'mg/L' },
+  { k: 'lCOD', l: 'KOİ', u: 'mg/L' },
+  { k: 'lTSS', l: 'AKM', u: 'mg/L' },
+  { k: 'lTN', l: 'Toplam N', u: 'mg/L' },
+  { k: 'lTP', l: 'Toplam P', u: 'mg/L' },
+];
+
+// Örnek veri: West Benghazi AAT proses raporu (2025 ve 2035 kademeleri)
+function sampleScenario(stage) {
+  const k = stage === 2 ? 240000 / 55300 : 1;
+  const r = (x) => Math.round(x * k);
+  return {
+    name: stage === 2 ? '2. Kademe (2035)' : '1. Kademe (2025)',
+    inp: {
+      PE: stage === 2 ? 880000 : 202767, Tmin: 15, Tmax: 25, alt: 25,
+      Qd: stage === 2 ? 240000 : 55300, Qdw: stage === 2 ? 10000 : 2304, Qww: stage === 2 ? 20000 : 4608, Qmin: stage === 2 ? 5000 : 1150,
+      COD: stage === 2 ? 120000 : 27650, BOD: stage === 2 ? 52800 : 12166, TSS: stage === 2 ? 52800 : 12166, TKN: stage === 2 ? 9600 : 2212, TP: stage === 2 ? 1920 : 442,
+      rQ: stage === 2 ? 5284 : 1201, rCOD: stage === 2 ? 4687 : 1064, rBOD: stage === 2 ? 1525 : 346, rTSS: stage === 2 ? 3818 : 866, rTKN: stage === 2 ? 255 : 58, rTP: stage === 2 ? 185 : 42,
+      lBOD: 25, lCOD: 125, lTSS: 35, lTN: 10, lTP: 1,
+    },
+    p: {},
+  };
+}
+
+function par(sc, u) {
+  const o = {}; const raw = (sc.p && sc.p[u]) || {};
+  for (const f of UNITS[u].f) {
+    if (!f.k) continue;
+    const v = raw[f.k];
+    if (v === '' || v === undefined || v === null) o[f.k] = f.auto ? null : f.d;
+    else o[f.k] = f.opts ? v : parseFloat(String(v).replace(',', '.'));
+    if (!f.opts && o[f.k] !== null && !isFinite(o[f.k])) o[f.k] = f.auto ? null : f.d;
+  }
+  return o;
+}
+function inpNums(inp) {
+  const o = {};
+  for (const f of INPUTS) if (f.k) { const v = parseFloat(String(inp[f.k] ?? '').replace(',', '.')); o[f.k] = isFinite(v) ? v : 0; }
+  return o;
+}
+
+// ---------- Satır yardımcıları ----------
+const SEC = (t) => ({ s: t });
+const ROW = (l, v, u, d = 2, c) => ({ l, v, u, d, c });
+const CK = (ok, t) => ({ ok: !!ok, t });
+
+// Oksijen doygunluğu (APHA), mg/L
+const Cs = (T) => 14.652 - 0.41022 * T + 0.007991 * T * T - 0.000077774 * T * T * T;
+
+// ============================================================
+function compute(S, sc, sysKey) {
+  sysKey = sysKey || S.system;
+  const sys = SYS[sysKey];
+  const I = inpNums(sc.inp);
+  const U = Object.assign({}, S.units);
+  const forced = [];
+  if (sys.an && !U.an) { U.an = true; forced.push('an'); }
+  const P = {}; for (const u of ORDER) P[u] = par(sc, u);
+  const R = {}; const GW = [];
+
+  const PE = I.PE, Qd = I.Qd, Qh = Qd / 24;
+  const Qdw = I.Qdw || Qh, Qww = I.Qww || 2 * Qdw, Qmin = I.Qmin || 0.4 * Qh;
+  const Tn = I.Tmin, Tx = Math.max(I.Tmax, I.Tmin);
+  const QdT = Qd + I.rQ;
+  const L0 = { COD: I.COD, BOD: I.BOD, TSS: I.TSS, TKN: I.TKN, TP: I.TP };
+  const Lin = { COD: I.COD + I.rCOD, BOD: I.BOD + I.rBOD, TSS: I.TSS + I.rTSS, TKN: I.TKN + I.rTKN, TP: I.TP + I.rTP };
+  const lim = { BOD: I.lBOD, COD: I.lCOD, TSS: I.lTSS, TN: I.lTN, TP: I.lTP };
+  const ctx = { PE, Qd, Qh, Qdw, Qww, Qmin, Tn, Tx, QdT, L0, Lin, lim, alt: I.alt };
+  if (!(Qd > 0) || !(Lin.COD > 0)) GW.push('Debi ve kirlilik yüklerini “Tasarım Verileri” sayfasına girin.');
+  if (sys.stab && U.pc) GW.push('Aerobik stabilizasyon sisteminde ön çöktürme genellikle yapılmaz.');
+
+  // ---------------- IZGARALAR ----------------
+  function screen(p, coarse) {
+    const out = { rows: [], warn: [], auto: {} };
+    const Qs = Qww / 3600;
+    const N = p.N ?? Math.max(1, Math.ceil(Qs / 1.5 - 1e-9)); out.auto.N = N;
+    const Qc = Qs / N, QcD = Qdw / 3600 / N;
+    const e = p.e / 1000, s = p.s / 1000, ratio = e / (e + s), th = p.th * Math.PI / 180;
+    const bReq = Qc / (p.h * p.vmax * ratio * (1 - p.fb));
+    const b = p.b ?? Math.max(0.5, ceilTo(bReq, 0.1)); out.auto.b = Math.max(0.5, ceilTo(bReq, 0.1));
+    const va = Qc / (b * p.h), vb = va / ratio, vbc = vb / (1 - p.fb);
+    const vaD = QcD / (b * p.h);
+    const hL = p.beta * Math.pow(s / e, 4 / 3) * va * va / (2 * G9) * Math.sin(th);
+    const hLc = Math.max(0, (vbc * vbc - va * va) / (2 * G9) / 0.7);
+    const nSlot = Math.floor((b + s) / (e + s) + 1e-9), nBar = nSlot - 1;
+    const H = p.h + hLc + p.fr;
+    const scr = PE * p.rate / 365 / 1000, scrKg = scr * p.rho, scrP = scr * (1 - p.red / 100);
+    out.rows.push(SEC('Debi'),
+      ROW('Tasarım debisi Q_M', Qww, 'm³/h', 0), ROW('Çalışan / yedek kanal', N + ' + ' + p.Nsb, 'adet'),
+      ROW('Kanal başına debi', Qc, 'm³/s', 3),
+      SEC('Kanal boyutları'),
+      ROW('Gerekli kanal genişliği', bReq, 'm', 2), ROW('Seçilen kanal genişliği b', b, 'm', 2, CK(b >= bReq - 1e-6, '≥ gerekli')),
+      ROW('Su derinliği h', p.h, 'm', 2), ROW('Kanal yüksekliği H = h + Δh + hava payı', H, 'm', 2), ROW('Kanal uzunluğu', p.L, 'm', 1),
+      ROW('Aralık sayısı / çubuk sayısı', nSlot + ' / ' + nBar, 'adet'), ROW('Net açıklık', nSlot * e, 'm', 2),
+      SEC('Hız kontrolleri'),
+      ROW('Yaklaşım hızı (Q_M)', va, 'm/s', 2, CK(va >= 0.4 && va <= 1.0, '0,4 – 1,0')),
+      ROW('Yaklaşım hızı (Q_DW,h,maks)', vaD, 'm/s', 2, CK(vaD >= 0.3, '≥ 0,3 (çökelme)')),
+      ROW('Çubuk arası hız, temiz', vb, 'm/s', 2, CK(vb <= p.vmax, '≤ ' + p.vmax)),
+      ROW('Çubuk arası hız, tıkalı', vbc, 'm/s', 2, CK(vbc <= p.vmax * 1.001, '≤ ' + p.vmax)),
+      SEC('Yük kaybı'),
+      ROW('Temiz ızgara (Kirschmer) h = β(s/e)^4/3 · v²/2g · sinθ', hL, 'm', 3),
+      ROW('Tıkalı ızgara h = (v_b² − v_a²)/(2g·0,7)', hLc, 'm', 3),
+      SEC('Izgara atığı'),
+      ROW('Atık hacmi', scr, 'm³/gün', 2), ROW('Atık ağırlığı', scrKg, 'kg/gün', 0), ROW('Pres sonrası hacim', scrP, 'm³/gün', 2),
+      ROW('Konveyör kapasitesi (pik faktörü 6)', scr * 6 / 24, 'm³/h', 2));
+    out.dim = { N, Nsb: p.Nsb, b, h: p.h, H, L: p.L, th: p.th, e: p.e };
+    out.key = [['Kanal', `${N}+${p.Nsb} adet`], ['b × H × L', `${f2(b)} × ${f2(H)} × ${f1(p.L)} m`], ['Aralık', p.e + ' mm']];
+    return out;
+  }
+  if (U.cs) R.cs = screen(P.cs, true);
+  if (U.fs) R.fs = screen(P.fs, false);
+
+  // ---------------- POMPA İSTASYONU ----------------
+  if (U.ps) {
+    const p = P.ps, o = { rows: [], warn: [], auto: {} };
+    const N = p.N ?? Math.max(1, Math.ceil(Qww / p.Qp - 1e-9)); o.auto.N = N;
+    const Nsb = p.Nsb ?? Math.max(1, Math.ceil(N / 4 - 1e-9)); o.auto.Nsb = Nsb;
+    const q = Qww / N, ql = q / 3.6;
+    const V = 0.9 * ql / p.Z; // m³ (A134: Q in L/s)
+    const nc = Math.max(1, Math.round(p.nc));
+    const pumpsPerC = Math.ceil((N + Nsb) / nc);
+    const A = V / p.hu;
+    const Lp = pumpsPerC * p.sp;
+    let W, L;
+    if (p.W) { W = p.W; L = Math.max(ceilTo(A / W, 0.1), Lp); }
+    else { L = Math.max(ceilTo(Math.sqrt(A * p.lw), 0.1), Lp); W = Math.max(2.0, ceilTo(A / L, 0.1)); }
+    o.auto.W = p.W ? null : W;
+    const Vact = L * W * p.hu, Htot = p.hd + p.hu + p.hf;
+    const Pk = 1000 * G9 * (q / 3600) * p.Hm / p.eta / 1000;
+    o.rows.push(SEC('Pompalar'),
+      ROW('Tasarım debisi Q_M', Qww, 'm³/h', 0), ROW('Asil + yedek pompa', N + ' + ' + Nsb, 'adet'),
+      ROW('Pompa başına debi', q, 'm³/h', 0), ROW('', ql, 'L/s', 1),
+      ROW('Pompa gücü (mil) P = ρgQH/η', Pk, 'kW', 1),
+      SEC('Islak hazne (A134: V = 0,9·Q_P/Z)'),
+      ROW('Saatlik kalkış sayısı Z', p.Z, '1/h', 0, CK(p.Z <= 15, '≤ 15')),
+      ROW('Gerekli faydalı hacim (bölme başına)', V, 'm³', 1), ROW('Bölme sayısı', nc, 'adet'),
+      ROW('Faydalı su yüksekliği', p.hu, 'm', 2), ROW('Gerekli alan', A, 'm²', 1),
+      ROW('Hazne genişliği W', W, 'm', 2), ROW('Hazne uzunluğu L', L, 'm', 2),
+      ROW('Mevcut faydalı hacim', Vact, 'm³', 1, CK(Vact >= V - 1e-6, '≥ ' + f1(V))),
+      ROW('Toplam derinlik (ölü + faydalı + hava payı)', Htot, 'm', 2),
+      ROW('Toplam hacim (tüm bölmeler)', nc * L * W * (p.hd + p.hu), 'm³', 0));
+    o.dim = { L, W, hd: p.hd, hu: p.hu, hf: p.hf, n: pumpsPerC, nd: N, nc };
+    o.key = [['Pompa', `${N}+${Nsb} × ${f0(q)} m³/h`], ['Hazne', `${nc} × ${f2(L)} × ${f2(W)} m`], ['Derinlik', f2(Htot) + ' m']];
+    R.ps = o;
+  }
+
+  // ---------------- KUM-YAĞ TUTUCU ----------------
+  if (U.gr) {
+    const p = P.gr, o = { rows: [], warn: [], auto: {} };
+    const N = p.N ?? Math.max(1, Math.ceil(Qww / p.Qmax - 1e-9)); o.auto.N = N;
+    const Ql = Qww / N, QlD = Qdw / N;
+    const b = p.b ?? ceilTo(p.bh * p.h, 0.1); o.auto.b = ceilTo(p.bh * p.h, 0.1);
+    const bF = ceilTo(p.fF * b, 0.05);
+    const A = b * p.h - 0.5 * b * 0.25 * b;
+    const Lreq = Math.max(QlD * p.tD / 60, Ql * p.tW / 60) / A;
+    const L = p.L ?? Math.max(ceilTo(Lreq, 0.5), ceilTo(5 * b, 0.5)); o.auto.L = Math.max(ceilTo(Lreq, 0.5), ceilTo(5 * b, 0.5));
+    const V = A * L, tD = V / QlD * 60, tW = V / Ql * 60, vh = Ql / 3600 / A;
+    const qF = QlD / (bF * L);
+    const air = p.air * V * N;
+    const grit = PE * p.grit / 365 / 1000, grease = PE / 1000 * p.grease;
+    const Wline = b + p.tw + bF;
+    o.rows.push(SEC('Debi'),
+      ROW('Hat sayısı', N, 'adet'), ROW('Hat başına Q_M', Ql, 'm³/h', 0), ROW('Hat başına Q_DW,h,maks', QlD, 'm³/h', 0),
+      SEC('Kesit'),
+      ROW('Su derinliği h', p.h, 'm', 2), ROW('Kum bölmesi genişliği b_SF', b, 'm', 2),
+      ROW('b_SF / h', b / p.h, '-', 2, CK(b / p.h >= 0.8 && b / p.h <= 1.2, '0,8 – 1,2')),
+      ROW('Yağ bölmesi genişliği b_FF', bF, 'm', 2, CK(bF / b >= 0.2 && bF / b <= 1.0, '0,2–1,0 b_SF')),
+      ROW('Islak kesit alanı (eğimli taban düşülmüş)', A, 'm²', 2, CK(A >= 1 && A <= 15, '1 – 15')),
+      ROW('Hat toplam genişliği', Wline, 'm', 2),
+      SEC('Uzunluk ve kontroller'),
+      ROW('Gerekli uzunluk', Lreq, 'm', 1), ROW('Seçilen uzunluk L', L, 'm', 1, CK(L <= 50, '≤ 50')),
+      ROW('L / b_SF', L / b, '-', 1, CK(L / b >= 5 && L / b <= 15, '≈ 10')),
+      ROW('Hacim (hat başına)', V, 'm³', 0),
+      ROW('Bekleme süresi, kuru hava', tD, 'dk', 1, CK(tD >= p.tD - 1e-6, '≥ ' + p.tD)),
+      ROW('Bekleme süresi, Q_M', tW, 'dk', 1, CK(tW >= p.tW - 1e-6, '≥ ' + p.tW)),
+      ROW('Yatay hız (Q_M)', vh, 'm/s', 3, CK(vh <= 0.2, '≤ 0,20')),
+      ROW('Yağ bölmesi yüzey yükü (kuru)', qF, 'm/h', 1, CK(qF <= 25, '≤ 25')),
+      SEC('Hava ve ürünler'),
+      ROW('Toplam hava ihtiyacı', air, 'Nm³/h', 0), ROW('Kum miktarı', grit, 'm³/gün', 2), ROW('Yağ miktarı', grease, 'L/gün', 0));
+    o.dim = { N, b, bF, h: p.h, tw: p.tw, L };
+    o.key = [['Hat', N + ' adet'], ['L × (b_SF + b_FF)', `${f1(L)} × (${f2(b)} + ${f2(bF)}) m`], ['h', f2(p.h) + ' m']];
+    R.gr = o;
+  }
+
+  // ---------------- ÖN ÇÖKTÜRME ----------------
+  let bioIn = { COD: Lin.COD, BOD: Lin.BOD, TSS: Lin.TSS, TKN: Lin.TKN, TP: Lin.TP }, PSkg = 0;
+  if (U.pc) {
+    const p = P.pc, o = { rows: [], warn: [], auto: {} };
+    const circ = p.type !== 'rect';
+    const Areq = Math.max(Qdw * p.tR / p.h, Qww / p.qA);
+    const Amax = circ ? Math.PI / 4 * p.Dmax * p.Dmax : p.Dmax * p.Dmax * p.lw;
+    const N = p.N ?? Math.max(1, Math.ceil(Areq / Amax - 1e-9)); o.auto.N = N;
+    const At = Areq / N;
+    let D = 0, Din = 0, W = 0, L = 0, Anet, V, wlen;
+    if (circ) {
+      const D0 = Math.sqrt(4 * At / Math.PI);
+      Din = p.Din ?? Math.max(2, roundTo(0.14 * D0, 0.5)); o.auto.Din = Math.max(2, roundTo(0.14 * D0, 0.5));
+      const Da = ceilTo(Math.sqrt(4 * At / Math.PI + Din * Din), 0.5); o.auto.D = Da;
+      D = p.D ?? Da;
+      Anet = Math.PI / 4 * (D * D - Din * Din);
+      V = Anet * p.h + Math.PI * (D / 2) ** 2 * p.slope * D / 2 / 3;
+      wlen = Math.PI * (D - 0.6);
+    } else {
+      const Wa = ceilTo(Math.sqrt(At / p.lw), 0.5); o.auto.W = Wa;
+      W = p.W ?? Wa; L = ceilTo(At / W, 0.5);
+      Anet = W * L; V = Anet * p.h; wlen = 2 * W;
+    }
+    const tR = V * N / Qdw, tRw = V * N / Qww, qA = Qww / (N * Anet), qAd = Qdw / (N * Anet), wl = Qww / N / wlen;
+    const ts = [0, 0.5, 1.0, 1.5, 2.0];
+    const rCODa = interp(tR, ts, [0, 30, 30, 35, 35]), rSSa = interp(tR, ts, [0, 50, 50, 60, 60]), rNa = interp(tR, ts, [0, 10, 10, 10, 10]), rPa = rNa;
+    o.auto.rCOD = rCODa; o.auto.rSS = rSSa; o.auto.rN = rNa; o.auto.rP = rPa;
+    const rC = (p.rCOD ?? rCODa) / 100, rS = (p.rSS ?? rSSa) / 100, rN = (p.rN ?? rNa) / 100, rP = (p.rP ?? rPa) / 100;
+    bioIn = { COD: Lin.COD * (1 - rC), BOD: Lin.BOD * (1 - rC), TSS: Lin.TSS * (1 - rS), TKN: Lin.TKN * (1 - rN), TP: Lin.TP * (1 - rP) };
+    PSkg = Lin.TSS * rS;
+    const PSm3 = PSkg / (p.ds * 10);
+    o.rows.push(SEC('Boyutlandırma'),
+      ROW('Havuz tipi', circ ? 'Dairesel' : 'Dikdörtgen', ''), ROW('Havuz sayısı', N, 'adet'),
+      ROW('Gerekli toplam alan', Areq, 'm²', 0),
+      ...(circ ? [ROW('Çap D', D, 'm', 1), ROW('Giriş yapısı çapı', Din, 'm', 1)] : [ROW('Genişlik W', W, 'm', 1), ROW('Uzunluk L', L, 'm', 1)]),
+      ROW('Net yüzey alanı (havuz başına)', Anet, 'm²', 0), ROW('Yan su derinliği', p.h, 'm', 2),
+      ROW('Hacim (havuz başına)', V, 'm³', 0), ROW('Toplam hacim', V * N, 'm³', 0),
+      SEC('Kontroller'),
+      ROW('Bekleme süresi (Q_DW,h,maks)', tR, 'h', 2, CK(tR >= 0.5, '≥ 0,5')),
+      ROW('Bekleme süresi (Q_M)', tRw, 'h', 2, CK(tRw >= 0.5, '≥ 0,5')),
+      ROW('Yüzey yükü (Q_M)', qA, 'm/h', 2, CK(qA <= p.qA + 1e-6, '≤ ' + p.qA)),
+      ROW('Yüzey yükü (Q_DW,h,maks)', qAd, 'm/h', 2),
+      ROW('Savak yükü (Q_M)', wl, 'm³/(m·h)', 1, CK(wl <= p.wl, '≤ ' + p.wl)),
+      SEC('Giderim (A131 Tablo 2, t = ' + f2(tR) + ' h)'),
+      ROW('KOİ / BOİ₅', rC * 100, '%', 0), ROW('AKM', rS * 100, '%', 0), ROW('TKN', rN * 100, '%', 0), ROW('TP', rP * 100, '%', 0),
+      SEC('Çıkış (biyolojik girişi)'),
+      ...['COD', 'BOD', 'TSS', 'TKN', 'TP'].map(k => ROW(LBL[k], bioIn[k], 'kg/gün · ' + f1(bioIn[k] * 1000 / QdT) + ' mg/L', 0)),
+      SEC('Ön çöktürme çamuru'),
+      ROW('Kuru madde', PSkg, 'kg KM/gün', 0), ROW('Katı madde', p.ds, '%', 1), ROW('Çamur hacmi', PSm3, 'm³/gün', 0),
+      ROW('Pompa kapasitesi (pik 1,5; ' + p.opH + ' h/gün)', PSm3 * 1.5 / p.opH, 'm³/h', 1));
+    o.dim = { circ, D, Din, W, L, h: p.h, slope: p.slope, N };
+    o.key = circ ? [['Havuz', N + ' adet dairesel'], ['Ø × h', `${f1(D)} × ${f2(p.h)} m`], ['t_R', f2(tR) + ' h']]
+      : [['Havuz', N + ' adet dikdörtgen'], ['L × W × h', `${f1(L)} × ${f1(W)} × ${f2(p.h)} m`], ['t_R', f2(tR) + ' h']];
+    o.PSm3 = PSm3; o.ds = p.ds;
+    R.pc = o;
+  }
+  ctx.bioIn = bioIn; ctx.PSkg = PSkg;
+
+  // ---------------- SON ÇÖKTÜRME ÇAMUR PARAMETRELERİ ----------------
+  const s = P.sc;
+  const SSBS = 1000 / s.ISV * Math.cbrt(s.tE), SSRS = s.kRS * SSBS, SSATc = s.RV * SSRS / (1 + s.RV);
+  const SSAT = s.SSAT ?? SSATc;
+
+  // ---------------- BİYOLOJİK REAKTÖR (A131) ----------------
+  const k = P.bio;
+  const c = { CCOD: bioIn.COD * 1000 / QdT, XSS: bioIn.TSS * 1000 / QdT, CN: bioIn.TKN * 1000 / QdT, CP: bioIn.TP * 1000 / QdT, CBOD: bioIn.BOD * 1000 / QdT };
+  const PFa = interp(Lin.BOD, [1200, 6000], [1.8, 1.45]);
+  const PF = k.PF ?? PFa;
+  const tAerCalc = PF * 3.4 * Math.pow(1.103, 15 - Tn);
+  const tAer = k.tAerSel ?? tAerCalc;
+  const SNO3est = k.SNO3 ?? Math.max(0.5, (lim.TN || 10) - k.SorgN - k.SNH4);
+  const CPest = k.CPest ?? 0.7 * (lim.TP || 1);
+  const dnMode = sys.dn;
+  const core = (T, tSS, r, dos) => {
+    const FT = Math.pow(1.072, T - 15);
+    const XorgSS = c.XSS * (1 - k.fB), XCOD = XorgSS * 1.6, SCOD = c.CCOD - XCOD;
+    const SCODin = k.fS * c.CCOD, XCODin = k.fA * XCOD, CCODdeg = c.CCOD - SCODin - XCODin, SCODrd = k.fCOD * CCODdeg;
+    const XBM = (CCODdeg * k.Y + dos * k.Ydos) / (1 + k.b * tSS * FT), XinBM = 0.2 * XBM * tSS * k.b * FT;
+    const SPC = XCODin / 1.33 + (XBM + XinBM) / (0.92 * 1.42) + k.fB * c.XSS;
+    const OUC = CCODdeg + dos - XBM - XinBM;
+    const XNBM = 0.07 * XBM, XNin = 0.03 * (XinBM + XCODin);
+    const NnitAvail = Math.max(0, c.CN - k.SorgN - k.SNH4 - XNBM - XNin);
+    const SNH4N = sys.nit ? NnitAvail : 0;
+    const SNO3D = dnMode !== 'none' ? Math.max(0, SNH4N - SNO3est) : 0;
+    const OUCrd = k.fCOD * CCODdeg * (1 - k.Y) + dos * (1 - k.Ydos);
+    let OUCD = 0;
+    if (dnMode === 'pre') OUCD = 0.75 * (OUCrd + (OUC - OUCrd) * Math.pow(r, 0.68));
+    else if (dnMode === 'sim') OUCD = 0.75 * OUC * Math.pow(r, 0.68);
+    const x = SNO3D > 0 ? OUCD / (2.86 * SNO3D) : Infinity;
+    const orgVSS = XCODin / 1.6 + (XBM + XinBM) / 1.42;
+    return { FT, XorgSS, XCOD, SCOD, SCODin, XCODin, CCODdeg, SCODrd, XBM, XinBM, SPC, OUC, XNBM, XNin, SNH4N, NnitAvail, SNO3D, OUCrd, OUCD, x, orgVSS, tSS, r, T };
+  };
+  let tSS, r = 0, dos = k.dos, dosNeed = 0, rSolved = null;
+  const bw = [];
+  if (sys.stab) {
+    tSS = k.tStab;
+    const c0 = core(Tn, tSS, 0.3, dos);
+    rSolved = c0.SNO3D > 0 ? Math.pow(2.86 * c0.SNO3D / (0.75 * c0.OUC), 1 / 0.68) : 0;
+    r = k.VD ?? clamp(rSolved, 0, k.VDmax);
+    if (tSS * (1 - r) < tAer) bw.push('Aerobik çamur yaşı t_SS·(1 − V_D/V_AT) gerekli nitrifikasyon çamur yaşından küçük.');
+  } else if (!sys.nit) {
+    const tCa = interp(PE, [20000, 100000], [5, 4]);
+    tSS = k.tC ?? tCa; r = 0;
+  } else if (dnMode === 'none') {
+    tSS = tAer; r = 0;
+  } else {
+    const f = (rr) => core(Tn, tAer / (1 - rr), rr, dos).x - 1;
+    if (k.VD != null) { r = k.VD; }
+    else {
+      const lo0 = 0.02, hi0 = k.VDmax;
+      if (f(hi0) < 0) { r = hi0; rSolved = null; }
+      else if (f(lo0) >= 0) { r = Math.max(k.VDmin, lo0); rSolved = lo0; }
+      else {
+        let lo = lo0, hi = hi0;
+        for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (f(m) >= 0) hi = m; else lo = m; }
+        rSolved = hi; r = Math.max(k.VDmin, hi);
+      }
+    }
+    tSS = tAer / (1 - r);
+    const cc = core(Tn, tSS, r, dos);
+    if (cc.x < 0.999) {
+      const dN = cc.SNO3D - cc.OUCD / 2.86;
+      dosNeed = dN * 2.86 / (0.75 * (1 - k.Ydos));
+      bw.push(`V_D/V_AT = ${f2(r)} ile denitrifikasyon kapasitesi yetersiz (x = ${f2(cc.x)}). Yaklaşık ${f1(dosNeed)} mg/L KOİ harici karbon gerekir ya da çıkış NO₃ hedefi artırılmalı.`);
+    }
+  }
+  const cD = core(Tn, tSS, r, dos);
+  const cX = core(Tx, tSS, r, dos);
+  // P dengesi
+  const hasAN = sys.an;
+  const XPBM = 0.005 * c.CCOD;
+  const XPBioP = hasAN ? k.fBioP * c.CCOD : 0;
+  const XPprecReq = Math.max(0, c.CP - CPest - XPBM - XPBioP);
+  const chem = P.cp.chem === 'Al' ? 'Al' : 'Fe';
+  const XPprec = U.cp ? XPprecReq : 0;
+  const TPeff = U.cp ? Math.min(CPest, Math.max(0, c.CP - XPBM - XPBioP)) : Math.max(0, c.CP - XPBM - XPBioP);
+  if (!U.cp && XPprecReq > 0.05) bw.push(`Kimyasal P giderimi seçili değil; tahmini çıkış TP ≈ ${f2(TPeff)} mg/L (hedef ${f2(CPest)}).`);
+  const SPC_d = cD.SPC * QdT / 1000;
+  const SPP_d = QdT * (3 * XPBioP + (chem === 'Al' ? 5.3 : 6.8) * XPprec) / 1000;
+  const SPd = SPC_d + SPP_d;
+  const M = tSS * SPd;
+  const VAT = M / SSAT;
+  const fVSS = (cD.orgVSS * QdT / 1000) / SPd;
+  const MLVSS = SSAT * fVSS;
+  // Devirler
+  const QRS = s.RV * Qh;
+  const rKey = dnMode;
+  let RZ = 0, IRreq = 0, dNpost = 0, NO3eff, VD = r * VAT, VN = VAT - VD;
+  const sdnrT = k.SDNR * Math.pow(1.07, Tn - 20);
+  const zones = []; // {t, n, V}
+  let Vpre = 0;
+  if (sys.jhb) { Vpre = QRS * k.tPre; }
+  if (sys.post) {
+    const VD2 = k.split * VD, VD1 = VD - VD2, VN2 = k.reaer * VN, VN1 = VN - VN2;
+    dNpost = Math.min(sdnrT * MLVSS * 1000 * VD2 / QdT, cD.SNO3D * 0.7);
+    RZ = Math.max(0, (cD.SNO3D - dNpost) / (SNO3est + dNpost));
+    zones.push({ t: 'AX', n: 'Anoksik-1', V: VD1 }, { t: 'OX', n: 'Oksik-1', V: VN1 }, { t: 'AX', n: 'Anoksik-2', V: VD2 }, { t: 'OX', n: 'Oksik-2', V: VN2 });
+  } else if (sys.muct) {
+    RZ = SNO3est > 0 ? cD.SNO3D / SNO3est : 0;
+    zones.push({ t: 'AX', n: 'Anoksik-1', V: k.split * VD }, { t: 'AX', n: 'Anoksik-2', V: (1 - k.split) * VD }, { t: 'OX', n: 'Oksik', V: VN });
+  } else if (dnMode === 'pre') {
+    RZ = SNO3est > 0 ? cD.SNO3D / SNO3est : 0;
+    if (sys.jhb) zones.push({ t: 'AX', n: 'Ön-anoksik (RAS)', V: Vpre, extra: true });
+    zones.push({ t: 'AX', n: 'Anoksik', V: VD }, { t: 'OX', n: 'Oksik', V: VN });
+  } else if (dnMode === 'sim') {
+    zones.push({ t: sys.intm ? 'INT' : 'SIM', n: sys.intm ? 'Kesikli havalandırma' : 'Oksik / anoksik (simultane)', V: VAT });
+  } else {
+    zones.push({ t: 'OX', n: 'Oksik', V: VAT });
+  }
+  const incRV = k.incRV !== '0';
+  if (sys.ir) IRreq = Math.max(0, RZ - (incRV ? s.RV : 0));
+  const IR = sys.ir ? (k.IR ?? IRreq) : 0;
+  const RZeff = IR + s.RV;
+  if (dnMode === 'pre') {
+    const out1 = cD.SNH4N / (1 + RZeff);
+    const cap = cD.OUCD / 2.86; // anoksik bölgede giderilebilecek
+    const denit1 = Math.min(cD.SNH4N - out1, cap - (sys.post ? dNpost : 0) + 1e-9);
+    NO3eff = Math.max(0, cD.SNH4N - Math.max(0, denit1) - dNpost);
+  } else if (dnMode === 'sim') {
+    const cap = cD.OUCD / 2.86; NO3eff = Math.max(0, cD.SNH4N - cap, cD.SNH4N > 0 ? Math.min(SNO3est, cD.SNH4N) : 0);
+  } else NO3eff = cD.SNH4N;
+  const NH4eff = sys.nit ? k.SNH4 : cD.NnitAvail;
+  const TNeff = k.SorgN + NH4eff + NO3eff;
+  // Anaerobik
+  const QanIn = sys.an ? (sys.anIn === 'R' ? k.rU * Qdw : s.RV * Qdw) : 0;
+  // Oksijen
+  const tS = [4, 6, 8, 10, 15, 25];
+  const fC = interp(tSS, tS, [1.3, 1.25, 1.2, 1.2, 1.15, 1.1]);
+  const fNs = interp(tSS, tS, [2.5, 2.5, 2.5, 2.5, 2.0, 1.5]), fNl = interp(tSS, tS, [2.0, 2.0, 2.0, 1.8, 1.5, 1.5]);
+  const fN = interp(Lin.BOD, [1200, 6000], [fNs, fNl]);
+  const he = k.h - k.hd;
+  const oxy = (cc) => {
+    const OUdC = QdT * cc.OUC / 1000, OUdN = QdT * 4.3 * cc.SNH4N / 1000;
+    const denit = dnMode === 'none' ? 0 : Math.max(0, cc.SNH4N - NO3eff);
+    const OUdD = QdT * 2.86 * denit / 1000;
+    const base = OUdC - OUdD;
+    const h1 = (fC * base + OUdN) / 24, h2 = (base + fN * OUdN) / 24, hm = (base + OUdN) / 24;
+    const OUh = Math.max(h1, h2);
+    const T = cc.T, pr = Math.exp(-G9 * 0.02897 * ctx.alt / (8.314 * (273.15 + T)));
+    const Csite = Cs(T) * pr, PatmH = 10.33 * pr;
+    const CSTH = Csite * 0.5 * ((PatmH + he) / PatmH + k.Ot / 21);
+    const den = k.alpha * k.F * (k.beta * CSTH - k.Cx) * Math.pow(1.024, T - 20);
+    const SOTR = OUh * 9.09 / den, SOTRm = hm * 9.09 / den;
+    const air = SOTR * 1000 / (k.ssote * he), airM = SOTRm * 1000 / (k.ssote * he);
+    return { T, OUdC, OUdN, OUdD, h1, h2, hm, OUh, pr, Csite, CSTH, SOTR, SOTRm, air, airM };
+  };
+  const oD = oxy(cD), oX = oxy(cX);
+  const oMax = oX.air >= oD.air ? oX : oD;
+  // Geometri
+  const Vbio = VAT + Vpre;
+  const Nb = k.N ?? Math.max(1, Math.ceil(Vbio / k.Vmax - 1e-9));
+  const Vt = Vbio / Nb, At = Vt / k.h;
+  const Wa = Math.max(4, ceilTo(Math.sqrt(At / k.lw), 0.5));
+  const Wb = k.W ?? Wa;
+  const Lb = ceilTo(At / Wb, 0.5);
+  const VtAct = Lb * Wb * k.h;
+  const Nbl = k.Nbl ?? Math.max(1, Math.ceil(oMax.air / k.blmax - 1e-9));
+  const nDiff = Math.ceil(oMax.air / k.qd);
+  const VOX = zones.filter(z => z.t === 'OX' || z.t === 'SIM' || z.t === 'INT').reduce((a, z) => a + z.V, 0);
+  const AOX = VOX / k.h;
+  const coverage = nDiff * k.ad / AOX * 100;
+  const QIR = IR * Qh;
+  if (U.bio) {
+    const o = { rows: [], warn: bw, auto: { PF: PFa, tAerSel: tAerCalc, N: Math.max(1, Math.ceil(Vbio / k.Vmax - 1e-9)), W: Wa, Nbl: Math.max(1, Math.ceil(oMax.air / k.blmax - 1e-9)), VD: rSolved != null ? Math.max(k.VDmin, rSolved) : r, IR: IRreq, SNO3: Math.max(0.5, (lim.TN || 10) - k.SorgN - k.SNH4), CPest: 0.7 * (lim.TP || 1), tC: interp(PE, [20000, 100000], [5, 4]) } };
+    o.rows.push(SEC('Biyolojik giriş (Q = ' + f0(QdT) + ' m³/gün)'),
+      ROW('C_COD,IAT', c.CCOD, 'mg/L', 1), ROW('C_BOD,IAT', c.CBOD, 'mg/L', 1), ROW('X_SS,IAT', c.XSS, 'mg/L', 1), ROW('C_N,IAT (TKN)', c.CN, 'mg/L', 1), ROW('C_P,IAT', c.CP, 'mg/L', 2),
+      SEC('KOİ fraksiyonları (T = ' + Tn + ' °C)'),
+      ROW('X_COD,IAT = X_SS·(1−f_B)·1,6', cD.XCOD, 'mg/L', 1), ROW('S_COD,inert = f_S·C_COD', cD.SCODin, 'mg/L', 1),
+      ROW('X_COD,inert = f_A·X_COD', cD.XCODin, 'mg/L', 1), ROW('C_COD,deg', cD.CCODdeg, 'mg/L', 1), ROW('C_COD,rdeg = f_COD·C_COD,deg', cD.SCODrd, 'mg/L', 1),
+      SEC('Çamur yaşı'),
+      ROW('Proses faktörü PF', PF, '-', 2),
+      ROW('Gerekli aerobik çamur yaşı t_SS,aer = PF·3,4·1,103^(15−T)', sys.nit ? tAerCalc : null, 'gün', 1),
+      ...(sys.nit ? [ROW('Seçilen aerobik çamur yaşı', tAer, 'gün', 1, CK(tAer >= tAerCalc - 1e-6, '≥ ' + f1(tAerCalc)))] : []),
+      ...(dnMode !== 'none' ? [ROW('V_D/V_AT (iterasyon sonucu)', rSolved, '-', 3), ROW('Seçilen V_D/V_AT', r, '-', 2, CK(r >= 0.1 && r <= 0.6, '0,2 – 0,6')),
+        ROW('x = OU_C,D / (2,86·S_NO3,D)', cD.x, '-', 2, CK(cD.x >= 0.995, '≥ 1,00'))] : []),
+      ROW('Tasarım çamur yaşı t_SS,dim', tSS, 'gün', 1),
+      SEC('Çamur üretimi'),
+      ROW('F_T = 1,072^(T−15)', cD.FT, '-', 3),
+      ROW('X_COD,BM', cD.XBM, 'mg/L', 1), ROW('X_COD,inert,BM', cD.XinBM, 'mg/L', 1),
+      ROW('SP_d,C (karbon giderimi)', SPC_d, 'kg KM/gün', 0), ROW('SP_d,P (fosfor giderimi)', SPP_d, 'kg KM/gün', 0),
+      ROW('Toplam fazla çamur SP_d', SPd, 'kg KM/gün', 0), ROW('Organik oran (UAKM/AKM)', fVSS, '-', 2),
+      SEC('Azot dengesi'),
+      ROW('Biyokütleye bağlanan X_orgN,BM = 0,07·X_COD,BM', cD.XNBM, 'mg/L', 2), ROW('İnert partiküle bağlı X_orgN,inert', cD.XNin, 'mg/L', 2),
+      ROW('Nitrifiye edilecek S_NH4,N', cD.SNH4N, 'mg/L', 1),
+      ...(dnMode !== 'none' ? [ROW('Çıkış NO₃-N hedefi S_NO3,AN', SNO3est, 'mg/L', 1), ROW('Denitrifiye edilecek S_NO3,D', cD.SNO3D, 'mg/L', 1),
+        ROW('OU_C (karbon için O₂)', cD.OUC, 'mg/L', 1), ROW('OU_C,D (anoksik bölgede kullanılan)', cD.OUCD, 'mg/L', 1)] : []),
+      SEC('Fosfor dengesi'),
+      ROW('X_P,BM = 0,005·C_COD', XPBM, 'mg/L', 2), ROW('X_P,BioP', XPBioP, 'mg/L', 2),
+      ROW('Çıkış P hedefi C_P,AN', CPest, 'mg/L', 2), ROW('Kimyasal çöktürülecek X_P,Prec', XPprecReq, 'mg/L', 2),
+      SEC('Havuz hacmi'),
+      ROW('SS_BS = 1000/ISV · t_E^(1/3)', SSBS, 'kg/m³', 2), ROW('SS_RS', SSRS, 'kg/m³', 2), ROW('MLSS SS_AT', SSAT, 'kg/m³', 2),
+      ROW('Çamur kütlesi M = t_SS·SP_d', M, 'kg', 0), ROW('Biyolojik hacim V_AT = M / SS_AT', VAT, 'm³', 0),
+      ...(Vpre ? [ROW('JHB ön-anoksik hacim (RAS)', Vpre, 'm³', 0)] : []),
+      ROW('Havuz sayısı', Nb, 'adet'), ROW('Havuz başına gerekli hacim', Vt, 'm³', 0),
+      ROW('Su derinliği h', k.h, 'm', 2), ROW('Genişlik W', Wb, 'm', 1), ROW('Uzunluk L', Lb, 'm', 1),
+      ROW('Havuz başına mevcut hacim', VtAct, 'm³', 0, CK(VtAct >= Vt - 1, '≥ ' + f0(Vt))),
+      ROW('Hidrolik bekleme (Q_DW,d)', Vbio / Qd * 24, 'h', 1),
+      ROW('Hacimsel yük B_R,COD', bioIn.COD / VAT, 'kg KOİ/(m³·gün)', 2),
+      ROW('F/M (BOİ)', bioIn.BOD / M, 'kg BOİ/(kg MLSS·gün)', 3),
+      SEC('Bölge hacimleri (toplam)'),
+      ...zones.map(z => ROW(z.n, z.V, 'm³ · ' + f1(z.V / Qd * 24) + ' h', 0)),
+      SEC('Devirler'),
+      ROW('Geri devir RV · Q (ort.)', QRS, 'm³/h', 0),
+      ...(sys.ir ? [ROW('Toplam devir oranı RZ = S_NO3,D / S_NO3,AN', RZ, '-', 2), ROW('Gerekli iç devir IR', IRreq, '× Q', 2),
+        ROW('Seçilen iç devir IR', IR, '× Q', 2, CK(IR <= 4.5, '≤ 4 – 5')), ROW('İç devir debisi', QIR, 'm³/h', 0),
+        ROW('IR pompası (havuz başına ' + k.nIR + ' asil + 1 yedek)', QIR / Nb / Math.max(1, k.nIR), 'm³/h', 0)] : []),
+      ...(sys.anIn === 'R' ? [ROW('r-devri (anoksik → anaerobik)', k.rU * Qh, 'm³/h', 0)] : []),
+      ...(sys.post ? [ROW('Endojen DN hızı (T_min)', sdnrT, 'gN/(gUAKM·gün)', 4), ROW('Anoksik-2’de giderilen NO₃-N', dNpost, 'mg/L', 2)] : []),
+      SEC('Oksijen ihtiyacı'),
+      ROW('Pik faktörü f_C / f_N', f2(fC) + ' / ' + f2(fN), '-'),
+      ...[oD, oX].flatMap(oo => [SEC('T = ' + oo.T + ' °C'),
+        ROW('OU_d,C', oo.OUdC, 'kg O₂/gün', 0), ROW('OU_d,N', oo.OUdN, 'kg O₂/gün', 0), ROW('OU_d,D (DN kazancı)', oo.OUdD, 'kg O₂/gün', 0),
+        ROW('OU_h ortalama', oo.hm, 'kg O₂/h', 1), ROW('OU_h maks', oo.OUh, 'kg O₂/h', 1),
+        ROW('C_S,T,H (ortalama derinlik)', oo.CSTH, 'mg/L', 2), ROW('SOTR (tasarım)', oo.SOTR, 'kg O₂/h', 0), ROW('Hava ihtiyacı (tasarım)', oo.air, 'Nm³/h', 0)]),
+      SEC('Blower ve difüzör'),
+      ROW('Tasarım hava debisi', oMax.air, 'Nm³/h', 0), ROW('Ortalama hava debisi', oMax.airM, 'Nm³/h', 0),
+      ROW('Asil + yedek blower', Nbl + ' + ' + k.Nblsb, 'adet'), ROW('Blower başına kapasite', oMax.air / Nbl, 'Nm³/h', 0),
+      ROW('Difüzör sayısı (toplam)', nDiff, 'adet', 0), ROW('Havuz başına difüzör', Math.ceil(nDiff / Nb), 'adet', 0),
+      ROW('Oksik taban alanı (toplam)', AOX, 'm²', 0), ROW('Difüzör yoğunluğu', nDiff / AOX, 'adet/m²', 2, CK(nDiff / AOX <= 4, '≤ 4')),
+      ROW('Membran kaplama oranı', coverage, '%', 1, CK(coverage >= 3 && coverage <= 25, '3 – 25')),
+      SEC('Tahmini çıkış kalitesi'),
+      ROW('NH₄-N', NH4eff, 'mg/L', 1), ROW('NO₃-N', NO3eff, 'mg/L', 1),
+      ROW('Toplam N', TNeff, 'mg/L', 1, lim.TN ? CK(TNeff <= lim.TN + 1e-6, '≤ ' + lim.TN) : null),
+      ROW('Toplam P', TPeff, 'mg/L', 2, lim.TP ? CK(TPeff <= lim.TP + 1e-6, '≤ ' + lim.TP) : null));
+    o.dim = { L: Lb, W: Wb, h: k.h, fb: k.fb, N: Nb, zones: zones.map(z => ({ ...z, f: z.V / Vbio })) };
+    o.key = [['Havuz', Nb + ' adet'], ['L × W × h', `${f1(Lb)} × ${f1(Wb)} × ${f2(k.h)} m`], ['V_AT', f0(VAT) + ' m³'], ['t_SS', f1(tSS) + ' gün']];
+    R.bio = o;
+  }
+  const BIO = { tSS, r, rSolved, VAT, Vpre, VD, VN, zones, SPd, SPC_d, SPP_d, SSAT, SSATc, SSBS, SSRS, M, IR, IRreq, RZ, QIR, NO3eff, NH4eff, TNeff, TPeff, XPprecReq, XPprec, XPBioP, oMax, oD, oX, Nb, Lb, Wb, h: k.h, cD, cX, dosNeed, Nbl, QanIn, fVSS, PF, tAer, sys, dNpost, nDiff };
+
+  // ---------------- ANAEROBİK TANK ----------------
+  if (U.an) {
+    const p = P.an, o = { rows: [], warn: [], auto: {} };
+    if (!sys.an) o.warn.push('Seçili proses sisteminde anaerobik bölge yok; tank bilgi amaçlı RAS ile boyutlandırıldı.');
+    const Qin = sys.an ? QanIn : s.RV * Qdw;
+    const V = (Qdw + Qin) * p.tAN;
+    const N = p.N ?? Nb; o.auto.N = Nb;
+    const h = p.h ?? k.h; o.auto.h = k.h;
+    const W = p.W ?? Wb; o.auto.W = Wb;
+    const Vt = V / N, L = ceilTo(Vt / (W * h), 0.5), Va = L * W * h;
+    const tAct = Va * N / (Qdw + Qin);
+    o.rows.push(SEC('Boyutlandırma'),
+      ROW('Q_DW,h,maks', Qdw, 'm³/h', 0), ROW(sys.anIn === 'R' ? 'r-devri (anoksik karışım)' : 'Geri devir çamuru', Qin, 'm³/h', 0),
+      ROW('Temas süresi t_AN', p.tAN, 'h', 2, CK(p.tAN >= 0.5, '≥ 0,5')),
+      ROW('Gerekli toplam hacim', V, 'm³', 0), ROW('Tank sayısı', N, 'adet'),
+      ROW('Su derinliği', h, 'm', 2), ROW('Genişlik', W, 'm', 1), ROW('Uzunluk', L, 'm', 1),
+      ROW('Tank başına hacim', Va, 'm³', 0), ROW('Gerçek temas süresi', tAct, 'h', 2),
+      ROW('Seri bölme sayısı', p.nc, 'adet'), ROW('Karıştırıcı gücü (tank başına)', Va * p.mix / 1000, 'kW', 1),
+      ROW('Karıştırıcı (bölme başına)', Va * p.mix / 1000 / p.nc, 'kW', 2),
+      SEC('Bio-P'), ROW('Biyolojik P giderimi X_P,BioP', XPBioP, 'mg/L', 2), ROW('Bio-P çamuru (3·X_P,BioP)', QdT * 3 * XPBioP / 1000, 'kg KM/gün', 0));
+    o.dim = { L, W, h, fb: p.fb, N, zones: Array.from({ length: Math.max(1, Math.round(p.nc)) }, (_, i) => ({ t: 'AN', n: 'AN-' + (i + 1), V: Va / p.nc, f: 1 / p.nc })) };
+    o.key = [['Tank', N + ' adet'], ['L × W × h', `${f1(L)} × ${f1(W)} × ${f2(h)} m`], ['V', f0(Va * N) + ' m³']];
+    R.an = o; BIO.Van = Va * N;
+  }
+
+  // ---------------- KİMYASAL P ----------------
+  if (U.cp) {
+    const p = P.cp, o = { rows: [], warn: [], auto: {} };
+    const Al = chem === 'Al', MW = Al ? 26.98 : 55.85;
+    const XP = XPprecReq;
+    const Pkg = XP * QdT / 1000;
+    const Me = p.beta * MW / 30.97 * Pkg;
+    const prod = Me / (p.metal / 100), prodL = prod / p.rho;
+    const Vst = prodL * p.days / 1000;
+    const Dt = ceilTo(Math.sqrt(4 * Vst / p.N / Math.PI / p.h), 0.1); o.auto.D = Dt;
+    const D = p.D ?? Dt;
+    const Vact = Math.PI / 4 * D * D * p.h * p.N;
+    o.rows.push(SEC('Çöktürme ihtiyacı'),
+      ROW('Kimyasal çöktürülecek P', XP, 'mg/L', 2), ROW('', Pkg, 'kg P/gün', 1),
+      ROW('Metal ihtiyacı (β·M_Me/M_P)', Me, 'kg ' + (Al ? 'Al' : 'Fe') + '/gün', 1),
+      ROW('Metal dozu', Me * 1000 / QdT, 'mg/L', 2),
+      ROW('Ticari ürün', prod, 'kg/gün', 0), ROW('', prodL, 'L/gün', 0), ROW('Dozaj debisi', prodL / 24, 'L/h', 1),
+      ROW('Kimyasal çamur (' + (Al ? '5,3' : '6,8') + '·X_P,Prec)', QdT * (Al ? 5.3 : 6.8) * XP / 1000, 'kg KM/gün', 0),
+      SEC('Depolama'),
+      ROW('Gerekli depo hacmi (' + p.days + ' gün)', Vst, 'm³', 1), ROW('Depo sayısı', p.N, 'adet'),
+      ROW('Sıvı yüksekliği', p.h, 'm', 2), ROW('Depo çapı', D, 'm', 2), ROW('Mevcut toplam hacim', Vact, 'm³', 1, CK(Vact >= Vst - 0.01, '≥ ' + f1(Vst))),
+      SEC('Dozaj pompaları'), ROW('Asil + yedek', p.Np + ' + 1', 'adet'), ROW('Pompa kapasitesi (×1,5 pik)', prodL / 24 / p.Np * 1.5, 'L/h', 1));
+    if (XP <= 0) o.warn.push('Biyolojik giderim hedef P değerini karşılıyor; kimyasal dozaj yalnız yedek amaçlı.');
+    o.dim = { D, H: p.h + 0.5, h: p.h, N: p.N };
+    o.key = [['Ürün', f0(prodL) + ' L/gün'], ['Depo', `${p.N} × Ø${f2(D)} m`], ['Dozaj', f1(prodL / 24) + ' L/h']];
+    R.cp = o;
+  }
+
+  // ---------------- SON ÇÖKTÜRME ----------------
+  let WASm3 = SPd / SSRS;
+  if (U.sc) {
+    const p = s, o = { rows: [], warn: [], auto: { SSAT: SSATc } };
+    if (p.SSAT && p.SSAT > SSATc + 1e-6) o.warn.push('Seçilen MLSS, son çöktürmeden geri döndürülebilecek değerden büyük.');
+    const DSV = SSAT * p.ISV;
+    const qA = Math.min(p.qSV / DSV, p.qAmax);
+    const Areq = Qww / qA;
+    const Amax = Math.PI / 4 * p.Dmax * p.Dmax;
+    const N = p.N ?? Math.max(1, Math.ceil(Areq / (Amax * 0.97) - 1e-9)); o.auto.N = Math.max(1, Math.ceil(Areq / (Amax * 0.97) - 1e-9));
+    const D0 = Math.sqrt(4 * Areq / N / Math.PI);
+    const Din = p.Din ?? Math.max(3, roundTo(0.13 * D0, 0.5)); o.auto.Din = Math.max(3, roundTo(0.13 * D0, 0.5));
+    const Da = ceilTo(Math.sqrt(4 * Areq / N / Math.PI + Din * Din), 0.5); o.auto.D = Da;
+    const D = p.D ?? Da;
+    const A = Math.PI / 4 * (D * D - Din * Din);
+    const qAa = Qww / (N * A), qSVa = qAa * DSV;
+    const h1 = p.h1, h2 = 0.5 * qAa * (1 + p.RV) / (1 - DSV / 1000), h3 = 1.5 * 0.3 * qSVa * (1 + p.RV) / 500;
+    const h4 = SSAT * qAa * (1 + p.RV) * p.tE / SSBS;
+    const hreq = Math.max(3.0, h1 + h2 + h3 + h4);
+    const H = p.H ?? ceilTo(hreq, 0.1); o.auto.H = ceilTo(hreq, 0.1);
+    const R2 = D / 2, hSide = H - p.slope * R2 / 3, hCen = H + p.slope * 2 * R2 / 3;
+    const V = A * H;
+    const wlen = Math.PI * (D - 0.8) * p.sides, wl = Qww / N / wlen;
+    const QRSmax = p.RV * Qww;
+    const nRas = N * p.Nras;
+    WASm3 = SPd / SSRS;
+    o.rows.push(SEC('Çamur'),
+      ROW('ISV', p.ISV, 'mL/g', 0, CK(p.ISV >= 50 && p.ISV <= 180, '50 – 180')), ROW('t_E', p.tE, 'h', 1, CK(p.tE >= 1.5 && p.tE <= 2.5, '1,5 – 2,5')),
+      ROW('SS_BS = 1000/ISV · t_E^(1/3)', SSBS, 'kg/m³', 2), ROW('SS_RS = ' + p.kRS + ' · SS_BS', SSRS, 'kg/m³', 2),
+      ROW('SS_AT = RV·SS_RS/(1+RV)', SSATc, 'kg/m³', 2), ROW('Seçilen SS_AT', SSAT, 'kg/m³', 2),
+      ROW('DSV = SS_AT · ISV', DSV, 'L/m³', 0, CK(DSV <= p.DSVmax, '≤ ' + p.DSVmax)),
+      SEC('Yüzey'),
+      ROW('q_A = q_SV / DSV (≤ ' + p.qAmax + ')', qA, 'm/h', 2), ROW('Gerekli net alan', Areq, 'm²', 0),
+      ROW('Havuz sayısı', N, 'adet'), ROW('Giriş yapısı çapı', Din, 'm', 1), ROW('Çap D', D, 'm', 1, CK(D <= p.Dmax, '≤ ' + p.Dmax)),
+      ROW('Net alan (havuz başına)', A, 'm²', 0),
+      ROW('Gerçek q_A (Q_M)', qAa, 'm/h', 2, CK(qAa <= qA + 1e-6, '≤ ' + f2(qA))),
+      ROW('Gerçek q_SV', qSVa, 'L/(m²·h)', 0, CK(qSVa <= p.qSV + 1e-6, '≤ ' + p.qSV)),
+      ROW('Katı madde yükü (Q_M)', qAa * (1 + p.RV) * SSAT, 'kg/(m²·h)', 2),
+      SEC('Derinlik (2/3 yarıçapta)'),
+      ROW('h₁ berrak su', h1, 'm', 2), ROW('h₂ ayırma / geri akış', h2, 'm', 2), ROW('h₃ yoğunluk akımı / depolama', h3, 'm', 2),
+      ROW('h₄ yoğunlaşma ve çamur çekme', h4, 'm', 2), ROW('Gerekli h_top (≥ 3,0)', hreq, 'm', 2),
+      ROW('Seçilen h_top', H, 'm', 2, CK(H >= hreq - 1e-6, '≥ ' + f2(hreq))),
+      ROW('Kenar su derinliği', hSide, 'm', 2), ROW('Merkez su derinliği', hCen, 'm', 2),
+      ROW('Hacim (havuz başına)', V, 'm³', 0), ROW('Bekleme süresi (Q_M)', V * N / Qww, 'h', 2), ROW('Bekleme süresi (Q_DW,d)', V * N / Qh, 'h', 1),
+      ROW('Savak yükü (Q_M)', wl, 'm³/(m·h)', 1, CK(wl <= p.wl, '≤ ' + p.wl)),
+      SEC('Geri devir (RAS) ve fazla çamur (WAS)'),
+      ROW('RAS debisi (RV·Q_M)', QRSmax, 'm³/h', 0), ROW('RAS pompası (asil ' + nRas + ' + yedek ' + Math.max(1, Math.ceil(nRas / 4)) + ')', QRSmax / nRas, 'm³/h', 0),
+      ROW('Fazla çamur', SPd, 'kg KM/gün', 0), ROW('', WASm3, 'm³/gün', 0), ROW('WAS pompası (1 asil + 1 yedek, ' + p.wasH + ' h/gün)', WASm3 / p.wasH * 1.2, 'm³/h', 1));
+    o.dim = { circ: true, D, Din, h: hSide, H, slope: p.slope, N, bands: [h1, h2, h3, h4] };
+    o.key = [['Havuz', N + ' adet dairesel'], ['Ø × h_top', `${f1(D)} × ${f2(H)} m`], ['q_A', f2(qAa) + ' m/h']];
+    R.sc = o;
+  }
+
+  // ---------------- ÇAMUR HATTI ----------------
+  let thPS = null; // yoğunlaştırılmış ön çöktürme çamuru
+  if (U.pt) {
+    const p = P.pt, o = { rows: [], warn: [], auto: {} };
+    if (!U.pc || !PSkg) { o.warn.push('Ön çöktürme seçili olmadığından ön çöktürme çamuru yok.'); }
+    const kg = PSkg, inDS = U.pc ? P.pc.ds : 3, m3 = kg / (inDS * 10);
+    const A = kg / p.SLR;
+    const Amax = Math.PI / 4 * p.Dmax * p.Dmax;
+    const N = p.N ?? Math.max(1, Math.ceil(A / Amax - 1e-9)); o.auto.N = Math.max(1, Math.ceil(A / Amax - 1e-9));
+    const Da = Math.max(4, ceilTo(Math.sqrt(4 * A / N / Math.PI), 0.5)); o.auto.D = Da;
+    const D = p.D ?? Da;
+    const Aa = Math.PI / 4 * D * D;
+    const outKg = kg * p.cap / 100, outM3 = outKg / (p.dsOut * 10);
+    const V = Aa * p.h + Aa * p.slope * D / 2 / 3;
+    o.rows.push(SEC('Giriş'), ROW('Ön çöktürme çamuru', kg, 'kg KM/gün', 0), ROW('', m3, 'm³/gün', 0), ROW('Giriş KM', inDS, '%', 1),
+      SEC('Boyutlandırma'), ROW('Katı yüzey yükü', p.SLR, 'kg/(m²·gün)', 0), ROW('Gerekli alan', A, 'm²', 0),
+      ROW('Yoğunlaştırıcı sayısı', N, 'adet'), ROW('Çap', D, 'm', 1), ROW('Gerçek katı yükü', kg / (N * Aa), 'kg/(m²·gün)', 0, CK(kg / (N * Aa) <= 150, '≤ 150')),
+      ROW('Hidrolik yük', m3 / (N * Aa), 'm³/(m²·gün)', 1, CK(m3 / (N * Aa) <= 32, '≤ 32')),
+      ROW('Yan su derinliği', p.h, 'm', 2), ROW('Hacim (adet)', V, 'm³', 0),
+      SEC('Çıkış'), ROW('Yoğunlaşmış çamur', outKg, 'kg KM/gün', 0), ROW('', outM3, 'm³/gün', 1), ROW('Çıkış KM', p.dsOut, '%', 1),
+      ROW('Üst su (geri döner)', m3 - outM3, 'm³/gün', 0), ROW('Üst suda AKM', kg - outKg, 'kg/gün', 0));
+    o.dim = { circ: true, D, Din: Math.max(1, D * 0.12), h: p.h, H: p.h, slope: p.slope, N, thick: true };
+    o.key = [['Adet', N], ['Ø × h', `${f1(D)} × ${f2(p.h)} m`], ['Çıkış', f0(outM3) + ' m³/gün']];
+    R.pt = o; thPS = { kg: outKg, m3: outM3 };
+  }
+  let thES = null;
+  if (U.et) {
+    const p = P.et, o = { rows: [], warn: [], auto: {} };
+    const kg = SPd, m3 = WASm3, ds = SSRS / 10;
+    const Qh_ = m3 / 24;
+    const Vst = Qh_ * p.tSt;
+    const Ast = Vst / p.h;
+    const Wa = Math.max(3, ceilTo(Math.sqrt(Ast), 0.5)); o.auto.W = Wa;
+    const W = p.W ?? Wa, L = Math.max(W * 0.5, ceilTo(Ast / W, 0.5));
+    const feed = m3 * 7 / p.opD / p.opH;
+    const N = p.N ?? Math.max(1, Math.ceil(feed / p.capU - 1e-9)); o.auto.N = Math.max(1, Math.ceil(feed / p.capU - 1e-9));
+    const outKg = kg * p.cap / 100, outM3 = outKg / (p.dsOut * 10);
+    const poly = kg / 1000 * p.poly;
+    o.rows.push(SEC('Fazla çamur'), ROW('Kuru madde', kg, 'kg KM/gün', 0), ROW('Hacim', m3, 'm³/gün', 0), ROW('KM', ds, '%', 2),
+      SEC('Depolama tankı'), ROW('Depolama süresi', p.tSt, 'h', 1), ROW('Gerekli hacim', Vst, 'm³', 0),
+      ROW('Su derinliği', p.h, 'm', 2), ROW('L × W', f1(L) + ' × ' + f1(W), 'm'), ROW('Mevcut hacim', L * W * p.h, 'm³', 0, CK(L * W * p.h >= Vst - 0.5, '≥ ' + f0(Vst))),
+      SEC('Mekanik yoğunlaştırıcı'), ROW('Besleme debisi', feed, 'm³/h', 1), ROW('Asil + yedek ünite', N + ' + ' + p.Nsb, 'adet'),
+      ROW('Ünite yükü', feed / N, 'm³/h', 1, CK(feed / N <= p.capU + 1e-6, '≤ ' + p.capU)), ROW('Katı yükü (ünite)', kg * 7 / p.opD / p.opH / N, 'kg KM/h', 0),
+      ROW('Polimer', poly, 'kg/gün', 1),
+      SEC('Çıkış'), ROW('Yoğunlaşmış çamur', outKg, 'kg KM/gün', 0), ROW('', outM3, 'm³/gün', 1), ROW('Süzüntü suyu', m3 - outM3, 'm³/gün', 0));
+    o.dim = { L, W, h: p.h, fb: 0.5, N: 1, zones: [{ t: 'ST', n: 'Depolama', f: 1, V: L * W * p.h }], noDiff: true };
+    o.key = [['Depo', `${f1(L)} × ${f1(W)} × ${f2(p.h)} m`], ['Yoğunlaştırıcı', `${N}+${p.Nsb} × ${p.capU} m³/h`]];
+    R.et = o; thES = { kg: outKg, m3: outM3 };
+  }
+  if (U.dw) {
+    const p = P.dw, o = { rows: [], warn: [], auto: {} };
+    const ps = thPS || (U.pc ? { kg: PSkg, m3: R.pc.PSm3 } : { kg: 0, m3: 0 });
+    const es = thES || { kg: SPd, m3: WASm3 };
+    const kg = ps.kg + es.kg, m3 = ps.m3 + es.m3, ds = kg / m3 / 10;
+    const feed = m3 * 7 / p.opD / p.opH;
+    const N = p.N ?? Math.max(1, Math.ceil(feed / p.capU - 1e-9)); o.auto.N = Math.max(1, Math.ceil(feed / p.capU - 1e-9));
+    const outKg = kg * p.cap / 100, cake = outKg / (p.dsOut * 10);
+    const poly = kg / 1000 * p.poly;
+    const Vs = cake * p.days * 7 / p.opD;
+    const Dsa = ceilTo(Math.sqrt(4 * Vs / p.Ns / Math.PI / p.hs), 0.1); o.auto.Ds = Dsa;
+    const Ds = p.Ds ?? Dsa;
+    o.rows.push(SEC('Besleme'), ROW('Ön çöktürme çamuru', ps.kg, 'kg KM/gün', 0), ROW('Fazla çamur', es.kg, 'kg KM/gün', 0),
+      ROW('Toplam', kg, 'kg KM/gün', 0), ROW('', m3, 'm³/gün', 0), ROW('Karışım KM', ds, '%', 2),
+      SEC('Dekantör'), ROW('Çalışma', p.opD + ' gün/hafta · ' + p.opH + ' h/gün', ''), ROW('Besleme debisi', feed, 'm³/h', 1),
+      ROW('Asil + yedek', N + ' + ' + p.Nsb, 'adet'), ROW('Ünite yükü', feed / N, 'm³/h', 1, CK(feed / N <= p.capU + 1e-6, '≤ ' + p.capU)),
+      ROW('Katı yükü (ünite)', kg * 7 / p.opD / p.opH / N, 'kg KM/h', 0),
+      ROW('Polimer', poly, 'kg/gün', 1), ROW('Polimer çözeltisi (%0,2)', poly / 0.002 / 1000, 'm³/gün', 1),
+      SEC('Çıkış'), ROW('Kek', outKg, 'kg KM/gün', 0), ROW('Kek hacmi', cake, 'm³/gün', 1), ROW('', cake * 365, 'm³/yıl', 0),
+      ROW('Santrat (geri döner)', m3 - cake, 'm³/gün', 0), ROW('Santratta AKM', kg - outKg, 'kg/gün', 0),
+      SEC('Kek silosu'), ROW('Gerekli hacim', Vs, 'm³', 0), ROW('Silo sayısı', p.Ns, 'adet'), ROW('Dolu yükseklik', p.hs, 'm', 1), ROW('Çap', Ds, 'm', 1),
+      ROW('Mevcut hacim', Math.PI / 4 * Ds * Ds * p.hs * p.Ns, 'm³', 0, CK(Math.PI / 4 * Ds * Ds * p.hs * p.Ns >= Vs - 0.5, '≥ ' + f0(Vs))));
+    o.dim = { D: Ds, H: p.hs + 1.0, h: p.hs, N: p.Ns, silo: true };
+    o.key = [['Dekantör', `${N}+${p.Nsb} × ${p.capU} m³/h`], ['Kek', f1(cake) + ' m³/gün'], ['Silo', `${p.Ns} × Ø${f1(Ds)} m`]];
+    R.dw = o;
+  }
+
+  // ---------------- UV ----------------
+  if (U.uv) {
+    const p = P.uv, o = { rows: [], warn: [], auto: {} };
+    const lpm = Math.max(1, Math.floor((p.h - 0.1) / p.sp));
+    const lampsBank = Math.ceil(Qww / p.qL);
+    const modsTot = Math.ceil(lampsBank / lpm);
+    const N = p.N ?? Math.max(1, Math.ceil(modsTot / p.mMax - 1e-9)); o.auto.N = Math.max(1, Math.ceil(modsTot / p.mMax - 1e-9));
+    const mods = Math.ceil(modsTot / N);
+    const b = ceilTo(mods * p.sp + 0.1, 0.05);
+    const v = Qww / 3600 / N / (b * p.h);
+    const L = p.banks * p.Lb + p.Lio;
+    o.rows.push(SEC('Lamba hesabı'), ROW('Tasarım debisi Q_M', Qww, 'm³/h', 0), ROW('Lamba başına kapasite', p.qL, 'm³/h', 0),
+      ROW('Bank başına lamba (tüm kanallar)', lampsBank, 'adet'), ROW('Modül başına lamba (su derinliğinden)', lpm, 'adet'),
+      ROW('Seri bank sayısı', p.banks, 'adet'), ROW('Toplam lamba', lampsBank * p.banks, 'adet'),
+      SEC('Kanal'), ROW('Kanal sayısı', N, 'adet'), ROW('Kanal başına modül (bank)', mods, 'adet'),
+      ROW('Kanal genişliği', b, 'm', 2), ROW('Su derinliği', p.h, 'm', 2), ROW('Kanal uzunluğu', L, 'm', 1),
+      ROW('Kanal hızı (Q_M)', v, 'm/s', 2, CK(v >= 0.05 && v <= 0.6, '0,05 – 0,6')));
+    o.dim = { N, b, h: p.h, L, banks: p.banks, Lb: p.Lb, mods, lpm, sp: p.sp };
+    o.key = [['Kanal', N + ' adet'], ['b × h × L', `${f2(b)} × ${f2(p.h)} × ${f1(L)} m`], ['Lamba', lampsBank * p.banks + ' adet']];
+    R.uv = o;
+  }
+
+  return { R, U, P, ctx, sys, sysKey, GW, BIO, forced, c };
+}
+
+// sayı biçimleri
+const fmtN = (v, d = 2) => (v === null || v === undefined || (typeof v === 'number' && !isFinite(v))) ? '—' : (typeof v === 'number' ? v.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }) : String(v));
+const f0 = (v) => fmtN(v, 0), f1 = (v) => fmtN(v, 1), f2 = (v) => fmtN(v, 2);
+const LBL = { COD: 'KOİ', BOD: 'BOİ₅', TSS: 'AKM', TKN: 'TKN', TP: 'TP' };
+/*ENGINE-END*/
+
+// ============================================================
+//  Ölçülü çizimler (SVG)
+// ============================================================
+const DEFS = `<defs><marker id="ar" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1.5L10,5L0,8.5z" class="mk"/></marker><marker id="af" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="mkf"/></marker><pattern id="hc" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" class="hcb"/><line x1="0" y1="0" x2="0" y2="6" class="hcl"/></pattern></defs>`;
+const svgOpen = (w, h, lab) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" class="dwgsvg" role="img" aria-label="${lab || 'çizim'}">${DEFS}`;
+const N2 = (v) => fmtN(v, 2);
+const pt = (x) => Math.round(x * 10) / 10;
+
+function fit(rw, rh, bx, by, bw, bh, maxEx = 1) {
+  const s0 = Math.min(bw / rw, bh / rh);
+  const sx = Math.min(bw / rw, s0 * maxEx), sy = Math.min(bh / rh, s0 * maxEx);
+  const ox = bx + (bw - rw * sx) / 2, oy = by + (bh - rh * sy) / 2;
+  return { sx, sy, X: (x) => pt(ox + x * sx), Y: (y) => pt(oy + y * sy), ox, oy, w: rw * sx, h: rh * sy, ex: sy / sx };
+}
+function dH(x1, x2, y, t, e1, e2) {
+  let s = '';
+  if (e1 != null) s += `<line class="ex" x1="${x1}" y1="${e1}" x2="${x1}" y2="${y + (y < e1 ? -3 : 3)}"/>`;
+  if (e2 != null) s += `<line class="ex" x1="${x2}" y1="${e2 ?? e1}" x2="${x2}" y2="${y + (y < (e2 ?? e1) ? -3 : 3)}"/>`;
+  s += `<line class="dm" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" marker-start="url(#ar)" marker-end="url(#ar)"/>`;
+  s += `<text class="dt" x="${pt((x1 + x2) / 2)}" y="${y - 4}" text-anchor="middle">${t}</text>`;
+  return s;
+}
+function dV(x, y1, y2, t, e1, e2, right) {
+  let s = '';
+  if (e1 != null) s += `<line class="ex" x1="${e1}" y1="${y1}" x2="${x + (x < e1 ? -3 : 3)}" y2="${y1}"/>`;
+  if (e2 != null) s += `<line class="ex" x1="${e2}" y1="${y2}" x2="${x + (x < e2 ? -3 : 3)}" y2="${y2}"/>`;
+  s += `<line class="dm" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" marker-start="url(#ar)" marker-end="url(#ar)"/>`;
+  const tx = right ? x + 12 : x - 5;
+  s += `<text class="dt" transform="translate(${pt(tx)},${pt((y1 + y2) / 2)}) rotate(-90)" text-anchor="middle">${t}</text>`;
+  return s;
+}
+const rect = (x, y, w, h, cls, extra = '') => `<rect x="${pt(x)}" y="${pt(y)}" width="${pt(Math.max(0, w))}" height="${pt(Math.max(0, h))}" class="${cls}" ${extra}/>`;
+const line = (x1, y1, x2, y2, cls, extra = '') => `<line x1="${pt(x1)}" y1="${pt(y1)}" x2="${pt(x2)}" y2="${pt(y2)}" class="${cls}" ${extra}/>`;
+const text = (x, y, t, cls = 'lb', anchor = 'start', extra = '') => `<text x="${pt(x)}" y="${pt(y)}" class="${cls}" text-anchor="${anchor}" ${extra}>${t}</text>`;
+const title = (x, y, t) => `<text x="${x}" y="${y}" class="vt">${t}</text>`;
+const exNote = (f, x, y) => Math.abs(f.ex - 1) > 0.05 ? text(x, y, 'Düşey ölçek ×' + fmtN(f.ex, 1), 'lbs', 'end') : '';
+const poly = (pts, cls) => `<polygon points="${pts.map(p => pt(p[0]) + ',' + pt(p[1])).join(' ')}" class="${cls}"/>`;
+const pline = (pts, cls, extra = '') => `<polyline points="${pts.map(p => pt(p[0]) + ',' + pt(p[1])).join(' ')}" class="${cls}" ${extra}/>`;
+const fig = (svg, cap) => `<figure class="dwg"><div class="dwg-scroll">${svg}</div><figcaption>${cap}</figcaption></figure>`;
+
+// ---------- Izgara kanalı ----------
+function drawScreen(d, name) {
+  const W = 720, H = 500; let s = svgOpen(W, H, name);
+  const t = 0.3, n = Math.min(d.N + d.Nsb, 4);
+  const rw = d.L, rh = n * d.b + (n + 1) * t;
+  const f = fit(rw, rh, 80, 50, 560, 170);
+  s += title(16, 24, 'PLAN');
+  for (let i = 0; i <= n; i++) s += rect(f.X(0), f.Y(i * (d.b + t)), f.w, t * f.sy, 'wl');
+  const xs = d.L * 0.55;
+  for (let i = 0; i < n; i++) {
+    const y0 = t + i * (d.b + t);
+    s += rect(f.X(0), f.Y(y0), f.w, d.b * f.sy, 'wt');
+    s += line(f.X(xs), f.Y(y0), f.X(xs), f.Y(y0 + d.b), 'scr');
+    const nb = Math.min(30, Math.max(4, Math.round(d.b * 1000 / (d.e + 10))));
+    for (let j = 1; j < nb; j++) { const yy = f.Y(y0 + d.b * j / nb); s += line(f.X(xs) - 3, yy, f.X(xs) + 3, yy, 'ln'); }
+    s += line(f.X(d.L * 0.08), f.Y(y0 + d.b / 2), f.X(d.L * 0.3), f.Y(y0 + d.b / 2), 'fl', 'marker-end="url(#af)"');
+    s += text(f.X(d.L * 0.72), f.Y(y0 + d.b / 2) + 4, i < d.N ? 'Asil kanal ' + (i + 1) : 'Yedek kanal', 'lbs');
+  }
+  s += dH(f.X(0), f.X(d.L), f.Y(0) - 16, 'L = ' + N2(d.L) + ' m', f.Y(0), f.Y(0));
+  s += dV(f.X(d.L) + 20, f.Y(t), f.Y(t + d.b), 'b = ' + N2(d.b) + ' m', f.X(d.L), f.X(d.L), true);
+  if (d.N + d.Nsb > n) s += text(W - 16, 24, `${d.N + d.Nsb} kanaldan ${n} tanesi gösterildi`, 'lbs', 'end');
+  // Kesit
+  s += title(16, 270, 'BOYUNA KESİT');
+  const slab = 0.3, rh2 = d.H + slab;
+  const g = fit(d.L, rh2, 80, 290, 560, 170, 3);
+  s += rect(g.X(0), g.Y(d.H), g.w, slab * g.sy, 'wl');
+  s += rect(g.X(0), g.Y(0), g.w, d.H * g.sy, 'ln bg');
+  s += rect(g.X(0), g.Y(d.H - d.h), g.w, d.h * g.sy, 'wt');
+  s += line(g.X(0), g.Y(d.H - d.h), g.X(d.L), g.Y(d.H - d.h), 'ws');
+  const th = d.th * Math.PI / 180, dx = d.H / Math.tan(th);
+  s += line(g.X(xs), g.Y(d.H), g.X(xs + dx), g.Y(0) - 14, 'scr');
+  s += text(g.X(xs + dx) + 6, g.Y(0) - 8, 'θ = ' + d.th + '°', 'lbs');
+  s += text(g.X(xs) + 8, g.Y(d.H) - 6, 'e = ' + d.e + ' mm', 'lbs');
+  s += line(g.X(d.L * 0.05), g.Y(d.H - d.h / 2), g.X(d.L * 0.25), g.Y(d.H - d.h / 2), 'fl', 'marker-end="url(#af)"');
+  s += dV(g.X(0) - 14, g.Y(d.H - d.h), g.Y(d.H), 'h = ' + N2(d.h), g.X(0), g.X(0));
+  s += dV(g.X(0) - 44, g.Y(0), g.Y(d.H), 'H = ' + N2(d.H), g.X(0), g.X(0));
+  s += dH(g.X(0), g.X(d.L), g.Y(rh2) + 22, 'L = ' + N2(d.L) + ' m', g.Y(rh2), g.Y(rh2));
+  s += exNote(g, W - 16, 486);
+  return fig(s + '</svg>', name + ' — plan ve boyuna kesit (ölçüler m)');
+}
+
+// ---------- Pompa istasyonu ----------
+function drawPump(d, name) {
+  const W = 720, H = 520; let s = svgOpen(W, H, name);
+  const t = 0.3;
+  s += title(16, 24, 'PLAN (bir bölme)');
+  const f = fit(d.L + 2 * t, d.W + 2 * t, 90, 40, 540, 170);
+  s += rect(f.X(0), f.Y(0), f.w, f.h, 'wl');
+  s += rect(f.X(t), f.Y(t), d.L * f.sx, d.W * f.sy, 'wt');
+  const n = d.n, sp = d.L / n;
+  for (let i = 0; i < n; i++) {
+    const cx = f.X(t + sp * (i + 0.5)), cy = f.Y(t + d.W * 0.62), r = Math.max(5, 0.4 * f.sx);
+    s += `<circle cx="${cx}" cy="${cy}" r="${pt(r)}" class="eq"/>` + text(cx, cy + r + 12, i < d.nd / d.nc ? 'P' + (i + 1) : 'Y', 'lbs', 'middle');
+  }
+  s += line(f.X(0) - 30, f.Y(t + d.W * 0.2), f.X(t) + 20, f.Y(t + d.W * 0.2), 'fl', 'marker-end="url(#af)"') + text(f.X(0) - 30, f.Y(t + d.W * 0.2) - 6, 'Giriş', 'lbs');
+  s += dH(f.X(t), f.X(t + d.L), f.Y(0) - 14, 'L = ' + N2(d.L) + ' m', f.Y(t), f.Y(t));
+  s += dV(f.X(d.L + 2 * t) + 18, f.Y(t), f.Y(t + d.W), 'W = ' + N2(d.W) + ' m', f.X(d.L + t), f.X(d.L + t), true);
+  if (d.nc > 1) s += text(W - 16, 24, d.nc + ' bölme', 'lbs', 'end');
+  // Kesit
+  s += title(16, 270, 'KESİT');
+  const Ht = d.hd + d.hu + d.hf, slab = 0.4;
+  const g = fit(d.L + 2 * t, Ht + slab, 110, 290, 480, 200, 2.5);
+  s += rect(g.X(0), g.Y(0), t * g.sx, Ht * g.sy, 'wl') + rect(g.X(d.L + t), g.Y(0), t * g.sx, Ht * g.sy, 'wl');
+  s += rect(g.X(0), g.Y(Ht), g.w, slab * g.sy, 'wl');
+  s += rect(g.X(t), g.Y(d.hf), d.L * g.sx, (d.hd + d.hu) * g.sy, 'wt');
+  const yStart = d.hf, yStop = d.hf + d.hu;
+  s += line(g.X(t), g.Y(yStart), g.X(d.L + t), g.Y(yStart), 'ws') + text(g.X(d.L + t) - 4, g.Y(yStart) - 4, 'Çalıştırma seviyesi', 'lbs', 'end');
+  s += line(g.X(t), g.Y(yStop), g.X(d.L + t), g.Y(yStop), 'lnd') + text(g.X(d.L + t) - 4, g.Y(yStop) - 4, 'Durdurma seviyesi', 'lbs', 'end');
+  for (let i = 0; i < n; i++) {
+    const cx = g.X(t + sp * (i + 0.5)), pw = Math.max(8, 0.6 * g.sx), ph = Math.max(10, 0.9 * g.sy);
+    s += rect(cx - pw / 2, g.Y(Ht) - ph, pw, ph, 'eq') + line(cx, g.Y(Ht) - ph, cx, g.Y(0) - 6, 'ln');
+  }
+  s += `<circle cx="${g.X(t) - 2}" cy="${g.Y(d.hf * 0.55)}" r="${pt(Math.max(5, 0.35 * g.sy))}" class="eq"/>` + text(g.X(0) - 8, g.Y(d.hf * 0.55) + 4, 'Giriş', 'lbs', 'end');
+  const xr = g.X(d.L + 2 * t) + 16;
+  s += dV(xr, g.Y(0), g.Y(d.hf), 'h = ' + N2(d.hf), null, null, true);
+  s += dV(xr, g.Y(d.hf), g.Y(d.hf + d.hu), 'Δh = ' + N2(d.hu), null, null, true);
+  s += dV(xr, g.Y(d.hf + d.hu), g.Y(Ht), 'h₀ = ' + N2(d.hd), null, null, true);
+  s += dV(xr + 50, g.Y(0), g.Y(Ht), 'H = ' + N2(Ht), null, null, true);
+  s += dH(g.X(t), g.X(d.L + t), g.Y(Ht + slab) + 22, 'L = ' + N2(d.L), g.Y(Ht + slab), g.Y(Ht + slab));
+  s += exNote(g, W - 16, 510);
+  return fig(s + '</svg>', name + ' — plan ve kesit (ölçüler m)');
+}
+
+// ---------- Havalandırmalı kum-yağ tutucu ----------
+function drawGrit(d, name) {
+  const W = 720, H = 560; let s = svgOpen(W, H, name);
+  const t = d.tw, fb = 0.5, slab = 0.35;
+  const Wl = t + d.bF + t + d.b + t, Ht = d.h + fb;
+  s += title(16, 24, 'ENKESİT (bir hat)');
+  const f = fit(Wl, Ht + slab + 0.6, 120, 50, 480, 270);
+  const x0 = 0, xg0 = t, xb = t + d.bF, xs0 = xb + t, xs1 = xs0 + d.b;
+  const yW = fb, yBot = fb + d.h, ySl = fb + d.h - 0.25 * d.b;
+  // duvarlar
+  s += rect(f.X(0), f.Y(0), t * f.sx, (Ht + slab) * f.sy, 'wl') + rect(f.X(xs1), f.Y(0), t * f.sx, (Ht + 0.6 + slab) * f.sy, 'wl');
+  // su
+  const gw = Math.min(0.5, 0.15 * d.b);
+  s += poly([[xg0, yW], [xs1, yW], [xs1, yBot + 0.6], [xs1 - gw, yBot + 0.6], [xs1 - gw, yBot], [xs0, ySl], [xg0, ySl]].map(p => [f.X(p[0]), f.Y(p[1])]), 'wt');
+  s += line(f.X(xg0), f.Y(yW), f.X(xs1), f.Y(yW), 'ws');
+  // taban
+  s += poly([[0, ySl], [xs0, ySl], [xs1 - gw, yBot], [xs1 - gw, yBot + 0.6], [xs1 + t, yBot + 0.6], [xs1 + t, yBot + 0.6 + slab], [0, ySl + slab]].map(p => [f.X(p[0]), f.Y(p[1])]), 'wl');
+  // ayırma perdesi
+  s += rect(f.X(xb), f.Y(0), t * f.sx, (fb + d.h * 0.55) * f.sy, 'wl');
+  // difüzör ve kabarcıklar
+  const dy = yBot - 0.35, dxp = xs1 - gw - 0.25;
+  s += `<circle cx="${f.X(dxp)}" cy="${f.Y(dy)}" r="5" class="eq"/>`;
+  for (let i = 0; i < 9; i++) s += `<circle cx="${pt(f.X(dxp) - 4 - (i % 3) * 7)}" cy="${pt(f.Y(dy) - 14 - i * (f.Y(yBot) - f.Y(yW)) / 11)}" r="${2 + (i % 2)}" class="bub"/>`;
+  s += `<path d="M${f.X(xs1 - 0.4)},${f.Y(yW + 0.5)} C${f.X(xs0 + 0.3)},${f.Y(yW + 0.2)} ${f.X(xs0 + 0.2)},${f.Y(ySl - 0.3)} ${f.X(xs1 - 0.8)},${f.Y(ySl)}" class="roll" marker-end="url(#af)"/>`;
+  s += text(f.X(xg0 + d.bF / 2), f.Y(yW + 0.5), 'Yağ', 'lbs', 'middle') + text(f.X(xs0 + d.b / 2), f.Y(yW + 0.5), 'Kum', 'lbs', 'middle');
+  s += text(f.X(xs1 - gw / 2), f.Y(yBot + 0.6) + 14, 'Kum oluğu', 'lbs', 'middle');
+  s += dH(f.X(xg0), f.X(xb), f.Y(0) - 14, 'b_FF = ' + N2(d.bF), f.Y(yW), f.Y(yW));
+  s += dH(f.X(xs0), f.X(xs1), f.Y(0) - 14, 'b_SF = ' + N2(d.b), f.Y(yW), f.Y(yW));
+  s += dH(f.X(0), f.X(xs1 + t), f.Y(0) - 36, 'Hat genişliği = ' + N2(Wl));
+  s += dV(f.X(xs1 + t) + 22, f.Y(yW), f.Y(yBot), 'h = ' + N2(d.h), f.X(xs1 + t), f.X(xs1 + t), true);
+  // Plan
+  s += title(16, 360, 'PLAN');
+  const n = Math.min(d.N, 4), Wp = n * (Wl - t) + t;
+  const g = fit(d.L, Wp, 100, 380, 520, 140);
+  for (let i = 0; i < n; i++) {
+    const y = i * (Wl - t);
+    s += rect(g.X(0), g.Y(y), g.w, t * g.sy, 'wl');
+    s += rect(g.X(0), g.Y(y + t), g.w, d.bF * g.sy, 'wt op5');
+    s += line(g.X(0), g.Y(y + t + d.bF + t / 2), g.X(d.L), g.Y(y + t + d.bF + t / 2), 'lnd');
+    s += rect(g.X(0), g.Y(y + 2 * t + d.bF), g.w, d.b * g.sy, 'wt');
+  }
+  s += rect(g.X(0), g.Y(Wp - t), g.w, t * g.sy, 'wl');
+  s += line(g.X(-d.L * 0.08), g.Y(Wp / 2), g.X(0), g.Y(Wp / 2), 'fl', 'marker-end="url(#af)"');
+  s += dH(g.X(0), g.X(d.L), g.Y(Wp) + 22, 'L = ' + N2(d.L) + ' m', g.Y(Wp), g.Y(Wp));
+  if (d.N > n) s += text(W - 16, 360, `${d.N} hattan ${n} tanesi gösterildi`, 'lbs', 'end');
+  return fig(s + '</svg>', name + ' — enkesit ve plan (ölçüler m)');
+}
+
+// ---------- Dairesel havuz (ön/son çöktürme, yoğunlaştırıcı) ----------
+function drawCircular(d, name) {
+  const W = 720, H = 400; let s = svgOpen(W, H, name);
+  const R = d.D / 2, t = 0.4, Din = d.Din || 0;
+  s += title(16, 24, 'PLAN');
+  const f = fit(d.D + 2 * t, d.D + 2 * t, 24, 50, 220, 220);
+  const cx = f.X(R + t), cy = f.Y(R + t), rp = R * f.sx, rt = (R + t) * f.sx;
+  s += `<path d="M${cx - rt},${cy}a${rt},${rt} 0 1,0 ${2 * rt},0a${rt},${rt} 0 1,0 ${-2 * rt},0zM${cx - rp},${cy}a${rp},${rp} 0 1,1 ${2 * rp},0a${rp},${rp} 0 1,1 ${-2 * rp},0z" class="wl" fill-rule="evenodd"/>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="${pt(rp)}" class="wt"/>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="${pt(rp - 0.5 * f.sx)}" class="lnd"/>`;
+  if (Din) s += `<circle cx="${cx}" cy="${cy}" r="${pt(Din / 2 * f.sx)}" class="eq"/>`;
+  s += rect(cx, cy - 0.6 * f.sx, rp, 1.2 * f.sx, 'brg');
+  s += text(cx + rp * 0.5, cy - 1.2 * f.sx - 4, 'köprü', 'lbs', 'middle');
+  s += dH(cx - rp, cx + rp, cy + rt + 22, 'D = ' + N2(d.D) + ' m', cy, cy);
+  if (Din) s += text(cx, cy + rt + 44, 'Giriş yapısı Ø' + N2(Din) + ' m', 'lbs', 'middle');
+  if (d.N > 1) s += text(30, 44, d.N + ' adet', 'lbs');
+  // Kesit
+  s += title(270, 24, 'KESİT');
+  const fb = 0.5, hop = Math.max(0.8, 0.12 * d.D * 0.1 + 0.8), rh0 = 1.0;
+  const hS = d.h, hC = hS + d.slope * (R - rh0);
+  const Ht = fb + hC + hop + 0.4;
+  const g = fit(d.D + 2 * t, Ht, 300, 56, 380, 250, 3);
+  const X = (x) => g.X(x + R + t), Y = (y) => g.Y(y + fb);
+  const bot = [[-R, hS], [-rh0, hC], [-0.5, hC + hop], [0.5, hC + hop], [rh0, hC], [R, hS]];
+  s += poly([[-R, 0], [R, 0], ...bot.slice().reverse()].map(p => [X(p[0]), Y(p[1])]), 'wt');
+  s += line(X(-R), Y(0), X(R), Y(0), 'ws');
+  s += poly([...bot, [R, hS + 0.4], ...bot.slice().reverse().map(p => [p[0], p[1] + 0.4])].map(p => [X(p[0]), Y(p[1])]), 'wl');
+  s += rect(X(-R - t), Y(-fb), t * g.sx, (hS + fb + 0.4) * g.sy, 'wl') + rect(X(R), Y(-fb), t * g.sx, (hS + fb + 0.4) * g.sy, 'wl');
+  if (Din) s += line(X(-Din / 2), Y(-0.3), X(-Din / 2), Y(hS * 0.4), 'ln') + line(X(Din / 2), Y(-0.3), X(Din / 2), Y(hS * 0.4), 'ln');
+  s += rect(X(-R + 0.1), Y(-0.1), 0.4 * g.sx, 0.4 * g.sy, 'eq') + rect(X(R - 0.5), Y(-0.1), 0.4 * g.sx, 0.4 * g.sy, 'eq');
+  if (d.bands) {
+    const xb = X(-2 * R / 3);
+    let y = 0; const nm = ['h₁', 'h₂', 'h₃', 'h₄'];
+    d.bands.forEach((hh, i) => {
+      s += rect(xb - 7, Y(y), 14, hh * g.sy, 'band b' + (i + 1));
+      s += text(xb + 12, Y(y + hh / 2) + 4, nm[i] + ' = ' + N2(hh), 'lbs');
+      y += hh;
+    });
+    s += line(xb, Y(0), xb, Y(d.H), 'lnd');
+    s += dV(xb - 16, Y(0), Y(d.H), 'h_top = ' + N2(d.H), null, null);
+    s += text(xb, Y(d.H) + 14, '2/3 R', 'lbs', 'middle');
+  }
+  s += dV(X(R + t) + 18, Y(0), Y(hS), 'h = ' + N2(hS), X(R), X(R), true);
+  s += dV(X(Din ? Din / 2 : 0) + 18, Y(0), Y(hC), 'h_m = ' + N2(hC), null, null, true);
+  s += dH(X(-R), X(R), Y(-fb) - 14, 'D = ' + N2(d.D) + ' m', Y(-fb), Y(-fb));
+  s += text(X(R * 0.55), Y(hS + d.slope * R * 0.45) + 20, 'eğim ' + fmtN(d.slope * 100, 1) + '%', 'lbs', 'middle');
+  s += exNote(g, W - 16, 330);
+  return fig(s + '</svg>', name + ' — plan ve kesit (ölçüler m)');
+}
+
+// ---------- Dikdörtgen havuz (biyolojik, anaerobik, depo) ----------
+const ZCLS = { AN: 'zAN', AX: 'zAX', OX: 'zOX', SIM: 'zSIM', INT: 'zINT', ST: 'zST' };
+function drawRect(d, name) {
+  const W = 720, H = 540; let s = svgOpen(W, H, name);
+  const t = 0.4, fb = d.fb || 0.5, Ht = d.h + fb, slab = 0.4;
+  s += title(16, 24, 'PLAN' + (d.N > 1 ? ' (bir havuz, toplam ' + d.N + ' adet)' : ''));
+  const f = fit(d.L + 2 * t, d.W + 2 * t, 70, 50, 580, 220);
+  s += rect(f.X(0), f.Y(0), f.w, f.h, 'wl');
+  let x = t;
+  d.zones.forEach((z, i) => {
+    const zl = d.L * z.f;
+    s += rect(f.X(x), f.Y(t), zl * f.sx, d.W * f.sy, ZCLS[z.t] || 'wt');
+    if (z.t === 'OX' && !d.noDiff) {
+      const nx = Math.max(2, Math.floor(zl * f.sx / 12)), ny = Math.max(2, Math.floor(d.W * f.sy / 12));
+      for (let a = 0; a < nx; a++) for (let b = 0; b < ny; b++) s += `<circle cx="${pt(f.X(x) + (a + 0.5) * zl * f.sx / nx)}" cy="${pt(f.Y(t) + (b + 0.5) * d.W * f.sy / ny)}" r="1.6" class="df"/>`;
+    }
+    if (z.t === 'AN' || z.t === 'AX') s += `<g class="mix"><circle cx="${pt(f.X(x + zl / 2))}" cy="${pt(f.Y(t + d.W * 0.75))}" r="6"/><line x1="${pt(f.X(x + zl / 2) - 8)}" y1="${pt(f.Y(t + d.W * 0.75))}" x2="${pt(f.X(x + zl / 2) + 8)}" y2="${pt(f.Y(t + d.W * 0.75))}"/></g>`;
+    if (zl * f.sx > 36) {
+      s += text(f.X(x + zl / 2), f.Y(t + d.W * 0.32), z.n, 'lbz', 'middle');
+      s += text(f.X(x + zl / 2), f.Y(t + d.W * 0.32) + 14, fmtN(z.V / (d.N || 1), 0) + ' m³', 'lbs', 'middle');
+    }
+    if (i > 0) s += rect(f.X(x) - 1.5, f.Y(t), 3, d.W * f.sy, 'part');
+    if (zl * f.sx > 50) s += dH(f.X(x), f.X(x + zl), f.Y(d.W + 2 * t) + 18, N2(zl), f.Y(d.W + 2 * t), f.Y(d.W + 2 * t));
+    x += zl;
+  });
+  s += line(f.X(0) - 34, f.Y(t + d.W * 0.5), f.X(t) + 6, f.Y(t + d.W * 0.5), 'fl', 'marker-end="url(#af)"');
+  s += line(f.X(d.L + t) - 6, f.Y(t + d.W * 0.5), f.X(d.L + 2 * t) + 30, f.Y(t + d.W * 0.5), 'fl', 'marker-end="url(#af)"');
+  s += dH(f.X(t), f.X(d.L + t), f.Y(0) - 14, 'L = ' + N2(d.L) + ' m', f.Y(t), f.Y(t));
+  s += dV(f.X(d.L + 2 * t) + 44, f.Y(t), f.Y(d.W + t), 'W = ' + N2(d.W) + ' m', f.X(d.L + 2 * t), f.X(d.L + 2 * t), true);
+  // Kesit
+  s += title(16, 330, 'BOYUNA KESİT');
+  const g = fit(d.L + 2 * t, Ht + slab, 70, 350, 580, 150, 4);
+  s += rect(g.X(0), g.Y(0), t * g.sx, (Ht + slab) * g.sy, 'wl') + rect(g.X(d.L + t), g.Y(0), t * g.sx, (Ht + slab) * g.sy, 'wl');
+  s += rect(g.X(0), g.Y(Ht), g.w, slab * g.sy, 'wl');
+  x = t;
+  d.zones.forEach((z, i) => {
+    const zl = d.L * z.f;
+    s += rect(g.X(x), g.Y(fb), zl * g.sx, d.h * g.sy, ZCLS[z.t] || 'wt');
+    if (z.t === 'OX' && !d.noDiff) s += line(g.X(x) + 3, g.Y(Ht) - 4, g.X(x + zl) - 3, g.Y(Ht) - 4, 'dfl');
+    if (i > 0) s += line(g.X(x), g.Y(fb) - 4, g.X(x), g.Y(Ht), 'lnd');
+    x += zl;
+  });
+  s += line(g.X(t), g.Y(fb), g.X(d.L + t), g.Y(fb), 'ws');
+  s += dV(g.X(d.L + 2 * t) + 16, g.Y(fb), g.Y(Ht), 'h = ' + N2(d.h), g.X(d.L + t), g.X(d.L + t), true);
+  s += dV(g.X(d.L + 2 * t) + 52, g.Y(0), g.Y(Ht), 'H = ' + N2(Ht), g.X(d.L + 2 * t), g.X(d.L + 2 * t), true);
+  s += dH(g.X(t), g.X(d.L + t), g.Y(Ht + slab) + 20, 'L = ' + N2(d.L) + ' m', g.Y(Ht + slab), g.Y(Ht + slab));
+  s += exNote(g, W - 16, 530);
+  return fig(s + '</svg>', name + ' — plan ve boyuna kesit (ölçüler m)');
+}
+
+// ---------- Düşey silindirik tank / silo ----------
+function drawTankV(d, name) {
+  const W = 720, H = 360; let s = svgOpen(W, H, name);
+  const cone = d.silo ? d.D * 0.5 : 0, legs = d.silo ? 3.0 : 0;
+  const Ht = d.H + cone + legs + 0.4;
+  s += title(16, 24, 'GÖRÜNÜŞ');
+  const f = fit(d.D + 2, Ht, 120, 40, 300, 290);
+  const X = (x) => f.X(x + 1), Y = (y) => f.Y(y);
+  const yTop = 0, yBot = d.H, D = d.D;
+  s += rect(X(0), Y(yTop), D * f.sx, d.H * f.sy, 'eq');
+  s += rect(X(0), Y(d.H - d.h), D * f.sx, d.h * f.sy, d.silo ? 'cake' : 'chem');
+  s += line(X(0), Y(d.H - d.h), X(D), Y(d.H - d.h), 'ws');
+  if (d.silo) {
+    s += poly([[X(0), Y(yBot)], [X(D), Y(yBot)], [X(D / 2 + 0.4), Y(yBot + cone)], [X(D / 2 - 0.4), Y(yBot + cone)]], 'cake');
+    s += line(X(0.1), Y(yBot), X(0.1), Y(yBot + cone + legs), 'ln') + line(X(D - 0.1), Y(yBot), X(D - 0.1), Y(yBot + cone + legs), 'ln');
+    s += text(X(D / 2), Y(yBot + cone + legs * 0.6), 'kamyon yükleme', 'lbs', 'middle');
+  }
+  s += rect(X(-0.5), Y(yBot + cone + legs), (D + 1) * f.sx, 0.4 * f.sy, 'wl');
+  s += dH(X(0), X(D), Y(0) - 14, 'Ø = ' + N2(D) + ' m', Y(0), Y(0));
+  s += dV(X(D) + 20, Y(d.H - d.h), Y(d.H), 'h = ' + N2(d.h), X(D), X(D), true);
+  s += dV(X(0) - 18, Y(0), Y(d.H), 'H = ' + N2(d.H), X(0), X(0));
+  s += title(460, 24, 'PLAN');
+  const n = Math.min(d.N, 4), rr = Math.min(50, 220 / (n * 2.4));
+  for (let i = 0; i < n; i++) {
+    const cx = 480 + rr + i * rr * 2.5, cy = 140;
+    s += `<circle cx="${pt(cx)}" cy="${cy}" r="${pt(rr)}" class="eq"/>` + text(cx, cy + 4, String(i + 1), 'lbs', 'middle');
+  }
+  s += text(480, 140 + rr + 24, d.N + ' adet × Ø' + N2(D) + ' m', 'lbs');
+  return fig(s + '</svg>', name + ' — görünüş ve plan (ölçüler m)');
+}
+
+// ---------- UV kanalı ----------
+function drawUV(d, name) {
+  const W = 720, H = 460; let s = svgOpen(W, H, name);
+  const t = 0.3, n = Math.min(d.N, 3);
+  s += title(16, 24, 'PLAN');
+  const Wp = n * d.b + (n + 1) * t;
+  const f = fit(d.L, Wp, 70, 50, 580, 150);
+  for (let i = 0; i <= n; i++) s += rect(f.X(0), f.Y(i * (d.b + t)), f.w, t * f.sy, 'wl');
+  for (let i = 0; i < n; i++) {
+    const y0 = t + i * (d.b + t);
+    s += rect(f.X(0), f.Y(y0), f.w, d.b * f.sy, 'wt');
+    for (let k = 0; k < d.banks; k++) {
+      const x0 = d.Lio / 2 + k * d.Lb + 0.2;
+      s += rect(f.X(x0), f.Y(y0 + 0.03), (d.Lb - 0.4) * f.sx, (d.b - 0.06) * f.sy, 'uvb');
+      const m = Math.min(d.mods, 12);
+      for (let j = 0; j < m; j++) { const yy = f.Y(y0 + 0.05 + (d.b - 0.1) * (j + 0.5) / m); s += line(f.X(x0) + 3, yy, f.X(x0 + d.Lb - 0.4) - 3, yy, 'lamp'); }
+    }
+    s += line(f.X(0.2), f.Y(y0 + d.b / 2), f.X(d.Lio / 2 - 0.3), f.Y(y0 + d.b / 2), 'fl', 'marker-end="url(#af)"');
+  }
+  s += dH(f.X(0), f.X(d.L), f.Y(0) - 14, 'L = ' + N2(d.L) + ' m', f.Y(0), f.Y(0));
+  s += dV(f.X(d.L) + 18, f.Y(t), f.Y(t + d.b), 'b = ' + N2(d.b), f.X(d.L), f.X(d.L), true);
+  s += title(16, 250, 'ENKESİT (bir kanal)');
+  const g = fit(d.b + 2 * t, d.h + 0.5 + 0.3, 200, 270, 320, 170);
+  s += rect(g.X(0), g.Y(0), t * g.sx, (d.h + 0.8) * g.sy, 'wl') + rect(g.X(d.b + t), g.Y(0), t * g.sx, (d.h + 0.8) * g.sy, 'wl');
+  s += rect(g.X(0), g.Y(d.h + 0.5), (d.b + 2 * t) * g.sx, 0.3 * g.sy, 'wl');
+  s += rect(g.X(t), g.Y(0.5), d.b * g.sx, d.h * g.sy, 'wt') + line(g.X(t), g.Y(0.5), g.X(d.b + t), g.Y(0.5), 'ws');
+  const m = Math.min(d.mods, 24), r = Math.max(1.5, Math.min(4, 0.012 * g.sx));
+  for (let j = 0; j < m; j++) for (let k = 0; k < d.lpm; k++) s += `<circle cx="${pt(g.X(t + 0.05 + (j + 0.5) * (d.b - 0.1) / m))}" cy="${pt(g.Y(0.5 + 0.05 + (k + 0.5) * d.sp))}" r="${pt(r)}" class="lampc"/>`;
+  s += dH(g.X(t), g.X(d.b + t), g.Y(0) - 12, 'b = ' + N2(d.b), g.Y(0.5), g.Y(0.5));
+  s += dV(g.X(d.b + 2 * t) + 18, g.Y(0.5), g.Y(d.h + 0.5), 'h = ' + N2(d.h), g.X(d.b + t), g.X(d.b + t), true);
+  s += text(g.X(0) - 10, g.Y(0.5 + d.h / 2), d.mods + ' modül × ' + d.lpm + ' lamba', 'lbs', 'end');
+  return fig(s + '</svg>', name + ' — plan ve enkesit (ölçüler m)');
+}
+
+// ---------- Proses şeması ----------
+function drawScheme(res) {
+  const B = res.BIO, sys = res.sys, s0 = res.R.sc ? 1 : 1;
+  const W = 760, H = 300; let s = svgOpen(W, H, 'Proses şeması');
+  const Q = res.ctx.Qd;
+  const boxes = [];
+  const zl = B.zones.map(z => ({ t: z.t, n: z.n, V: z.V }));
+  if (sys.jhb) { boxes.push(zl.shift()); }
+  if (sys.an) boxes.push({ t: 'AN', n: 'Anaerobik', V: B.Van || 0 });
+  boxes.push(...zl);
+  const n = boxes.length, bw = Math.min(130, 560 / n - 10), gap = 10, x0 = 60, y0 = 80, bh = 80;
+  const bx = (i) => x0 + i * (bw + gap);
+  const scx = bx(n) + 50, scy = y0 + bh / 2;
+  boxes.forEach((b, i) => {
+    s += rect(bx(i), y0, bw, bh, (ZCLS[b.t] || 'wt') + ' sbx', 'rx="4"');
+    s += text(bx(i) + bw / 2, y0 + 30, b.n, 'lbz', 'middle');
+    s += text(bx(i) + bw / 2, y0 + 48, b.V ? fmtN(b.V, 0) + ' m³' : '', 'lbs', 'middle');
+    s += text(bx(i) + bw / 2, y0 + 64, b.V ? fmtN(b.V / Q * 24, 1) + ' h' : '', 'lbs', 'middle');
+    if (i < n - 1) s += line(bx(i) + bw, y0 + bh / 2, bx(i + 1), y0 + bh / 2, 'fl', 'marker-end="url(#af)"');
+  });
+  s += line(bx(n - 1) + bw, scy, scx - 26, scy, 'fl', 'marker-end="url(#af)"');
+  s += `<circle cx="${scx}" cy="${scy}" r="26" class="eq"/>` + text(scx, scy + 4, 'SÇ', 'lbz', 'middle');
+  s += line(scx + 26, scy, W - 12, scy, 'fl', 'marker-end="url(#af)"') + text(W - 14, scy - 8, 'Çıkış', 'lbs', 'end');
+  // giriş
+  const ii = sys.jhb ? 1 : 0;
+  s += line(bx(ii) + bw / 2, 22, bx(ii) + bw / 2, y0, 'fl', 'marker-end="url(#af)"') + text(bx(ii) + bw / 2 + 6, 30, 'Giriş Q', 'lbs');
+  // devirler
+  const idx = (pred) => boxes.findIndex(pred);
+  const recs = [];
+  const rasTo = sys.jhb ? 0 : (sys.anIn === 'R' ? idx(b => b.t === 'AX') : 0);
+  recs.push({ from: 'SC', to: rasTo, lab: 'RAS · RV = ' + fmtN(res.P.sc.RV, 2), cls: 'rec ras', lvl: 3 });
+  if (sys.ir) {
+    const ox = idx(b => b.t === 'OX');
+    const ax = sys.muct ? idx((b, i) => b.t === 'AX' && i > idx(c => c.t === 'AX')) : idx(b => b.t === 'AX' && !/Ön/.test(b.n));
+    recs.push({ from: ox, to: ax, lab: 'IR = ' + fmtN(B.IR, 2) + '·Q', cls: 'rec ir', lvl: 1 });
+  }
+  if (sys.anIn === 'R') recs.push({ from: idx(b => b.t === 'AX'), to: idx(b => b.t === 'AN'), lab: 'r = ' + fmtN(res.P.bio.rU, 2) + '·Q', cls: 'rec rr', lvl: 2, up: true });
+  recs.forEach(r => {
+    const yl = y0 + bh + 18 + r.lvl * 26;
+    const xf = r.from === 'SC' ? scx : bx(r.from) + bw * 0.7;
+    const yf = r.from === 'SC' ? scy + 26 : y0 + bh;
+    const xt = bx(r.to) + bw * (r.lvl === 1 ? 0.5 : 0.3);
+    s += pline([[xf, yf], [xf, yl], [xt, yl], [xt, y0 + bh]], r.cls, 'marker-end="url(#af)"');
+    s += text((xf + xt) / 2, yl - 5, r.lab, 'lbs', 'middle');
+  });
+  s += line(scx, scy + 26, scx, scy + 26, 'ln');
+  s += line(scx + 18, scy + 18, scx + 50, H - 20, 'fl', 'marker-end="url(#af)"') + text(scx + 54, H - 22, 'Fazla çamur', 'lbs');
+  return fig(s + '</svg>', sys.n + ' — proses şeması (hacimler toplam, süreler Q_DW,d’ye göre)');
+}
+
+function drawUnit(u, o, name) {
+  const d = o.dim; if (!d) return '';
+  try {
+    if (u === 'cs' || u === 'fs') return drawScreen(d, name);
+    if (u === 'ps') return drawPump(d, name);
+    if (u === 'gr') return drawGrit(d, name);
+    if (u === 'pc') return d.circ ? drawCircular(d, name) : drawRect({ L: d.L, W: d.W, h: d.h, fb: 0.5, N: d.N, zones: [{ t: 'ST', n: 'Çöktürme', f: 1, V: d.L * d.W * d.h }], noDiff: true }, name);
+    if (u === 'sc' || u === 'pt') return drawCircular(d, name);
+    if (u === 'bio' || u === 'an' || u === 'et') return drawRect(d, name);
+    if (u === 'cp' || u === 'dw') return drawTankV(d, name);
+    if (u === 'uv') return drawUV(d, name);
+  } catch (e) { return `<p class="err">Çizim oluşturulamadı: ${e.message}</p>`; }
+  return '';
+}
+
+// ============================================================
+//  Arayüz
+// ============================================================
+const LS = 'atv131-proses-v2';
+function defaultState() {
+  return {
+    project: { name: 'West Benghazi AAT (örnek)', loc: 'Bingazi', eng: '', note: 'Örnek veriler West Benghazi proses raporundan alınmıştır.' },
+    system: 'A2O',
+    units: { cs: true, ps: true, fs: true, gr: true, pc: true, cp: true, an: true, bio: true, sc: true, pt: true, et: true, dw: true, uv: false },
+    scen: [sampleScenario(1), sampleScenario(2)], act: 0, page: 'home',
+  };
+}
+function loadState() {
+  try { const t = localStorage.getItem(LS); if (t) { const o = JSON.parse(t); if (o && o.scen && o.scen.length) return o; } } catch (e) { }
+  return null;
+}
+let S = loadState() || defaultState();
+let saveT = null;
+function save() { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) { } }, 250); }
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const $ = (q) => document.querySelector(q);
+const sc = () => S.scen[S.act];
+
+function unitList(res) { return ORDER.filter(u => res.U[u]); }
+function fails(o) { if (!o) return 0; return (o.warn ? o.warn.length : 0) + o.rows.filter(r => r.c && !r.c.ok).length; }
+
+// ---------- Kabuk ----------
+function renderShell() {
+  const res = compute(S, sc());
+  const pages = [['home', 'Proje ve Ünite Seçimi', '0'], ['data', 'Tasarım Verileri', '1'], ['sys', 'Proses Sistemi', '2']];
+  unitList(res).forEach(u => pages.push([u, UNITS[u].n, UNITS[u].c]));
+  pages.push(['sum', 'Özet Tablo', 'Σ'], ['rep', 'Tüm Rapor', '≡']);
+  if (!pages.find(p => p[0] === S.page)) S.page = 'home';
+  $('#nav').innerHTML = pages.map(([k, n, c]) => {
+    const fl = UNITS[k] ? fails(res.R[k]) : 0;
+    return `<button class="nv ${S.page === k ? 'on' : ''}" data-page="${k}"><span class="nc">${c}</span><span class="nn">${n}</span>${fl ? `<span class="nf" title="${fl} kontrol uyarısı">${fl}</span>` : ''}</button>`;
+  }).join('');
+  $('#scsel').innerHTML = S.scen.map((x, i) => `<option value="${i}" ${i === S.act ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+  $('#pname').textContent = S.project.name || 'Adsız proje';
+  $('#syslab').textContent = SYS[S.system].n;
+  renderPage(res);
+}
+function renderPage(res) {
+  res = res || compute(S, sc());
+  const p = S.page; let h = '';
+  if (p === 'home') h = pageHome(res);
+  else if (p === 'data') h = pageData(res);
+  else if (p === 'sys') h = pageSys(res);
+  else if (p === 'sum') h = pageSum(res);
+  else if (p === 'rep') h = pageRep(res);
+  else if (UNITS[p]) h = pageUnit(p, res);
+  $('#main').innerHTML = h;
+}
+
+// ---------- Sayfa: proje ----------
+function pageHome(res) {
+  const unitCards = ORDER.map(u => {
+    const forced = res.forced.includes(u);
+    return `<label class="uc ${S.units[u] || forced ? 'on' : ''}"><input type="checkbox" data-unit="${u}" ${S.units[u] || forced ? 'checked' : ''} ${forced ? 'disabled' : ''}><span class="ucc">${UNITS[u].c}</span><span class="ucn">${UNITS[u].n}</span><span class="ucr">${forced ? 'Sistem gereği zorunlu' : UNITS[u].ref}</span></label>`;
+  }).join('');
+  const sysOpts = Object.entries(SYS).map(([k, v]) => `<label class="sc ${S.system === k ? 'on' : ''}"><input type="radio" name="sys" value="${k}" data-sys ${S.system === k ? 'checked' : ''}><b>${v.n}</b><span class="tag">${v.k}</span><small>${v.d}</small></label>`).join('');
+  return `<section class="pg">
+  <header class="ph"><p class="eyebrow">Adım 0</p><h1>Proje ve ünite seçimi</h1><p class="lead">Hesaba girecek üniteleri ve biyolojik arıtma sistemini seçin. Her ünite ayrı sayfada ATV/DWA-A 131 esaslarıyla boyutlandırılır; havuz ölçüleri girilen su derinliği ve adetten otomatik hesaplanır.</p></header>
+  <div class="card"><h2>Proje</h2><div class="fgrid">
+    ${txt('proj.name', 'Proje adı', S.project.name)}${txt('proj.loc', 'Yer', S.project.loc)}${txt('proj.eng', 'Hazırlayan', S.project.eng)}${txt('proj.note', 'Not', S.project.note)}
+  </div></div>
+  <div class="card"><h2>Senaryolar / kademeler</h2><p class="hint">Her kademe kendi debisini, yükünü ve ünite parametrelerini taşır. Üst çubuktan etkin kademeyi değiştirin.</p>
+    <div class="scl">${S.scen.map((x, i) => `<div class="sci ${i === S.act ? 'on' : ''}"><input type="text" data-scname="${i}" value="${esc(x.name)}" aria-label="Kademe adı"><button class="btn sm" data-act="${i}">Etkin yap</button><button class="btn sm ghost" data-dup="${i}">Kopyala</button>${S.scen.length > 1 ? `<button class="btn sm ghost danger" data-del="${i}">Sil</button>` : ''}</div>`).join('')}</div>
+  </div>
+  <div class="card"><h2>Üniteler</h2><div class="ugrid">${unitCards}</div></div>
+  <div class="card"><h2>Biyolojik arıtma sistemi</h2><div class="sgrid">${sysOpts}</div></div>
+  <div class="card"><h2>Proje dosyası</h2><p class="hint">Tüm girdileri .json olarak kaydedip sonra geri yükleyebilirsiniz. Tarayıcı da çalışmanızı otomatik saklar.</p>
+    <div class="row"><button class="btn" id="bSave">Projeyi kaydet (.json)</button><label class="btn ghost" for="fLoad">Proje yükle</label><input type="file" id="fLoad" accept=".json,application/json" hidden><button class="btn ghost danger" id="bReset">Örnek verilere dön</button></div>
+    <div id="resetAsk" hidden class="ask">Tüm girdiler silinip örnek veriler yüklenecek. <button class="btn sm danger" id="bResetYes">Evet, sıfırla</button> <button class="btn sm ghost" id="bResetNo">Vazgeç</button></div>
+  </div></section>`;
+}
+const txt = (path, l, v) => `<label class="fld" for="t_${path}"><span class="fl-l">${l}</span><span class="fl-i"><input type="text" id="t_${path}" data-bind="${path}" value="${esc(v)}"></span></label>`;
+
+// ---------- Sayfa: veriler ----------
+function pageData(res) {
+  const I = sc().inp, c = res.ctx;
+  const form = INPUTS.map(f => f.g ? `<div class="fg">${f.g}</div>` :
+    `<label class="fld" for="i_${f.k}"><span class="fl-l">${f.l}</span><span class="fl-i"><input type="text" inputmode="decimal" id="i_${f.k}" data-bind="inp.${f.k}" value="${esc(I[f.k] ?? '')}"><em>${f.u}</em></span></label>`).join('');
+  return `<section class="pg"><header class="ph"><p class="eyebrow">Adım 1 · ${esc(sc().name)}</p><h1>Tasarım verileri</h1><p class="lead">Debileri ve kirlilik yüklerini elle girin. Konsantrasyonlar ve özgül yükler anında hesaplanır.</p></header>
+  <div class="split"><div class="card form">${form}</div><div id="out">${dataOut(res)}</div></div></section>`;
+}
+function dataOut(res) {
+  const c = res.ctx, I = inpNums(sc().inp);
+  const rows = ['COD', 'BOD', 'TSS', 'TKN', 'TP'].map(k => `<tr><td>${LBL[k]}</td><td>${f0(c.L0[k])}</td><td>${f1(c.L0[k] * 1000 / c.Qd)}</td><td>${f0(c.Lin[k])}</td><td>${f1(c.Lin[k] * 1000 / c.QdT)}</td><td>${c.PE ? f1(c.L0[k] * 1000 / c.PE) : '—'}</td></tr>`).join('');
+  return `${res.GW.map(w => `<div class="warn">${w}</div>`).join('')}
+  <div class="kpis"><div><span>Q_DW,d</span><b>${f0(c.Qd)}</b><em>m³/gün</em></div><div><span>Q_DW,h,maks</span><b>${f0(c.Qdw)}</b><em>m³/h</em></div><div><span>Q_M</span><b>${f0(c.Qww)}</b><em>m³/h</em></div><div><span>Q_M / Q_DW,d/24</span><b>${f2(c.Qww / (c.Qd / 24))}</b><em>-</em></div></div>
+  <div class="card"><h2>Yükler ve konsantrasyonlar</h2><div class="tw"><table class="rt"><thead><tr><th>Parametre</th><th>Ham yük<br>kg/gün</th><th>Ham<br>mg/L</th><th>Rejekt dahil<br>kg/gün</th><th>Rejekt dahil<br>mg/L</th><th>Özgül<br>g/(EN·gün)</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="hint">Rejekt dahil konsantrasyonlar Q_DW,d + rejekt debisi (${f0(c.QdT)} m³/gün) ile hesaplanır. Oranlar: KOİ/BOİ = ${f2(c.Lin.COD / c.Lin.BOD)}, TKN/KOİ = ${f2(c.Lin.TKN / c.Lin.COD)}, TP/KOİ = ${fmtN(c.Lin.TP / c.Lin.COD, 3)}.</p></div>`;
+}
+
+// ---------- Sayfa: sistem ----------
+function pageSys(res) {
+  return `<section class="pg"><header class="ph"><p class="eyebrow">Adım 2 · ${esc(sc().name)}</p><h1>Proses sistemi</h1><p class="lead">Seçilen sistemin bölge hacimleri, devirleri ve tahmini çıkış kalitesi. Alttaki tablo aynı girdilerle tüm sistemleri karşılaştırır; bir satıra tıklayarak sistemi değiştirebilirsiniz.</p></header>
+  <div class="card"><label class="fld wide" for="sysSel"><span class="fl-l">Sistem</span><span class="fl-i"><select id="sysSel" data-sys>${Object.entries(SYS).map(([k, v]) => `<option value="${k}" ${S.system === k ? 'selected' : ''}>${v.n} — ${v.k}</option>`).join('')}</select></span></label><p class="hint">${SYS[S.system].d}</p></div>
+  <div id="out">${sysOut(res)}</div></section>`;
+}
+function sysOut(res) {
+  const B = res.BIO, Q = res.ctx.Qd;
+  const z = [];
+  if (res.sys.an) z.push(['Anaerobik', B.Van || 0]);
+  B.zones.forEach(x => z.push([x.n, x.V]));
+  const tot = z.reduce((a, b) => a + b[1], 0);
+  const cmp = Object.keys(SYS).map(k => {
+    const r = compute(S, sc(), k), b = r.BIO;
+    const Van = r.sys.an ? (r.ctx.Qdw + r.BIO.QanIn) * r.P.an.tAN : 0;
+    const okN = !r.ctx.lim.TN || b.TNeff <= r.ctx.lim.TN + 1e-6, okP = !r.ctx.lim.TP || b.TPeff <= r.ctx.lim.TP + 1e-6;
+    return `<tr class="${k === S.system ? 'on' : ''}" data-sysrow="${k}" tabindex="0"><td>${r.sys.n}</td><td>${f1(b.tSS)}</td><td>${b.r ? f2(b.r) : '—'}</td><td>${f0(Van)}</td><td>${f0(b.VAT + b.Vpre)}</td><td>${f0(b.SPd)}</td><td>${f0(b.oMax.air)}</td><td>${r.sys.ir ? f2(b.IR) : '—'}</td><td class="${okN ? 'ok' : 'bad'}">${f1(b.TNeff)}</td><td class="${okP ? 'ok' : 'bad'}">${f2(b.TPeff)}</td></tr>`;
+  }).join('');
+  return `${B.sys && res.R.bio ? res.R.bio.warn.map(w => `<div class="warn">${w}</div>`).join('') : ''}
+  ${drawScheme(res)}
+  <div class="kpis"><div><span>t_SS,dim</span><b>${f1(B.tSS)}</b><em>gün</em></div><div><span>V_D/V_AT</span><b>${B.r ? f2(B.r) : '—'}</b><em>-</em></div><div><span>Toplam hacim</span><b>${f0(tot)}</b><em>m³</em></div><div><span>Tahmini TN / TP</span><b>${f1(B.TNeff)} / ${f2(B.TPeff)}</b><em>mg/L</em></div></div>
+  <div class="card"><h2>Bölgeler</h2><div class="tw"><table class="rt"><thead><tr><th>Bölge</th><th>Hacim m³</th><th>Pay</th><th>HRT (Q_DW,d) h</th></tr></thead><tbody>
+  ${z.map(x => `<tr><td>${x[0]}</td><td>${f0(x[1])}</td><td>${fmtN(x[1] / tot * 100, 1)} %</td><td>${f1(x[1] / Q * 24)}</td></tr>`).join('')}
+  <tr class="tot"><td>Toplam</td><td>${f0(tot)}</td><td>100 %</td><td>${f1(tot / Q * 24)}</td></tr></tbody></table></div></div>
+  <div class="card"><h2>Sistem karşılaştırması</h2><div class="tw"><table class="rt cmp"><thead><tr><th>Sistem</th><th>t_SS gün</th><th>V_D/V_AT</th><th>V_AN m³</th><th>V_AT m³</th><th>SP_d kg/gün</th><th>Hava Nm³/h</th><th>IR</th><th>TN mg/L</th><th>TP mg/L</th></tr></thead><tbody>${cmp}</tbody></table></div>
+  <p class="hint">Tüm sistemler aynı ünite parametreleriyle hesaplanır. TP, kimyasal P giderimi seçiliyse hedef değere eşitlenir.</p></div>`;
+}
+
+// ---------- Sayfa: ünite ----------
+function unitForm(u, res) {
+  const raw = (sc().p[u]) || {}; const auto = (res.R[u] && res.R[u].auto) || {};
+  return UNITS[u].f.map(f => {
+    if (f.g) return `<div class="fg">${f.g}</div>`;
+    const id = `p_${u}_${f.k}`, path = `p.${u}.${f.k}`;
+    const v = raw[f.k];
+    if (f.opts) return `<label class="fld" for="${id}"><span class="fl-l">${f.l}</span><span class="fl-i"><select id="${id}" data-bind="${path}">${f.opts.map(([ov, ot]) => `<option value="${ov}" ${String(v ?? f.d) === ov ? 'selected' : ''}>${ot}</option>`).join('')}</select></span></label>`;
+    const ph = f.auto ? ('oto: ' + (auto[f.k] != null ? fmtN(auto[f.k], Number.isInteger(auto[f.k]) ? 0 : 2) : '—')) : String(f.d);
+    const val = (v === undefined || v === null) ? (f.auto ? '' : String(f.d)) : v;
+    return `<label class="fld ${f.auto ? 'auto' : ''}" for="${id}"><span class="fl-l">${f.l}${f.h ? `<small>${f.h}</small>` : ''}</span><span class="fl-i"><input type="text" inputmode="decimal" id="${id}" data-bind="${path}" data-auto="${f.auto ? f.k : ''}" value="${esc(val)}" placeholder="${esc(ph)}"><em>${f.u || ''}</em></span></label>`;
+  }).join('');
+}
+function rowsTable(rows) {
+  return `<div class="tw"><table class="rt res"><tbody>${rows.map(r => r.s ? `<tr class="sec"><th colspan="4">${r.s}</th></tr>` :
+    `<tr><td>${r.l}</td><td class="v">${typeof r.v === 'number' ? fmtN(r.v, r.u === 'adet' ? 0 : r.d) : esc(r.v ?? '—')}</td><td class="u">${r.u || ''}</td><td class="c">${r.c ? `<span class="chip ${r.c.ok ? 'ok' : 'bad'}">${r.c.ok ? 'Uygun' : 'Uygun değil'} · ${r.c.t}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function unitOut(u, res) {
+  const o = res.R[u]; if (!o) return '<p class="hint">Bu ünite seçili değil.</p>';
+  const nm = UNITS[u].c + ' ' + UNITS[u].n;
+  return `${o.warn.map(w => `<div class="warn">${w}</div>`).join('')}
+  <div class="kpis">${(o.key || []).map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+  ${drawUnit(u, o, nm)}
+  <div class="card"><h2>Hesap sonuçları</h2>${rowsTable(o.rows)}</div>`;
+}
+function pageUnit(u, res) {
+  return `<section class="pg"><header class="ph"><p class="eyebrow">${UNITS[u].c} · ${esc(sc().name)} · ${UNITS[u].ref}</p><h1>${UNITS[u].n}</h1></header>
+  <div class="split"><div class="card form"><div class="fh"><h2>Girdiler</h2><button class="btn sm ghost" data-resetunit="${u}">Varsayılanlar</button></div><p class="hint">“oto” alanları boş bırakılırsa program hesaplar; değer yazarsanız sizin değeriniz kullanılır.</p>${unitForm(u, res)}</div>
+  <div id="out">${unitOut(u, res)}</div></div></section>`;
+}
+
+// ---------- Sayfa: özet ----------
+function sumTable(res) {
+  return `<div class="tw"><table class="rt"><thead><tr><th>Kod</th><th>Ünite</th><th>Seçilen boyutlar</th><th>Kontrol</th></tr></thead><tbody>${unitList(res).map(u => {
+    const o = res.R[u]; if (!o) return '';
+    const fl = fails(o);
+    return `<tr><td>${UNITS[u].c}</td><td><button class="lnk" data-page="${u}">${UNITS[u].n}</button></td><td>${(o.key || []).map(([a, b]) => `<span class="kv"><i>${a}</i> ${b}</span>`).join('')}</td><td>${fl ? `<span class="chip bad">${fl} uyarı</span>` : '<span class="chip ok">Uygun</span>'}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function pageSum(res) {
+  const sc2 = S.scen.map(x => compute(S, x));
+  const keys = [['Q_DW,d (m³/gün)', r => f0(r.ctx.Qd)], ['Q_M (m³/h)', r => f0(r.ctx.Qww)], ['t_SS (gün)', r => f1(r.BIO.tSS)], ['V_D/V_AT', r => f2(r.BIO.r)], ['V_AT (m³)', r => f0(r.BIO.VAT)],
+    ['Biyolojik havuz', r => r.R.bio ? r.R.bio.key[1][1] + ' · ' + r.BIO.Nb + ' adet' : '—'], ['Son çöktürme', r => r.R.sc ? r.R.sc.key[0][1] + ', ' + r.R.sc.key[1][1] : '—'],
+    ['Fazla çamur (kg KM/gün)', r => f0(r.BIO.SPd)], ['Hava (Nm³/h)', r => f0(r.BIO.oMax.air)], ['Çıkış TN / TP (mg/L)', r => f1(r.BIO.TNeff) + ' / ' + f2(r.BIO.TPeff)]];
+  return `<section class="pg"><header class="ph"><p class="eyebrow">${esc(S.project.name)}</p><h1>Özet tablo</h1><p class="lead">${esc(sc().name)} · ${SYS[S.system].n}</p></header>
+  <div class="card"><h2>Ünite boyutları</h2>${sumTable(res)}</div>
+  <div class="card"><h2>Kademe karşılaştırması</h2><div class="tw"><table class="rt"><thead><tr><th>Büyüklük</th>${S.scen.map(x => `<th>${esc(x.name)}</th>`).join('')}</tr></thead><tbody>${keys.map(([l, fn]) => `<tr><td>${l}</td>${sc2.map(r => `<td>${fn(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+  <div class="card"><h2>Word raporu</h2><p class="hint">Etkin kademe için tüm seçili ünitelerin girdi, sonuç tabloları ve ölçülü çizimlerini içeren .docx dosyası oluşturur.</p><button class="btn" data-word>Word raporu oluştur (.docx)</button></div></section>`;
+}
+function pageRep(res) {
+  return `<section class="pg rep"><header class="ph"><p class="eyebrow">${esc(S.project.loc)}</p><h1>${esc(S.project.name)}</h1><p class="lead">Proses hesap raporu · ${esc(sc().name)} · ${SYS[S.system].n} · DWA-A 131 (2016)</p><div class="row"><button class="btn" data-word>Word raporu oluştur (.docx)</button></div></header>
+  <div class="card"><h2>1. Tasarım esasları</h2>${dataOut(res)}</div>
+  <div class="card"><h2>2. Proses sistemi</h2>${sysOutLite(res)}</div>
+  ${unitList(res).map((u, i) => `<div class="card"><h2>${i + 3}. ${UNITS[u].c} ${UNITS[u].n}</h2><p class="hint">${UNITS[u].ref}</p>${unitOut(u, res)}</div>`).join('')}
+  <div class="card"><h2>Özet</h2>${sumTable(res)}</div></section>`;
+}
+function sysOutLite(res) { return drawScheme(res); }
+
+// ---------- Olaylar ----------
+function setPath(path, val) {
+  const [a, b, c] = path.split('.');
+  if (a === 'proj') S.project[b] = val;
+  else if (a === 'inp') sc().inp[b] = val;
+  else if (a === 'p') { sc().p[b] = sc().p[b] || {}; if (val === '') delete sc().p[b][c]; else sc().p[b][c] = val; }
+}
+let rT = null;
+function refresh() {
+  clearTimeout(rT);
+  rT = setTimeout(() => {
+    const res = compute(S, sc());
+    const out = $('#out');
+    if (out) {
+      if (S.page === 'data') out.innerHTML = dataOut(res);
+      else if (S.page === 'sys') out.innerHTML = sysOut(res);
+      else if (UNITS[S.page]) {
+        out.innerHTML = unitOut(S.page, res);
+        const auto = (res.R[S.page] && res.R[S.page].auto) || {};
+        document.querySelectorAll('input[data-auto]').forEach(el => { const k = el.dataset.auto; if (k) el.placeholder = 'oto: ' + (auto[k] != null ? fmtN(auto[k], Number.isInteger(auto[k]) ? 0 : 2) : '—'); });
+      }
+    }
+    document.querySelectorAll('#nav .nv').forEach(b => {
+      const k = b.dataset.page; if (!UNITS[k]) return;
+      const fl = fails(res.R[k]); let nf = b.querySelector('.nf');
+      if (fl) { if (!nf) { nf = document.createElement('span'); nf.className = 'nf'; b.appendChild(nf); } nf.textContent = fl; } else if (nf) nf.remove();
+    });
+    $('#pname').textContent = S.project.name || 'Adsız proje';
+  }, 120);
+}
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t.dataset.bind) { setPath(t.dataset.bind, t.value); save(); refresh(); }
+  else if (t.dataset.scname !== undefined) { S.scen[+t.dataset.scname].name = t.value; save(); $('#scsel').options[+t.dataset.scname].textContent = t.value; }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.unit) { S.units[t.dataset.unit] = t.checked; save(); renderShell(); }
+  else if (t.hasAttribute('data-sys')) { S.system = t.value; save(); renderShell(); }
+  else if (t.id === 'scsel') { S.act = +t.value; save(); renderShell(); }
+  else if (t.id === 'fLoad' && t.files[0]) {
+    const rd = new FileReader();
+    rd.onload = () => { try { const o = JSON.parse(rd.result); if (!o.scen) throw 0; S = Object.assign(defaultState(), o); S.page = 'home'; save(); renderShell(); toast('Proje yüklendi'); } catch (er) { toast('Dosya okunamadı: geçerli bir proje .json dosyası seçin'); } };
+    rd.readAsText(t.files[0]);
+  }
+  else if (t.tagName === 'SELECT' && t.dataset.bind) { setPath(t.dataset.bind, t.value); save(); refresh(); }
+});
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button,[data-sysrow]'); if (!t) return;
+  if (t.dataset.page) { S.page = t.dataset.page; save(); renderShell(); window.scrollTo(0, 0); return; }
+  if (t.dataset.sysrow) { S.system = t.dataset.sysrow; save(); renderShell(); return; }
+  if (t.dataset.act !== undefined) { S.act = +t.dataset.act; save(); renderShell(); return; }
+  if (t.dataset.dup !== undefined) { const c = JSON.parse(JSON.stringify(S.scen[+t.dataset.dup])); c.name += ' (kopya)'; S.scen.push(c); S.act = S.scen.length - 1; save(); renderShell(); return; }
+  if (t.dataset.del !== undefined) { S.scen.splice(+t.dataset.del, 1); S.act = 0; save(); renderShell(); return; }
+  if (t.dataset.resetunit) { delete sc().p[t.dataset.resetunit]; save(); renderPage(); return; }
+  if (t.hasAttribute('data-word')) { makeWord(t); return; }
+  if (t.hasAttribute('data-cad')) { cadExport(); return; }
+  if (t.id === 'bSave') { saveJson(); return; }
+  if (t.id === 'bReset') { $('#resetAsk').hidden = false; return; }
+  if (t.id === 'bResetNo') { $('#resetAsk').hidden = true; return; }
+  if (t.id === 'bResetYes') { S = defaultState(); save(); renderShell(); toast('Örnek veriler yüklendi'); return; }
+  if (t.id === 'navT') { document.body.classList.toggle('navopen'); return; }
+});
+// ---------- ArıtmaCAD aktarımı: ünite ebatları → çizim ----------
+function cadData() {
+  const res = compute(S, sc()), units = {};
+  for (const u of unitList(res)) { const o = res.R[u]; if (o && o.dim) units[u] = { kod: UNITS[u].c, ad: UNITS[u].n, dim: JSON.parse(JSON.stringify(o.dim)), key: o.key || [] }; }
+  const c = res.ctx || {};
+  return { format: 'AritmaCAD-proses', surum: 2, kaynak: 'ATV-A 131 Proses Hesabı', zaman: new Date().toISOString(), proje: { name: S.project.name, loc: S.project.loc }, kademe: sc().name, sistem: S.system, sistemAd: SYS[S.system].n, debi: { Qd: c.Qd, Qh: c.Qh, Qdw: c.Qdw, Qww: c.Qww, Qmin: c.Qmin, PE: c.PE }, units };
+}
+function cadExport() {
+  const d = cadData(); let sent = false;
+  try { if (window.opener && !window.opener.closed) { window.opener.postMessage(d, '*'); sent = true; } } catch (e) { }
+  if (sent) { toast('Ebatlar ArıtmaCAD\'e gönderildi (' + Object.keys(d.units).length + ' ünite). Çizimde PROSES komutuyla yerleştirin.'); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
+  a.download = (S.project.name || 'proses').replace(/[^\w\u00C0-\u017F-]+/g, '_') + '_proses.json'; document.body.appendChild(a); a.click(); a.remove();
+  toast('ArıtmaCAD penceresi bulunamadı; proses dosyası indirildi. ArıtmaCAD\'de PROSESAC ile açın.');
+}
+function toast(m) { const el = $('#toast'); el.textContent = m; el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => el.hidden = true, 3500); }
+
+// ---------- Dosya kaydetme ----------
+let DL = null;
+(async () => { try { if (window.claude && window.claude.use) DL = await window.claude.use('downloads'); } catch (e) { DL = null; } })();
+async function saveFile(name, blob) {
+  if (DL) {
+    try { await DL.save({ filename: name, data: blob }); toast(name + ' kaydedildi'); return; }
+    catch (e) { if (e && e.code === 'declined') { toast('Kaydetme iptal edildi'); return; } if (!['unavailable', 'not_granted', 'capability_disabled', 'capability_removed'].includes(e && e.code)) { toast('Dosya kaydedilemedi: ' + (e && e.message || e)); return; } }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast(name + ' indiriliyor');
+}
+const safeName = (s) => (s || 'proje').replace(/[^\wçğıöşüÇĞİÖŞÜ\- ]+/g, '').trim().replace(/\s+/g, '_').slice(0, 60);
+function saveJson() { saveFile(safeName(S.project.name) + '.json', new Blob([JSON.stringify(S, null, 1)], { type: 'application/json' })); }
+
+// ---------- SVG → PNG ----------
+const EXPORT_CSS = `text{font-family:Arial,Helvetica,sans-serif}.vt{font:700 13px Arial;fill:#1b2b3a;letter-spacing:1px}.lb{font:12px Arial;fill:#1b2b3a}.lbz{font:600 12px Arial;fill:#1b2b3a}.lbs{font:11px Arial;fill:#475766}.dt{font:11px Consolas,monospace;fill:#8a3b12}.dm{stroke:#8a3b12;stroke-width:.8;fill:none}.ex{stroke:#8a3b12;stroke-width:.5}.mk{fill:#8a3b12}.mkf{fill:#0b6e78}.ln{stroke:#1f3b57;stroke-width:1.2;fill:none}.bg{fill:none}.lnd{stroke:#1f3b57;stroke-width:1;stroke-dasharray:5 4;fill:none}.wl{fill:url(#hc);stroke:#1f3b57;stroke-width:1}.hcb{fill:#dfe4e8}.hcl{stroke:#1f3b57;stroke-width:.6;opacity:.5}.wt{fill:#bfe0f2;stroke:none}.op5{opacity:.55}.ws{stroke:#2a7fb8;stroke-width:1.4;stroke-dasharray:8 3;fill:none}.scr{stroke:#1f3b57;stroke-width:3}.fl{stroke:#0b6e78;stroke-width:2;fill:none}.eq{fill:#ffffff;stroke:#1f3b57;stroke-width:1.2}.bub{fill:#ffffff;stroke:#2a7fb8;stroke-width:.8}.roll{stroke:#2a7fb8;stroke-width:1.2;fill:none;stroke-dasharray:4 3}.brg{fill:#f2d9a6;stroke:#1f3b57;stroke-width:.8}.zAN{fill:#d9cdf0;stroke:#1f3b57;stroke-width:.6}.zAX{fill:#c6dcf5;stroke:#1f3b57;stroke-width:.6}.zOX{fill:#cdeedd;stroke:#1f3b57;stroke-width:.6}.zSIM{fill:#d6ece6;stroke:#1f3b57;stroke-width:.6}.zINT{fill:#e2ebd2;stroke:#1f3b57;stroke-width:.6}.zST{fill:#bfe0f2;stroke:#1f3b57;stroke-width:.6}.part{fill:#1f3b57}.df{fill:#1f3b57}.dfl{stroke:#1f3b57;stroke-width:2.5;stroke-dasharray:2 3}.mix{fill:none;stroke:#1f3b57;stroke-width:1}.band{stroke:#1f3b57;stroke-width:.6}.b1{fill:#e8f4fb}.b2{fill:#bfe0f2}.b3{fill:#8fc3e3}.b4{fill:#8b7a5c}.chem{fill:#f3d9a2}.cake{fill:#b59a74;stroke:#1f3b57;stroke-width:.8}.uvb{fill:#efe6ff;stroke:#5b3fa0;stroke-width:1}.lamp{stroke:#5b3fa0;stroke-width:1.2}.lampc{fill:#efe6ff;stroke:#5b3fa0;stroke-width:.8}.sbx{stroke:#1f3b57;stroke-width:1}.rec{fill:none;stroke-width:1.6}.ras{stroke:#8a3b12}.ir{stroke:#2a7fb8}.rr{stroke:#5b3fa0}`;
+function svgToPng(svg, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const m = svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/); const w = +m[1], h = +m[2];
+    const i = svg.indexOf('>') + 1;
+    const s2 = svg.slice(0, i) + '<style>' + EXPORT_CSS + '</style><rect width="100%" height="100%" fill="#ffffff"/>' + svg.slice(i);
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas'); cv.width = w * scale; cv.height = h * scale;
+      const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(b => b ? b.arrayBuffer().then(ab => resolve({ data: new Uint8Array(ab), w, h })) : reject(new Error('PNG oluşturulamadı')), 'image/png');
+    };
+    img.onerror = () => reject(new Error('Çizim görüntüye çevrilemedi'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s2);
+  });
+}
+const svgOf = (figHtml) => { const m = figHtml.match(/<svg[\s\S]*<\/svg>/); return m ? m[0] : null; };
+
+// ---------- DOCX ----------
+async function makeWord(btn) {
+  if (typeof JSZip === 'undefined') { toast('Word kütüphanesi yüklenemedi; internet bağlantısını kontrol edin.'); return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Rapor hazırlanıyor…';
+  try {
+    const blob = await buildDocx();
+    await saveFile(safeName(S.project.name) + '_' + safeName(sc().name) + '_proses_hesabi.docx', blob);
+  } catch (e) { toast('Rapor oluşturulamadı: ' + e.message); console.error(e); }
+  btn.disabled = false; btn.textContent = old;
+}
+async function buildDocx() {
+  const res = compute(S, sc());
+  const X = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const media = []; let body = '';
+  const run = (t, o = {}) => `<w:r>${(o.b || o.c || o.sz || o.i) ? `<w:rPr>${o.b ? '<w:b/>' : ''}${o.i ? '<w:i/>' : ''}${o.c ? `<w:color w:val="${o.c}"/>` : ''}${o.sz ? `<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>` : ''}</w:rPr>` : ''}<w:t xml:space="preserve">${X(t)}</w:t></w:r>`;
+  const para = (t, st, o = {}) => `<w:p>${st || o.jc ? `<w:pPr>${st ? `<w:pStyle w:val="${st}"/>` : ''}${o.jc ? `<w:jc w:val="${o.jc}"/>` : ''}</w:pPr>` : ''}${run(t, o)}</w:p>`;
+  const pb = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+  const cell = (t, w, o = {}) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.span ? `<w:gridSpan w:val="${o.span}"/>` : ''}${o.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>` : ''}<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:before="30" w:after="30"/>${o.jc ? `<w:jc w:val="${o.jc}"/>` : ''}</w:pPr>${run(t, { b: o.b, c: o.c, sz: o.sz || 18 })}</w:p></w:tc>`;
+  const table = (widths, rows) => {
+    const tot = widths.reduce((a, b) => a + b, 0);
+    return `<w:tbl><w:tblPr><w:tblStyle w:val="Tablo"/><w:tblW w:w="${tot}" w:type="dxa"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${widths.map(w => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.join('')}</w:tbl><w:p/>`;
+  };
+  const tr = (cells, hdr) => `<w:tr>${hdr ? '<w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>' : '<w:trPr><w:cantSplit/></w:trPr>'}${cells}</w:tr>`;
+  const W4 = [4700, 1650, 1900, 1388];
+  const resTable = (rows) => table(W4, [tr(cell('Parametre', W4[0], { b: 1, fill: '1F3B57', c: 'FFFFFF' }) + cell('Değer', W4[1], { b: 1, fill: '1F3B57', c: 'FFFFFF', jc: 'right' }) + cell('Birim', W4[2], { b: 1, fill: '1F3B57', c: 'FFFFFF' }) + cell('Kontrol', W4[3], { b: 1, fill: '1F3B57', c: 'FFFFFF' }), true),
+    ...rows.map(r => r.s ? tr(cell(r.s, 9638, { span: 4, b: 1, fill: 'DCE6EE' })) :
+      tr(cell(r.l, W4[0]) + cell(typeof r.v === 'number' ? fmtN(r.v, r.u === 'adet' ? 0 : r.d) : (r.v ?? '—'), W4[1], { jc: 'right' }) + cell(r.u || '', W4[2]) + cell(r.c ? (r.c.ok ? 'Uygun ' : 'Uygun değil ') + r.c.t : '', W4[3], { c: r.c ? (r.c.ok ? '1D7A46' : 'B42318') : undefined, sz: 16 })))]);
+  const image = async (figHtml, maxIn = 6.6) => {
+    const svg = svgOf(figHtml); if (!svg) return '';
+    const png = await svgToPng(svg);
+    const id = media.length + 1; media.push(png.data);
+    const cx = Math.round(maxIn * 914400), cy = Math.round(cx * png.h / png.w);
+    return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Cizim ${id}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="img${id}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rImg${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>` +
+      para((figHtml.match(/<figcaption>([\s\S]*?)<\/figcaption>/) || [])[1] || '', 'Caption', { jc: 'center' });
+  };
+  const today = new Date().toLocaleDateString('tr-TR');
+  // Kapak
+  body += para(S.project.name || 'Atıksu Arıtma Tesisi', 'Title');
+  body += para('PROSES HESAP RAPORU', 'Subtitle');
+  body += para(`${sc().name} · ${SYS[S.system].n}`, null, { b: 1, sz: 24 });
+  body += para(`Yer: ${S.project.loc || '—'}   ·   Hazırlayan: ${S.project.eng || '—'}   ·   Tarih: ${today}`);
+  body += para('Hesap esası: DWA-A 131 (2016) “Tek kademeli aktif çamur tesislerinin boyutlandırılması”; ATV-DVWK-A 134, A 202, DWA-M 369.', null, { i: 1, sz: 18 });
+  if (S.project.note) body += para(S.project.note, null, { sz: 18 });
+  if (res.GW.length) res.GW.forEach(w => body += para('Uyarı: ' + w, null, { c: 'B42318' }));
+  // 1. Tasarım esasları
+  body += pb + para('1. Tasarım Esasları', 'Heading1');
+  const I = inpNums(sc().inp), c = res.ctx;
+  const Wd = [5200, 2300, 2138];
+  body += table(Wd, [tr(cell('Büyüklük', Wd[0], { b: 1, fill: '1F3B57', c: 'FFFFFF' }) + cell('Değer', Wd[1], { b: 1, fill: '1F3B57', c: 'FFFFFF', jc: 'right' }) + cell('Birim', Wd[2], { b: 1, fill: '1F3B57', c: 'FFFFFF' }), true),
+    ...INPUTS.map(f => f.g ? tr(cell(f.g, 9638, { span: 3, b: 1, fill: 'DCE6EE' })) : tr(cell(f.l, Wd[0]) + cell(fmtN(I[f.k], Number.isInteger(I[f.k]) ? 0 : 2), Wd[1], { jc: 'right' }) + cell(f.u, Wd[2])))]);
+  const W6 = [2000, 1500, 1500, 1600, 1500, 1538];
+  body += para('Yükler ve konsantrasyonlar', 'Heading2');
+  body += table(W6, [tr(['Parametre', 'Ham kg/gün', 'Ham mg/L', 'Rejekt dahil kg/gün', 'Rejekt dahil mg/L', 'g/(EN·gün)'].map((h, i) => cell(h, W6[i], { b: 1, fill: '1F3B57', c: 'FFFFFF' })).join(''), true),
+    ...['COD', 'BOD', 'TSS', 'TKN', 'TP'].map(k => tr([LBL[k], f0(c.L0[k]), f1(c.L0[k] * 1000 / c.Qd), f0(c.Lin[k]), f1(c.Lin[k] * 1000 / c.QdT), c.PE ? f1(c.L0[k] * 1000 / c.PE) : '—'].map((v, i) => cell(v, W6[i], { jc: i ? 'right' : undefined })).join('')))]);
+  // 2. Sistem
+  body += pb + para('2. Proses Sistemi: ' + SYS[S.system].n, 'Heading1');
+  body += para(SYS[S.system].d);
+  body += await image(drawScheme(res));
+  const B = res.BIO;
+  const z = []; if (res.sys.an) z.push(['Anaerobik', B.Van || 0]); B.zones.forEach(x => z.push([x.n, x.V]));
+  const tot = z.reduce((a, b) => a + b[1], 0); const Wz = [4200, 1900, 1700, 1838];
+  body += table(Wz, [tr(['Bölge', 'Hacim m³', 'Pay %', 'HRT h'].map((h, i) => cell(h, Wz[i], { b: 1, fill: '1F3B57', c: 'FFFFFF' })).join(''), true),
+    ...z.map(x => tr([x[0], f0(x[1]), fmtN(x[1] / tot * 100, 1), f1(x[1] / c.Qd * 24)].map((v, i) => cell(v, Wz[i], { jc: i ? 'right' : undefined })).join(''))),
+    tr(['Toplam', f0(tot), '100', f1(tot / c.Qd * 24)].map((v, i) => cell(v, Wz[i], { b: 1, jc: i ? 'right' : undefined })).join(''))]);
+  // Üniteler
+  let n = 3;
+  for (const u of unitList(res)) {
+    const o = res.R[u]; if (!o) continue;
+    body += pb + para(`${n++}. ${UNITS[u].c} ${UNITS[u].n}`, 'Heading1');
+    body += para('Referans: ' + UNITS[u].ref, null, { i: 1, sz: 18 });
+    o.warn.forEach(w => body += para('Uyarı: ' + w, null, { c: 'B42318', sz: 18 }));
+    if (o.key) body += para('Seçilen boyutlar: ' + o.key.map(([a, b]) => a + ' ' + b).join('  ·  '), null, { b: 1 });
+    body += await image(drawUnit(u, o, UNITS[u].c + ' ' + UNITS[u].n));
+    body += para('Girdi parametreleri', 'Heading2');
+    const pv = res.P[u], Wp = [5600, 2200, 1838];
+    body += table(Wp, UNITS[u].f.filter(f => f.k).map(f => {
+      const v = pv[f.k]; const isAuto = f.auto && v == null; const av = isAuto ? o.auto[f.k] : v;
+      const vs = f.opts ? (f.opts.find(x => x[0] === String(v ?? f.d)) || [, ''])[1] : (av == null ? 'oto' : fmtN(av, Number.isInteger(av) ? 0 : 2) + (isAuto ? ' (oto)' : ''));
+      return tr(cell(f.l, Wp[0]) + cell(vs, Wp[1], { jc: 'right' }) + cell(f.u || '', Wp[2]));
+    }));
+    body += para('Hesap sonuçları', 'Heading2');
+    body += resTable(o.rows);
+  }
+  // Özet
+  body += pb + para(`${n}. Özet`, 'Heading1');
+  const Ws = [1000, 3300, 5338];
+  body += table(Ws, [tr(['Kod', 'Ünite', 'Seçilen boyutlar'].map((h, i) => cell(h, Ws[i], { b: 1, fill: '1F3B57', c: 'FFFFFF' })).join(''), true),
+    ...unitList(res).filter(u => res.R[u]).map(u => tr(cell(UNITS[u].c, Ws[0]) + cell(UNITS[u].n, Ws[1]) + cell((res.R[u].key || []).map(([a, b]) => a + ': ' + b).join(' · '), Ws[2])))]);
+
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+  const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${body}<w:sectPr><w:footerReference w:type="default" r:id="rFtr"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const footer = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${NS}><w:p><w:pPr><w:pStyle w:val="Footer"/><w:tabs><w:tab w:val="right" w:pos="9638"/></w:tabs></w:pPr>${run((S.project.name || '') + ' · Proses Hesabı · ' + sc().name, { sz: 16, c: '5B6B7A' })}<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:tab/><w:t xml:space="preserve">Sayfa </w:t></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri" w:eastAsia="Calibri"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="tr-TR"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="1800" w:after="200"/></w:pPr><w:rPr><w:b/><w:color w:val="1F3B57"/><w:sz w:val="48"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="400"/></w:pPr><w:rPr><w:color w:val="0B6E78"/><w:spacing w:val="40"/><w:sz w:val="28"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="0B6E78"/></w:pBdr><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="1F3B57"/><w:sz w:val="30"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="200" w:after="80"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="0B6E78"/><w:sz w:val="24"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="5B6B7A"/><w:sz w:val="16"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Footer"><w:name w:val="footer"/><w:basedOn w:val="Normal"/></w:style>
+<w:style w:type="table" w:styleId="Tablo"><w:name w:val="Tablo"/><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4" w:color="9AA8B5"/><w:left w:val="single" w:sz="4" w:color="9AA8B5"/><w:bottom w:val="single" w:sz="4" w:color="9AA8B5"/><w:right w:val="single" w:sz="4" w:color="9AA8B5"/><w:insideH w:val="single" w:sz="4" w:color="C9D2DA"/><w:insideV w:val="single" w:sz="4" w:color="C9D2DA"/></w:tblBorders><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>
+</w:styles>`;
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`);
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rSty" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rFtr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>${media.map((_, i) => `<Relationship Id="rImg${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/img${i + 1}.png"/>`).join('')}</Relationships>`);
+  zip.file('word/document.xml', doc);
+  zip.file('word/styles.xml', styles);
+  zip.file('word/footer1.xml', footer);
+  media.forEach((d, i) => zip.file(`word/media/img${i + 1}.png`, d));
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+
+renderShell();
+
+</script>
+
+</body></html>

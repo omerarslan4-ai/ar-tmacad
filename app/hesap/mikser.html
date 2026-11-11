@@ -1,0 +1,1329 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Dalgıç Mikser Karışım Analizi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mühendislik hesap föyü — solda girdi paneli, sağda plan görünümü + sonuçlar, altta rapor föyü */
+:root{
+  --bg:#eef2f2; --surface:#ffffff; --sunk:#e3e9ea; --ink:#13242b; --muted:#566a71; --line:#cdd8da;
+  --accent:#0a6f7a; --accent-ink:#ffffff; --accent-soft:#d5eced;
+  --ok:#1f7a45; --ok-soft:#dcefe3; --warn:#9a6200; --warn-soft:#f6ead2; --bad:#b3261e; --bad-soft:#f7dedb;
+  --tank-wall:#5c6f75; --tank-fill:#dfe7e8;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e171b; --surface:#152227; --sunk:#0b1316; --ink:#e3ecee; --muted:#93a7ad; --line:#2a3b41;
+  --accent:#4fc0c9; --accent-ink:#06191c; --accent-soft:#163c41;
+  --ok:#5fcf8b; --ok-soft:#173826; --warn:#e6b04d; --warn-soft:#3a2d12; --bad:#ff8a80; --bad-soft:#3d1a18;
+  --tank-wall:#9fb3b8; --tank-fill:#1d2d33; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e171b; --surface:#152227; --sunk:#0b1316; --ink:#e3ecee; --muted:#93a7ad; --line:#2a3b41;
+  --accent:#4fc0c9; --accent-ink:#06191c; --accent-soft:#163c41;
+  --ok:#5fcf8b; --ok-soft:#173826; --warn:#e6b04d; --warn-soft:#3a2d12; --bad:#ff8a80; --bad-soft:#3d1a18;
+  --tank-wall:#9fb3b8; --tank-fill:#1d2d33; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(26px,3.2vw,36px);font-weight:700}
+h2{font-size:20px;font-weight:600}
+h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+header.top p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+button,.btn{font:600 14px/1 var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r);padding:9px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:940px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.fields .full{grid-column:1/-1}
+label.f{display:block;font-size:13px;color:var(--muted);min-width:0}
+label.f>input,label.f>select{display:block;margin-top:4px}
+label.f span.u{color:var(--muted);font-family:var(--f-mono);font-size:11px;margin-left:2px}
+input,select{font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:7px 8px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-mono);font-size:13px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--surface);font-size:13px;padding:9px 4px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.mixer{border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.mixer.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.mixer-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mixer-head input{font-weight:600;background:transparent;border-color:transparent;padding:4px}
+.mixer .fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.x{border:0;background:transparent;color:var(--muted);padding:4px 8px;font-size:18px;line-height:1}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+details>summary{cursor:pointer;font-weight:600;font-family:var(--f-display);font-size:16px}
+details[open]>summary{margin-bottom:10px}
+/* results */
+.verdict{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface)}
+.verdict .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.verdict b{font-family:var(--f-display);font-size:18px}
+.st-ok{--c:var(--ok);--cs:var(--ok-soft)} .st-warn{--c:var(--warn);--cs:var(--warn-soft)} .st-bad{--c:var(--bad);--cs:var(--bad-soft)}
+.verdict.st-ok,.verdict.st-warn,.verdict.st-bad{background:var(--cs);border-color:var(--c)}
+.verdict .dot{background:var(--c)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi .v{font-family:var(--f-mono);font-size:22px;font-weight:500}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.kpi .bar{height:4px;background:var(--sunk);border-radius:2px;overflow:hidden;margin-top:4px}
+.kpi .bar i{display:block;height:100%;background:var(--c,var(--accent))}
+.pill{display:inline-flex;align-items:center;gap:5px;font:600 11.5px var(--f-body);text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:99px;background:var(--cs);color:var(--c);white-space:nowrap}
+.planbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.planbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.planbar .seg{grid-template-columns:repeat(3,auto)}
+.planbar .seg button{padding:7px 10px}
+.canvas-wrap{position:relative;width:100%;min-width:0}
+canvas{display:block;width:100%;touch-action:none}
+#plan{border-radius:4px;background:var(--sunk)}
+.legend{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+td.num,th.num{text-align:right;white-space:nowrap}
+/* report sheet */
+.report{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:clamp(16px,3vw,36px);display:flex;flex-direction:column;gap:22px}
+.report-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+.report section{display:flex;flex-direction:column;gap:10px}
+.report p{margin:0;max-width:78ch}
+.report ol,.report ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+.report figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.report figure img{border:1px solid var(--line);border-radius:4px;background:var(--sunk)}
+.report figcaption{font-size:12.5px;color:var(--muted)}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.formula{font-family:var(--f-mono);font-size:13px;background:var(--sunk);padding:8px 10px;border-radius:4px;overflow-x:auto;white-space:pre}
+.calc{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:10px 12px;background:var(--sunk);border-radius:4px;border-left:3px solid var(--accent)}
+.calc .lbl{font-weight:600;font-size:14px}
+.calc .eq{overflow-x:auto;overflow-y:hidden;padding:1px 0}
+.calc math{math-style:normal;font-size:1.08em}
+.calc .eq.res{color:var(--accent);font-weight:600}
+.calc .tx{font-size:12.5px;color:var(--muted)}
+.calc .res{font-family:var(--f-mono);font-size:13px;font-weight:600;color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:var(--r);font-weight:600;font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Dalgıç Mikser Karışım Analizi</h1>
+      <p>Havuz geometrisini, prosesi ve mikserleri girin. Araç itki dengesinden havuzdaki ortalama akış hızını, jetlerin etkisini, ölü bölgeleri ve tasarım kontrollerini hesaplar, sonucu rapor olarak hazırlar.</p>
+    </div>
+    <div class="toolbar">
+      <button id="btnExample" type="button">Örneği yükle</button>
+      <button id="btnCopy" type="button">Rapor metnini kopyala</button>
+      <button id="btnWord" type="button" class="primary">Word raporu indir</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="side">
+      <div class="panel">
+        <h2>Proje</h2>
+        <div class="fields">
+          <label class="f full">Proje / ünite adı<input id="projName" type="text"></label>
+          <label class="f full">Hazırlayan<input id="projBy" type="text"></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Havuz geometrisi</h2>
+        <div class="seg" role="group" aria-label="Havuz tipi">
+          <button type="button" data-type="rect">Dikdörtgen</button>
+          <button type="button" data-type="circ">Dairesel</button>
+          <button type="button" data-type="oval">Yarış pisti</button>
+        </div>
+        <div class="fields" id="geoFields"></div>
+        <p class="hint" id="geoInfo"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Proses ve ölçütler</h2>
+        <div class="fields">
+          <label class="f full">Proses tipi
+            <select id="process">
+              <option value="anoxic">Anoksik / anaerobik havuz (aktif çamur)</option>
+              <option value="ditch">Oksidasyon hendeği / yarış pisti</option>
+              <option value="equal">Dengeleme havuzu (ham atıksu)</option>
+              <option value="sludge">Çamur depolama / homojenizasyon</option>
+              <option value="custom">Özel</option>
+            </select>
+          </label>
+          <label class="f">Hedef ort. akış hızı <span class="u">m/s</span><input id="vTarget" type="number" step="0.01" min="0.05"></label>
+          <label class="f">Çökelme sınır hızı <span class="u">m/s</span><input id="vDead" type="number" step="0.01" min="0.01"></label>
+          <label class="f">Özgül güç alt sınır <span class="u">W/m³</span><input id="pMin" type="number" step="0.5" min="0"></label>
+          <label class="f">Özgül güç üst sınır <span class="u">W/m³</span><input id="pMax" type="number" step="0.5" min="0"></label>
+          <label class="f full">Sıvı yoğunluğu <span class="u">kg/m³</span><input id="rho" type="number" step="1" min="950"></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="mixer-head"><h2>Mikserler</h2>
+          <select id="lib" aria-label="Mikser ekle">
+            <option value="">+ Mikser ekle…</option>
+            <option value="slow25">Yavaş devirli Ø2,5 m · 3,0 kW</option>
+            <option value="slow18">Yavaş devirli Ø1,8 m · 2,2 kW</option>
+            <option value="mid75">Orta devirli Ø0,75 m · 4,0 kW</option>
+            <option value="fast37">Hızlı devirli kompakt Ø0,37 m · 2,5 kW</option>
+          </select>
+        </div>
+        <p class="hint">Kütüphane değerleri tipik değerlerdir. Üretici föyündeki pervane çapı, mil gücü ve <b>itki (N)</b> değerini girin. İtki boş bırakılırsa momentum teorisinden tahmin edilir. Plandaki mikserleri sürükleyerek taşıyabilir, ok ucundaki tutamaçla döndürebilirsiniz.</p>
+        <div id="mixerList" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+
+      <div class="panel">
+        <details>
+          <summary>Gelişmiş hesap parametreleri</summary>
+          <div class="fields">
+            <label class="f">Sürtünme katsayısı λ<input id="lam" type="number" step="0.005" min="0"></label>
+            <label class="f">180° dönüş kaybı ζ<input id="zTurn" type="number" step="0.1" min="0"></label>
+            <label class="f">Dairesel ikincil akış ζ<input id="zSec" type="number" step="0.1" min="0"></label>
+            <label class="f">Montaj verimi η<input id="etaInst" type="number" step="0.05" min="0.3" max="1"></label>
+            <label class="f">Pervane verim katsayısı (FM)<input id="fm" type="number" step="0.05" min="0.3" max="0.9"></label>
+            <label class="f">Taban yakını kesit kotu <span class="u">m</span><input id="zBottom" type="number" step="0.05" min="0.05"></label>
+          </div>
+          <p class="hint">180° dönüş kaybı: dikdörtgen havuzda serbest dönüş için 1,5–2,5, yarış pistinde yönlendirme duvarlı dönüş için 0,6–1,0 alınır. Montaj verimi, jetin duvar, taban ve diğer mikserlerle etkileşiminden doğan kaybı temsil eder.</p>
+        </details>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="side">
+      <div class="verdict" id="verdict"><span class="dot"></span><div><b id="verdictT"></b><div class="hint" id="verdictS"></div></div></div>
+      <div class="kpis" id="kpis"></div>
+
+      <div class="planbox">
+        <div class="planbar">
+          <h2>Plan görünümü · hız alanı</h2>
+          <div class="seg" role="group" aria-label="Kesit">
+            <button type="button" data-plane="bottom">Taban yakını</button>
+            <button type="button" data-plane="mixer">Mikser kotu</button>
+            <button type="button" data-plane="avg">Derinlik ort.</button>
+          </div>
+        </div>
+        <div class="canvas-wrap"><canvas id="plan" height="420" aria-label="Havuz plan görünümünde hız alanı"></canvas></div>
+        <div class="legend">
+          <canvas id="cbar" width="260" height="34" style="width:260px;max-width:100%"></canvas>
+          <label style="display:flex;gap:6px;align-items:center"><input id="showParticles" type="checkbox" style="width:auto"> Akış parçacıkları</label>
+          <label style="display:flex;gap:6px;align-items:center"><input id="showDead" type="checkbox" style="width:auto" checked> Ölü bölge taraması</label>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart"><h3>Jet eksen hızı – mesafe</h3><canvas id="jetChart" height="240"></canvas></div>
+        <div class="chart"><h3>Hız dağılımı (alan %)</h3><canvas id="histChart" height="240"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <h2>Tasarım kontrolleri</h2>
+        <div class="tbl-wrap"><table id="checks"><thead><tr><th>Kontrol</th><th>Değer</th><th>Ölçüt</th><th>Durum</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <article class="report" id="report"></article>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* MathFmt — küçük LaTeX alt kümesi → MathML (sayfa) ve OMML (Word denklemi)
+   Sözdizimi: \frac{a}{b}  \sqrt{x}  x_{alt}  x^{üst}  ( ) [ ] otomatik boyutlu parantez  \text{metin}
+   Sayılar Türkçe biçimde (1.234,56). Çok harfli Latin adlar dik, tek harfler italik yazılır. */
+const MathFmt = (() => {
+  const isGreek = c => /[Ͱ-Ͽ∞]/.test(c);
+  const isLatin = c => /[A-Za-zÀ-ɏĞğÜüŞşİıÖöÇç]/.test(c);
+  function tokenize(s) {
+    const T = []; let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === " " || c === "\t") { i++; continue; }
+      if (c === "\\") {
+        const m = /^\\([A-Za-z]+|[,;! ])/.exec(s.slice(i));
+        if (!m) { i++; continue; }
+        const cmd = m[1]; i += m[0].length;
+        if (cmd === "text") { // ham metin
+          if (s[i] === "{") { let d = 1, j = i + 1; while (j < s.length && d) { if (s[j] === "{") d++; else if (s[j] === "}") d--; j++; } T.push({t: "text", v: s.slice(i + 1, j - 1)}); i = j; }
+          continue;
+        }
+        if (cmd === "," || cmd === ";" || cmd === " " || cmd === "!") { T.push({t: "space"}); continue; }
+        T.push({t: "cmd", v: cmd}); continue;
+      }
+      if ("{}_^()[]".includes(c)) { T.push({t: c}); i++; continue; }
+      let m;
+      if ((m = /^[0-9][0-9.]*(,[0-9]+)?/.exec(s.slice(i)))) { T.push({t: "num", v: m[0]}); i += m[0].length; continue; }
+      if (isGreek(c)) { T.push({t: "id", v: c}); i++; continue; }
+      if (isLatin(c)) { let j = i; while (j < s.length && isLatin(s[j])) j++; T.push({t: "id", v: s.slice(i, j)}); i = j; continue; }
+      T.push({t: "op", v: c === "-" ? "−" : c}); i++;
+    }
+    return T;
+  }
+  function parse(src) {
+    const T = tokenize(src); let p = 0;
+    const peek = () => T[p];
+    function seq(stop) {
+      const out = [];
+      while (p < T.length && !(peek().t === stop)) { const a = postfix(); if (a) out.push(a); }
+      return out;
+    }
+    function group() { // { ... } veya tek atom
+      if (peek() && peek().t === "{") { p++; const c = seq("}"); p++; return {k: "row", c}; }
+      return atom();
+    }
+    function atom() {
+      const tk = T[p++]; if (!tk) return null;
+      switch (tk.t) {
+        case "num": return {k: "num", v: tk.v};
+        case "id": return {k: "id", v: tk.v};
+        case "op": return {k: "op", v: tk.v};
+        case "text": return {k: "text", v: tk.v};
+        case "space": return {k: "space"};
+        case "{": { const c = seq("}"); p++; return {k: "row", c}; }
+        case "(": { const c = seq(")"); p++; return {k: "fence", o: "(", e: ")", c}; }
+        case "[": { const c = seq("]"); p++; return {k: "fence", o: "[", e: "]", c}; }
+        case "cmd":
+          if (tk.v === "frac") { const a = group(), b = group(); return {k: "frac", a, b}; }
+          if (tk.v === "sqrt") { return {k: "sqrt", a: group()}; }
+          return {k: "id", v: tk.v};
+        default: return {k: "op", v: tk.t};
+      }
+    }
+    function postfix() {
+      let base = atom(); if (!base) return null;
+      let sub = null, sup = null;
+      while (peek() && (peek().t === "_" || peek().t === "^")) { const w = T[p++].t; const g = group(); if (w === "_") sub = g; else sup = g; }
+      if (sub || sup) return {k: "script", base, sub, sup};
+      return base;
+    }
+    return {k: "row", c: seq(null)};
+  }
+  /* ---- MathML ---- */
+  const rowM = c => c.map((x, i) => (x.k === "op" && x.v === "−" && (i === 0 || c[i - 1].k === "op")) ? `<mo form="prefix" lspace="0" rspace="0">−</mo>` : mml(x)).join("");
+  const ex = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  function mml(n) {
+    switch (n.k) {
+      case "row": return n.c.length === 1 ? mml(n.c[0]) : `<mrow>${rowM(n.c)}</mrow>`;
+      case "num": return `<mn>${ex(n.v)}</mn>`;
+      case "id": return n.v.length > 1 ? `<mi mathvariant="normal">${ex(n.v)}</mi>` : `<mi>${ex(n.v)}</mi>`;
+      case "op": return `<mo>${ex(n.v)}</mo>`;
+      case "text": return `<mtext>${ex(n.v.replace(/ /g, " "))}</mtext>`;
+      case "space": return `<mspace width="0.25em"></mspace>`;
+      case "fence": return `<mrow><mo lspace="0" rspace="0">${n.o}</mo>${rowM(n.c)}<mo lspace="0" rspace="0">${n.e}</mo></mrow>`;
+      case "frac": return `<mfrac>${mml(n.a)}${mml(n.b)}</mfrac>`;
+      case "sqrt": return `<msqrt>${mml(n.a)}</msqrt>`;
+      case "script": {
+        const b = mml(n.base);
+        if (n.sub && n.sup) return `<msubsup>${b}${mml(n.sub)}${mml(n.sup)}</msubsup>`;
+        if (n.sub) return `<msub>${b}${mml(n.sub)}</msub>`;
+        return `<msup>${b}${mml(n.sup)}</msup>`;
+      }
+    }
+    return "";
+  }
+  const toMathML = (src, display = true) => `<math${display ? ' display="block"' : ""}>${mml(parse(src))}</math>`;
+  /* ---- OMML ---- */
+  const run = (t, sty, nor) => `<m:r>${nor ? "<m:rPr><m:nor/></m:rPr>" : sty ? `<m:rPr><m:sty m:val="${sty}"/></m:rPr>` : ""}<w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math"/></w:rPr><m:t xml:space="preserve">${ex(t)}</m:t></m:r>`;
+  function om(n) {
+    switch (n.k) {
+      case "row": return n.c.map(om).join("");
+      case "num": return run(n.v);
+      case "id": return run(n.v, n.v.length > 1 ? "p" : null);
+      case "op": return run(n.v);
+      case "text": return run(n.v, "p", true);
+      case "space": return run(" ");
+      case "fence": return `<m:d><m:dPr><m:begChr m:val="${n.o}"/><m:endChr m:val="${n.e}"/></m:dPr><m:e>${n.c.map(om).join("")}</m:e></m:d>`;
+      case "frac": return `<m:f><m:num>${om(n.a)}</m:num><m:den>${om(n.b)}</m:den></m:f>`;
+      case "sqrt": return `<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>${om(n.a)}</m:e></m:rad>`;
+      case "script": {
+        const b = `<m:e>${om(n.base)}</m:e>`;
+        if (n.sub && n.sup) return `<m:sSubSup>${b}<m:sub>${om(n.sub)}</m:sub><m:sup>${om(n.sup)}</m:sup></m:sSubSup>`;
+        if (n.sub) return `<m:sSub>${b}<m:sub>${om(n.sub)}</m:sub></m:sSub>`;
+        return `<m:sSup>${b}<m:sup>${om(n.sup)}</m:sup></m:sSup>`;
+      }
+    }
+    return "";
+  }
+  const toOMML = src => `<m:oMathPara><m:oMathParaPr><m:jc m:val="left"/></m:oMathParaPr><m:oMath>${om(parse(src))}</m:oMath></m:oMathPara>`;
+  /* ---- düz metin (kopyalama için) ---- */
+  function tx(n) {
+    switch (n.k) {
+      case "row": return n.c.map(tx).join("");
+      case "num": case "id": return n.v;
+      case "op": return /[=+−·×→≥≤≈]/.test(n.v) ? ` ${n.v} ` : n.v;
+      case "text": return n.v; case "space": return " ";
+      case "fence": return n.o + n.c.map(tx).join("") + n.e;
+      case "frac": { const a = tx(n.a), b = tx(n.b), w = s => /[ +−×·]/.test(s.trim()) ? `(${s.trim()})` : s.trim(); return `${w(a)}/${w(b)}`; }
+      case "sqrt": return `√(${tx(n.a).trim()})`;
+      case "script": return tx(n.base) + (n.sub ? "_" + (n.sub.k === "row" && n.sub.c.length > 1 ? tx(n.sub) : tx(n.sub)) : "") + (n.sup ? "^" + (n.sup.k === "row" && n.sup.c.length > 1 ? "(" + tx(n.sup) + ")" : tx(n.sup)) : "");
+    }
+    return "";
+  }
+  const toText = src => tx(parse(src)).replace(/\s+/g, " ").trim();
+  return {parse, toMathML, toOMML, toText};
+})();
+
+/* MiniDocx — bağımlılıksız .docx üretici (paragraf, başlık, tablo, görsel, sayfa sonu) */
+const MiniDocx = (() => {
+  const enc = new TextEncoder();
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zip(files) {
+    const parts = [], central = []; let off = 0;
+    const d = new Date(), dt = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), tm = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    for (const f of files) {
+      const name = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, tm, true); h.setUint16(12, dt, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true);
+      h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), name, data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+      c.setUint16(12, tm, true); c.setUint16(14, dt, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+      c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+      central.push(new Uint8Array(c.buffer), name);
+      off += 30 + name.length + data.length;
+    }
+    const cdSize = central.reduce((a, p) => a + p.length, 0);
+    const e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
+    const all = parts.concat(central, [new Uint8Array(e.buffer)]);
+    const out = new Uint8Array(all.reduce((a, p) => a + p.length, 0)); let p = 0; for (const a of all) { out.set(a, p); p += a.length; }
+    return out;
+  }
+  const esc = s => String(s ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const W = 9638; // içerik genişliği (twip), A4 / 2 cm kenar
+  class Doc {
+    constructor() { this.body = []; this.images = []; this.pic = 0; }
+    runs(x, base = {}) {
+      const arr = Array.isArray(x) ? x : [typeof x === "object" && x !== null ? x : {t: x}];
+      return arr.map(r => {
+        const o = Object.assign({}, base, typeof r === "object" ? r : {t: r});
+        const pr = [];
+        if (o.mono) pr.push('<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/>');
+        if (o.b) pr.push("<w:b/>"); if (o.i) pr.push("<w:i/>");
+        if (o.color) pr.push(`<w:color w:val="${o.color}"/>`);
+        if (o.sz) pr.push(`<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>`);
+        if (o.sub) pr.push('<w:vertAlign w:val="subscript"/>');
+        const lines = String(o.t ?? "").split("\n");
+        return lines.map((ln, i) => `<w:r>${pr.length ? `<w:rPr>${pr.join("")}</w:rPr>` : ""}${i ? "<w:br/>" : ""}<w:t xml:space="preserve">${esc(ln)}</w:t></w:r>`).join("");
+      }).join("");
+    }
+    para(content, {style, align, after, before, keep} = {}, base) {
+      const pp = [];
+      if (style) pp.push(`<w:pStyle w:val="${style}"/>`);
+      if (keep) pp.push("<w:keepNext/>");
+      if (after != null || before != null) pp.push(`<w:spacing${before != null ? ` w:before="${before}"` : ""}${after != null ? ` w:after="${after}"` : ""}/>`);
+      if (align) pp.push(`<w:jc w:val="${align}"/>`);
+      this.body.push(`<w:p>${pp.length ? `<w:pPr>${pp.join("")}</w:pPr>` : ""}${this.runs(content, base)}</w:p>`);
+      return this;
+    }
+    title(t) { return this.para(t, {style: "Title"}); }
+    h1(t) { return this.para(t, {style: "Heading1", keep: true}); }
+    h2(t) { return this.para(t, {style: "Heading2", keep: true}); }
+    p(t, o) { return this.para(t, o); }
+    small(t) { return this.para(t, {}, {sz: 17, color: "5B6E75"}); }
+    mono(text) { return this.para(text, {style: "Code"}, {mono: true, sz: 17}); }
+    eq(src, last) { this.body.push(`<w:p><w:pPr><w:pStyle w:val="Code"/><w:keepNext/><w:spacing w:before="0" w:after="${last ? 120 : 0}"/></w:pPr>${MathFmt.toOMML(src)}</w:p>`); return this; }
+    codeText(t, last) { this.body.push(`<w:p><w:pPr><w:pStyle w:val="Code"/><w:keepNext/><w:spacing w:before="0" w:after="${last ? 120 : 0}"/></w:pPr>${this.runs(t, {sz: 17, color: "5B6E75"})}</w:p>`); return this; }
+    caption(t) { return this.para(t, {style: "Caption"}); }
+    list(items) { items.forEach((t, i) => this.para([{t: `${i + 1}. `, b: true}].concat(Array.isArray(t) ? t : [{t}]), {after: 60})); return this; }
+    table(rows, {header = true, widths, align = [], fontSize = 18} = {}) {
+      const ncol = Math.max(...rows.map(r => r.length));
+      const ws = widths ? widths.map(w => Math.round(w / widths.reduce((a, b) => a + b, 0) * W)) : Array(ncol).fill(Math.round(W / ncol));
+      const bd = '<w:tblBorders><w:top w:val="single" w:sz="4" w:color="BFC9CB"/><w:left w:val="single" w:sz="4" w:color="BFC9CB"/><w:bottom w:val="single" w:sz="4" w:color="BFC9CB"/><w:right w:val="single" w:sz="4" w:color="BFC9CB"/><w:insideH w:val="single" w:sz="4" w:color="BFC9CB"/><w:insideV w:val="single" w:sz="4" w:color="BFC9CB"/></w:tblBorders>';
+      let x = `<w:tbl><w:tblPr><w:tblW w:w="${W}" w:type="dxa"/>${bd}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${ws.map(w => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>`;
+      rows.forEach((r, ri) => {
+        const head = header && ri === 0;
+        x += `<w:tr>${head ? '<w:trPr><w:tblHeader/><w:cantSplit/></w:trPr>' : '<w:trPr><w:cantSplit/></w:trPr>'}`;
+        for (let ci = 0; ci < ncol; ci++) {
+          const c = r[ci] ?? "", cell = typeof c === "object" && c !== null && !Array.isArray(c) ? c : {t: c};
+          const shade = head ? '<w:shd w:val="clear" w:color="auto" w:fill="E3ECED"/>' : cell.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${cell.fill}"/>` : "";
+          const al = align[ci] === "r" ? '<w:jc w:val="right"/>' : align[ci] === "c" ? '<w:jc w:val="center"/>' : "";
+          x += `<w:tc><w:tcPr><w:tcW w:w="${ws[ci]}" w:type="dxa"/>${shade}</w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0"/>${al}</w:pPr>${this.runs(Array.isArray(c) ? c : [cell], {sz: fontSize, b: head || cell.b})}</w:p></w:tc>`;
+        }
+        x += "</w:tr>";
+      });
+      this.body.push(x + "</w:tbl>");
+      return this.para("", {after: 60});
+    }
+    image(dataUrl, widthCm, pxW, pxH) {
+      const b64 = dataUrl.split(",")[1], bin = atob(b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const id = ++this.pic, rid = "rIdImg" + id;
+      this.images.push({name: `media/image${id}.png`, data: bytes, rid});
+      const cx = Math.round(widthCm * 360000), cy = Math.round(cx * pxH / pxW);
+      this.body.push(`<w:p><w:pPr><w:keepNext/><w:spacing w:before="60" w:after="60"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Şekil ${id}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="image${id}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`);
+      return this;
+    }
+    pageBreak() { this.body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>'); return this; }
+    build({title = "Rapor", author = ""} = {}) {
+      const ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"';
+      const footer = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${ns}><w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="5B6E75"/></w:rPr><w:t xml:space="preserve">${esc(title)} · Sayfa </w:t></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="5B6E75"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="5B6E75"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="5B6E75"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="5B6E75"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="5B6E75"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>`;
+      const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${ns}><w:body>${this.body.join("")}<w:sectPr><w:footerReference w:type="default" r:id="rIdFtr"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+      const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="tr-TR"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="100" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="80"/></w:pPr><w:rPr><w:b/><w:sz w:val="40"/><w:szCs w:val="40"/><w:color w:val="13242B"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="280" w:after="100"/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="2" w:color="0A6F7A"/></w:pBdr><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/><w:color w:val="0A6F7A"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="180" w:after="60"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/><w:color w:val="13242B"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="caption"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="160"/><w:jc w:val="center"/></w:pPr><w:rPr><w:i/><w:sz w:val="17"/><w:szCs w:val="17"/><w:color w:val="5B6E75"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:pPr><w:shd w:val="clear" w:color="auto" w:fill="EEF2F2"/><w:spacing w:after="120" w:line="240" w:lineRule="auto"/><w:ind w:left="113" w:right="113"/></w:pPr><w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:cs="Consolas"/><w:sz w:val="17"/></w:rPr></w:style>
+</w:styles>`;
+      const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rIdFtr" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>${this.images.map(im => `<Relationship Id="${im.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${im.name}"/>`).join("")}</Relationships>`;
+      const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+      const core = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${esc(title)}</dc:title><dc:creator>${esc(author)}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created></cp:coreProperties>`;
+      const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`;
+      const root = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`;
+      return zip([
+        {name: "[Content_Types].xml", data: ct}, {name: "_rels/.rels", data: root}, {name: "docProps/core.xml", data: core},
+        {name: "word/document.xml", data: doc}, {name: "word/styles.xml", data: styles}, {name: "word/footer1.xml", data: footer},
+        {name: "word/_rels/document.xml.rels", data: rels},
+      ].concat(this.images.map(im => ({name: "word/" + im.name, data: im.data}))));
+    }
+  }
+  return Doc;
+})();
+
+/* Word indirme yardımcıları: downloads yeteneği varsa .docx kaydettirir */
+const WordExport = (() => {
+  let dl = null, ready = false;
+  const p = (window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads").then(x => { dl = x; ready = true; return x; }, () => { ready = true; return null; }) : Promise.resolve(null).then(() => { ready = true; return null; });
+  async function save(filename, bytes) {
+    await p;
+    const blob = new Blob([bytes], {type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+    if (dl) { await dl.save({filename, data: blob}); return "saved"; }
+    if (window.self === window.top) { // sayfa bağımsız açıldıysa normal indirme
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000); return "saved";
+    }
+    const e = new Error("unavailable"); e.code = "unavailable"; throw e;
+  }
+  const available = () => p.then(x => !!x || window.self === window.top);
+  return {save, available};
+})();
+
+</script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const fmt = (v, d = 2) => (v == null || !isFinite(v)) ? "–" : v.toLocaleString("tr-TR", {minimumFractionDigits: d, maximumFractionDigits: d});
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const LN2 = Math.log(2);
+
+/* ---------- data ---------- */
+const LIB = {
+  slow25: {name: "Yavaş devirli Ø2,5", D: 2.5, rpm: 40, P: 3.0},
+  slow18: {name: "Yavaş devirli Ø1,8", D: 1.8, rpm: 55, P: 2.2},
+  mid75:  {name: "Orta devirli Ø0,75", D: 0.75, rpm: 480, P: 4.0},
+  fast37: {name: "Kompakt Ø0,37", D: 0.37, rpm: 1400, P: 2.5},
+};
+const PROC = {
+  anoxic: {vTarget: 0.30, vDead: 0.15, pMin: 2, pMax: 8, label: "Anoksik / anaerobik havuz (aktif çamur)"},
+  ditch:  {vTarget: 0.30, vDead: 0.15, pMin: 1, pMax: 4, label: "Oksidasyon hendeği / yarış pisti"},
+  equal:  {vTarget: 0.30, vDead: 0.15, pMin: 4, pMax: 12, label: "Dengeleme havuzu (ham atıksu)"},
+  sludge: {vTarget: 0.30, vDead: 0.15, pMin: 8, pMax: 25, label: "Çamur depolama / homojenizasyon"},
+};
+function example() {
+  return {
+    projName: "T105 Anoksik Havuz – Örnek", projBy: "",
+    tank: {type: "rect", L: 30, W: 10, Dc: 20, Ls: 40, b: 6, tw: 0.3, H: 5},
+    process: "anoxic", vTarget: 0.30, vDead: 0.15, pMin: 2, pMax: 8, rho: 1000,
+    lam: 0.03, zTurn: 2.0, zTurnOval: 0.8, zSec: 1.5, etaInst: 0.85, fm: 0.65, zBottom: 0.3,
+    plane: "bottom", particles: !matchMedia("(prefers-reduced-motion: reduce)").matches, dead: true,
+    mixers: [
+      {name: "M-1", D: 2.5, rpm: 40, P: 3.0, F: null, x: 4, y: 2.5, z: 1.6, ang: 0},
+      {name: "M-2", D: 2.5, rpm: 40, P: 3.0, F: null, x: 26, y: 7.5, z: 1.6, ang: 180},
+    ],
+  };
+}
+let S;
+try { S = JSON.parse(localStorage.getItem("mixer-analysis-v1")); } catch (e) { S = null; }
+if (!S || !S.tank || !Array.isArray(S.mixers)) S = example();
+let sel = 0;
+const save = () => { try { localStorage.setItem("mixer-analysis-v1", JSON.stringify(S)); } catch (e) {} };
+
+/* ---------- geometry ---------- */
+function segClosest(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+  const t = l2 > 1e-9 ? clamp(((px - ax) * dx + (py - ay) * dy) / l2, 0, 1) : 0;
+  return [ax + t * dx, ay + t * dy];
+}
+function geometry() {
+  const t = S.tank, H = t.H;
+  let g;
+  if (t.type === "rect") {
+    const L = t.L, W = t.W, ro = Math.min(L, W) / 2;
+    const P1 = L >= W ? [ro, ro] : [ro, ro], P2 = L >= W ? [L - ro, ro] : [ro, W - ro];
+    g = {Lx: L, Ly: W, area: L * W, P1, P2, ri: 0, ro, profile: "core", zTurnN: 2, zTurn: S.zTurn,
+      inside: (x, y) => x >= 0 && x <= L && y >= 0 && y <= W,
+      wallDist: (x, y) => Math.min(x, L - x, y, W - y),
+      outline: ctx => { ctx.rect(0, 0, L, W); }, label: `Dikdörtgen ${fmt(L,1)} × ${fmt(W,1)} m`};
+  } else if (t.type === "circ") {
+    const R = t.Dc / 2;
+    g = {Lx: 2 * R, Ly: 2 * R, area: Math.PI * R * R, P1: [R, R], P2: [R, R], ri: 0, ro: R, profile: "core", zTurnN: 0, zTurn: 0,
+      inside: (x, y) => Math.hypot(x - R, y - R) <= R,
+      wallDist: (x, y) => R - Math.hypot(x - R, y - R),
+      outline: ctx => { ctx.arc(R, R, R, 0, Math.PI * 2); }, label: `Dairesel Ø${fmt(2*R,1)} m`};
+  } else {
+    const b = t.b, tw = t.tw, Ro = b + tw / 2, Ls = t.Ls;
+    const P1 = [Ro, Ro], P2 = [Ro + Ls, Ro];
+    const ds = (x, y) => { const c = segClosest(x, y, P1[0], P1[1], P2[0], P2[1]); return Math.hypot(x - c[0], y - c[1]); };
+    g = {Lx: Ls + 2 * Ro, Ly: 2 * Ro, area: Ls * 2 * Ro + Math.PI * Ro * Ro - (Ls * tw + Math.PI * tw * tw / 4),
+      P1, P2, ri: tw / 2, ro: Ro, profile: "wall", zTurnN: 2, zTurn: S.zTurnOval,
+      inside: (x, y) => { const d = ds(x, y); return d <= Ro && d >= tw / 2; },
+      wallDist: (x, y) => { const d = ds(x, y); return Math.min(Ro - d, d - tw / 2); },
+      outline: ctx => {
+        ctx.moveTo(P1[0], 0); ctx.lineTo(P2[0], 0); ctx.arc(P2[0], Ro, Ro, -Math.PI / 2, Math.PI / 2); ctx.lineTo(P1[0], 2 * Ro);
+        ctx.arc(P1[0], Ro, Ro, Math.PI / 2, Math.PI * 1.5); ctx.closePath();
+      },
+      innerWall: ctx => {
+        const r = Math.max(tw / 2, 0.05);
+        ctx.moveTo(P1[0], Ro - r); ctx.lineTo(P2[0], Ro - r); ctx.arc(P2[0], Ro, r, -Math.PI / 2, Math.PI / 2); ctx.lineTo(P1[0], Ro + r);
+        ctx.arc(P1[0], Ro, r, Math.PI / 2, Math.PI * 1.5); ctx.closePath();
+      }, label: `Yarış pisti, düz kısım ${fmt(Ls,1)} m, kanal ${fmt(b,1)} m`};
+  }
+  g.H = H; g.V = g.area * H;
+  const w = g.ro - g.ri;
+  g.Ac = w * H;
+  g.Dh = 4 * g.Ac / (w + 2 * H);
+  g.axisLen = Math.hypot(g.P2[0] - g.P1[0], g.P2[1] - g.P1[1]);
+  g.Lpath = 2 * g.axisLen + 2 * Math.PI * (g.ri + g.ro) / 2;
+  g.zFric = S.lam * g.Lpath / g.Dh;
+  g.zBends = g.zTurnN * g.zTurn;
+  g.zExtra = S.tank.type === "circ" ? S.zSec : 0;
+  g.zeta = g.zFric + g.zBends + g.zExtra;
+  // ray distance to wall
+  g.ray = (x, y, dx, dy) => {
+    const step = Math.max(0.02, Math.min(g.Lx, g.Ly) / 400), max = g.Lx + g.Ly;
+    let s = 0;
+    while (s < max) { const nx = x + dx * (s + step), ny = y + dy * (s + step); if (!g.inside(nx, ny)) break; s += step; }
+    return s;
+  };
+  // unit circulation field (CCW): returns [tx, ty, speedFactor]  mean speed across channel = 1
+  const NORM_CORE = 1 / Math.PI + 0.5 - 0.4 * 0.5 / 3; // 0.7516
+  const NORM_WALL = 1 / (1 + 1 / 7);
+  g.unit = (x, y) => {
+    const c = segClosest(x, y, g.P1[0], g.P1[1], g.P2[0], g.P2[1]);
+    const dx = x - c[0], dy = y - c[1], d = Math.hypot(dx, dy);
+    if (d < 1e-6) return [0, 0, 0];
+    const tx = -dy / d, ty = dx / d;
+    const s = (d - g.ri) / (g.ro - g.ri);
+    let f;
+    if (g.profile === "core") {
+      if (s < 0.5) f = Math.sin(Math.PI * s);
+      else if (s <= 1) f = 1 - 0.4 * Math.pow((s - 0.5) / 0.5, 2);
+      else f = 0.6 * Math.exp(-(s - 1) / 0.25);
+      f /= NORM_CORE;
+    } else {
+      const u = clamp(Math.min(s, 1 - s), 0, 0.5);
+      f = Math.pow(2 * u, 1 / 7) / NORM_WALL;
+    }
+    return [tx, ty, f];
+  };
+  return g;
+}
+
+/* ---------- hydraulics ---------- */
+function mixerCalc(m, g) {
+  const rho = S.rho, A = Math.PI * m.D * m.D / 4;
+  const Fest = Math.cbrt(2 * rho * A) * Math.pow(S.fm * m.P * 1000, 2 / 3);
+  const F = (m.F != null && m.F > 0) ? m.F : Fest;
+  const uw = Math.sqrt(2 * F / (rho * A));        // slipstream (far-wake) velocity
+  const d0 = m.D / Math.SQRT2, xc = 2.6 * m.D;     // propeller jet: flow-establishment zone ≈ 2,6·D (Fuehrer–Römisch)
+  const Qp = A * uw / 2;
+  const a = m.ang * Math.PI / 180, ex = Math.cos(a), ey = Math.sin(a);
+  const Lfree = g.ray(m.x, m.y, ex, ey);
+  const [tx, ty] = g.unit(m.x, m.y);
+  const cosCCW = ex * tx + ey * ty;
+  return {A, F, Fest, uw, d0, xc, Qp, ex, ey, Lfree, cosCCW, tip: Math.PI * m.D * m.rpm / 60,
+    uc: s => s <= xc ? uw : uw * xc / s, half: s => 0.35 * m.D + 0.10 * s,
+    throwL: v => v >= uw ? 0 : xc * uw / v};
+}
+function analyse() {
+  const g = geometry();
+  const mc = S.mixers.map(m => mixerCalc(m, g));
+  const sumCCW = mc.reduce((a, c) => a + c.F * c.cosCCW, 0);
+  const sigma = sumCCW >= 0 ? 1 : -1;
+  mc.forEach((c, i) => {
+    const m = S.mixers[i];
+    c.cos = sigma * c.cosCCW;
+    c.etaFree = clamp(c.Lfree / (5 * m.D), 0.3, 1);
+    c.Feff = c.F * S.etaInst * c.etaFree * c.cos;
+  });
+  const Ftot = mc.reduce((a, c) => a + c.F, 0);
+  const Feff = Math.max(0, mc.reduce((a, c) => a + c.Feff, 0));
+  const Ptot = S.mixers.reduce((a, m) => a + m.P, 0) * 1000;
+  const v = Math.sqrt(2 * Feff / (S.rho * g.Ac * g.zeta));
+  const Freq = 0.5 * S.rho * S.vTarget * S.vTarget * g.Ac * g.zeta;
+  const FreqGross = Freq / S.etaInst;
+  const Qc = v * g.Ac, tTurn = Qc > 0 ? g.V / Qc / 60 : Infinity;
+  const r = {g, mc, sigma, Ftot, Feff, Ptot, v, Freq, FreqGross, Qc, tTurn,
+    pSpec: Ptot / g.V, fSpec: Ftot / g.V, cancel: Ftot > 0 ? Math.abs(sumCCW) / Ftot : 0};
+  field(r);
+  checks(r);
+  return r;
+}
+function planeZ() {
+  if (S.plane === "bottom") return S.zBottom;
+  if (S.plane === "mixer") return S.mixers.length ? S.mixers.reduce((a, m) => a + m.z, 0) / S.mixers.length : S.tank.H / 2;
+  return null; // depth average
+}
+function field(r) {
+  const g = r.g, H = g.H, z = planeZ();
+  const h = Math.max(g.Lx, g.Ly) / 170;
+  const nx = Math.max(8, Math.round(g.Lx / h)), ny = Math.max(8, Math.round(g.Ly / h));
+  const dx = g.Lx / nx, dy = g.Ly / ny;
+  const U = new Float32Array(nx * ny), V = new Float32Array(nx * ny), M = new Float32Array(nx * ny), IN = new Uint8Array(nx * ny);
+  const vert = z == null ? 1 : (8 / 7) * Math.pow(clamp(z, 0.05, H) / H, 1 / 7);
+  const bands = [0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.60, Infinity];
+  const hist = new Array(bands.length - 1).fill(0);
+  let nIn = 0, nDead = 0, sum = 0;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const x = (i + 0.5) * dx, y = (j + 0.5) * dy, k = j * nx + i;
+    if (!g.inside(x, y)) continue;
+    IN[k] = 1; nIn++;
+    const [tx, ty, f] = g.unit(x, y);
+    let u = r.sigma * tx * f * r.v * vert, w = r.sigma * ty * f * r.v * vert;
+    r.mc.forEach((c, mi) => {
+      const m = S.mixers[mi];
+      const px = x - m.x, py = y - m.y, s = px * c.ex + py * c.ey;
+      if (s <= 0 || s > c.Lfree) return;
+      const n = Math.abs(px * c.ey - py * c.ex), b = c.half(s);
+      if (n > 3 * b) return;
+      let fz;
+      if (z == null) fz = Math.min(1, 2.129 * b / H);
+      else { const e = q => Math.exp(-LN2 * q * q / (b * b)); fz = Math.min(1, e(z - m.z) + e(z + m.z) + e(2 * H - z - m.z)); }
+      const ex = c.uc(s) - r.v;            // jet excess over the bulk flow; merges once it decays to bulk speed
+      if (ex <= 0) return;
+      const uj = ex * Math.exp(-LN2 * n * n / (b * b)) * fz;
+      u += uj * c.ex; w += uj * c.ey;
+    });
+    U[k] = u; V[k] = w; const mag = Math.hypot(u, w); M[k] = mag; sum += mag;
+    if (mag < S.vDead) nDead++;
+    for (let q = 0; q < hist.length; q++) if (mag >= bands[q] && mag < bands[q + 1]) { hist[q]++; break; }
+  }
+  r.F = {nx, ny, dx, dy, U, V, M, IN, z, vert};
+  r.deadPct = nIn ? 100 * nDead / nIn : 0;
+  r.meanPlane = nIn ? sum / nIn : 0;
+  r.hist = hist.map(n => nIn ? 100 * n / nIn : 0); r.bands = bands;
+}
+
+/* ---------- checks ---------- */
+function st(ok, warn) { return ok ? "ok" : warn ? "warn" : "bad"; }
+function checks(r) {
+  const L = [], g = r.g, vt = S.vTarget;
+  L.push({k: "Ortalama akış hızı (itki dengesi)", val: `${fmt(r.v)} m/s`, crit: `≥ ${fmt(vt)} m/s`, s: st(r.v >= vt, r.v >= 0.85 * vt)});
+  L.push({k: "Mevcut / gerekli net itki", val: `${fmt(r.Feff / 1000)} / ${fmt(r.Freq / 1000)} kN`, crit: "≥ 1,00", s: st(r.Feff >= r.Freq, r.Feff >= 0.75 * r.Freq)});
+  L.push({k: "Özgül güç", val: `${fmt(r.pSpec, 1)} W/m³`, crit: `${fmt(S.pMin, 1)} – ${fmt(S.pMax, 1)} W/m³`,
+    s: r.pSpec >= S.pMin && r.pSpec <= S.pMax ? "ok" : "warn",
+    note: r.pSpec < S.pMin ? "Aralığın altında: karışım zayıf kalabilir." : r.pSpec > S.pMax ? "Aralığın üstünde: enerji tüketimi yüksek." : ""});
+  const planeName = {bottom: `taban yakını (z = ${fmt(S.zBottom)} m)`, mixer: "mikser kotu", avg: "derinlik ortalaması"}[S.plane];
+  L.push({k: `Ölü bölge oranı – ${planeName}`, val: `% ${fmt(r.deadPct, 1)}`, crit: `≤ % 10 (v < ${fmt(S.vDead)} m/s)`, s: st(r.deadPct <= 10, r.deadPct <= 20)});
+  L.push({k: "Havuz devir süresi", val: isFinite(r.tTurn) ? `${fmt(r.tTurn, 1)} dk` : "–", crit: "≤ 15 dk", s: st(r.tTurn <= 15, r.tTurn <= 30)});
+  if (S.mixers.length > 1) L.push({k: "Mikser yön uyumu (net / toplam itki)", val: `% ${fmt(100 * r.cancel, 0)}`, crit: "≥ % 80", s: st(r.cancel >= 0.8, r.cancel >= 0.5)});
+  S.mixers.forEach((m, i) => {
+    const c = r.mc[i], bot = m.z - m.D / 2, top = g.H - m.z - m.D / 2, side = g.wallDist(m.x, m.y);
+    const topReq = Math.max(0.5, 0.5 * m.D);
+    L.push({k: `${m.name}: akış yönüyle açı`, val: `cos = ${fmt(c.cos)}`, crit: "≥ 0,85", s: st(c.cos >= 0.85, c.cos >= 0.5), m: i});
+    L.push({k: `${m.name}: pervane ucu – taban`, val: `${fmt(bot)} m`, crit: "≥ 0,30 m", s: st(bot >= 0.3, bot >= 0.15), m: i});
+    L.push({k: `${m.name}: pervane ucu – su yüzeyi`, val: `${fmt(top)} m`, crit: `≥ ${fmt(topReq)} m`, s: st(top >= topReq, top >= 0.3), m: i});
+    L.push({k: `${m.name}: pervane merkezi – en yakın duvar`, val: `${fmt(side)} m`, crit: `≥ ${fmt(0.75 * m.D)} m (0,75·D)`, s: st(side >= 0.75 * m.D, side >= 0.6 * m.D), m: i});
+    L.push({k: `${m.name}: serbest jet mesafesi`, val: `${fmt(c.Lfree, 1)} m`, crit: `≥ ${fmt(5 * m.D, 1)} m (5·D)`, s: st(c.Lfree >= 5 * m.D, c.Lfree >= 3 * m.D), m: i});
+    S.mixers.forEach((o, j) => { if (j > i) {
+      const d = Math.hypot(o.x - m.x, o.y - m.y), need = Math.max(m.D, o.D) * 2;
+      L.push({k: `${m.name} – ${o.name}: mikserler arası mesafe`, val: `${fmt(d, 1)} m`, crit: `≥ ${fmt(need, 1)} m (2·D)`, s: st(d >= need, d >= 0.75 * need)});
+    }});
+  });
+  if (!S.mixers.length) L.unshift({k: "Mikser", val: "yok", crit: "en az 1", s: "bad"});
+  r.checks = L;
+  const nb = L.filter(c => c.s === "bad").length, nw = L.filter(c => c.s === "warn").length;
+  r.status = nb ? "bad" : nw ? "warn" : "ok"; r.nb = nb; r.nw = nw;
+}
+
+/* ---------- colours ---------- */
+const STOPS = [[0, [43, 29, 79]], [0.12, [52, 62, 140]], [0.28, [33, 120, 160]], [0.45, [32, 158, 140]], [0.62, [86, 188, 100]], [0.8, [190, 214, 70]], [1, [253, 231, 76]]];
+const VMAX = 0.6;
+function cmap(v) {
+  const t = clamp(v / VMAX, 0, 1);
+  for (let i = 1; i < STOPS.length; i++) if (t <= STOPS[i][0]) {
+    const [t0, c0] = STOPS[i - 1], [t1, c1] = STOPS[i], f = (t - t0) / (t1 - t0);
+    return c0.map((c, k) => Math.round(c + f * (c1[k] - c)));
+  }
+  return STOPS[STOPS.length - 1][1];
+}
+const LIGHT = {"--bg": "#eef2f2", "--surface": "#ffffff", "--sunk": "#e3e9ea", "--ink": "#13242b", "--muted": "#566a71", "--line": "#cdd8da", "--accent": "#0a6f7a",
+  "--ok": "#1f7a45", "--warn": "#9a6200", "--bad": "#b3261e", "--tank-wall": "#5c6f75", "--tank-fill": "#dfe7e8", "--f-mono": "Consolas, 'IBM Plex Mono', monospace", "--f-body": "Calibri, Barlow, Arial, sans-serif"};
+let EXPORT = false;
+const css = n => EXPORT ? LIGHT[n] : getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---------- canvas helpers ---------- */
+function fitCanvas(cv, hCss) {
+  const dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth || 600;
+  if (hCss) cv.style.height = hCss + "px";
+  const h = cv.clientHeight || hCss || 300;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx, w, h};
+}
+
+/* ---------- plan view ---------- */
+let R = null, view = null, heat = document.createElement("canvas"), particles = [];
+function drawPlan() {
+  const cv = $("#plan"), g = R.g;
+  const wCss = cv.clientWidth || 700;
+  const pad = 34;
+  const sc = Math.min((wCss - 2 * pad) / g.Lx, 520 / g.Ly, 60);
+  const hCss = Math.round(g.Ly * sc + 2 * pad);
+  const {ctx, w, h} = fitCanvas(cv, hCss);
+  const ox = (w - g.Lx * sc) / 2, oy = pad;
+  view = {sc, ox, oy, toPx: (x, y) => [ox + x * sc, oy + (g.Ly - y) * sc], toW: (px, py) => [(px - ox) / sc, g.Ly - (py - oy) / sc]};
+  ctx.clearRect(0, 0, w, h);
+  // heat image
+  const F = R.F; heat.width = F.nx; heat.height = F.ny;
+  const hc = heat.getContext("2d"), img = hc.createImageData(F.nx, F.ny);
+  for (let j = 0; j < F.ny; j++) for (let i = 0; i < F.nx; i++) {
+    const k = j * F.nx + i, p = ((F.ny - 1 - j) * F.nx + i) * 4;
+    if (!F.IN[k]) { img.data[p + 3] = 0; continue; }
+    const c = cmap(F.M[k]); img.data[p] = c[0]; img.data[p + 1] = c[1]; img.data[p + 2] = c[2]; img.data[p + 3] = 255;
+  }
+  hc.putImageData(img, 0, 0);
+  ctx.save();
+  ctx.beginPath(); ctx.save(); ctx.translate(ox, oy + g.Ly * sc); ctx.scale(sc, -sc); g.outline(ctx); ctx.restore(); ctx.clip();
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(heat, ox, oy, g.Lx * sc, g.Ly * sc);
+  // dead-zone hatch
+  if (S.dead) {
+    ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
+    const cw = F.dx * sc, ch = F.dy * sc;
+    ctx.beginPath();
+    for (let j = 0; j < F.ny; j++) for (let i = 0; i < F.nx; i++) {
+      const k = j * F.nx + i; if (!F.IN[k] || F.M[k] >= S.vDead) continue;
+      const px = ox + i * cw, py = oy + (F.ny - 1 - j) * ch;
+      const step = 6, phase = (px + py) % step;
+      for (let t = -phase; t < cw + ch; t += step) {
+        const x0 = px + Math.max(0, t - ch), y0 = py + Math.min(ch, t), x1 = px + Math.min(cw, t), y1 = py + Math.max(0, t - cw);
+        if (x1 > x0) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); }
+      }
+    }
+    ctx.stroke();
+  }
+  // quiver
+  ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 1.2;
+  const gap = Math.max(22, Math.min(46, Math.min(g.Lx, g.Ly) * sc / 6));
+  for (let py = oy + gap / 2; py < oy + g.Ly * sc; py += gap) for (let px = ox + gap / 2; px < ox + g.Lx * sc; px += gap) {
+    const [x, y] = view.toW(px, py); if (!g.inside(x, y)) continue;
+    const s = sample(x, y); if (!s) continue;
+    const m = Math.hypot(s[0], s[1]); if (m < 0.02) continue;
+    const L = Math.min(gap * 0.8, 6 + m / VMAX * gap * 0.7), ux = s[0] / m, uy = -s[1] / m;
+    const x0 = px - ux * L / 2, y0 = py - uy * L / 2, x1 = px + ux * L / 2, y1 = py + uy * L / 2;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - ux * 5 - uy * 3, y1 - uy * 5 + ux * 3); ctx.lineTo(x1 - ux * 5 + uy * 3, y1 - uy * 5 - ux * 3); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  // walls
+  ctx.save(); ctx.translate(ox, oy + g.Ly * sc); ctx.scale(sc, -sc);
+  ctx.lineWidth = 4 / sc; ctx.strokeStyle = css("--tank-wall");
+  ctx.beginPath(); g.outline(ctx); ctx.stroke();
+  if (g.innerWall) { ctx.beginPath(); g.innerWall(ctx); ctx.fillStyle = css("--tank-wall"); ctx.fill(); }
+  ctx.restore();
+  // dimensions
+  ctx.fillStyle = css("--muted"); ctx.font = "12px " + css("--f-mono"); ctx.textAlign = "center";
+  ctx.fillText(`${fmt(g.Lx, 2)} m`, ox + g.Lx * sc / 2, oy - 12);
+  ctx.save(); ctx.translate(ox - 14, oy + g.Ly * sc / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(`${fmt(g.Ly, 2)} m`, 0, 0); ctx.restore();
+  // scale bar
+  const sb = niceStep(g.Lx / 5), sbx = ox, sby = oy + g.Ly * sc + 20;
+  ctx.strokeStyle = css("--ink"); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sbx, sby); ctx.lineTo(sbx + sb * sc, sby); ctx.stroke();
+  ctx.textAlign = "left"; ctx.fillStyle = css("--muted"); ctx.fillText(`${fmt(sb, sb < 1 ? 1 : 0)} m`, sbx + sb * sc + 6, sby + 4);
+  ctx.textAlign = "right"; ctx.fillText(`kesit: ${R.F.z == null ? "derinlik ortalaması" : "z = " + fmt(R.F.z) + " m"}`, ox + g.Lx * sc, sby + 4);
+  // mixers
+  S.mixers.forEach((m, i) => {
+    const c = R.mc[i], [px, py] = view.toPx(m.x, m.y), ex = c.ex, ey = -c.ey;
+    const half = Math.max(7, m.D / 2 * sc), arrow = Math.max(26, Math.min(70, 3 * m.D * sc));
+    const col = i === sel ? css("--accent") : "#ffffff";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(px - ey * half, py + ex * half); ctx.lineTo(px + ey * half, py - ex * half); ctx.stroke();
+    ctx.strokeStyle = col; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(px - ey * half, py + ex * half); ctx.lineTo(px + ey * half, py - ex * half); ctx.stroke();
+    ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + ex * arrow, py + ey * arrow); ctx.stroke();
+    ctx.beginPath(); ctx.arc(px + ex * arrow, py + ey * arrow, 6, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); ctx.stroke();
+    ctx.font = "600 12px " + css("--f-body"); ctx.textAlign = "left";
+    const tx = px + Math.abs(ey) * half + 8, ty = py - Math.abs(ex) * half - 8;
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.strokeText(m.name, tx, ty); ctx.fillStyle = "#fff"; ctx.fillText(m.name, tx, ty);
+    c._handle = [px + ex * arrow, py + ey * arrow];
+  });
+}
+function niceStep(v) { const p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p; return (n < 1.5 ? 1 : n < 3.5 ? 2 : n < 7.5 ? 5 : 10) * p; }
+function sample(x, y) {
+  const F = R.F, i = x / F.dx - 0.5, j = y / F.dy - 0.5;
+  const i0 = Math.floor(i), j0 = Math.floor(j);
+  if (i0 < -1 || j0 < -1 || i0 > F.nx - 1 || j0 > F.ny - 1) return null;
+  let u = 0, v = 0, wsum = 0;
+  for (let b = 0; b < 2; b++) for (let a = 0; a < 2; a++) {
+    const ii = i0 + a, jj = j0 + b; if (ii < 0 || jj < 0 || ii >= F.nx || jj >= F.ny) continue;
+    const k = jj * F.nx + ii; if (!F.IN[k]) continue;
+    const wt = (a ? i - i0 : 1 - (i - i0)) * (b ? j - j0 : 1 - (j - j0));
+    u += F.U[k] * wt; v += F.V[k] * wt; wsum += wt;
+  }
+  return wsum > 0 ? [u / wsum, v / wsum] : null;
+}
+function drawColorbar() {
+  const cv = $("#cbar"), {ctx, w, h} = fitCanvas(cv);
+  ctx.clearRect(0, 0, w, h);
+  const bw = w - 20;
+  for (let x = 0; x < bw; x++) { const c = cmap(x / bw * VMAX); ctx.fillStyle = `rgb(${c})`; ctx.fillRect(10 + x, 4, 1, 10); }
+  ctx.fillStyle = css("--muted"); ctx.font = "11px " + css("--f-mono"); ctx.textAlign = "center";
+  for (let v = 0; v <= VMAX + 1e-9; v += 0.1) ctx.fillText(fmt(v, 1), 10 + v / VMAX * bw, 28);
+  const xd = 10 + S.vDead / VMAX * bw; ctx.fillStyle = css("--ink"); ctx.fillRect(xd - 1, 1, 2, 16);
+}
+
+/* ---------- particles ---------- */
+let anim = null;
+function seedParticle(p) {
+  const g = R.g; for (let t = 0; t < 40; t++) { const x = Math.random() * g.Lx, y = Math.random() * g.Ly; if (g.inside(x, y)) { p.x = x; p.y = y; p.age = Math.random() * 120; return p; } }
+  p.x = g.Lx / 2; p.y = g.Ly / 2; p.age = 0; return p;
+}
+function animate() {
+  cancelAnimationFrame(anim);
+  if (!S.particles) { drawPlan(); return; }
+  const n = 380; particles = Array.from({length: n}, () => seedParticle({}));
+  const cv = $("#plan");
+  const speedUp = 6 / Math.max(1, R.g.Lx / 30);
+  let last = performance.now();
+  const tick = now => {
+    const dt = Math.min(0.05, (now - last) / 1000) * speedUp; last = now;
+    drawPlan();
+    const ctx = cv.getContext("2d"); ctx.fillStyle = "rgba(255,255,255,.9)";
+    particles.forEach(p => {
+      const s = sample(p.x, p.y);
+      if (!s || p.age > 160 || !R.g.inside(p.x, p.y)) { seedParticle(p); p.age = 0; return; }
+      p.x += s[0] * dt * 6; p.y += s[1] * dt * 6; p.age++;
+      const [px, py] = view.toPx(p.x, p.y); ctx.fillRect(px - 1, py - 1, 2.2, 2.2);
+    });
+    anim = requestAnimationFrame(tick);
+  };
+  anim = requestAnimationFrame(tick);
+}
+
+/* ---------- charts ---------- */
+function axes(ctx, w, h, m, xmax, ymax, xl, yl, xs, ys, yfmt) {
+  ctx.strokeStyle = css("--line"); ctx.fillStyle = css("--muted"); ctx.lineWidth = 1; ctx.font = "11px " + css("--f-mono");
+  ctx.textAlign = "right";
+  for (let v = 0; v <= ymax + 1e-9; v += ys) { const y = h - m.b - v / ymax * (h - m.t - m.b); ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(w - m.r, y); ctx.stroke(); ctx.fillText(yfmt ? yfmt(v) : fmt(v, ys < 1 ? 1 : 0), m.l - 6, y + 4); }
+  ctx.textAlign = "center";
+  if (xs) for (let v = 0; v <= xmax + 1e-9; v += xs) { const x = m.l + v / xmax * (w - m.l - m.r); ctx.fillText(fmt(v, 0), x, h - m.b + 15); }
+  ctx.fillText(xl, m.l + (w - m.l - m.r) / 2, h - 4);
+  ctx.save(); ctx.translate(11, m.t + (h - m.t - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yl, 0, 0); ctx.restore();
+}
+const SERIES = ["#0a8f9c", "#c8702a", "#6a5acd", "#2e8b57", "#b03a6b", "#5c7c99"];
+function seriesColors() { if (EXPORT) return SERIES; return document.documentElement.matches('[data-theme="dark"]') || (matchMedia("(prefers-color-scheme: dark)").matches && !document.documentElement.matches('[data-theme="light"]')) ? ["#4fc0c9", "#f0a35e", "#a99bff", "#6fd39a", "#f07aa8", "#9bb7d4"] : SERIES; }
+function drawJetChart() {
+  const cv = $("#jetChart"), {ctx, w, h} = fitCanvas(cv, 240); ctx.clearRect(0, 0, w, h);
+  const m = {l: 46, r: 12, t: 12, b: 36};
+  const xmax = Math.max(5, ...R.mc.map(c => c.Lfree)) * 1.05, ymax = Math.max(0.6, ...R.mc.map(c => Math.min(c.uw, 3)));
+  const xs = niceStep(xmax / 6), ys = niceStep(ymax / 5);
+  axes(ctx, w, h, m, xmax, ymax, "Pervaneden uzaklık (m)", "Jet eksen hızı (m/s)", xs, ys, v => fmt(v, 1));
+  const X = v => m.l + v / xmax * (w - m.l - m.r), Y = v => h - m.b - Math.min(v, ymax) / ymax * (h - m.t - m.b);
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(X(0), Y(S.vTarget)); ctx.lineTo(X(xmax), Y(S.vTarget)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = css("--ink"); ctx.textAlign = "right"; ctx.font = "11px " + css("--f-body"); ctx.fillText(`hedef ${fmt(S.vTarget)} m/s`, X(xmax) - 2, Y(S.vTarget) - 5);
+  const cols = seriesColors();
+  R.mc.forEach((c, i) => {
+    ctx.strokeStyle = cols[i % cols.length]; ctx.lineWidth = 2; ctx.beginPath();
+    for (let s = 0.05; s <= c.Lfree; s += xmax / 300) { const x = X(s), y = Y(c.uc(s)); s === 0.05 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(X(c.Lfree), Y(c.uc(c.Lfree)), 4, 0, Math.PI * 2); ctx.fillStyle = cols[i % cols.length]; ctx.fill();
+    ctx.textAlign = "left"; ctx.fillText(S.mixers[i].name, m.l + 8 + i * 60, m.t + 12);
+  });
+}
+function drawHist() {
+  const cv = $("#histChart"), {ctx, w, h} = fitCanvas(cv, 240); ctx.clearRect(0, 0, w, h);
+  const m = {l: 40, r: 12, t: 12, b: 36}, n = R.hist.length;
+  const ymax = Math.max(10, Math.ceil(Math.max(...R.hist) / 10) * 10);
+  axes(ctx, w, h, m, n, ymax, "Hız aralığı (m/s)", "Alan (%)", 0, niceStep(ymax / 5), v => fmt(v, 0));
+  const bw = (w - m.l - m.r) / n;
+  R.hist.forEach((p, i) => {
+    const lo = R.bands[i], hi = R.bands[i + 1], mid = isFinite(hi) ? (lo + hi) / 2 : lo + 0.1;
+    const c = cmap(mid), x = m.l + i * bw + 3, y = h - m.b - p / ymax * (h - m.t - m.b);
+    ctx.fillStyle = `rgb(${c})`; ctx.fillRect(x, y, bw - 6, h - m.b - y);
+    if (hi <= S.vDead + 1e-9) { ctx.strokeStyle = css("--bad"); ctx.lineWidth = 2; ctx.strokeRect(x, y, bw - 6, h - m.b - y); }
+    ctx.fillStyle = css("--ink"); ctx.font = "11px " + css("--f-mono"); ctx.textAlign = "center";
+    if (p > 0.05) ctx.fillText(fmt(p, 0), x + (bw - 6) / 2, y - 4);
+    ctx.fillStyle = css("--muted"); ctx.font = "10px " + css("--f-mono");
+    ctx.fillText(isFinite(hi) ? `<${fmt(hi, 2)}` : `>${fmt(lo, 2)}`, x + (bw - 6) / 2, h - m.b + 14);
+  });
+}
+
+/* ---------- UI: inputs ---------- */
+const GEO = {
+  rect: [["L", "Uzunluk", "m"], ["W", "Genişlik", "m"], ["H", "Su derinliği", "m"]],
+  circ: [["Dc", "İç çap", "m"], ["H", "Su derinliği", "m"]],
+  oval: [["Ls", "Düz kısım uzunluğu", "m"], ["b", "Kanal genişliği", "m"], ["tw", "Orta duvar kalınlığı", "m"], ["H", "Su derinliği", "m"]],
+};
+function renderGeo() {
+  document.querySelectorAll("[data-type]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.type === S.tank.type)));
+  $("#geoFields").innerHTML = GEO[S.tank.type].map(([k, l, u]) =>
+    `<label class="f">${l} <span class="u">${u}</span><input id="g_${k}" data-g="${k}" type="number" step="0.1" min="0.1" value="${S.tank[k]}"></label>`).join("");
+  $("#geoFields").querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => { const v = parseFloat(inp.value); if (v > 0) { S.tank[inp.dataset.g] = v; update(); } }));
+}
+function renderMixers() {
+  const box = $("#mixerList");
+  box.innerHTML = S.mixers.map((m, i) => `
+    <div class="mixer${i === sel ? " sel" : ""}" data-i="${i}">
+      <div class="mixer-head"><input id="m${i}_name" data-k="name" type="text" value="${m.name.replace(/"/g, "&quot;")}" aria-label="Mikser adı">
+        <button class="x" type="button" data-del="${i}" aria-label="${m.name} mikserini sil">×</button></div>
+      <div class="fields">
+        <label class="f">Pervane Ø <span class="u">m</span><input id="m${i}_D" data-k="D" type="number" step="0.01" min="0.1" value="${m.D}"></label>
+        <label class="f">Mil gücü <span class="u">kW</span><input id="m${i}_P" data-k="P" type="number" step="0.1" min="0.1" value="${m.P}"></label>
+        <label class="f">İtki <span class="u">N</span><input id="m${i}_F" data-k="F" type="number" step="10" min="0" placeholder="tahmin" value="${m.F ?? ""}"></label>
+        <label class="f">Devir <span class="u">d/d</span><input id="m${i}_rpm" data-k="rpm" type="number" step="1" min="1" value="${m.rpm}"></label>
+        <label class="f">x <span class="u">m</span><input id="m${i}_x" data-k="x" type="number" step="0.1" value="${+m.x.toFixed(2)}"></label>
+        <label class="f">y <span class="u">m</span><input id="m${i}_y" data-k="y" type="number" step="0.1" value="${+m.y.toFixed(2)}"></label>
+        <label class="f">Taban kotu z <span class="u">m</span><input id="m${i}_z" data-k="z" type="number" step="0.05" min="0" value="${m.z}"></label>
+        <label class="f">Yön açısı <span class="u">°</span><input id="m${i}_ang" data-k="ang" type="number" step="5" value="${Math.round(m.ang)}"></label>
+        <label class="f">Tahmini itki <span class="u">N</span><input id="m${i}_Fe" type="text" readonly tabindex="-1" value=""></label>
+      </div>
+    </div>`).join("") || `<p class="hint">Henüz mikser yok. Yukarıdaki listeden ekleyin.</p>`;
+  box.querySelectorAll(".mixer").forEach(el => {
+    const i = +el.dataset.i;
+    el.addEventListener("focusin", () => { if (sel !== i) { sel = i; markSel(); drawStatic(); } });
+    el.querySelectorAll("input[data-k]").forEach(inp => inp.addEventListener("input", () => {
+      const k = inp.dataset.k, m = S.mixers[i];
+      if (k === "name") { m.name = inp.value || `M-${i + 1}`; }
+      else if (k === "F") { const v = parseFloat(inp.value); m.F = v > 0 ? v : null; }
+      else { const v = parseFloat(inp.value); if (!isFinite(v)) return; if ((k === "D" || k === "P" || k === "rpm") && v <= 0) return; m[k] = v; }
+      update(false);
+    }));
+  });
+  box.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => { S.mixers.splice(+b.dataset.del, 1); sel = Math.max(0, Math.min(sel, S.mixers.length - 1)); renderMixers(); update(); }));
+}
+function markSel() { document.querySelectorAll(".mixer").forEach(el => el.classList.toggle("sel", +el.dataset.i === sel)); }
+function syncMixerFields() {
+  S.mixers.forEach((m, i) => {
+    const set = (k, v) => { const el = document.getElementById(`m${i}_${k}`); if (el && document.activeElement !== el) el.value = v; };
+    set("x", +m.x.toFixed(2)); set("y", +m.y.toFixed(2)); set("ang", Math.round(m.ang));
+    const fe = document.getElementById(`m${i}_Fe`); if (fe && R) fe.value = fmt(R.mc[i].Fest, 0);
+  });
+}
+function renderProc() {
+  ["vTarget", "vDead", "pMin", "pMax", "rho", "lam", "zSec", "etaInst", "fm", "zBottom"].forEach(k => { const el = $("#" + k); if (document.activeElement !== el) el.value = S[k]; });
+  const zt = $("#zTurn"); if (document.activeElement !== zt) zt.value = S.tank.type === "oval" ? S.zTurnOval : S.zTurn;
+  $("#process").value = S.process;
+  $("#projName").value = S.projName; $("#projBy").value = S.projBy;
+  document.querySelectorAll("[data-plane]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.plane === S.plane)));
+  $("#showParticles").checked = !!S.particles; $("#showDead").checked = !!S.dead;
+}
+
+/* ---------- results rendering ---------- */
+const SLABEL = {ok: "Uygun", warn: "Dikkat", bad: "Yetersiz"};
+function pill(s) { return `<span class="pill st-${s}">${SLABEL[s]}</span>`; }
+function renderResults() {
+  const r = R, g = r.g;
+  const vd = $("#verdict"); vd.className = "verdict st-" + r.status;
+  $("#verdictT").textContent = r.status === "ok" ? "Karışım tasarımı uygun" : r.status === "warn" ? `Tasarım kabul edilebilir, ${r.nw} noktada dikkat gerekiyor` : `Tasarım yetersiz: ${r.nb} kontrol sağlanmıyor`;
+  $("#verdictS").textContent = `${g.label}, V = ${fmt(g.V, 0)} m³ · ${S.mixers.length} mikser · toplam ${fmt(r.Ptot / 1000, 1)} kW`;
+  const vs = st(r.v >= S.vTarget, r.v >= 0.85 * S.vTarget), fs = st(r.Feff >= r.Freq, r.Feff >= 0.75 * r.Freq);
+  const ds = st(r.deadPct <= 10, r.deadPct <= 20), ps = r.pSpec >= S.pMin && r.pSpec <= S.pMax ? "ok" : "warn", ts = st(r.tTurn <= 15, r.tTurn <= 30);
+  const kpi = (k, v, s, state, barPct) => `<div class="kpi st-${state}"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span>${barPct != null ? `<span class="bar"><i style="width:${clamp(barPct, 0, 100)}%"></i></span>` : ""}</div>`;
+  $("#kpis").innerHTML =
+    kpi("Ortalama akış hızı", `${fmt(r.v)} m/s`, `hedef ${fmt(S.vTarget)} m/s ${pill(vs)}`, vs, r.v / S.vTarget * 100) +
+    kpi("Net itki", `${fmt(r.Feff / 1000)} kN`, `gerekli ${fmt(r.Freq / 1000)} kN ${pill(fs)}`, fs, r.Freq ? r.Feff / r.Freq * 100 : 0) +
+    kpi("Özgül güç", `${fmt(r.pSpec, 1)} W/m³`, `aralık ${fmt(S.pMin, 0)}–${fmt(S.pMax, 0)} ${pill(ps)}`, ps, r.pSpec / S.pMax * 100) +
+    kpi("Ölü bölge", `% ${fmt(r.deadPct, 1)}`, `v < ${fmt(S.vDead)} m/s ${pill(ds)}`, ds, r.deadPct) +
+    kpi("Devir süresi", isFinite(r.tTurn) ? `${fmt(r.tTurn, 1)} dk` : "–", `Q = ${fmt(r.Qc * 3600, 0)} m³/sa ${pill(ts)}`, ts, null);
+  $("#checks tbody").innerHTML = r.checks.map(c => `<tr><td>${c.k}${c.note ? `<div class="hint">${c.note}</div>` : ""}</td><td class="num mono">${c.val}</td><td class="mono" style="white-space:nowrap">${c.crit}</td><td>${pill(c.s)}</td></tr>`).join("");
+}
+
+/* ---------- report ---------- */
+function recommendations(r) {
+  const out = [], g = r.g;
+  if (r.v < S.vTarget) {
+    out.push(`Ortalama akış hızı ${fmt(r.v)} m/s ile hedefin (${fmt(S.vTarget)} m/s) altında. Hedef için yaklaşık ${fmt(r.Freq / 1000)} kN net itki gerekir; mevcut net itki ${fmt(r.Feff / 1000)} kN. İtkiyi yaklaşık % ${fmt((r.Freq / Math.max(r.Feff, 1) - 1) * 100, 0)} artırın: daha büyük çaplı yavaş devirli mikser seçin, mikser sayısını artırın veya mikserleri akış yönüne hizalayın.`);
+  } else out.push(`İtki dengesi hedef hızı sağlıyor (${fmt(r.v)} m/s ≥ ${fmt(S.vTarget)} m/s). Net itki gerekli değerin % ${fmt(r.Feff / Math.max(r.Freq, 1) * 100, 0)}'i kadar.`);
+  if (r.deadPct > 10) out.push(`Seçilen kesitte alanın % ${fmt(r.deadPct, 1)}'inde hız ${fmt(S.vDead)} m/s altında. Taralı bölgeler çökelme riski taşır. ${S.tank.type === "rect" ? "Dikdörtgen havuzda tek döngülü akışın merkezi ve köşeler yavaş kalır; mikserleri duvara daha yakın (genişliğin yaklaşık 1/4'ü) yerleştirmek veya köşelere pah yapmak bu bölgeleri küçültür." : "Mikser konumlarını yavaş bölgelere doğru kaydırmayı veya ilave mikseri değerlendirin."}`);
+  if (r.pSpec < S.pMin) out.push(`Özgül güç (${fmt(r.pSpec, 1)} W/m³) proses için tipik aralığın altında; üretici ile itki bazlı doğrulama yapın.`);
+  if (r.pSpec > S.pMax) out.push(`Özgül güç (${fmt(r.pSpec, 1)} W/m³) tipik aralığın üstünde. Daha büyük çaplı, yavaş devirli mikserlerle aynı itki daha az güçle sağlanabilir.`);
+  if (S.mixers.length > 1 && r.cancel < 0.8) out.push("Mikserlerin bir kısmı birbirine karşı çalışıyor. Tüm mikserleri aynı dönüş yönünde (havuz döngüsüne teğet) yönlendirin.");
+  r.checks.filter(c => c.m != null && c.s !== "ok").forEach(c => out.push(`${c.k}: ${c.val} (ölçüt ${c.crit}).`));
+  if (out.length === 1 && r.status === "ok") out.push("Tüm geometrik montaj kontrolleri sağlanıyor.");
+  return out;
+}
+function renderReport() {
+  const r = R, g = r.g, date = new Date().toLocaleDateString("tr-TR", {day: "2-digit", month: "long", year: "numeric"});
+  const planImg = (() => { try { drawPlan(); return $("#plan").toDataURL("image/png"); } catch (e) { return ""; } })();
+  const jetImg = $("#jetChart").toDataURL("image/png"), histImg = $("#histChart").toDataURL("image/png");
+  const proc = PROC[S.process]?.label || "Özel";
+  const rec = recommendations(r);
+  const t = S.tank;
+  const geoRows = (S.tank.type === "rect" ? [["Uzunluk × genişlik", `${fmt(t.L, 2)} × ${fmt(t.W, 2)} m`]] : S.tank.type === "circ" ? [["İç çap", `${fmt(t.Dc, 2)} m`]] : [["Düz kısım / kanal genişliği / orta duvar", `${fmt(t.Ls, 2)} / ${fmt(t.b, 2)} / ${fmt(t.tw, 2)} m`]])
+    .concat([["Su derinliği", `${fmt(t.H, 2)} m`], ["Plan alanı", `${fmt(g.area, 1)} m²`], ["Hacim", `${fmt(g.V, 0)} m³`], ["Akış kesiti A<sub>c</sub>", `${fmt(g.Ac, 2)} m²`], ["Akış yolu uzunluğu", `${fmt(g.Lpath, 1)} m`],
+      ["Proses", proc], ["Hedef ortalama akış hızı", `${fmt(S.vTarget)} m/s`], ["Çökelme sınır hızı", `${fmt(S.vDead)} m/s`], ["Özgül güç aralığı", `${fmt(S.pMin, 1)} – ${fmt(S.pMax, 1)} W/m³`], ["Yoğunluk", `${fmt(S.rho, 0)} kg/m³`]]);
+  const resRows = [
+    ["Toplam mil gücü", `${fmt(r.Ptot / 1000, 2)} kW`], ["Toplam itki (brüt)", `${fmt(r.Ftot / 1000, 2)} kN`], ["Net etkin itki ΣF<sub>e</sub>", `${fmt(r.Feff / 1000, 2)} kN`],
+    ["Toplam kayıp katsayısı ζ", `${fmt(g.zeta, 2)} (sürtünme ${fmt(g.zFric, 2)} + dönüş ${fmt(g.zBends, 2)}${g.zExtra ? ` + ikincil ${fmt(g.zExtra, 2)}` : ""})`],
+    ["Ortalama akış hızı v", `${fmt(r.v, 3)} m/s`], ["Hedef için gerekli net itki", `${fmt(r.Freq / 1000, 2)} kN (brüt ≈ ${fmt(r.FreqGross / 1000, 2)} kN)`],
+    ["Özgül güç", `${fmt(r.pSpec, 2)} W/m³`], ["Özgül itki", `${fmt(r.fSpec, 2)} N/m³`], ["Sirkülasyon debisi", `${fmt(r.Qc * 3600, 0)} m³/sa`], ["Havuz devir süresi", isFinite(r.tTurn) ? `${fmt(r.tTurn, 1)} dk` : "–"],
+    [`Ölü bölge oranı (${R.F.z == null ? "derinlik ort." : "z = " + fmt(R.F.z) + " m"})`, `% ${fmt(r.deadPct, 1)}`], ["Kesitte ortalama hız", `${fmt(r.meanPlane)} m/s`]];
+  $("#report").innerHTML = `
+    <div class="report-head">
+      <div><h3>Karışım analizi raporu</h3><h2 style="font-size:26px">${esc(S.projName || "Adsız proje")}</h2></div>
+      <div class="hint mono" style="text-align:right">${date}${S.projBy ? `<br>Hazırlayan: ${esc(S.projBy)}` : ""}<br>Genel durum: ${pill(r.status)}</div>
+    </div>
+    <section><h2>1. Havuz ve proses verileri</h2><div class="tbl-wrap"><table><tbody>${geoRows.map(([a, b]) => `<tr><td>${a}</td><td class="num mono">${b}</td></tr>`).join("")}</tbody></table></div></section>
+    <section><h2>2. Mikser verileri</h2><div class="tbl-wrap"><table>
+      <thead><tr><th>Mikser</th><th class="num">Ø (m)</th><th class="num">P (kW)</th><th class="num">Devir</th><th class="num">Uç hızı (m/s)</th><th class="num">İtki (N)</th><th class="num">Jet hızı (m/s)</th><th class="num">x / y / z (m)</th><th class="num">Yön (°)</th><th class="num">cos φ</th><th class="num">Serbest jet (m)</th><th class="num">F<sub>e</sub> (N)</th></tr></thead>
+      <tbody>${S.mixers.map((m, i) => { const c = r.mc[i]; return `<tr><td>${esc(m.name)}</td><td class="num mono">${fmt(m.D)}</td><td class="num mono">${fmt(m.P, 1)}</td><td class="num mono">${fmt(m.rpm, 0)}</td><td class="num mono">${fmt(c.tip, 1)}</td><td class="num mono">${fmt(c.F, 0)}${m.F ? "" : "*"}</td><td class="num mono">${fmt(c.uw)}</td><td class="num mono">${fmt(m.x, 1)} / ${fmt(m.y, 1)} / ${fmt(m.z, 2)}</td><td class="num mono">${fmt(m.ang, 0)}</td><td class="num mono">${fmt(c.cos)}</td><td class="num mono">${fmt(c.Lfree, 1)}</td><td class="num mono">${fmt(c.Feff, 0)}</td></tr>`; }).join("")}</tbody></table></div>
+      ${S.mixers.some(m => !m.F) ? `<p class="hint">* İtki üretici verisi girilmediği için momentum teorisinden tahmin edilmiştir (FM = ${fmt(S.fm)}). Kesin tasarımda üretici itki değeri kullanılmalıdır.</p>` : ""}</section>
+    <section><h2>3. Hesap yöntemi</h2>
+      <p>Havuz, mikserlerin oluşturduğu tek bir yatay sirkülasyon döngüsü olarak modellenir. Mikser itkileri, akış yolu boyunca oluşan sürtünme ve dönüş kayıplarını karşılar. Bu momentum dengesinden ortalama akış hızı bulunur:</p>
+      <div class="formula">ΣF_e = Σ F_i · η_montaj · η_jet,i · cos φ_i
+ΣF_e = ½ · ρ · v² · A_c · ζ          →   v = √( 2 · ΣF_e / (ρ · A_c · ζ) )
+ζ   = λ · L_yol / D_h + n_dönüş · ζ_dönüş ${S.tank.type === "circ" ? "+ ζ_ikincil" : ""}
+İtki tahmini (üretici verisi yoksa):  F = (2ρA)^(1/3) · (FM · P)^(2/3)
+Pervane jeti eksen hızı:  u(x) = u_0 · 2,6 · D / x   (x > 2,6·D),   u_0 = √(2F / ρA) ≈ 1,6·√(F/ρ)/D</div>
+      <p>Hız alanı; döngü akışının kanal içi hız profili, tabana doğru 1/7 üstel düşüşü ve her mikserin pervane jetinin (Fuehrer–Römisch eksen hızı azalımı, Gauss kesit profili, taban ve yüzey yansımalı) üst üste bindirilmesiyle hesaplanır. Ölü bölge oranı, seçilen kesitte hızın çökelme sınır hızının altında kaldığı alanın yüzdesidir.</p></section>
+    <section><h2>4. Hesap adımları</h2>${calcSteps(r).map(c => c.h ? `<h3 style="text-transform:none;letter-spacing:0;font-size:16px;color:var(--ink)">${esc(c.h)}</h3>` : calcHTML(c)).join("")}</section>
+    <section><h2>5. Sonuçlar</h2><div class="tbl-wrap"><table><tbody>${resRows.map(([a, b]) => `<tr><td>${a}</td><td class="num mono">${b}</td></tr>`).join("")}</tbody></table></div></section>
+    <section><h2>6. Görsel sonuçlar</h2>
+      <figure><img alt="Plan hız alanı" src="${planImg}"><figcaption>Şekil 1. Plan görünümünde hız alanı (${R.F.z == null ? "derinlik ortalaması" : "z = " + fmt(R.F.z) + " m kesiti"}). Renk ölçeği 0–${fmt(VMAX, 1)} m/s. Taralı alanlar v &lt; ${fmt(S.vDead)} m/s.</figcaption></figure>
+      <div class="figs">
+        <figure><img alt="Jet eksen hızı grafiği" src="${jetImg}"><figcaption>Şekil 2. Mikser jetlerinin eksen hızının mesafeyle azalması. Noktalar jetin duvara ulaştığı mesafeyi gösterir. Jet, eksen hızı ortalama akış hızına düştüğünde ana akışa karışmış kabul edilir.</figcaption></figure>
+        <figure><img alt="Hız dağılımı grafiği" src="${histImg}"><figcaption>Şekil 3. Kesit alanının hız aralıklarına dağılımı. Kırmızı çerçeveli çubuklar çökelme sınır hızının altındadır.</figcaption></figure>
+      </div></section>
+    <section><h2>7. Tasarım kontrolleri</h2><div class="tbl-wrap"><table><thead><tr><th>Kontrol</th><th>Değer</th><th>Ölçüt</th><th>Durum</th></tr></thead><tbody>
+      ${r.checks.map(c => `<tr><td>${c.k}</td><td class="num mono">${c.val}</td><td class="mono" style="white-space:nowrap">${c.crit}</td><td>${pill(c.s)}</td></tr>`).join("")}</tbody></table></div></section>
+    <section><h2>8. Değerlendirme ve öneriler</h2><ol>${rec.map(x => `<li>${x}</li>`).join("")}</ol></section>
+    <section><h2>9. Sınırlamalar</h2><p class="hint" style="font-size:13.5px">Bu analiz, ön tasarım ve karşılaştırma için yarı ampirik bir modeldir; CFD çözümü değildir. Ölçütler (0,30 m/s ortalama hız, özgül güç aralıkları, montaj mesafeleri) yaygın tasarım uygulamalarından alınmış varsayılan değerlerdir ve proje şartnamesine göre değiştirilmelidir. Nihai mikser seçimi, üreticinin itki ölçüm verisi ve üretici/CFD doğrulaması ile yapılmalıdır.</p></section>`;
+  drawPlan();
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])); }
+const fs = (v, d = 2) => (v < 0 ? "(" + fmt(v, d) + ")" : fmt(v, d));
+function calcSteps(r) {
+  const g = r.g, C = [], t = S.tank, w = g.ro - g.ri, T = x => `\\text{ ${x}}`;
+  C.push({h: "4.1 Havuz geometrisi ve akış yolu"});
+  const areaLine = t.type === "rect" ? `A = L · B = ${fmt(t.L)} × ${fmt(t.W)}` : t.type === "circ" ? `A = \\frac{π · D^{2}}{4} = \\frac{π × ${fmt(t.Dc)}^{2}}{4}` : `A = L_{d} · 2R_{o} + π · R_{o}^{2} − (L_{d} · t_{w} + \\frac{π · t_{w}^{2}}{4})`;
+  C.push({lbl: "Plan alanı ve hacim", lines: [areaLine].concat(t.type === "oval" ? [`= ${fmt(t.Ls)} × ${fmt(2 * g.ro)} + π × ${fmt(g.ro)}^{2} − (${fmt(t.Ls)} × ${fmt(t.tw)} + \\frac{π × ${fmt(t.tw)}^{2}}{4})`] : [], [`V = A · H = ${fmt(g.area, 2)} × ${fmt(t.H)}`]), res: `A = ${fmt(g.area, 2)}${T("m²")}, \\; V = ${fmt(g.V, 1)}${T("m³")}`});
+  C.push({lbl: "Sirkülasyon akış kesiti", lines: ["A_{c} = (r_{o} − r_{i}) · H", `= (${fmt(g.ro)} − ${fmt(g.ri)}) × ${fmt(t.H)}`, "#" + (t.type === "rect" ? "Dikdörtgen havuzda döngü, kısa kenarın yarısı genişliğinde iki kola ayrılır." : t.type === "circ" ? "Dairesel havuzda yarıçap boyunca kesit alınır." : "Yarış pistinde bir kanal kesiti alınır.")], res: `A_{c} = ${fmt(g.Ac, 2)}${T("m²")}`});
+  C.push({lbl: "Hidrolik çap ve akış yolu uzunluğu", lines: ["D_{h} = \\frac{4 · A_{c}}{w + 2H}", `= \\frac{4 × ${fmt(g.Ac, 2)}}{${fmt(w)} + 2 × ${fmt(t.H)}}`, "L_{yol} = 2 · L_{eksen} + π · (r_{i} + r_{o})", `= 2 × ${fmt(g.axisLen)} + π × (${fmt(g.ri)} + ${fmt(g.ro)})`], res: `D_{h} = ${fmt(g.Dh, 3)}${T("m")}, \\; L_{yol} = ${fmt(g.Lpath, 2)}${T("m")}`});
+  C.push({lbl: "Toplam kayıp katsayısı", lines: [`ζ = λ · \\frac{L_{yol}}{D_{h}} + n_{dönüş} · ζ_{dönüş}${g.zExtra ? " + ζ_{ikincil}" : ""}`, `= ${fmt(S.lam, 3)} × \\frac{${fmt(g.Lpath, 2)}}{${fmt(g.Dh, 3)}} + ${g.zTurnN} × ${fmt(g.zTurn)}${g.zExtra ? ` + ${fmt(g.zExtra)}` : ""}`], res: `ζ = ${fmt(g.zFric, 3)} + ${fmt(g.zBends, 2)}${g.zExtra ? ` + ${fmt(g.zExtra, 2)}` : ""} = ${fmt(g.zeta, 3)}`});
+  C.push({h: "4.2 Mikser itkileri"});
+  S.mixers.forEach((m, i) => {
+    const c = r.mc[i], lines = [`A_{p} = \\frac{π · D^{2}}{4} = \\frac{π × ${fmt(m.D)}^{2}}{4} = ${fmt(c.A, 4)}${T("m²")}`];
+    if (m.F) lines.push(`F = ${fmt(m.F, 0)}${T("N (üretici verisi)")}`);
+    else lines.push("F = (2 · ρ · A_{p})^{\\frac{1}{3}} · (FM · P)^{\\frac{2}{3}}", `= (2 × ${fmt(S.rho, 0)} × ${fmt(c.A, 4)})^{\\frac{1}{3}} × (${fmt(S.fm)} × ${fmt(m.P * 1000, 0)})^{\\frac{2}{3}} = ${fmt(c.F, 0)}${T("N")}`);
+    lines.push(`u_{0} = \\sqrt{\\frac{2F}{ρ · A_{p}}} = \\sqrt{\\frac{2 × ${fmt(c.F, 0)}}{${fmt(S.rho, 0)} × ${fmt(c.A, 4)}}} = ${fmt(c.uw, 3)}${T("m/s")}`,
+      `η_{jet} = min(1; \\frac{L_{serbest}}{5D}) = min(1; \\frac{${fmt(c.Lfree, 2)}}{5 × ${fmt(m.D)}}) = ${fmt(c.etaFree, 3)}`,
+      "F_{e} = F · η_{montaj} · η_{jet} · cos φ", `= ${fmt(c.F, 0)} × ${fmt(S.etaInst)} × ${fmt(c.etaFree, 3)} × ${fmt(c.cos, 3)}`,
+      `x_{atış} = \\frac{2,6 · D · u_{0}}{v_{hedef}} = \\frac{2,6 × ${fmt(m.D)} × ${fmt(c.uw, 3)}}{${fmt(S.vTarget)}} = ${fmt(c.throwL(S.vTarget), 1)}${T("m")}`);
+    C.push({lbl: `${m.name}: Ø${fmt(m.D)} m, ${fmt(m.P, 1)} kW`, lines, res: `F_{e} = ${fmt(c.Feff, 0)}${T("N")}`});
+  });
+  C.push({h: "4.3 Ortalama akış hızı ve gerekli itki"});
+  C.push({lbl: "Net etkin itki", lines: ["ΣF_{e} = " + (r.mc.map(c => fmt(c.Feff, 0)).join(" + ") || "0")], res: `ΣF_{e} = ${fmt(r.Feff, 0)}${T("N")}`});
+  C.push({lbl: "Momentum dengesinden ortalama akış hızı", lines: ["v = \\sqrt{\\frac{2 · ΣF_{e}}{ρ · A_{c} · ζ}}", `= \\sqrt{\\frac{2 × ${fmt(r.Feff, 0)}}{${fmt(S.rho, 0)} × ${fmt(g.Ac, 2)} × ${fmt(g.zeta, 3)}}}`], res: `v = ${fmt(r.v, 3)}${T(`m/s (hedef ${fmt(S.vTarget)} m/s)`)}`});
+  C.push({lbl: "Hedef hız için gerekli net itki", lines: ["F_{ger} = \\frac{1}{2} · ρ · v_{hedef}^{2} · A_{c} · ζ", `= 0,5 × ${fmt(S.rho, 0)} × ${fmt(S.vTarget)}^{2} × ${fmt(g.Ac, 2)} × ${fmt(g.zeta, 3)}`, `F_{ger,brüt} = \\frac{F_{ger}}{η_{montaj}} = \\frac{${fmt(r.Freq, 0)}}{${fmt(S.etaInst)}}`], res: `F_{ger} = ${fmt(r.Freq, 0)}${T("N")}, \\; F_{ger,brüt} = ${fmt(r.FreqGross, 0)}${T("N")}`});
+  C.push({h: "4.4 Güç, özgül değerler ve devir süresi"});
+  C.push({lbl: "Özgül güç ve özgül itki", lines: ["p = \\frac{ΣP}{V}", `= \\frac{${fmt(r.Ptot, 0)}}{${fmt(g.V, 1)}}`, `f = \\frac{ΣF}{V} = \\frac{${fmt(r.Ftot, 0)}}{${fmt(g.V, 1)}}`], res: `p = ${fmt(r.pSpec, 2)}${T("W/m³")}, \\; f = ${fmt(r.fSpec, 2)}${T("N/m³")}`});
+  C.push({lbl: "Sirkülasyon debisi ve havuz devir süresi", lines: ["Q_{c} = v · A_{c}", `= ${fmt(r.v, 3)} × ${fmt(g.Ac, 2)}`, "t = \\frac{V}{Q_{c}}", `= \\frac{${fmt(g.V, 1)}}{${fmt(r.Qc, 3)}}`], res: `Q_{c} = ${fmt(r.Qc, 3)}${T(`m³/s (${fmt(r.Qc * 3600, 0)} m³/sa)`)}, \\; t = ${isFinite(r.tTurn) ? fmt(r.tTurn, 1) : "–"}${T("dk")}`});
+  return C;
+}
+const calcHTML = b => `<div class="calc"><span class="lbl">${esc(b.lbl)}</span>${b.lines.map(l => l.startsWith("#") ? `<span class="tx">${esc(l.slice(1))}</span>` : `<div class="eq">${MathFmt.toMathML(l, false)}</div>`).join("")}<div class="eq res">${MathFmt.toMathML("⇒ " + b.res, false)}</div></div>`;
+function calcDocx(D, b) { D.para(b.lbl, {keep: true, after: 20}, {b: true}); b.lines.forEach(l => l.startsWith("#") ? D.codeText(l.slice(1)) : D.eq(l)); D.eq("⇒ " + b.res, true); }
+const SL2 = {ok: "Uygun", warn: "Dikkat", bad: "Yetersiz"}, SC2 = {ok: "1F7A45", warn: "9A6200", bad: "B3261E"};
+function exportFigures() {
+  cancelAnimationFrame(anim); const wasP = S.particles; S.particles = false;
+  EXPORT = true; let out;
+  try { drawPlan(); drawJetChart(); drawHist();
+    const cap = id => { const c = $(id); return {url: c.toDataURL("image/png"), w: c.width, h: c.height}; };
+    out = {plan: cap("#plan"), jet: cap("#jetChart"), hist: cap("#histChart")};
+  } finally { EXPORT = false; S.particles = wasP; drawStatic(); if (wasP) { anim = null; animate(); } }
+  return out;
+}
+function buildDocx() {
+  const r = R, g = r.g, t = S.tank, F = exportFigures(), D = new MiniDocx(), date = new Date().toLocaleDateString("tr-TR", {day: "2-digit", month: "long", year: "numeric"});
+  const strip = x => String(x).replace(/<sub>(.*?)<\/sub>/g, "_$1").replace(/<[^>]+>/g, "");
+  D.small("KARIŞIM ANALİZİ RAPORU"); D.title(S.projName || "Adsız proje");
+  D.p([{t: `Tarih: ${date}`}, ...(S.projBy ? [{t: `   Hazırlayan: ${S.projBy}`}] : []), {t: "   Genel durum: "}, {t: SL2[r.status], b: true, color: SC2[r.status]}]);
+  D.h1("1. Havuz ve proses verileri");
+  const geoRows = (t.type === "rect" ? [["Uzunluk × genişlik", `${fmt(t.L, 2)} × ${fmt(t.W, 2)} m`]] : t.type === "circ" ? [["İç çap", `${fmt(t.Dc, 2)} m`]] : [["Düz kısım / kanal genişliği / orta duvar", `${fmt(t.Ls, 2)} / ${fmt(t.b, 2)} / ${fmt(t.tw, 2)} m`]])
+    .concat([["Su derinliği", `${fmt(t.H, 2)} m`], ["Plan alanı", `${fmt(g.area, 1)} m²`], ["Hacim", `${fmt(g.V, 0)} m³`], ["Proses", PROC[S.process]?.label || "Özel"], ["Hedef ortalama akış hızı", `${fmt(S.vTarget)} m/s`], ["Çökelme sınır hızı", `${fmt(S.vDead)} m/s`], ["Özgül güç aralığı", `${fmt(S.pMin, 1)} – ${fmt(S.pMax, 1)} W/m³`], ["Yoğunluk", `${fmt(S.rho, 0)} kg/m³`]]);
+  D.table([["Parametre", "Değer"]].concat(geoRows), {widths: [3, 2], align: ["", "r"]});
+  D.h1("2. Mikser verileri");
+  D.table([["Mikser", "Ø (m)", "P (kW)", "Devir", "İtki (N)", "u₀ (m/s)", "x / y / z (m)", "Yön (°)", "cos φ", "L_serbest (m)", "F_e (N)"]].concat(S.mixers.map((m, i) => { const c = r.mc[i]; return [m.name, fmt(m.D), fmt(m.P, 1), fmt(m.rpm, 0), fmt(c.F, 0) + (m.F ? "" : "*"), fmt(c.uw), `${fmt(m.x, 1)} / ${fmt(m.y, 1)} / ${fmt(m.z, 2)}`, fmt(m.ang, 0), fmt(c.cos), fmt(c.Lfree, 1), fmt(c.Feff, 0)]; })),
+    {widths: [1.1, .8, .8, .8, 1, .9, 1.7, .8, .8, 1, 1], align: ["", "r", "r", "r", "r", "r", "r", "r", "r", "r", "r"], fontSize: 16});
+  if (S.mixers.some(m => !m.F)) D.small(`* İtki üretici verisi girilmediği için momentum teorisinden tahmin edilmiştir (FM = ${fmt(S.fm)}).`);
+  D.h1("3. Hesap yöntemi");
+  D.p("Havuz, mikserlerin oluşturduğu tek bir yatay sirkülasyon döngüsü olarak modellenir. Mikser itkileri akış yolu boyunca oluşan sürtünme ve dönüş kayıplarını karşılar; bu momentum dengesinden ortalama akış hızı bulunur. Hız alanı; döngü akışının kanal içi hız profili, tabana doğru 1/7 üstel azalım ve her mikserin pervane jetinin (Fuehrer–Römisch eksen hızı azalımı, Gauss kesit profili, taban ve yüzey yansımalı) üst üste bindirilmesiyle hesaplanır.");
+  D.h1("4. Hesap adımları");
+  calcSteps(r).forEach(c => { if (c.h) D.h2(c.h); else calcDocx(D, c); });
+  D.h1("5. Sonuçlar");
+  D.table([["Büyüklük", "Değer"], ["Toplam mil gücü", `${fmt(r.Ptot / 1000, 2)} kW`], ["Toplam itki (brüt)", `${fmt(r.Ftot / 1000, 2)} kN`], ["Net etkin itki ΣF_e", `${fmt(r.Feff / 1000, 2)} kN`], ["Kayıp katsayısı ζ", fmt(g.zeta, 3)],
+    ["Ortalama akış hızı v", `${fmt(r.v, 3)} m/s`], ["Gerekli net itki", `${fmt(r.Freq / 1000, 2)} kN`], ["Özgül güç", `${fmt(r.pSpec, 2)} W/m³`], ["Özgül itki", `${fmt(r.fSpec, 2)} N/m³`], ["Sirkülasyon debisi", `${fmt(r.Qc * 3600, 0)} m³/sa`], ["Havuz devir süresi", isFinite(r.tTurn) ? `${fmt(r.tTurn, 1)} dk` : "–"],
+    [`Ölü bölge oranı (${r.F.z == null ? "derinlik ort." : "z = " + fmt(r.F.z) + " m"})`, `% ${fmt(r.deadPct, 1)}`], ["Kesitte ortalama hız", `${fmt(r.meanPlane)} m/s`]], {widths: [3, 2], align: ["", "r"]});
+  D.h1("6. Görsel sonuçlar");
+  D.image(F.plan.url, 17, F.plan.w, F.plan.h); D.caption(`Şekil 1. Plan görünümünde hız alanı (${r.F.z == null ? "derinlik ortalaması" : "z = " + fmt(r.F.z) + " m kesiti"}). Renk ölçeği 0–${fmt(VMAX, 1)} m/s; taralı alanlar v < ${fmt(S.vDead)} m/s.`);
+  D.image(F.jet.url, 15, F.jet.w, F.jet.h); D.caption("Şekil 2. Mikser jetlerinin eksen hızının mesafeyle azalması.");
+  D.image(F.hist.url, 15, F.hist.w, F.hist.h); D.caption("Şekil 3. Kesit alanının hız aralıklarına dağılımı (alan %).");
+  D.h1("7. Tasarım kontrolleri");
+  D.table([["Kontrol", "Değer", "Ölçüt", "Durum"]].concat(r.checks.map(c => [c.k, c.val, c.crit, {t: SL2[c.s], b: true, color: SC2[c.s]}])), {widths: [3.4, 1.8, 2, 1], align: ["", "r", "", "c"]});
+  D.h1("8. Değerlendirme ve öneriler"); D.list(recommendations(r).map(strip));
+  D.h1("9. Sınırlamalar");
+  D.small("Bu analiz ön tasarım ve karşılaştırma için yarı ampirik bir modeldir; CFD çözümü değildir. Ölçütler yaygın tasarım uygulamalarından alınmış varsayılan değerlerdir ve proje şartnamesine göre değiştirilmelidir. Nihai mikser seçimi üreticinin itki ölçüm verisi ve üretici/CFD doğrulaması ile yapılmalıdır.");
+  return D.build({title: S.projName || "Karışım analizi", author: S.projBy});
+}
+function reportText() {
+  const r = R, g = r.g, L = [];
+  L.push(`KARIŞIM ANALİZİ RAPORU – ${S.projName || "Adsız proje"}`);
+  L.push(`Tarih: ${new Date().toLocaleDateString("tr-TR")}${S.projBy ? "   Hazırlayan: " + S.projBy : ""}`);
+  L.push(`Genel durum: ${SLABEL[r.status]}`, "");
+  L.push("1. HAVUZ VE PROSES", `${g.label}, su derinliği ${fmt(g.H)} m, hacim ${fmt(g.V, 0)} m³, akış kesiti ${fmt(g.Ac)} m², akış yolu ${fmt(g.Lpath, 1)} m`);
+  L.push(`Proses: ${PROC[S.process]?.label || "Özel"}; hedef hız ${fmt(S.vTarget)} m/s; çökelme sınırı ${fmt(S.vDead)} m/s; özgül güç ${fmt(S.pMin, 1)}–${fmt(S.pMax, 1)} W/m³`, "");
+  L.push("2. MİKSERLER");
+  S.mixers.forEach((m, i) => { const c = r.mc[i]; L.push(`${m.name}: Ø${fmt(m.D)} m, ${fmt(m.P, 1)} kW, ${fmt(m.rpm, 0)} d/d, itki ${fmt(c.F, 0)} N${m.F ? "" : " (tahmin)"}, konum x=${fmt(m.x, 1)} y=${fmt(m.y, 1)} z=${fmt(m.z, 2)} m, yön ${fmt(m.ang, 0)}°, cos φ=${fmt(c.cos)}, serbest jet ${fmt(c.Lfree, 1)} m`); });
+  L.push("", "3. HESAP ADIMLARI"); calcSteps(r).forEach(c => c.h ? L.push("", c.h) : L.push(c.lbl, ...c.lines.map(x => "   " + (x.startsWith("#") ? x.slice(1) : MathFmt.toText(x))), "   ⇒ " + MathFmt.toText(c.res)));
+  L.push("", "4. SONUÇLAR");
+  L.push(`Ortalama akış hızı: ${fmt(r.v, 3)} m/s (hedef ${fmt(S.vTarget)} m/s)`, `Net itki: ${fmt(r.Feff / 1000)} kN, gerekli: ${fmt(r.Freq / 1000)} kN`, `Kayıp katsayısı ζ: ${fmt(g.zeta)}`,
+    `Özgül güç: ${fmt(r.pSpec, 2)} W/m³, özgül itki: ${fmt(r.fSpec, 2)} N/m³`, `Sirkülasyon debisi: ${fmt(r.Qc * 3600, 0)} m³/sa, devir süresi: ${isFinite(r.tTurn) ? fmt(r.tTurn, 1) + " dk" : "–"}`,
+    `Ölü bölge oranı (${R.F.z == null ? "derinlik ort." : "z=" + fmt(R.F.z) + " m"}): % ${fmt(r.deadPct, 1)}`, "");
+  L.push("5. KONTROLLER"); r.checks.forEach(c => L.push(`[${SLABEL[c.s]}] ${c.k}: ${c.val} (ölçüt ${c.crit})`));
+  L.push("", "6. DEĞERLENDİRME"); recommendations(r).forEach((x, i) => L.push(`${i + 1}. ${x}`));
+  L.push("", "Not: Yarı ampirik ön tasarım modelidir, CFD değildir. Nihai seçim üretici itki verisi ile doğrulanmalıdır.");
+  return L.join("\n");
+}
+
+/* ---------- update loop ---------- */
+let reportTimer = null;
+function drawStatic() { if (!S.particles) drawPlan(); drawJetChart(); drawHist(); drawColorbar(); }
+function update(rerenderMixers) {
+  R = analyse(); save();
+  if (rerenderMixers) renderMixers();
+  syncMixerFields(); markSel(); renderResults(); drawStatic();
+  if (S.particles && !anim) animate();
+  clearTimeout(reportTimer); reportTimer = setTimeout(renderReport, 250);
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll("[data-type]").forEach(b => b.addEventListener("click", () => {
+  const t = b.dataset.type; if (S.tank.type === t) return; S.tank.type = t;
+  const g = geometry(), H = S.tank.H;
+  // place mixers sensibly for new geometry
+  const n = Math.max(1, S.mixers.length);
+  S.mixers.forEach((m, i) => {
+    if (t === "rect") { const L = S.tank.L, W = S.tank.W; const top = i % 2; m.x = top ? L - 4 : 4; m.y = top ? W * 0.75 : W * 0.25; m.ang = top ? 180 : 0; }
+    else if (t === "circ") { const Rr = S.tank.Dc / 2, a = i / n * Math.PI * 2 - Math.PI / 2, rr = Rr * 0.6; m.x = Rr + rr * Math.cos(a); m.y = Rr + rr * Math.sin(a); m.ang = (a * 180 / Math.PI + 90 + 360) % 360; }
+    else { const Ro = S.tank.b + S.tank.tw / 2, Ls = S.tank.Ls, top = i % 2; m.x = top ? Ro + Ls * 0.8 : Ro + Ls * 0.2; m.y = top ? Ro + S.tank.tw / 2 + S.tank.b / 2 : S.tank.b / 2; m.ang = top ? 180 : 0; }
+    m.z = Math.min(m.z, H - m.D / 2 - 0.5);
+  });
+  if (t === "oval") { S.process = S.process === "anoxic" ? "ditch" : S.process; Object.assign(S, PROC[S.process] ? pick(PROC[S.process]) : {}); }
+  renderGeo(); renderProc(); update(true);
+}));
+function pick(p) { return {vTarget: p.vTarget, vDead: p.vDead, pMin: p.pMin, pMax: p.pMax}; }
+$("#process").addEventListener("change", e => { S.process = e.target.value; if (PROC[S.process]) Object.assign(S, pick(PROC[S.process])); renderProc(); update(); });
+["vTarget", "vDead", "pMin", "pMax", "rho", "lam", "zSec", "etaInst", "fm", "zBottom"].forEach(k => $("#" + k).addEventListener("input", e => {
+  const v = parseFloat(e.target.value); if (!isFinite(v)) return; S[k] = v;
+  if (["vTarget", "vDead", "pMin", "pMax"].includes(k)) { S.process = "custom"; $("#process").value = "custom"; }
+  update();
+}));
+$("#zTurn").addEventListener("input", e => { const v = parseFloat(e.target.value); if (!isFinite(v)) return; if (S.tank.type === "oval") S.zTurnOval = v; else S.zTurn = v; update(); });
+$("#projName").addEventListener("input", e => { S.projName = e.target.value; update(); });
+$("#projBy").addEventListener("input", e => { S.projBy = e.target.value; update(); });
+document.querySelectorAll("[data-plane]").forEach(b => b.addEventListener("click", () => { S.plane = b.dataset.plane; renderProc(); update(); }));
+$("#showParticles").addEventListener("change", e => { S.particles = e.target.checked; save(); if (!S.particles) { cancelAnimationFrame(anim); anim = null; drawPlan(); } else animate(); });
+$("#showDead").addEventListener("change", e => { S.dead = e.target.checked; update(); });
+$("#lib").addEventListener("change", e => {
+  const L = LIB[e.target.value]; e.target.value = ""; if (!L) return;
+  const g = geometry(), H = S.tank.H;
+  const i = S.mixers.length;
+  let x = g.Lx * 0.25, y = g.Ly * 0.25, ang = 0;
+  const tries = [[0.25, 0.25], [0.75, 0.75], [0.5, 0.25], [0.5, 0.75], [0.15, 0.5], [0.85, 0.5]];
+  for (const [fx, fy] of tries) { const tx = g.Lx * fx, ty = g.Ly * fy; if (g.inside(tx, ty) && S.mixers.every(m => Math.hypot(m.x - tx, m.y - ty) > 2 * L.D)) { x = tx; y = ty; break; } }
+  if (!g.inside(x, y)) { x = g.Lx / 2; y = g.Ly * 0.2; }
+  const [tx, ty] = g.unit(x, y); if (tx || ty) ang = Math.atan2(ty, tx) * 180 / Math.PI;
+  S.mixers.push({name: `M-${i + 1}`, D: L.D, rpm: L.rpm, P: L.P, F: null, x, y, z: +clamp(H / 3, L.D / 2 + 0.35, H - L.D / 2 - 0.5).toFixed(2), ang: (ang + 360) % 360});
+  sel = i; update(true);
+});
+$("#btnExample").addEventListener("click", () => { S = example(); sel = 0; renderGeo(); renderProc(); update(true); toast("Örnek yüklendi"); });
+const fname = () => ((S.projName || "karisim-analizi").replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 80) || "karisim-analizi") + ".docx";
+$("#btnWord").addEventListener("click", async () => {
+  const b = $("#btnWord"); b.disabled = true;
+  try { const res = await WordExport.save(fname(), buildDocx()); if (res === "saved") toast("Word raporu hazırlandı"); }
+  catch (e) {
+    const c = e && e.code;
+    if (c === "declined") toast("İndirme iptal edildi");
+    else if (c === "rate_limited") toast("Önceki indirme penceresi hâlâ açık");
+    else toast("Bu görünümde dosya indirilemiyor. Rapor metnini kopyalayıp Word'e yapıştırabilirsiniz.");
+  } finally { b.disabled = false; }
+});
+window.__mix = {buildDocx, get R() { return R; }};
+$("#btnCopy").addEventListener("click", () => {
+  const txt = reportText();
+  const done = () => toast("Rapor metni panoya kopyalandı");
+  try { navigator.clipboard.writeText(txt).then(done, () => fallbackCopy(txt)); } catch (e) { fallbackCopy(txt); }
+});
+function fallbackCopy(txt) {
+  const ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+  ta.remove(); toast(ok ? "Rapor metni panoya kopyalandı" : "Kopyalanamadı. Rapor bölümünü seçip kopyalayın.");
+}
+let toastT; function toast(m) { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+
+// drag on plan
+let drag = null;
+const cvp = $("#plan");
+function evPos(e) { const r = cvp.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cvp.addEventListener("pointerdown", e => {
+  if (!view) return; const [px, py] = evPos(e);
+  let best = null;
+  R.mc.forEach((c, i) => {
+    const [hx, hy] = c._handle || [0, 0], [mx, my] = view.toPx(S.mixers[i].x, S.mixers[i].y);
+    const dh = Math.hypot(px - hx, py - hy), dm = Math.hypot(px - mx, py - my);
+    if (dh < 14 && (!best || dh < best.d)) best = {i, mode: "rot", d: dh};
+    if (dm < Math.max(16, S.mixers[i].D / 2 * view.sc) && (!best || dm < best.d)) best = {i, mode: "move", d: dm};
+  });
+  if (!best) return;
+  drag = best; sel = best.i; markSel(); cvp.setPointerCapture(e.pointerId); e.preventDefault();
+});
+cvp.addEventListener("pointermove", e => {
+  if (!view) return; const [px, py] = evPos(e);
+  if (!drag) {
+    const hit = R.mc.some((c, i) => { const [hx, hy] = c._handle || [0, 0], [mx, my] = view.toPx(S.mixers[i].x, S.mixers[i].y); return Math.hypot(px - hx, py - hy) < 14 || Math.hypot(px - mx, py - my) < 16; });
+    cvp.style.cursor = hit ? "grab" : "default"; return;
+  }
+  const m = S.mixers[drag.i], g = R.g, [wx, wy] = view.toW(px, py);
+  if (drag.mode === "move") { if (g.inside(wx, wy)) { m.x = wx; m.y = wy; } }
+  else { m.ang = ((Math.atan2(wy - m.y, wx - m.x) * 180 / Math.PI) + 360) % 360; if (!e.shiftKey) m.ang = Math.round(m.ang / 5) * 5; }
+  cvp.style.cursor = "grabbing";
+  R = analyse(); syncMixerFields(); renderResults(); if (!S.particles) drawPlan(); drawJetChart(); drawHist();
+});
+const endDrag = () => { if (drag) { drag = null; update(); } };
+cvp.addEventListener("pointerup", endDrag); cvp.addEventListener("pointercancel", endDrag);
+
+// theme / resize
+const redrawAll = () => { if (R) { drawStatic(); clearTimeout(reportTimer); reportTimer = setTimeout(renderReport, 150); } };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(redrawAll, 120); });
+
+renderGeo(); renderProc(); update(true);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(redrawAll);
+})();
+</script>
+
+</body></html>

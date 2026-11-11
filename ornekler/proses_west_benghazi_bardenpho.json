@@ -1,0 +1,87 @@
+{
+  "format": "AritmaCAD-proses",
+  "surum": 1,
+  "proje": {
+    "ad": "West Benghazi AAT",
+    "proses": "5 kademeli Bardenpho",
+    "kaynak": "West Benghazi AAT – 5 Kademeli Bardenpho Proses Hesap Raporu (24.10.2026)",
+    "yontem": "ATV-DVWK-A 131",
+    "etaplar": [
+      { "yil": 2035, "Q_m3gun": 240000, "havuz_adet": 1 },
+      { "yil": 2060, "Q_m3gun": 480000, "havuz_adet": 2 }
+    ]
+  },
+  "debiler": {
+    "Q_m3gun": 480000,
+    "Qh_m3saat": 20000,
+    "Qmax_m3saat": 40000,
+    "RAS_oran": 0.75,
+    "ic_devir_oran": 4.0,
+    "not": "Tesis toplamı, 2060. Biyolojik havuz başına değerler için havuz_adet'e bölünür."
+  },
+  "uniteler": [
+    {
+      "kod": "TT",
+      "ad": "Taş tutucu",
+      "tip": "dikdortgen_havuz",
+      "adet": 1,
+      "taban_alani_m2": 80,
+      "hacim_m3": 333,
+      "su_derinligi_m": 4.2,
+      "not": "Uzunluk/genişlik oranı raporda verilmemiş; çizimde kullanıcıdan alınacak."
+    },
+    {
+      "kod": "KI",
+      "ad": "Kaba ızgara",
+      "tip": "izgara_kanali",
+      "adet": 4,
+      "asil": 3,
+      "yedek": 1,
+      "kanal_genislik_m": 2.5,
+      "yaklasim_kanali_genislik_m": 1.7,
+      "su_derinligi_pik_m": 2.3,
+      "cubuk_araligi_mm": 30,
+      "cubuk_kalinligi_mm": 10,
+      "egim_derece": 85
+    },
+    {
+      "kod": "TM",
+      "ad": "Terfi merkezi",
+      "tip": "pompa_istasyonu",
+      "bolme_adet": 2,
+      "islak_hazne": { "uzunluk_m": 10.0, "genislik_m": 9.7, "derinlik_m": 4.0 },
+      "pompa": { "asil": 12, "yedek": 4, "kapasite_m3saat": 3350 }
+    },
+    {
+      "kod": "BH",
+      "ad": "Biyolojik havuz (Bardenpho)",
+      "tip": "kademeli_havuz",
+      "adet": 2,
+      "genislik_m": 120.0,
+      "su_derinligi_m": 6.5,
+      "hava_payi_m": 0.5,
+      "duvar_yuksekligi_m": 7.0,
+      "kademeler": [
+        { "sira": 1, "ad": "Anaerobik",   "uzunluk_m": 22.5, "hacim_m3": 17550, "ortam": "havasiz",     "ekipman": "mikser ~44 kW", "girisler": ["ham su", "RAS"] },
+        { "sira": 2, "ad": "Anoksik-1",   "uzunluk_m": 40.0, "hacim_m3": 31200, "ortam": "havasiz",     "ekipman": "mikser ~78 kW", "girisler": ["ic devir"] },
+        { "sira": 3, "ad": "Aerobik-1",   "uzunluk_m": 92.5, "hacim_m3": 72150, "ortam": "havalandirma", "ekipman": "disk difuzor", "cikislar": ["ic devir pompalari (cikis ucu)"] },
+        { "sira": 4, "ad": "Anoksik-2",   "uzunluk_m": 13.5, "hacim_m3": 10530, "ortam": "havasiz",     "ekipman": "mikser ~26 kW" },
+        { "sira": 5, "ad": "Re-aerasyon", "uzunluk_m": 10.0, "hacim_m3": 7800,  "ortam": "havalandirma", "ekipman": "disk difuzor" }
+      ],
+      "toplam_uzunluk_m": 178.5,
+      "toplam_hacim_m3": 139230,
+      "ekipman": {
+        "blower": { "asil": 4, "yedek": 1, "kapasite_Nm3dk": 240 },
+        "ic_devir_pompasi": { "asil": 8, "yedek": 1, "kapasite_m3saat": 5200, "tip": "propeller" },
+        "difuzor_adet": 13700,
+        "mikser_toplam_kW": 148
+      },
+      "not": "Değerler havuz başınadır."
+    }
+  ],
+  "eksik_bilgiler": [
+    "Ön çöktürme ve son çöktürme ebatları (raporda bu kısım okunmadı / mevcut hesaptan alınacak)",
+    "Taş tutucu plan oranları",
+    "Duvar ve taban kalınlıkları (TS 500 ön statik modülünden gelecek)"
+  ]
+}

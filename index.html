@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArıtmaCAD</title>
+<link rel="stylesheet" href="app/style.css">
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand"><span class="logo">◈</span> ArıtmaCAD <small id="docname">Adsız</small></div>
+    <nav class="menus">
+      <div class="menu"><button>Dosya</button>
+        <div class="drop">
+          <button data-cmd="YENI">Yeni çizim</button>
+          <button data-cmd="AC">Aç (ArıtmaCAD proje / DWG / DXF / KMZ)… <kbd>Ctrl+O</kbd></button>
+          <button data-cmd="ICEAKTAR">Çizime ekle (DWG / DXF / KMZ)…</button>
+          <hr>
+          <button data-cmd="KAYDET">Kaydet (proje .aritma; DXF / DWG açtıysanız o biçim) <kbd>Ctrl+S</kbd></button>
+          <button data-cmd="PROJEFARKLI">Proje olarak farklı kaydet (.aritma)…</button>
+          <button data-cmd="FARKLIKAYDET">Farklı kaydet (DXF)…</button>
+          <button data-cmd="DWGKAYDET">DWG olarak kaydet…</button>
+          <button data-cmd="DXF12OUT">DXF R12 olarak (en uyumlu)</button>
+          <button data-cmd="DXF2B">AutoCAD'e 2B: plan, kesit, tablo, paftalar (DXF)…</button>
+          <button data-cmd="DISIPLINDXF">AutoCAD'e paftalar: her disiplin ayrı dosya (Mekanik, Mimari, Statik, Elektrik)…</button>
+          <button data-cmd="DXF3B">AutoCAD'e 3B model (DXF)…</button>
+          <div class="sec">Dışa aktar</div>
+          <button data-cmd="IFCOUT">IFC 4 — Revit / BIM</button>
+          <button data-cmd="STLOUT">STL — 3B yazıcı</button>
+          <button data-cmd="OBJOUT">OBJ — Blender / SketchUp / 3ds Max</button>
+          <button data-cmd="KMZOUT">KMZ — Google Earth</button>
+          <button data-cmd="KMLOUT">KML — GIS</button>
+          <button data-cmd="SVGOUT">SVG — pafta görüntüsü</button>
+          <hr>
+          <button data-cmd="YAZDIR">Yazdır / PDF (pafta)</button>
+          <button data-cmd="KOORDINAT">Koordinat sistemi…</button>
+          <button data-cmd="CIKIS">Kapat / çıkış <kbd>Ctrl+Q</kbd></button>
+        </div>
+      </div>
+      <div class="menu"><button>Çiz</button>
+        <div class="drop">
+          <div class="sec">Çizgiler</div>
+          <button data-cmd="LINE">Çizgi <kbd>L</kbd></button>
+          <button data-cmd="PLINE">Çoklu çizgi <kbd>PL</kbd></button>
+          <button data-cmd="RECTANG">Dikdörtgen <kbd>REC</kbd></button>
+          <button data-cmd="POINT">Nokta</button>
+          <div class="sec">Eğriler</div>
+          <button data-cmd="CIRCLE">Daire <kbd>C</kbd></button>
+          <button data-cmd="ARC">Yay <kbd>A</kbd></button>
+          <button data-cmd="ELLIPSE">Elips / eliptik yay <kbd>EL</kbd></button>
+          <div class="sec">Yazı ve tarama</div>
+          <button data-cmd="TEXT">Yazı <kbd>T</kbd></button>
+          <button data-cmd="MTEXT">Paragraf yazı <kbd>MT</kbd></button>
+          <button data-cmd="EGRIYAZI">Eğri boyunca yazı</button>
+          <button data-cmd="STYLE">Yazı stilleri…</button>
+          <button data-cmd="TARAMA">Tarama (hatch)… <kbd>H</kbd></button>
+          <button data-cmd="TARAMASINIR">Tarama sınırını yeniden oluştur</button>
+          <div class="sec">Blok</div>
+          <button data-cmd="KUTUPHANE">Vana / blok kütüphanesi…</button>
+          <button data-cmd="BLOKYAP">Blok oluştur</button>
+          <button data-cmd="BLOKEKLE">Blok ekle</button>
+        </div>
+      </div>
+      <div class="menu"><button>Değiştir</button>
+        <div class="drop">
+          <div class="sec">Taşı / kopyala</div>
+          <button data-cmd="MOVE">Taşı <kbd>M</kbd></button>
+          <button data-cmd="COPY">Kopyala <kbd>CO</kbd></button>
+          <button data-cmd="ROTATE">Döndür <kbd>RO</kbd></button>
+          <button data-cmd="MIRROR">Ayna <kbd>MI</kbd></button>
+          <button data-cmd="SCALE">Ölçekle (R = referans, C = kopya) <kbd>SC</kbd></button>
+          <button data-cmd="ARRAY">Dizi</button>
+          <button data-cmd="ALIGN">Hizala <kbd>AL</kbd></button>
+          <div class="sec">Biçim</div>
+          <button data-cmd="OFFSET">Ötele <kbd>O</kbd></button>
+          <button data-cmd="TRIM">Buda <kbd>TR</kbd></button>
+          <button data-cmd="EXTEND">Uzat <kbd>EX</kbd></button>
+          <button data-cmd="FILLET">Köşe yuvarla <kbd>F</kbd></button>
+          <button data-cmd="CHAMFER">Pah kır</button>
+          <button data-cmd="JOIN">Bağla <kbd>J</kbd></button>
+          <button data-cmd="EXPLODE">Patlat <kbd>X</kbd></button>
+          <div class="sec">Özellik</div>
+          <button data-cmd="MATCHPROP">Özellik kopyala (fırça) <kbd>MA</kbd></button>
+          <button data-cmd="PROPERTIES">Özellikler <kbd>Ctrl+1</kbd></button>
+          <button data-cmd="DDEDIT">Yazı düzenle</button>
+          <button data-cmd="HATCHEDIT">Tarama düzenle</button>
+          <hr>
+          <button data-cmd="ERASE">Sil <kbd>Del</kbd></button>
+        </div>
+      </div>
+      <div class="menu"><button>Ölçü</button>
+        <div class="drop">
+          <div class="sec">Uzunluk</div>
+          <button data-cmd="DIMLINEAR">Doğrusal ölçü (yatay/düşey) <kbd>DLI</kbd></button>
+          <button data-cmd="DIMALIGNED">Hizalı ölçü <kbd>DAL</kbd></button>
+          <button data-cmd="QDIM">Otomatik ölçü (çizgi, çap, yarıçap) <kbd>QDIM</kbd></button>
+          <button data-cmd="AKS">Aks sistemi (otomatik, ölçülü)…</button>
+          <div class="sec">Daire / yay</div>
+          <button data-cmd="DIMRADIUS">Yarıçap ölçüsü <kbd>DRA</kbd></button>
+          <button data-cmd="DIMDIAMETER">Çap ölçüsü <kbd>DDI</kbd></button>
+          <div class="sec">Kot ve koordinat</div>
+          <button data-cmd="KOT">Kot işareti</button>
+          <button data-cmd="DIMORDINATE">Koordinat ölçüsü (Y / X) <kbd>DOR</kbd></button>
+          <button data-cmd="ID">Nokta koordinatını sorgula <kbd>ID</kbd></button>
+          <div class="sec">Ölçme</div>
+          <button data-cmd="DIST">Mesafe <kbd>DI</kbd></button>
+          <button data-cmd="AREA">Alan <kbd>AA</kbd></button>
+          <button data-cmd="LIST">Nesne bilgisi <kbd>LI</kbd></button>
+          <div class="sec">Açıklama ölçeği</div>
+          <button data-cmd="OLCEK">Açıklama ölçeği (1/N)…</button>
+          <button data-cmd="OLCEKEKLE">Açıklamalara ölçek ekle</button>
+          <button data-cmd="OLCEKCIKAR">Açıklamalardan ölçek çıkar</button>
+          <button data-cmd="OLCEKKONUM">Açıklamayı yalnız bu ölçekte taşı</button>
+          <button data-cmd="OLCEKAYAR">Açıklama ölçeği ayarları…</button>
+        </div>
+      </div>
+      <div class="menu"><button>İnşaat</button>
+        <div class="drop">
+          <div class="sec">Taşıyıcı sistem</div>
+          <button data-cmd="TEMEL">Temel (radye / sürekli / tekil)…</button>
+          <button data-cmd="PERDE">Perde / istinat perdesi (eğimli: alt 80 üst 30)…</button>
+          <button data-cmd="KOLON">Kolon (dikdörtgen / dairesel)…</button>
+          <button data-cmd="KIRIS">Kiriş…</button>
+          <button data-cmd="IDOSEME">Döşeme…</button>
+          <div class="sec">Duvar ve doğramalar</div>
+          <button data-cmd="IDUVAR">Duvar (tuğla / gazbeton / briket)…</button>
+          <button data-cmd="PENCERE">Pencere…</button>
+          <button data-cmd="KAPI">Kapı…</button>
+          <div class="sec">Metraj</div>
+          <button data-cmd="OTOKIRIS">Kolonlardan otomatik kiriş (+ döşeme / çatı)</button>
+          <button data-cmd="CATI">Çatı (kırma / beşik / tek eğim / mansart / teras)</button>
+          <button data-cmd="CATIPAFTA">Çatı paftası (plan, kesitler, detaylar)</button>
+          <button data-cmd="ICATI">Çatı döşemesi (parapetli)</button>
+          <button data-cmd="IDOLGU">Sıkıştırılmış dolgu (iç alan)</button>
+          <button data-cmd="ZEMINKAPLAMA">Zemin kaplaması (seramik, parke, mermer…)</button>
+          <button data-cmd="DUVARKAPLAMA">Duvar sıva / boya / kaplama</button>
+          <button data-cmd="TAVANKAPLAMA">Tavan sıva / boya / asma tavan</button>
+          <button data-cmd="CEPHEYALITIM">Dış cephe ısı yalıtımı (mantolama)</button>
+          <button data-cmd="CATIYALITIM">Çatı / teras yalıtımı</button>
+          <button data-cmd="ZEMINYALITIM">Zemin betonu altı yalıtım</button>
+          <button data-cmd="TEMELYALITIM">Temel yalıtımı (bohçalama)</button>
+          <button data-cmd="SUYALITIM">Su yalıtımı (ıslak hacim / havuz)</button>
+          <button data-cmd="SUTUTUCUBANT">Su tutucu bant (derz)</button>
+          <button data-cmd="TRETUVAR">Tretuvar (bina çevresi)</button>
+          <button data-cmd="TRETUVARDETAY">Tretuvar detayı (1/10)</button>
+          <button data-cmd="DXFMODEL">DXF / DWG planından 3B model</button>
+          <button data-cmd="INSKATMAN">Elemanları kendi katmanlarına taşı</button>
+          <button data-cmd="INSMETRAJ">Beton / kalıp / duvar metrajı</button>
+          <button data-cmd="INSCAKISMA">Çakışma / minha kontrolü</button>
+        </div>
+      </div>
+      <div class="menu"><button>Arıtma</button>
+        <div class="drop">
+          <div class="sec">Yapılar</div>
+          <button data-cmd="POMPAISTASYONU">Pompa istasyonu üret…</button>
+          <button data-cmd="HAVUZ">Dikdörtgen havuz / hazne</button>
+          <button data-cmd="DHAVUZ">Dairesel havuz (çöktürme)</button>
+          <button data-cmd="DUVAR">Duvar</button>
+          <div class="sec">Boru ve ekipman</div>
+          <button data-cmd="BORU">Boru</button>
+          <button data-cmd="POMPA">Pompa</button>
+          <button data-cmd="VB">Boru hattına vana koy (flanş/adaptörlü)</button>
+          <button data-cmd="KUTUPHANE">Vana / blok kütüphanesi…</button>
+          <button data-cmd="BLOKYUKLE">Vana çizimlerimi (DWG/DXF) kütüphaneye yükle…</button>
+          <button data-cmd="MODELYUKLE">3B vana modeli (STL/OBJ) yükle…</button>
+          <button data-cmd="MODELKUTUPHANESI">Ücretsiz 3B modeller (kapı, pencere, ekipman)…</button>
+          <div class="sec">Arazi</div>
+          <button data-cmd="ARAZI">Arazi al (3B üçgen model + eş yükselti)…</button>
+          <button data-cmd="ARAZIKOT">Arazi kotu sorgula</button>
+          <button data-cmd="ARAZIAYAR">Arazi saydamlığı / zemin bloğu derinliği…</button>
+          <div class="sec">Kazı ve dolgu</div>
+          <button data-cmd="KAZI">Yapıyı araziye oturt: kazı (şev, tesviye)…</button>
+          <button data-cmd="KAZIDURUM">Geri dolgu yap / açık kazıya dön</button>
+          <button data-cmd="KAZIKESIT">Kazı kesiti (kot tablolu)…</button>
+          <button data-cmd="KAZIHACIM">Kazı-dolgu kübaj cetveli</button>
+          <div class="sec">Liste</div>
+          <button data-cmd="BOM HEPSI">Malzeme listesi (BOM)</button>
+        </div>
+      </div>
+      <div class="menu"><button>3B / Kesit</button>
+        <div class="drop">
+          <div class="sec">3B model</div>
+          <button data-cmd="KUTU">Kutu</button>
+          <button data-cmd="SILINDIR">Silindir</button>
+          <button data-cmd="EXTRUDE">Ekstrüzyon (kapalı şekli katıya çevir)</button>
+          <button data-cmd="PUSHPULL">İt / çek <kbd>PP</kbd></button>
+          <button data-cmd="UNION">Birleştir</button>
+          <button data-cmd="SEPARATE">Ayır</button>
+          <button data-cmd="SWEEP">Yol boyunca süpür</button>
+          <button data-cmd="PLAN3B">Planda 3B modeli göster / gizle</button>
+          <div class="sec">Kesit ve görünüş</div>
+          <button data-cmd="KESITDUZLEMI">3B kesit düzlemi (modeli canlı kes)…</button>
+          <button data-cmd="KDKESIT">Kesit düzleminden 2B kesit / plan üret</button>
+          <button data-cmd="KESITDUZLEMI K">3B kesmeyi kapat</button>
+          <button data-cmd="KESITAL">3B modelden kesit al…</button>
+          <button data-cmd="KOTPLANI">Kot planı (ör. +2.00 kotu planı, otomatik plan kotlu)…</button>
+          <button data-cmd="GORUNUS">Görünüş (ön, yan, üst, izometrik)…</button>
+          <button data-cmd="GORUNUSGUNCELLE">Planları / görünüşleri modelden güncelle</button>
+          <button data-cmd="GORUNUSPAFTA">Görünüşü ölçekli paftaya yerleştir…</button>
+          <button data-cmd="KESITAYAR">Kesit stilleri (işaret, çizgi, tarama)…</button>
+        </div>
+      </div>
+      <div class="menu"><button>Pafta</button>
+        <div class="drop">
+          <div class="sec">Düzen (layout)</div>
+          <button data-cmd="DUZEN YENI">Yeni düzen…</button>
+          <button data-cmd="SAYFADUZENI">Sayfa düzeni (kağıt, kenar, antet)…</button>
+          <button data-cmd="MVIEW M">Görünüm penceresi ekle (modelden alan seç)</button>
+          <button data-cmd="MVIEW">Görünüm penceresi çiz (dikdörtgen / daire / çokgen)</button>
+          <button data-cmd="DETAY">Detay paftası (daire, üçgen, yamuk, çokgen)…</button>
+          <button data-cmd="VPYER">Seçili pencerenin modeldeki yerini seç</button>
+          <button data-cmd="PAFTALA">Otomatik paftala…</button>
+          <div class="sec">Antet</div>
+          <button data-cmd="ANTET YUKLE">Kendi antetimi yükle (DXF/DWG)…</button>
+          <button data-cmd="ANTET SABITLE">Bu anteti tüm çizimlerde kullan</button>
+          <button data-cmd="PAFTA">Model paftası (çerçeve) ekle</button>
+          <div class="sec">Yazdır</div>
+          <button data-cmd="DUZENYAZDIR">Bu düzeni yazdır / PDF</button>
+          <button data-cmd="TUMUNUYAZDIR">Tüm paftaları yazdır (çok sayfalı PDF)</button>
+        </div>
+      </div>
+      <div class="menu"><button>Hesaplar</button>
+        <div class="drop">
+          <button data-cmd="ATV131">ATV-A 131 proses hesabı</button>
+          <button data-cmd="BLOWER">Blower hava hesabı</button>
+          <button data-cmd="POMPAHESAP">Pompa hidrolik hesabı</button>
+          <button data-cmd="MIKSER">Dalgıç mikser karışım analizi</button>
+          <hr>
+          <button data-cmd="HAZNEHESAP">Islak hazne hacmi (hızlı)</button>
+          <button data-cmd="BORUHESAP">Boru hızı / yük kaybı (hızlı)</button>
+        </div>
+      </div>
+      <div class="menu"><button>Ayarlar</button>
+        <div class="drop">
+          <div class="sec">Katman</div>
+          <button data-cmd="LAYER">Katman yöneticisi <kbd>LA</kbd></button>
+          <button data-cmd="LAYISO">Katmanı yalıt (LAYISO)</button>
+          <button data-cmd="LAYUNISO">Yalıtmayı kaldır (LAYUNISO)</button>
+          <button data-cmd="LAYOFF">Katman kapat (LAYOFF)</button>
+          <button data-cmd="LAYON">Tüm katmanları aç (LAYON)</button>
+          <div class="sec">Çizim yardımcıları</div>
+          <button data-cmd="IZGARAAYAR">Snap / ızgara ayarları…</button>
+          <button data-cmd="OSNAP">Nesne yakalama ayarları</button>
+          <button data-cmd="KESITAYAR">Kesit stilleri…</button>
+          <button data-cmd="PANEL">Yan panel: sabit / otomatik gizle / kapalı</button>
+        </div>
+      </div>
+      <div class="menu"><button>Yardım</button>
+        <div class="drop">
+          <button id="btnHelp">Hızlı kılavuz</button>
+          <button onclick="window.open('KILAVUZ.html','_blank')">Ayrıntılı kılavuz (KILAVUZ.html)</button>
+          <button data-cmd="YARDIM">Tüm komutlar</button>
+        </div>
+      </div>
+    </nav>
+    <div class="tabs" id="viewTabs">
+      <button data-view="plan" class="on">Plan</button>
+      <button data-view="3d">3B</button>
+      <button data-view="map">Harita</button>
+      <button data-view="layout">Düzen</button>
+    </div>
+    <div class="props">
+      <button class="ic" data-cmd="UNDO" title="Geri al (Ctrl+Z)">↶</button>
+      <button class="ic" data-cmd="REDO" title="Yinele (Ctrl+Y)">↷</button>
+      <button id="btnProps" title="Özellikler penceresi (Ctrl+1)">☰ Özellikler</button>
+      <label title="Geçerli katman">Katman <select id="curLayer"></select></label>
+      <label title="Geçerli renk">Renk <select id="curColor"></select></label>
+      <label title="Geçerli çizgi tipi">Tip <select id="curLt"></select></label>
+      <label title="Geçerli çizgi kalınlığı">Kalınlık <select id="curLw"></select></label>
+      <button class="ic" id="btnSide" title="Sohbet panelini aç/kapat (Ctrl+Shift+S)">◧</button>
+    </div>
+  </header>
+
+  <aside id="tools"></aside>
+
+  <main id="views">
+    <canvas id="cvPlan" class="view on"></canvas>
+    <canvas id="cv3d" class="view"></canvas>
+    <canvas id="cvMap" class="view"></canvas>
+    <canvas id="cvLayout" class="view"></canvas>
+    <div id="mapCtl" class="overlay hidden">
+      <div class="row"><input id="mapSearch" placeholder="Yer ya da 39.92, 32.85"><button id="mapGo">Ara</button></div>
+      <div id="mapResults"></div>
+      <div class="row"><button data-cmd="ARAZI" title="Seçilen alanın 3B arazi modelini (üçgen ağ) ve eş yükselti eğrilerini üret">⛰ Arazi al</button><button data-cmd="ARAZIKOT">Arazi kotu</button></div>
+      <div class="row"><select id="mapSrc"></select><label><input type="checkbox" id="mapLabels" checked> Etiket</label></div>
+      <div class="row"><span>Koordinat:</span><select id="geoMode"><option value="none">Tanımsız</option><option value="local">Yerel (0,0 = nokta)</option><option value="utm">UTM (WGS84)</option><option value="tm3">TM3 (ITRF96)</option></select><input id="geoZone" type="number" style="width:52px" title="UTM dilimi ya da TM3 dilim orta meridyeni"></div>
+      <div class="row"><button id="geoHere" title="Harita merkezini çizimin 0,0 noktası yapar">Merkezi orijin yap</button><button id="mapToDwg">Çizime git</button></div>
+      <div class="row"><button id="mapMe">Konumum</button><button data-cmd="KMZIN">KMZ/KML içe al</button></div>
+      <div class="hint" id="geoInfo"></div>
+    </div>
+    <div id="layoutCtl" class="overlay hidden">
+      <div class="row"><select id="layoutSel"></select><button data-cmd="DUZEN YENI">+ Yeni</button><button data-cmd="MVIEW M">+ Pencere</button><button data-cmd="DETAY">+ Detay</button><button data-cmd="PAFTALA">Paftala</button></div>
+      <div class="row"><button data-cmd="ANTET YUKLE">Antet yükle</button><button data-cmd="DUZENYAZDIR" class="pri">Yazdır / PDF</button><button data-cmd="TUMUNUYAZDIR">Tümünü yazdır</button></div>
+      <div class="hint">Pencereye tıkla: seç · çift tıkla: içine gir (sürükle: kaydır, tekerlek: ölçek) · dışarı çift tık / Esc: çık</div>
+    </div>
+    <div id="v3tools" class="hidden">
+      <button id="v3sel" title="Seçim (Esc)">↖ Seç <kbd>Esc</kbd></button>
+      <button id="v3orbit" title="Sol tuşla döndürme (açık) / pencereyle seçim (kapalı)">⟳ Yörünge</button>
+      <button id="v3pan" title="Sol tuşla ekranı kaydır (el)">✋ Kaydır</button>
+      <hr>
+      <button data-cmd="LINE">／ Çizgi <kbd>L</kbd></button>
+      <button data-cmd="PLINE">⌇ Çoklu çizgi <kbd>PL</kbd></button>
+      <button data-cmd="RECTANG">▭ Dikdörtgen <kbd>REC</kbd></button>
+      <button data-cmd="CIRCLE">◯ Daire <kbd>C</kbd></button>
+      <button data-cmd="ELLIPSE">⬭ Elips <kbd>EL</kbd></button>
+      <button data-cmd="PUSHPULL">⇕ İt / Çek <kbd>PP</kbd></button>
+      <button data-cmd="OFFSET">⧈ Ötele (yüz) <kbd>O</kbd></button>
+      <button data-cmd="ESNET">⇲ Esnet (yüz)</button>
+      <button data-cmd="SWEEP">〰 Yol boyunca (süpür)</button>
+      <button data-cmd="CHAMFER">◺ Pah <kbd>PAH</kbd></button>
+      <button data-cmd="FILLET">◜ Yuvarla (R) <kbd>F</kbd></button>
+      <button data-cmd="TAPER">⏢ Konik (eğim)</button>
+      <button data-cmd="UNION">⊕ Birleştir</button>
+      <button data-cmd="SEPARATE">⊖ Ayır</button>
+      <button data-cmd="YUZYAP">◩ Yüz yap</button>
+      <button data-cmd="EXTRUDE">⬒ Ekstrüzyon</button>
+      <hr>
+      <button data-cmd="MOVE">✥ Taşı <kbd>M</kbd></button>
+      <button data-cmd="COPY">⧉ Kopyala <kbd>CO</kbd></button>
+      <button data-cmd="ROTATE">↻ Döndür <kbd>RO</kbd></button>
+      <button data-cmd="SCALE">⤢ Ölçekle <kbd>SC</kbd></button>
+      <button data-cmd="ARRAY">⋮⋮ Dizi</button>
+      <button data-cmd="ERASE">✕ Sil <kbd>Del</kbd></button>
+      <hr>
+      <button id="v3snap" title="Hangi noktalara yakalanacağını seçin">🧲 Yakalama…</button>
+      <button data-cmd="DIST">📏 Mesafe <kbd>DI</kbd></button>
+      <button data-cmd="KESITDUZLEMI">▥ Kesit düzlemi</button>
+      <button data-cmd="KESITAL">✂ Kesit al</button>
+      <button data-cmd="KOTPLANI">▤ Kot planı</button>
+      <button data-cmd="GORUNUS">◫ Görünüş</button>
+      <button data-cmd="MODELKUTUPHANESI">🌐 3B modeller</button>
+    </div>
+    <div id="view3dCtl" class="overlay hidden">
+      <button data-v3="iso">ISO</button><button data-v3="ust">Üst</button><button data-v3="on">Ön</button><button data-v3="sag">Sağ</button><button data-v3="fit">Tümü</button>
+      <label><input type="checkbox" id="v3persp" checked> Perspektif</label><label><input type="checkbox" id="v3edges" checked> Kenar</label><label><input type="checkbox" id="v3lines" checked> 2B çizgiler</label>
+      <label title="Tıklamanın düştüğü düzlem">Düzlem <select id="v3plane"><option value="OTO">Otomatik (yüzeye)</option><option value="XY">XY yatay</option><option value="XZ">XZ düşey</option><option value="YZ">YZ düşey</option><option value="Z">Z düşey doğru</option></select></label>
+      <label title="Tıklanan noktaların kotu (yakalama yoksa)">Çalışma Z <input id="v3elev" type="number" step="0.1" value="0" style="width:64px"></label>
+      <label title="Fareyle döndürme hassasiyeti">Dönüş hızı <input id="v3orbSp" type="range" min="0.2" max="2" step="0.1" value="1" style="width:70px"></label>
+      <label title="3B arka planı: SketchUp gibi gökyüzü + ufuk + zemin, düz beyaz ya da düz siyah">Arka plan <select id="v3bg"><option value="ufuk">Gökyüzü + ufuk</option><option value="beyaz">Beyaz</option><option value="siyah">Siyah</option></select></label>
+      <label title="Bina şeffaflığı (röntgen): içerideki odalar, kapılar, döşemeler görünür">Şeffaflık <input id="v3alpha" type="range" min="0" max="0.9" step="0.05" value="0" style="width:70px"></label>
+      <label title="Malzeme dokusu (beton benekleri) ve ızgara"><input type="checkbox" id="v3tex" checked> Doku</label><label><input type="checkbox" id="v3grid" checked> Izgara</label>
+      <span id="v3stats"></span>
+      <button id="v3help" title="3B kullanım ipuçları">?</button><div id="v3hint" class="hint hidden" style="flex-basis:100%">SketchUp gibi: imleç altındaki <b>yüze</b> çizer; çizerken <b style="color:#f66">kırmızı</b>/<b style="color:#5e5">yeşil</b>/<b style="color:#69f">mavi</b> eksene hizalanır. Dikdörtgen/daire çizip <b>İt/Çek</b> ile yükseltin. <b>Shift</b> = düşey (Z). Orta tuş sürükle: <b>kaydır (pan)</b> · Shift+orta ya da sağ tuş sürükle: imlecin altındaki noktanın çevresinde döndür · ✋ Kaydır modunda sol tuş da kaydırır · tekerlek: imlecin olduğu yere yakınlaş · ok tuşları: ileri/geri/sağ/sol, PageUp/PageDown: yukarı/aşağı (Shift: hızlı) · sol sürükle: pencereyle seçim</div>
+    </div>
+  </main>
+
+  <aside id="side">
+    <div class="tabs" id="sideTabs">
+      <button data-p="chat" class="on">Sohbet</button>
+      <button data-p="layers">Katmanlar</button>
+            <button data-p="plugins">Eklentiler</button>
+    </div>
+    <section id="p-chat" class="pane on">
+      <div class="chathead">
+        <div class="seg" id="chatMode"><button data-m="cizim" class="on">Çizim</button><button data-m="gelistir">Geliştir</button></div>
+        <span id="aiState" class="pill"></span>
+        <button class="ic" id="btnSettings" title="Ayarlar">⚙</button>
+      </div>
+      <div id="msgs"></div>
+      <div class="chatin">
+        <textarea id="chatText" rows="2" placeholder="Ör: 60 l/s, 3 pompalı pompa istasyonu çiz, giriş kotu -3.5"></textarea>
+        <div class="chatbtns"><button id="btnMic" class="ic" title="Sesle söyle (F2)">🎤</button><button id="btnSend" class="pri">Gönder</button></div>
+      </div>
+    </section>
+    <section id="p-layers" class="pane">
+      <div class="bar"><button id="btnNewLayer">+ Yeni katman</button><button id="btnStdLayers">Standart katmanlar</button></div>
+      <div class="bar" style="flex-wrap:wrap;gap:3px"><button data-cmd="LAYISO" title="Seçilenlerin katmanı dışındakileri kapat/kilitle">Yalıt</button><button data-cmd="LAYUNISO" title="Yalıtmayı geri al">Yalıtmayı kaldır</button><button data-cmd="LAYOFF" title="Tıklanan nesnenin katmanını kapat">Kapat</button><button data-cmd="LAYON" title="Tüm katmanları aç">Tümünü aç</button><button data-cmd="LAYFRZ">Dondur</button><button data-cmd="LAYTHW">Çöz</button><button data-cmd="LAYLCK">Kilitle</button><button data-cmd="LAYULK">Kilit aç</button><button data-cmd="LAYMCUR" title="Nesnenin katmanını geçerli yap">Geçerli yap</button><button data-cmd="LAYMCH" title="Nesneleri hedefin katmanına taşı">Katman eşle</button></div>
+      <table id="layerTable"><thead><tr><th title="Açık/kapalı">👁</th><th>Ad</th><th>Renk</th><th>Çizgi tipi</th><th>Kalınlık</th><th title="Kilit">🔒</th><th></th></tr></thead><tbody></tbody></table>
+    </section>
+    <section id="p-plugins" class="pane">
+      <p class="hint">Eklentiler programa sizin isteğinizle eklenen komut ve özelliklerdir. Sohbetteki <b>Geliştir</b> modunda sesli ya da yazılı anlatın; Claude kodu yazar, siz onaylarsınız.</p>
+      <div id="pluginList"></div>
+      <div class="bar"><button id="btnPastePlugin">Kod yapıştır…</button><button id="btnLoadPlugin">Dosyadan (.js)…</button></div>
+      <div id="pluginPanels"></div>
+      <div id="pluginButtons"></div>
+    </section>
+  </aside>
+
+  <footer id="bottom">
+    <div id="log"></div>
+    <div id="cmdline"><span id="prompt">Komut:</span><input id="cmd" autocomplete="off" spellcheck="false"></div>
+    <div id="status">
+      <span id="coords">0.000, 0.000</span>
+      <button data-tg="osnap" class="on" title="Nesne yakalama (F3)">YAKALA</button><button id="osnapMenu" title="Yakalama türlerini seç (sağ tık: YAKALA)">▾</button>
+      <button data-tg="ortho" title="Orto (F8)">ORTO</button>
+      <button data-tg="grid" class="on" title="Izgara (F7)">IZGARA</button>
+      <button data-tg="gridSnap" title="Izgara yakalama (F9)">IZG.YAK</button>
+      <button data-tg="lwdisp" class="on" title="Çizgi kalınlığı göster">KALINLIK</button>
+      <span id="scaleInfo" class="hidden">1/100</span><span id="annoBox" title="Açıklama ölçeği: yazı, ölçü, kot, tarama boyutu buna göre">Ö <select id="annoSel"></select></span><button id="annoAllBtn" class="on" title="Modelde tüm ölçeklerdeki açıklamaları göster (kapalıysa yalnız geçerli ölçektekiler)">TÜM AÇK.</button><button id="plan3dBtn" title="Planda 3B modeli (katılar, 3B sekmesinde çizilenler) göster — kapalıyken Revit gibi yalnız üretilen planlar görünür">3B MODEL</button><button id="annoAutoBtn" title="Ölçek değişince geçerli ölçekteki açıklamalara yeni ölçeği ekle (OTO-ÖLÇEK)">OTO-Ö</button>
+      <span id="geoState"></span>
+    </div>
+  </footer>
+</div>
+
+<div id="propWin" class="palette hidden"><div class="ph" id="propHead"><b>Özellikler</b><span class="hint" id="propSub"></span><button class="ic" id="propClose" title="Kapat">✕</button></div><div id="propBody"><p class="hint">Nesne seçin.</p></div></div>
+<div id="modal" class="hidden"><div class="box"><div class="mh"><b id="mTitle"></b><button class="ic" id="mClose">✕</button></div><div id="mBody"></div></div></div>
+<input type="file" id="fileIn" hidden>
+
+<script src="app/dil.js"></script>
+<script src="app/dil-en.js"></script>
+<script src="app/aktar-idb.js"></script>
+<script src="app/core.js"></script>
+<script src="app/entities.js"></script>
+<script src="app/yazi.js"></script>
+<script src="app/mesh.js"></script>
+<script src="app/geo.js"></script>
+<script src="app/commands.js"></script>
+<script src="app/gen.js"></script>
+<script src="app/io_dxf.js"></script>
+<script src="app/io_export.js"></script>
+<script src="app/view2d.js"></script>
+<script src="app/view3d.js"></script>
+<script src="app/mapview.js"></script>
+<script src="app/layout.js"></script>
+<script src="app/blok.js"></script>
+<script src="app/blokui.js"></script>
+<script src="app/model3d.js"></script>
+<script src="app/yazicmd.js"></script>
+<script src="app/boru.js"></script>
+<script src="app/kesit.js"></script>
+<script src="app/sketch3d.js"></script>
+<script src="app/itcek-alan.js"></script>
+<script src="app/katiperde.js"></script>
+<script src="app/havuz-param.js"></script>
+<script src="app/cizim-yardim.js"></script>
+<script src="app/yuz-arac.js"></script>
+<script src="app/perde-yuz.js"></script>
+<script src="app/plak-yuz.js"></script>
+<script src="app/kati_islem.js"></script>
+<script src="app/trim.js"></script>
+<script src="app/arcfit.js"></script>
+<script src="app/hatch.js"></script>
+<script src="app/matchprop.js"></script>
+<script src="app/grips.js"></script>
+<script src="app/ellipse.js"></script>
+<script src="app/geomprops.js"></script>
+<script src="app/koordolcu.js"></script>
+<script src="app/arazi.js"></script>
+<script src="app/kazi.js"></script>
+<script src="app/kduzlem.js"></script>
+<script src="app/insaat.js"></script>
+<script src="app/kapi-tip.js"></script>
+<script src="app/xline.js"></script>
+<script src="app/kaplama.js"></script>
+<script src="app/yalitim.js"></script>
+<script src="app/cati.js"></script>
+<script src="app/tretuvar.js"></script>
+<script src="app/izgara.js"></script>
+<script src="app/elemanyap.js"></script>
+<script src="app/doku.js"></script>
+<script src="app/merdiven.js"></script>
+<script src="app/tutamac.js"></script>
+<script src="app/korkuluk.js"></script>
+<script src="app/su.js"></script>
+<script src="app/tarayici.js"></script>
+<script src="app/katman.js"></script>
+<script src="app/dxfmodel.js"></script>
+<script src="app/kesit3b.js"></script>
+<script src="app/kesit3b-yazim.js"></script>
+<script src="app/katmancmd.js"></script>
+<script src="app/snapgrid.js"></script>
+<script src="app/baslik.js"></script>
+<script src="app/joinalign.js"></script>
+<script src="app/kesitstil.js"></script>
+<script src="app/aks.js"></script>
+<script src="app/anno.js"></script>
+<script src="app/chat.js"></script>
+<script src="app/ui.js"></script>
+<script src="app/google.js"></script>
+<script src="app/sidepanel.js"></script>
+<script src="app/gorunus.js"></script>
+<script src="app/izleme.js"></script>
+<script src="app/izleme3b.js"></script>
+<script src="app/ribbon.js"></script>
+<script src="app/proses.js"></script>
+<script src="app/karusel.js"></script>
+<script src="app/kapat.js"></script>
+<script src="app/paftalar.js"></script>
+<script src="app/ekipman.js"></script>
+<script src="app/edit3d.js"></script>
+<script src="app/borulama.js"></script>
+<script src="app/ekparca.js"></script>
+<script src="app/pozno.js"></script>
+<script src="app/leader.js"></script>
+<script src="app/msalan.js"></script>
+<script src="app/perdeparca.js"></script>
+<script src="app/dolgukolay.js"></script>
+<script src="app/kotstil.js"></script>
+<script src="app/mimari.js"></script>
+<script src="app/seviye.js"></script>
+<script src="app/proje.js"></script>
+<script src="app/tip.js"></script>
+<script src="app/sablon.js"></script>
+<script src="app/sekmeler.js"></script>
+<script src="app/statik.js"></script>
+<script src="app/aile.js"></script>
+<script src="app/aile-mekanik.js"></script>
+<script src="app/gorunumler.js"></script>
+<script src="app/disiplin3b.js"></script>
+<script src="app/elemanno.js"></script>
+<script src="app/statik-model.js"></script>
+<script src="app/statik-oval.js"></script>
+<script src="app/perspektif3b.js"></script>
+<script src="app/disiplinetiket.js"></script>
+<script src="app/acilim-dik.js"></script>
+<script src="app/aile-yuva.js"></script>
+<script src="app/aile-agac.js"></script>
+<script src="app/aile-pompa-ksb.js"></script>
+<script src="app/aile-pompa-wilo.js"></script>
+<script src="app/pompa-foy.js"></script>
+<script src="app/proje-hesap.js"></script>
+<script src="app/istasyon3b.js"></script>
+<script src="app/istasyon-pafta.js"></script>
+<script src="app/insaat-bosluk.js"></script>
+<script src="app/boru-perde.js"></script>
+<script src="app/statik-pafta-dsi.js"></script>
+<script src="app/statik-kalinlik.js"></script>
+<script src="app/statik-kalinlik-baglanti.js"></script>
+<script src="app/statik-takoz.js"></script>
+<script src="app/statik-donati-aktar.js"></script>
+<script src="app/statik-plot.js"></script>
+<script src="app/statik-serit.js"></script>
+<script src="app/mt-veri.js"></script>
+<script src="app/mt-mahal.js"></script>
+<script src="app/mt-hesap.js"></script>
+<script src="app/mt-rapor.js"></script>
+<script src="app/mt-kalorifer.js"></script>
+<script src="app/mt-isimerkezi.js"></script>
+<script src="app/mt-sogutma.js"></script>
+<script src="app/mt-havalandirma.js"></script>
+<script src="app/mt-3b.js"></script>
+<script src="app/mt-ek.js"></script>
+<script src="app/mt-sihhi.js"></script>
+<script src="app/mt-cakisma.js"></script>
+<script src="app/mt-ui.js"></script>
+<script src="app/dil-cad.js"></script>
+</body>
+</html>
