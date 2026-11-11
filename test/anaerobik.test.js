@@ -81,9 +81,9 @@ t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
   const m = tur('merdiven')[0]; yakin(m.pts[1][0], 11.00, 'köprüye çıkar'); yakin(m.pts[0][1], 11.10, 'merdiven ekseni (çizim 11,10)'); yakin(m.z1, 97.45, 'köprü üstü');
   assert.ok(Math.abs(m.pts[0][0] - 7.75) < 0.3, 'merdiven başı (çizim 7,75): ' + m.pts[0][0]); assert.ok(m.z1 - m.z0 <= m.nr * 0.19 + 1e-9);
   const k = tur('korkuluk')[0].pts; yakin(Math.max(...k.map(p => p[0])), 12.45, 'sağ kenar (çizim 12,45)');
-  // sahanlık: perde yüzündeki pencere kapağını içine alır (kapak tarafı 0,70, öbür yan 0,30)
-  const s0 = G.sahanlik[0]; yakin(s0.x0, 9.30 - 0.40, 'sahanlık başı'); yakin(s0.y0, 3.40 - 0.70, 'alt'); yakin(s0.y1, 3.80 + 0.30, 'üst');
-  assert.ok(k.some(p => Math.abs(p[0] - 8.95) < 0.006 && Math.abs(p[1] - 2.75) < 0.006), 'korkuluk sahanlık çevresinden');
+  // sahanlık: perde yüzündeki pencere kapağını içine alır (kapak tarafı 0,45, öbür yan 0,30)
+  const s0 = G.sahanlik[0]; yakin(s0.x0, 9.30 - 0.40, 'sahanlık başı'); yakin(s0.y0, 3.40 - 0.45, 'alt'); yakin(s0.y1, 3.80 + 0.30, 'üst');
+  assert.ok(k.some(p => Math.abs(p[0] - 8.95) < 0.006 && Math.abs(p[1] - 3.00) < 0.006), 'korkuluk sahanlık çevresinden');
   // kapaklar perdenin içinde değil, yüzünde
   const pp0 = E.find(x => x.anahtar === 'pen-pen-0'); yakin(pp0.p[1], 3.40 - 0.10, 'pencere kapağı perde yüzünde'); const pb = E.find(x => x.anahtar === 'pen-bolme'); yakin(pb.p[1], 3.45 - 0.10, 'ara duvar kapağı perde yüzünde'); yakin(pb.H, 0.60, 'orifis kapağı');
   // kapak çerçevesi (B + 2·85 mm) ve el çarkı (r 0,25) korkuluğa değmez
@@ -92,7 +92,7 @@ t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
   const th = k2 => E.find(x => x.anahtar === k2).tahrik; assert.strictEqual(th('pen-sol-0'), 'EL'); assert.strictEqual(th('pen-pen-0'), 'AKT', 'pencere 1,5 m²');  assert.strictEqual(th('pen-bolme'), 'AKT', 'ara duvar orifisi 0,36 m² ama ≈ 10,03 kN > 10');
   assert.ok(ekipmanYer(geo({ zt: 97.25, fb: 0.61, h: 3.14, tahrik: 'EL' })).filter(x => x.tur === 'penstok').every(x => x.tahrik === 'EL'), 'elle zorlama');
   assert.strictEqual(tur('mikser').length, 6, 'halka başına 2 mikser');
-  for (const x of tur('mikser')) { assert.ok(Math.abs(x.direk[0] - 10.80) < 1e-6, 'tek yürüyüş yolunda: köprünün uzun kısma bakan yüzü ' + x.direk[0]); assert.strictEqual(x.aci, 180, 'uzun kısma iter'); }
+  for (const x of tur('mikser')) { assert.ok(Math.abs(x.direk[0] - 10.94) < 1e-6, 'tek yürüyüş yolunda: köprü tabliyesinin uzun kısma bakan ön yüzü ' + x.direk[0]); assert.strictEqual(x.aci, 180, 'uzun kısma iter'); }
   assert.strictEqual(ekipmanYer(G, { n: 4, D: 0.37, P: 2.5, rpm: 1400, name: 'K' }, 95).filter(x => x.tur === 'mikser').length, 12, 'sayı hesaptan');
 });
 
@@ -112,10 +112,12 @@ t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun
   for (const H of G2.halka) {
     const m = mk.filter(x => Math.abs(x.p[1] - H.yc) < 1.5); assert.strictEqual(m.length, 2, 'halkada 2');
     const a = m.find(x => x.aci === 180), b = m.find(x => x.aci === 0);
-    yakin(a.direk[0], 10.80, 'servis köprüsü yüzü'); yakin(b.direk[0], 6.20, 'ikinci yol yüzü');
+    yakin(a.direk[0], 10.94, 'servis köprüsü tabliye ön yüzü'); yakin(b.direk[0], 6.06, 'ikinci yol tabliye ön yüzü');
+    yakin(a.vinc[0], 11.30, 'pergel vinç köprü tabliyesinde'); yakin(b.vinc[0], 5.70, 'pergel vinç ikinci yolda'); yakin(a.vinc[1], a.p[1], 'mikser ekseninde');
     // her mikser akışla aynı yönde: üst koridor akışı = yon
     assert.strictEqual(a.p[1] > H.yc ? H.yon : -H.yon, -1); assert.strictEqual(b.p[1] > H.yc ? H.yon : -H.yon, 1);
-    assert.ok(a.p[0] < 10.8 && b.p[0] > 6.2, 'gövde uzun kısımda');
+    assert.ok(a.p[0] < 10.94 && b.p[0] > 6.06, 'gövde uzun kısımda');
+    for (const x of [a, b]) for (const s of G2.sahanlik) assert.ok(!(x.direk[0] > s.x0 - 0.1 && x.direk[0] < s.x1 + 0.1 && x.direk[1] > s.y0 - 0.1 && x.direk[1] < s.y1 + 0.1), 'direk sahanlığa değmez');
   }
   assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 2); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 2);
   const m2 = E.find(x => x.anahtar === 'merdiven-2'); assert.ok(m2.pts[0][0] > 0, 'ikinci merdiven havuz boyunda');

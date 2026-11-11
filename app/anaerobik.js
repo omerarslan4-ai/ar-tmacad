@@ -23,7 +23,7 @@
     or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
-    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.10, sahG: 0.70, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
+    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.10, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
   /* yardımcılar (yerel 2B) */
@@ -170,7 +170,7 @@
     // ikinci yürüyüş yolu (halka başına 2 ve üzeri mikserde): uzun kısmın öbür ucunda, servis köprüsünün aynası
     if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < xw0 - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: 0, y1: Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
     G.sahanlik = [];
-    // kapak işletme sahanlığı: perde yüzündeki pencere kapağını içine alır (kapak tarafında 0,70, öbür yanda 0,30 taşar), ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
+    // kapak işletme sahanlığı: perde yüzündeki pencere kapağını içine alır (kapak tarafında 0,45, öbür yanda 0,30 taşar), ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
     // döşemede kapak yarıkları: kapak çerçevesi (açıklık + 2 × 85 mm yuva gömmesi) + her yanda 5 cm; akış yönünde 0,30 m (çerçeve, kapak ve kaburgalar geçer)
     const yarik = (xm, B, ym) => { const w = B + 2 * q.yE + 2 * q.yP; return rect(xm - w / 2, ym - q.yD / 2, xm + w / 2, ym + q.yD / 2); };
     for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = y0 - q.kY; G.sahanlik.push({ x0: xw0 - q.sahX, x1: xk0, y0: y0 - q.sahG, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((xw0 + xw1) / 2, q.ow, ym)] }); }
@@ -207,10 +207,11 @@
       const Lm = 0.70, n1 = G.kopru2 ? Math.ceil(mx.n / 2) : mx.n, n2 = G.kopru2 ? mx.n - n1 : 0; let k = 0;
       for (const H of G.halka) for (const [kp, dir, cnt] of [[G.kopru, -1, n1], [G.kopru2, 1, n2]]) {
         if (!kp || !cnt) continue;
-        const ust = H.yon === dir, xd = dir > 0 ? kp.x1 + 0.20 : kp.x0 - 0.20, x = xd + dir * (Lm / 2 + 0.12); // üst koridor akışı = yon
+        const ust = H.yon === dir, xd = dir > 0 ? kp.x1 + 0.06 : kp.x0 - 0.06, x = xd + dir * (Lm / 2 + 0.12); // üst koridor akışı = yon; direk tabliye ön yüzünde
         for (let m = 0; m < cnt; m++) {
-          const y = ust ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt;
-          out.push({ anahtar: `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, ad: mx.name, Hd: G.zTop - G.zB, direk: [xd, y] });
+          let y = ust ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt;
+          for (const s of kp === G.kopru ? G.sahanlik : []) if (y > s.y0 - 0.12 && y < s.y1 + 0.12) y = y < (s.y0 + s.y1) / 2 ? s.y0 - 0.12 : s.y1 + 0.12; // direk kapak sahanlığına değmesin
+          out.push({ anahtar: `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, ad: mx.name, Hd: kp.z1 - G.zB, direk: [xd, y], vinc: [xd - dir * 0.36, y] });
         }
       }
     }
