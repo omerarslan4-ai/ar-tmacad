@@ -64,7 +64,12 @@
   - Hacim proses hesabından; düz uzunluk, mikser seçimi (mikser programının itki dengesi) ve difüzör sayısı karusel modülünden.
   - Şablon ölçüleri: dış duvar iç yarıçapı 9,0 m, orta duvar 0,40 m, dış duvar 0,80 m, kılavuz duvar Ø4,40 / 0,40 m, hava payı 1,05 m, taban plağı 0,60 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Anaerobik havuz ayrı ünitedir (dikdörtgen, üç gözlü).
-- Son çökeltme havuzları dairesel.
+- Son çökeltme havuzları dairesel (merkezden alttan beslemeli, çevre savaklı, çevre duvarında tahrikli döner köprülü; Çokal AAT T-108 örneği):
+  - Havuz sayısı mevcut kademeden; nihai kademedeki fazlası gelecek kademe havuzu olarak boş ayak izi (kesikli) gösterilir.
+  - Duvar 20 cm, hava payı (su yüzü → duvar üstü) 1,20 m; duvar üstü zeminden en az 0,65 m yukarıda.
+  - Toplama kanalı 30 cm, duvardan 30 cm içeride; savak su yüzünden 5 cm, kanal tabanı savaktan 45 cm aşağıda.
+  - Taban merkeze eğimli (Çokal 1/12); çamur hunisi merkez tabandan 1,36 m derin; taban plağı 40 cm.
+  - Giriş yapısı çapı iç çapın 0,15–0,25 katı. Çıkış yapısı iç 1,50 m, duvarı 30 cm, havuz duvarına bitişik.
 - Ön arıtma (ızgara, kum tutucu) gelecek kademeyi de kapsayacak şekilde boyutlandırılır; proses havuzları tek kademe için çözülür.
 - Karıştırıcılar kullanıcının mikser programıyla seçilir ve mekanik listeye eklenir; merdivenler genel yerleşimdeki arazi kotlarından güncellenir; difüzör yerleşimi ayrı sekmede yapılır.
 
