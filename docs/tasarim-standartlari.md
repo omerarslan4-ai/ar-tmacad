@@ -56,6 +56,13 @@
   - Temas süresi = V / (Q ort. + geri devir), geri devir = %75 × Q maks.; 0,5–1,5 sa (ATV-DVWK-A 131).
   - Dış duvar ve gözler arası duvar 30 cm, hava payı 0,60 m, giriş kanalı 0,80 m, çıkış kanalı 1,00 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Her gözde karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
+- Dağıtma yapısı (biyolojik havuzlar ve son çökeltme önü; Çokal AAT T-107 örneği):
+  - Mevcut ya da nihai kademede iki ve üzeri hat varsa yapılır; tek hatta yok. Nihai kademedeki fazla hatlar için kör savak (hazır ağız).
+  - Son çökeltme önünde debi = Q maks. + %75 geri devir; biyolojik havuz önünde Q maks.
+  - Savaklar eşit boyda, ayarlanabilir kapaklı; en az 1,70 m, savak yükü en çok 15 cm olacak şekilde debiden. Savaktan çıkış haznesine 26 cm serbest düşü.
+  - Ortada giriş haznesi (en az 2,50 m), her hat için çıkış haznesi 2,00 m; hazne boyu en az 3,35 m. Dış duvar 40, iç duvar 30 cm; hava payı 0,79 m.
+  - Giriş borusu alttan, en çok 1,20 m/s; giriş haznesinde enerji ≤ 30 W/m³.
+  - Varsayılan ayrı yapı: derinlik çıkış borusundan (PE, ≤ 1,2 m/s; boru üstü çıkış su yüzünün 0,50 m altında; taban boru altından 0,27 m aşağıda); duvar üstü zeminden en az 0,65 m yukarıda. Seçimli olarak havuzun ucuna bitişik yapılır (Çokal); o zaman taban bağlı havuzun tabanıyla aynı.
 - Ön arıtma yapıları (ızgara, terfi, kum tutucu) bitişik tek blok olarak yapılabilir; aralarında 5 cm derz bırakılır (Çokal).
   Terfi istasyonu bazı projelerde ızgara ve kum tutucudan bağımsız, ayrı bir yapı olarak yapılır (seçimli; giriş ve çıkış saha borusuyla).
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
