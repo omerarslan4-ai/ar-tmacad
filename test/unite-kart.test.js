@@ -234,6 +234,25 @@ t('biyolojik havuz zincirde (WB 2025, A2O): bölge sırası, kotlar, mevcut kade
   yakin(q.kot.ust, 101.05, 'duvar üstü = su + 1,05'); yakin(q.kot.taban, 94, 'taban'); yakin(q.kot.temel, 93.4, 'temel');
 });
 
+/* GERÇEK PROJE: Çokal AAT, T-108 Son çökeltme (7-Çokal_AAT_Çökeltme Havuzu_R2.dwg, A-A kesiti ve plan)
+   Rapor: 1. kademede 1, 2. kademede 1 daha (toplam 2) dairesel havuz. Çizim: iç Ø12,20, duvar 20, giriş yapısı Ø2,00,
+   taban eğimi 1/12; su 96,05, savak 96,00, kanal tabanı 95,55, kenar taban 93,50, huni ≈ 91,70, duvar üstü 97,25, zemin 94,40. */
+t('Çokal AAT T-108: son çökeltme kotları, ayak izi ve gelecek kademe havuzu', () => {
+  const k = K.scKart('sc', { N: 1, D: 12.2, Din: 2.0, h: 2.55, slope: 1 / 12 }, { zs: 96.05, zz: 94.40 }, { N: 2, D: 12.2 });
+  yakin(k.kot.ust, 97.25, 'duvar üstü'); yakin(k.kot.savak, 96.00, 'savak'); yakin(p(k, 'zk').v, 95.55, 'kanal tabanı');
+  yakin(k.kot.kenar, 93.50, 'kenar taban'); yakin(k.kot.merkez, 93.50 - (6.10 - 1.00) / 12, 'merkez taban');
+  assert.ok(Math.abs(k.kot.huni - 91.70) < 0.02, 'huni dibi ≈ 91,70');
+  yakin(k.ayakIzi.en, 12.60, 'dış çap'); yakin(k.ayakIzi.boy, 12.60 + 1.50 + 0.30, 'çıkış yapısıyla');
+  assert.strictEqual(k.gelecek, 1); assert.strictEqual(k.uyari.length, 0);
+});
+
+t('son çökeltme zincirde: mevcut kademe havuzları, nihaideki fazlası gelecek kademe; giriş yapısı oranı uyarısı', () => {
+  const x = K.kartlar(j, {}).su.find(y => y.id === 'sc');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
+  assert.strictEqual(x.adet, 2); assert.strictEqual(x.gelecek, 6);
+  assert.ok(x.kart.uyari.some(u => u.includes('Giriş yapısı')));
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));

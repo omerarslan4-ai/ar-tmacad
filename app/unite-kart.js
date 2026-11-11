@@ -66,7 +66,7 @@
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
     gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre', tip: 'debimetre' }, pc: { ad: 'Ön çökeltme' },
     dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz', tip: 'bio' },
-    dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme' },
+    dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme', tip: 'sc' },
     uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
     pt: { ad: 'Çamur yoğunlaştırma' }, et: { ad: 'Çamur depolama / stabilizasyon' }, dw: { ad: 'Çamur susuzlaştırma (dekantör binası)' },
     cp: { ad: 'Kimyasal fosfor giderimi' },
@@ -522,6 +522,71 @@
     };
   };
 
+  /* ---------- SON ÇÖKELTME KARTI (dairesel, merkezden beslemeli, çevre savaklı, döner köprülü) ----------
+     Standartlar Çokal AAT T-108 çiziminden (A-A kesiti, plan): iç Ø12,20, duvar 20 cm, giriş yapısı Ø2,00;
+     taban merkeze 1/12 eğimli, ortada çamur hunisi; toplama kanalı 30 cm, duvardan 30 cm içeride;
+     su yüzü 96,05 → savak 96,00 → kanal tabanı 95,55; duvar üstü 97,25 (hava payı 1,20); çıkış yapısı iç 1,50 m duvara bitişik.
+     Havuz sayısı mevcut kademeden; nihai kademedeki fazlası "gelecek kademe" ayak izi olarak işaretlenir. */
+  K.STD_SC = {
+    tw: { ad: 'Duvar kalınlığı', v: 0.20, birim: 'm' },
+    hp: { ad: 'Hava payı (su yüzü → duvar üstü)', v: 1.20, birim: 'm' },
+    pz: { ad: 'Duvar üstü — zeminden en az yükseklik', v: 0.65, birim: 'm' },
+    bk: { ad: 'Toplama kanalı genişliği', v: 0.30, birim: 'm' },
+    ak: { ad: 'Toplama kanalı — duvar arası', v: 0.30, birim: 'm' },
+    sv: { ad: 'Su yüzü → savak kotu', v: 0.05, birim: 'm' },
+    kd: { ad: 'Savak → kanal tabanı', v: 0.45, birim: 'm' },
+    ho: { ad: 'Çamur hunisi derinliği (merkez tabandan)', v: 1.36, birim: 'm' },
+    tb: { ad: 'Taban plağı kalınlığı', v: 0.40, birim: 'm' },
+    bc: { ad: 'Çıkış yapısı iç genişliği', v: 1.50, birim: 'm' },
+    tc: { ad: 'Çıkış yapısı duvarı', v: 0.30, birim: 'm' },
+  };
+  K.scKart = (id, dim, par, dimN) => {
+    par = par || {}; dim = dim || {}; dimN = dimN || dim;
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    // hesaptan
+    const N = ek('N', 'Havuz sayısı (mevcut kademe)', Math.max(1, Math.round(+dim.N || 1)), 'adet', 'hesap');
+    const NN = ek('NN', 'Havuz sayısı (nihai kademe)', Math.max(1, Math.round(+dimN.N || 1)), 'adet', 'hesap');
+    const D = ek('D', 'İç çap', +dim.D || 0, 'm', 'hesap');
+    const Din = ek('Din', 'Giriş yapısı çapı', +dim.Din || 0, 'm', 'hesap');
+    const h = ek('h', 'Kenar su derinliği', +dim.h || 0, 'm', 'hesap');
+    ek('sl', 'Taban eğimi', +dim.slope || 0, 'm/m', 'hesap');
+    const sl = +dim.slope || 0; // hesapta yuvarlanmamış değer
+    if (+dimN.D && Math.abs(+dimN.D - D) > 0.01) ek('DN', 'İç çap (nihai kademe hesabı)', +dimN.D, 'm', 'hesap', { not: 'Gelecek havuzlar mevcut çapla çizilir' });
+    const S = {}; for (const [k, s] of Object.entries(K.STD_SC)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart', 'Çokal AAT T-108');
+    ek('ekip', 'Ekipman', 'döner köprü (çevre duvarında tahrikli), taban ve yüzey sıyırıcı, V çentikli savak, köpük engeli ve köpük hunisi', '', 'katalog');
+    // elle
+    const zs = dz('zs', 'Su yüzü kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
+    const zzVars = zs + S.hp - S.pz;
+    const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+    const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: '2. parçada araziden okunacak' });
+    // türetilen
+    const adaylar = [[zs + S.hp, 'su yüzü + hava payı'], [zz + S.pz, 'zemin + 0,65']];
+    const [zuV, neden] = adaylar.reduce((a, c) => (c[0] > a[0] + 1e-9 ? c : a));
+    const zu = ek('zu', 'Duvar üstü kotu (köprü yolu)', zuV, 'm', 'türetilen', { f: 'en büyük(su yüzü + hava payı ; zemin + 0,65)', not: 'Belirleyen: ' + neden });
+    const zsv = ek('zsv', 'Savak kotu', zs - S.sv, 'm', 'türetilen', { f: 'su yüzü − pay' });
+    ek('zk', 'Toplama kanalı tabanı', zsv - S.kd, 'm', 'türetilen', { f: 'savak − kanal derinliği' });
+    const zk0 = ek('zke', 'Kenar taban kotu', zs - h, 'm', 'türetilen', { f: 'su yüzü − kenar su derinliği' });
+    const zm = ek('zm', 'Merkez taban kotu', zk0 - sl * (D / 2 - Din / 2), 'm', 'türetilen', { f: 'kenar taban − eğim × (R − giriş yapısı yarıçapı)' });
+    const zh = ek('zh', 'Çamur hunisi dibi', zm - S.ho, 'm', 'türetilen', { f: 'merkez taban − huni derinliği' });
+    ek('zf', 'Temel alt kotu (kenarda)', zk0 - S.tb, 'm', 'türetilen', { f: 'kenar taban − taban plağı' });
+    ek('Ls', 'Savak boyu (havuz başına)', Math.PI * (D - 2 * S.ak - S.bk), 'm', 'türetilen', { f: 'π × kanal ekseni çapı' });
+    const ng = ek('ng', 'Gelecek kademe havuzu (boş ayak izi)', Math.max(0, NN - N), 'adet', 'türetilen', { f: 'nihai − mevcut', not: 'Genel yerleşimde kesikli çizgiyle gösterilir' });
+    const en = ek('en', 'Ayak izi eni (havuz başına)', D + 2 * S.tw, 'm', 'türetilen', { f: 'iç çap + 2·duvar' });
+    const boy = ek('boy', 'Ayak izi boyu (havuz + çıkış yapısı)', D + 2 * S.tw + S.bc + S.tc, 'm', 'türetilen', { f: 'dış çap + çıkış yapısı' });
+
+    if (!D) uyari.push('Son çökeltme ölçüleri proses hesabında eksik.');
+    if (Din && (Din / D < 0.15 || Din / D > 0.25)) uyari.push(`Giriş yapısı çapı iç çapın %${Math.round(Din / D * 100)}'i; raporda 0,15–0,25 katı önerilir.`);
+    if (NN < N) uyari.push('Nihai kademe havuz sayısı mevcuttan az; kademe seçimini kontrol edin.');
+    return {
+      id, tip: 'sc', params: P, uyari, koku: false, adet: N, gelecek: ng,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: r3(en / 2), y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zsv }, // giriş: merkezden, alttan boruyla
+      kot: { su: zs, ust: zu, savak: zsv, kenar: zk0, merkez: zm, huni: zh, zemin: zz },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -534,6 +599,9 @@
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
         x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'sc') {
+        x.kart = K.scKart(x.id, veri(x.id).dim, par[x.id], (uN[x.id] || {}).dim);
+        x.ayakIzi = x.kart.ayakIzi; x.adet = x.kart.adet; x.gelecek = x.kart.gelecek;
       } else if (x.durum === 'kart' && x.tip === 'bio') {
         const kar = opts.karusel || (C && C.karuselGeo ? { DEF: C.KARUSEL_DEF, Ls: C.karuselLs, geo: C.karuselGeo } : null);
         x.kart = K.bioKart(x.id, veri(x.id).dim, j, par[x.id], kar);
@@ -602,7 +670,7 @@
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
       U.querySelectorAll('[data-sec]').forEach(s => s.onchange = () => { A.sec[s.dataset.sec] = s.value; C.changed && C.changed(); ciz(); });
       const grup = (ad, xs) => xs.length ? `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin:8px 0 4px">${esc(ad)}</div>` + xs.map(x => {
-        const d = DURUM[x.durum] || DURUM.taslak, ai = x.ayakIzi ? `${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m` : '—';
+        const d = DURUM[x.durum] || DURUM.taslak, ai = x.ayakIzi ? `${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m${x.adet > 1 ? ' × ' + x.adet : ''}${x.gelecek ? ' (+' + x.gelecek + ' gelecek kademe)' : ''}` : '—';
         return `<button data-k="${x.id}" style="display:block;width:100%;text-align:left;margin:2px 0;${x.id === secId ? 'border-color:var(--acc,#4c9be8);background:rgba(76,155,232,.15)' : ''}">
           <b>${esc(x.kod)}</b> ${esc(x.ad)} ${rozet(d[0], d[1])}<br><span class="hint">${x.kademe} kademe · ayak izi ${ai}${x.koku ? ' · koku' : ''}</span></button>`;
       }).join('') : '';
