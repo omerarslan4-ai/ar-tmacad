@@ -802,7 +802,7 @@
       h += `<table class="bom" style="width:100%"><thead><tr><th>Parametre</th><th>Değer</th><th>Birim</th><th>Kaynak</th></tr></thead><tbody>`;
       for (const p of k.params) {
         const v = p.duz ? `<input data-p="${p.k}" type="number" step="any" value="${p.v}" style="width:80px${p.deg ? ';border-color:#d9534f' : ''}">${p.deg ? ` <button data-sil="${p.k}" title="Varsayılan: ${fm(p.vars, 3)}">↺</button>` : ''}` : `<b>${fm(p.v, p.birim === 'adet' || p.birim === 'mm' || p.birim === '°' ? 0 : 2)}</b>`;
-        h += `<tr><td>${esc(p.ad)}${p.f ? `<div class="hint">= ${esc(p.f)}</div>` : ''}${p.not ? `<div class="hint">${esc(p.not)}</div>` : ''}</td><td style="white-space:nowrap">${v}</td><td>${esc(p.birim)}</td><td>${rozet(p.kaynak + (p.deg ? ' (değişti)' : ''), RENK[p.kaynak] || '#888')}</td></tr>`;
+        h += `<tr><td>${esc(p.ad)}${p.f ? `<div class="hint">= ${esc(p.f)}</div>` : ''}${p.not ? `<div class="hint">${esc(p.not)}</div>` : ''}</td><td style="${typeof p.v === 'number' || p.duz ? 'white-space:nowrap' : 'max-width:320px'}">${v}</td><td>${esc(p.birim)}</td><td>${rozet(p.kaynak + (p.deg ? ' (değişti)' : ''), RENK[p.kaynak] || '#888')}</td></tr>`;
       }
       h += '</tbody></table>';
       if (k.uyari.length) h += `<div class="hint" style="color:#e0a030;margin-top:8px">${k.uyari.map(esc).join('<br>')}</div>`;
