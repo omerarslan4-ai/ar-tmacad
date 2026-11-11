@@ -62,7 +62,7 @@
   - Hava payı 0,60 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Her halkada karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
   - Ekipman yerleşimi (Çokal T-105 mimari paftası + firma varsayılanı; 11.11.2026 onaylandı):
-    - Merdiven betonarme; havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
+    - Merdiven betonarme ve zemine kadar dolu; köprünün dışarı taşan ucu (merdiven sahanlığı) zeminden köprü altına kadar dolu beton blok. Merdiven havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
     - Korkuluk köprünün iki yanında ve merdivenin dış yanında.
     - Ortak duvarda yalnız kapaklı pencere var (orifis yok). Pencere kapağı perdenin akışın geldiği yüzüne monte edilir (perdenin içine girmez). Köprüye bitişik kapak işletme sahanlığı kapağı içine alır (kapak tarafında 0,45, öbür yanda 0,30 m taşar, pencereden 0,40 m geniş); korkuluk çevresinden dolanır. Kapak sahanlık döşemesindeki yarıktan geçer: yarık = çerçeve eni (açıklık + 2 × 85 mm) + her yanda 5 cm, akış yönünde 0,30 m. Pencere köprüden 0,20 m geride.
     - Havuz çevresinde zemin kotunda 1,00 m tretuvar.
