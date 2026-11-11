@@ -46,6 +46,11 @@
   - Üst döşeme zeminden en az 0,65 m yukarıda. Duvar 40 cm, taban plağı 40 cm.
   - Monoray vinç kirişi üst döşemeden 2,70 m yukarıda.
   - Pompalar haznenin uzun kenarı boyunca dizilir: aks aralığı 1,00 m, son pompa aksından duvara 0,95 m (katalog, dalgıç pompa).
+- Giriş debimetresi (varsayılan manyetik; Çokal AAT T-104 örneği):
+  - Nihai kademe Q maks.'a göre boyutlanır. Boru PE100, PN10 (SDR 17); Q maks.'ta hız ≤ 1,5 m/s olan en küçük çap seçilir. Q min.'da hız ≥ 0,3 m/s olmalı.
+  - Düz boru boyları: debimetre öncesi 5·DN, sonrası 3·DN.
+  - Debimetre odası: iç en az 2,00 (akış yönü) × 1,50 m; duvar 25 cm, taban plağı 30 cm; boru altı tabandan 0,42 m yukarıda; üst döşeme zeminden 0,45 m yukarıda.
+  - Parshall savağı seçimli: boğaz genişliği standart tablodan; kot düşümü hidrolik profile işlenir.
 - Ön arıtma yapıları (ızgara, terfi, kum tutucu) bitişik tek blok olarak yapılabilir; aralarında 5 cm derz bırakılır (Çokal).
   Terfi istasyonu bazı projelerde ızgara ve kum tutucudan bağımsız, ayrı bir yapı olarak yapılır (seçimli; giriş ve çıkış saha borusuyla).
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
