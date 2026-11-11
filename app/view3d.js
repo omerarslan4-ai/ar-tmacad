@@ -142,13 +142,17 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
       const colOf = aci => { const c = C.aciRgb(aci === 7 ? 9 : aci); return [c[0] / 255, c[1] / 255, c[2] / 255]; };
       const skip2d = new Set(['sheet', 'dim', 'kot', 'text']);
       const selIds = new Set((C.sel || []).map(e => e.id)), SEL = [0.3, 0.65, 1];
-      const pk = { pos: [], nrm: [], ent: [], rng: [] }, boxes = [], segs = [], esegs = [];
+      const pk = { pos: [], nrm: [], ent: [], rng: [] }, boxes = [], segs = [], esegs = [], don = [], dpos = [], dsegs = [];
       const bbOf = () => [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
       const bbAdd = (b, x, y, z) => { if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (z < b[2]) b[2] = z; if (x > b[3]) b[3] = x; if (y > b[4]) b[4] = y; if (z > b[5]) b[5] = z; };
       for (const e of C.doc.ents) {
         if (!C.layer(e.layer).on) continue;
         const t = C.entTris(e), isSel = selIds.has(e.id);
         const col = colOf(C.entColor(e)), b3 = bbOf();
+        { // çok parçalı nesne (3B donatı): üçgen yerine çizgi — ayrı tampon, yakalama adayı üretmez
+          const L3 = C.T[e.type] && C.T[e.type].lines3, l3 = L3 ? L3(e, isSel) : null;
+          if (l3) { const c = isSel ? SEL : (l3.col || col), q = l3.seg, i0 = dpos.length; for (let i = 0; i < q.length; i += 6) { don.push(q[i] - o[0], q[i + 1] - o[1], q[i + 2], 0, 0, 1, c[0], c[1], c[2], q[i + 3] - o[0], q[i + 4] - o[1], q[i + 5], 0, 0, 1, c[0], c[1], c[2]); dpos.push(q[i], q[i + 1], q[i + 2], q[i + 3], q[i + 4], q[i + 5]); bbAdd(b3, q[i], q[i + 1], q[i + 2]); bbAdd(b3, q[i + 3], q[i + 4], q[i + 5]); } if (b3[0] !== Infinity) { if (b3[2] < zmin) zmin = b3[2]; if (b3[5] > zmax) zmax = b3[5]; boxes.push({ e, bb: b3 }); dsegs.push({ e, bb: b3, i0, i1: dpos.length }); } continue; }
+        }
         if (t && t.pos.length) {
           let conc = (e.type === 'tank' || e.type === 'ctank' || e.type === 'wall' || e.type === 'slab') ? [0.72, 0.72, 0.70] : e.type === 'kati' && C.entColor(e) === 7 ? [0.86, 0.85, 0.80] : col;
           if (isSel) conc = [conc[0] * 0.45 + SEL[0] * 0.55, conc[1] * 0.45 + SEL[1] * 0.55, conc[2] * 0.45 + SEL[2] * 0.55];
@@ -171,7 +175,7 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
         }
         if (b3[0] !== Infinity) boxes.push({ e, bb: b3 });
       }
-      this.pk = pk; this.boxes = boxes; this.segs = segs; this.esegs = esegs;
+      this.pk = pk; this.boxes = boxes; this.segs = segs; this.esegs = esegs; this.dsegs = dsegs; this.dpos = dpos;
       const cands = [], seenC = new Set();
       const addC = (p, k, e) => { const key = p[0].toFixed(3) + ',' + p[1].toFixed(3) + ',' + (p[2] || 0).toFixed(3); if (seenC.has(key) || cands.length > 30000) return; seenC.add(key); cands.push({ p: [p[0], p[1], p[2] || 0], k, e }); };
       for (const e of C.doc.ents) { if (!C.layer(e.layer).on || e.type === 'sheet') continue; try { for (const sp of C.snapPts(e)) if (sp.k !== 'ins' || e.type === 'blk') addC(sp.p, sp.k, e); } catch (err) { } }
@@ -182,6 +186,7 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
       this.cands = cands;
       this.buf.tri = tri.length ? this.makeBuf(tri, 9) : null;
       this.buf.line = lin.length ? this.makeBuf(lin, 9) : null;
+      this.buf.don = don.length ? this.makeBuf(don, 9) : null;
       for (const [k, w] of waterT) if (w.arr.length) this.waterBufs.push({ k, al: w.al, foam: w.foam, wa: w.wa, b: this.makeBuf(w.arr, 9) });
       for (const [, m] of matT) if (m.arr.length) this.matBufs.push({ k: m.k, bump: m.bump, b: this.makeBuf(m.arr, 11) });
       for (const [k, arr] of transT) if (arr.length) this.trans.push({ al: Math.max(0.03, k / 20), b: this.makeBuf(arr, 9) }); this.trans.sort((a, b) => b.al - a.al);
@@ -189,6 +194,7 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
       let gb = [Infinity, Infinity, -Infinity, -Infinity];
       for (const [, m] of matT) for (let i = 0; i < m.arr.length; i += 11) { const x = m.arr[i], y = m.arr[i + 1]; if (x < gb[0]) gb[0] = x; if (y < gb[1]) gb[1] = y; if (x > gb[2]) gb[2] = x; if (y > gb[3]) gb[3] = y; }
       for (const arr of [tri, lin.slice(0, linN)]) for (let i = 0; i < arr.length; i += 9) { const x = arr[i], y = arr[i + 1]; if (x < gb[0]) gb[0] = x; if (y < gb[1]) gb[1] = y; if (x > gb[2]) gb[2] = x; if (y > gb[3]) gb[3] = y; }
+      for (const d of dsegs) { const b = d.bb; if (b[0] - o[0] < gb[0]) gb[0] = b[0] - o[0]; if (b[1] - o[1] < gb[1]) gb[1] = b[1] - o[1]; if (b[3] - o[0] > gb[2]) gb[2] = b[3] - o[0]; if (b[4] - o[1] > gb[3]) gb[3] = b[4] - o[1]; }
       if (gb[0] === Infinity) gb = [-5, -5, 5, 5];
       this.gc = [(gb[0] + gb[2]) / 2, (gb[1] + gb[3]) / 2];
       this.size = Math.max(gb[2] - gb[0], gb[3] - gb[1], zmax - zmin, 1);
@@ -202,7 +208,7 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
       const kp = C.activeSectionPlane ? C.activeSectionPlane() : null;
       if (kp) { const r = C.sectionPlaneGeom(kp, o); if (r) { this.clip = r.eq; if (r.cap.length) this.buf.cap = this.makeBuf(r.cap, 9); if (r.frame.length) this.buf.cpl = this.makeBuf(r.frame, 9); } }
       this.zr = [zmin, zmax];
-      this.stats = { tris: tri.length / 27 + [...matT.values()].reduce((q, m) => q + m.arr.length / 33, 0), lines: lin.length / 18 };
+      this.stats = { tris: tri.length / 27 + [...matT.values()].reduce((q, m) => q + m.arr.length / 33, 0), lines: (lin.length + don.length) / 18 };
       if (this.onStats) this.onStats(this.stats);
       this.dirty = true;
     }
@@ -264,6 +270,7 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
       if (this.matBufs && this.matBufs.length) this.drawMat(mvp, ld, xa);
       gl.disable(gl.POLYGON_OFFSET_FILL);
       drawBuf(this.buf.line, gl.LINES, false);
+      if (this.buf.don) drawBuf(this.buf.don, gl.LINES, false);
       setClip(false); if (this.buf.cap) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -1); drawBuf(this.buf.cap, gl.TRIANGLES, true); gl.disable(gl.POLYGON_OFFSET_FILL); } if (this.buf.cpl) drawBuf(this.buf.cpl, gl.LINES, false); setClip(true);
       if (this.trans && this.trans.length) { // saydam yüzeyler (arazi altı zemin bloğu vb.)
         gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
@@ -425,8 +432,14 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
     }
     /* ekranda çizgiye en yakın varlık (önünde yüz varsa gizli sayılır) */
     pickLine(sx, sy, tolPx = 7) {
-      const S = this.segs; if (!S || !S.length || !this.mvp) return null;
+      const S = this.segs || [], D = this.dsegs || []; if ((!S.length && !D.length) || !this.mvp) return null;
       let best = null, bd = tolPx;
+      for (const g of D) { // çizgi olarak çizilen nesneler: önce kutunun ekran izdüşümüyle ele
+        const e = g.e, b = g.bb; if (C.layer(e.layer).lock) continue;
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, tam = true; for (let k = 0; k < 8; k++) { const p = this.project([b[k & 1 ? 3 : 0], b[k & 2 ? 4 : 1], b[k & 4 ? 5 : 2]]); if (!p) { tam = false; break; } if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }
+        if (tam && (sx < x0 - tolPx || sx > x1 + tolPx || sy < y0 - tolPx || sy > y1 + tolPx)) continue;
+        const Q = this.dpos; for (let i = g.i0; i < g.i1; i += 6) { const a = [Q[i], Q[i + 1], Q[i + 2]], c = [Q[i + 3], Q[i + 4], Q[i + 5]], pa = this.project(a), pb = this.project(c); if (!pa || !pb) continue; const dx = pb[0] - pa[0], dy = pb[1] - pa[1], L2 = dx * dx + dy * dy; let t = L2 > 1e-9 ? ((sx - pa[0]) * dx + (sy - pa[1]) * dy) / L2 : 0; t = Math.max(0, Math.min(1, t)); const d = Math.hypot(pa[0] + dx * t - sx, pa[1] + dy * t - sy); if (d < bd) { bd = d; best = { e, p: M.lerp(a, c, t), d }; } }
+      }
       for (let i = 0; i < S.length; i += 7) {
         const e = S[i]; if (C.layer(e.layer).lock) continue;
         const a = [S[i + 1], S[i + 2], S[i + 3]], b = [S[i + 4], S[i + 5], S[i + 6]], pa = this.project(a), pb = this.project(b); if (!pa || !pb) continue;

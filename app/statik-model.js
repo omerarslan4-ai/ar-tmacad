@@ -165,6 +165,7 @@
 
   /* ---------- 3B donatı nesnesi ---------- */
   const RENK = { 8: [0.55, 0.75, 0.35], 10: [0.30, 0.70, 0.30], 12: [0.85, 0.20, 0.20], 14: [0.95, 0.55, 0.10], 16: [0.80, 0.55, 0.05], 18: [0.20, 0.75, 0.80], 20: [0.20, 0.45, 0.95], 22: [0.55, 0.30, 0.90], 25: [0.90, 0.25, 0.75], 28: [0.45, 0.25, 0.15], 32: [0.25, 0.25, 0.25] };
+  C._don3Renk = RENK; // çizgi gösterimi (statik-donati-hafif.js) aynı renkleri kullanır
   const ACI = { 8: 82, 10: 3, 12: 1, 14: 30, 16: 2, 18: 4, 20: 5, 22: 6, 25: 6, 28: 34, 32: 8 };
   const prizma = (out, a, b, r, col, n) => { // n kenarlı ince çubuk (uçları açık — birleşimlerde görünmez)
     const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(...d); if (L < 1e-6) return; const u = d.map(v => v / L);
@@ -204,18 +205,21 @@
     let n = 0, cb = 0;
     for (const g of d.gruplar) {
       const gb = (!g.mutlak && mdl && C._statikDonatiUyarla) ? C._statikDonatiUyarla(g, mdl, d) : g.bars; // radye pabucu modeldeki gerçek taşmaya
-      const bars = g.mutlak ? g.bars : gb.map(b => b.map(q => [r3(q[0] + k[0]), r3(q[1] + k[1]), r3(q[2] + dz)]));
+      let bars = g.mutlak ? g.bars : gb.map(b => b.map(q => [r3(q[0] + k[0]), r3(q[1] + k[1]), r3(q[2] + dz)]));
+      if (C._statikDonatiSade && g.tip !== 'takoz') bars = C._statikDonatiSade(bars); // eğri çubuklardaki sık noktaları seyrelt (sapma ≤ 3 mm)
       const e = C.add(C.newEnt('donati3', { poz: g.poz, F: g.F, s: g.s, eleman: g.eleman, tanim: g.tanim, bars, layer: LY, color: g.tip === 'takoz' ? 8 : (ACI[g.F] || 1), ...(g.tip ? { tip: g.tip, r: g.r } : {}) }));
       delete e.sp; delete e.sv2; n++; cb += bars.length;
     }
     C.changed();
     C.log(`3B donatı: ${n} poz grubu, ${cb} çubuk yerleştirildi${eski ? ' (eski ' + eski + ' grup silindi)' : ''}. Görmek için 3B → Disiplin: Statik.`);
+    if (C.donati3Hafif && C.donati3Hafif()) C.log('Çubuk sayısı çok olduğu için donatı 3B görünümde ince çizgiyle gösteriliyor; bir poz grubunu kalın görmek için üzerine tıklayıp seçin.');
     // görünür kıl: 3B'ye geç, Statik disiplini, donatıya yakınlaş
     try {
       if (C.currentView !== '3d') C.setView('3d'); if (C.dis3bSec) C.dis3bSec('STATIK');
-      const v3 = C.views && C.views.v3, all = C.doc.ents.filter(e => e.type === 'donati3').flatMap(e => e.bars.flat());
-      if (v3 && all.length) {
-        v3.build(); const mn = [0, 1, 2].map(i => Math.min(...all.map(q => q[i]))), mx = [0, 1, 2].map(i => Math.max(...all.map(q => q[i]))), o = v3.origin || [0, 0, 0];
+      const v3 = C.views && C.views.v3, mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+      for (const e of C.doc.ents) if (e.type === 'donati3') for (const b of e.bars) for (const q of b) for (let i = 0; i < 3; i++) { if (q[i] < mn[i]) mn[i] = q[i]; if (q[i] > mx[i]) mx[i] = q[i]; }
+      if (v3 && mn[0] !== Infinity) {
+        v3.build(); const o = v3.origin || [0, 0, 0];
         v3.t = [(mn[0] + mx[0]) / 2 - o[0], (mn[1] + mx[1]) / 2 - o[1], (mn[2] + mx[2]) / 2]; v3.dist = Math.max(3, Math.hypot(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) * 1.4); v3.dirty = true;
       }
     } catch (er) { console.error(er); }
