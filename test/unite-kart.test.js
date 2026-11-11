@@ -99,6 +99,33 @@ t('Çokal AAT T-101: platform, kanal derinliği ve genişlik çizimle aynı', ()
   yakin(s.kot.platform, 95.62, 'standart konteynerle platform');
 });
 
+/* GERÇEK PROJE: Çokal AAT, T-103 Kum ve Yağ Tutucu (aynı çizim, F-F enine kesit ve plan)
+   2 göz; göz iç 1,60 m (kum 1,00 + lamel 0,10 + yağ 0,50); ara duvar 30, dış duvar 40 → en 4,30 m.
+   Boyuna: 40 | 150 dağıtma | 40 | 1100 havuz | 40 | 150 çıkış | 40 → 15,60 m.
+   Kotlar: su 98,30; duvar üstü 99,15; kum oluğu üstü 96,19, dibi 95,69; temel altı (grobeton üstü) 95,05; tabii zemin 95,40. */
+t('Çokal AAT T-103: kum tutucu ayak izi ve kotları çizimle aynı', () => {
+  const k = K.kumKart('gr', { N: 2, b: 1.00, bF: 0.50, tw: 0.10, h: 2.11, L: 11.0 }, { zs: 98.30, zz: 95.40 });
+  yakin(k.ayakIzi.en, 4.30, 'en (çizim 430)'); yakin(k.ayakIzi.boy, 15.60, 'boy (çizim 1560)');
+  yakin(k.kot.ust, 99.15, 'duvar üstü'); yakin(k.kot.taban, 96.19, 'kum oluğu üstü');
+  yakin(k.kot.oluk, 95.69, 'kum oluğu dibi'); yakin(k.kot.temel, 95.05, 'temel altı');
+  assert.ok(p(k, 'zu').not.includes('su yüzü'));
+  assert.strictEqual(p(k, 'b').kaynak, 'hesap'); assert.strictEqual(p(k, 'hp').kaynak, 'standart'); assert.strictEqual(p(k, 'en').kaynak, 'türetilen');
+});
+
+t('kum tutucu: gömülü yapıda duvar üstü zemin + 0,65', () => {
+  const k = K.kumKart('gr', { N: 2, b: 1, bF: 0.5, tw: 0.1, h: 2, L: 10 }, { zs: 98.30, zz: 99.00 });
+  yakin(k.kot.ust, 99.65, 'duvar üstü'); assert.ok(k.uyari.some(u => u.includes('zemin')));
+});
+
+t('akış zincirinde kum tutucu kartı ATV verisinden (2035)', () => {
+  const Z = K.kartlar(j, { sec: { blowerKum: 'AYRI' } });
+  const x = Z.su.find(y => y.id === 'gr');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'nihai');
+  // ATV 2035: 4 hat, b 3,5, b_FF 1,75, ayırma 0,3, h 3,5, L 39
+  yakin(x.ayakIzi.en, 4 * (3.5 + 0.3 + 1.75) + 3 * 0.30 + 2 * 0.40, 'en'); yakin(x.ayakIzi.boy, 1.5 + 39 + 1.5 + 4 * 0.4, 'boy');
+  assert.ok(p(x.kart, 'blower').v.includes('küçük binada'));
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));

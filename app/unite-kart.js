@@ -64,7 +64,7 @@
   K.UNITE = {
     cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
-    gr: { ad: 'Kum ve yağ tutucu' }, dm: { ad: 'Debimetre' }, pc: { ad: 'Ön çökeltme' },
+    gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre' }, pc: { ad: 'Ön çökeltme' },
     dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz' }, bio: { ad: 'Biyolojik havuz' },
     dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme' },
     uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
@@ -187,6 +187,66 @@
     };
   };
 
+  /* ---------- KUM VE YAĞ TUTUCU KARTI (havalandırmalı, gezer köprülü) ----------
+     Standartlar Çokal AAT T-103 çiziminden alındı (F-F enine kesit, plan):
+     göz iç genişliği = kum bölmesi + ayırma (yağ lameli) + yağ bölmesi; gözler arası 30 cm duvar; dış duvar 40 cm;
+     boyuna: dağıtma kanalı 1,50 + havuz + çıkış kanalı 1,50 (aralarda duvar); su yüzü + 0,85 = duvar üstü;
+     kum oluğu tabandan 0,50 aşağıda; kum oluğu altında taban plağı. */
+  K.STD_KUM = {
+    hp: { ad: 'Hava payı (su yüzü → duvar üstü)', v: 0.85, birim: 'm' },
+    pz: { ad: 'Duvar üstü — zeminden en az yükseklik', v: 0.65, birim: 'm' },
+    tw: { ad: 'Dış duvar kalınlığı', v: 0.40, birim: 'm' },
+    ti: { ad: 'Gözler arası duvar kalınlığı', v: 0.30, birim: 'm' },
+    bD: { ad: 'Dağıtma (giriş) kanalı iç genişliği', v: 1.50, birim: 'm' },
+    bC: { ad: 'Çıkış kanalı iç genişliği', v: 1.50, birim: 'm' },
+    ho: { ad: 'Kum oluğu derinliği (tabandan)', v: 0.50, birim: 'm' },
+    tb: { ad: 'Kum oluğu altı taban plağı kalınlığı', v: 0.64, birim: 'm' },
+  };
+  K.kumKart = (id, dim, par, sec) => {
+    par = par || {}; dim = dim || {}; sec = sec || {};
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    // hesaptan (ATV: N hat, b_SF kum bölmesi, b_FF yağ bölmesi, ayırma, h, L)
+    const N = ek('N', 'Göz (hat) sayısı', Math.max(1, Math.round(+dim.N || 1)), 'adet', 'hesap');
+    const b = ek('b', 'Kum bölmesi genişliği', +dim.b || 0, 'm', 'hesap');
+    const bF = ek('bF', 'Yağ bölmesi genişliği', +dim.bF || 0, 'm', 'hesap');
+    const ta = ek('ta', 'Kum – yağ ayırma (lamel) kalınlığı', dim.tw != null ? +dim.tw : 0.10, 'm', 'hesap');
+    const h = ek('h', 'Su derinliği (su yüzü → taban)', +dim.h || 0, 'm', 'hesap');
+    const L = ek('L', 'Havuz uzunluğu', +dim.L || 0, 'm', 'hesap');
+    // standart
+    const S = {}; for (const [k, s] of Object.entries(K.STD_KUM)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart');
+    // seçenek ve katalog
+    const blw = (sec.blowerKum || 'ANA') === 'AYRI';
+    ek('blower', 'Kum tutucu blowerları', blw ? 'yanında küçük binada' : 'ana blower binasında', '', 'standart', { not: 'Seçenek: üstteki "Kum tutucu blowerı"' });
+    ek('ekip', 'Ekipman', 'gezer köprü, kum pompası, yağ sıyırıcı, kum seperatörü', '', 'katalog', { not: 'Ölçüleri detay şablonunda' });
+    // elle
+    const zs = dz('zs', 'Su yüzü kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
+    const zzVars = zs + S.hp - S.pz;
+    const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+    const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: 'Boşsa duvar üstü = su yüzü + hava payı alınır. 2. parçada araziden okunacak' });
+    // türetilen
+    const adaylar = [[zs + S.hp, 'su yüzü + hava payı'], [zz + S.pz, 'zemin + 0,65']];
+    const [zuV, neden] = adaylar.reduce((a, c) => (c[0] > a[0] + 1e-9 ? c : a));
+    const zu = ek('zu', 'Duvar üstü kotu (köprü yolu)', zuV, 'm', 'türetilen', { f: 'en büyük(su yüzü + hava payı ; zemin + 0,65)', not: 'Belirleyen: ' + neden });
+    const zt = ek('zt', 'Taban kotu (kum oluğu üstü)', zs - h, 'm', 'türetilen', { f: 'su yüzü − h' });
+    const zo = ek('zo', 'Kum oluğu dibi kotu', zt - S.ho, 'm', 'türetilen', { f: 'taban − kum oluğu derinliği' });
+    const zf = ek('zf', 'Temel alt kotu', zo - S.tb, 'm', 'türetilen', { f: 'kum oluğu dibi − taban plağı' });
+    const gz = ek('gz', 'Göz iç genişliği', b + ta + bF, 'm', 'türetilen', { f: 'kum + ayırma + yağ bölmesi' });
+    const en = ek('en', 'Ayak izi eni', N * gz + (N - 1) * S.ti + 2 * S.tw, 'm', 'türetilen', { f: 'N·göz + (N−1)·ara duvar + 2·dış duvar' });
+    const boy = ek('boy', 'Ayak izi boyu', S.bD + L + S.bC + 4 * S.tw, 'm', 'türetilen', { f: 'dağıtma kanalı + havuz + çıkış kanalı + 4·duvar' });
+    ek('V', 'Toplam su hacmi (havuzlar)', N * (b + bF) * L * h, 'm³', 'türetilen', { f: 'N · (kum + yağ bölmesi) · L · h (yaklaşık)' });
+
+    if (!b || !h || !L) uyari.push('Kum tutucu ölçüleri proses hesabında eksik (b, h, L).');
+    if (zu > zs + S.hp + 0.005) uyari.push(`Duvar üstünü ${neden} belirliyor: su yüzü + hava payının ${(zu - zs - S.hp).toFixed(2).replace('.', ',')} m üstünde.`);
+    return {
+      id, tip: 'kum', params: P, uyari, koku: true,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zs },
+      kot: { su: zs, ust: zu, taban: zt, oluk: zo, temel: zf, zemin: zz },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -198,6 +258,9 @@
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'kum') {
+        x.kart = K.kumKart(x.id, veri(x.id).dim, par[x.id], sec);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'taslak' && opts.ayakIzi) {
         const v = veri(x.id); try { x.ayakIzi = v ? opts.ayakIzi(x.id, v.dim) : null; } catch (e) { x.ayakIzi = null; }
@@ -242,7 +305,8 @@
       U.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px 0;align-items:center">
         ${sel('onaritma', 'Ön arıtma', [['A', 'A: kaba ızgara → terfi → ince ızgara'], ['B', 'B: kaba + ince aynı kanalda → terfi']], A.sec.onaritma || 'A')}
         ${sel('debimetre', 'Debimetre', [['MAN', 'Manyetik'], ['PAR', 'Parshall savağı']], A.sec.debimetre || 'MAN')}
-        ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}</div>
+        ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}
+        ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
       U.querySelectorAll('[data-sec]').forEach(s => s.onchange = () => { A.sec[s.dataset.sec] = s.value; C.changed && C.changed(); ciz(); });
