@@ -52,6 +52,10 @@
   - Blowerlar tesis büyüklüğüne göre ana blower binasında ya da kum tutucunun yanında küçük binada (Çokal'da ana binada).
   - Çizim kuralları (KUMTUTUCU komutu, Çokal G-G kesiti; 11 Kasım 2026'da onaylandı): yağ bölmesi dış duvar tarafında, komşu gözler aynalı; kum oluğu 50 cm taban eninde, yanları 10 cm açılır, ayırma kirişinin dibinde; taban oluğun üstünden duvar diplerine 45° yükselen grobeton dolgu, altı düz taban plağı (50 cm).
   - Ayırma kirişi betonarme (su yüzünün 30 cm üstünden 55 cm aşağı), altında sac yağ lameli. Gözler arası duvar alçak, üstünde 1,00 m yürüme yolu (duvar üstünden 0,85 m aşağıda); gezer köprü rayları dış duvarların üstünde.
+  - Ayırma kirişinin altında 40 cm'lik kolonlar (eksen aralığı ≈ 3,80 m); paslanmaz yağ lamelleri kolonlar arasında panel olarak kolonlara monte edilir. Yağ bölmesinin çıkış ucunda sıyırma rampası ve 40 × 40 paslanmaz yağ çukuru (çıkış duvarından 0,80 m); yağ borusu çukurdan dış duvardaki konteynere.
+  - Havalandırma: her gözde kum bölmesi duvarı boyunca ana hava borusu, 1,50 m arayla izolasyon vanalı düşüm ve ucunda boru difüzör (kum oluğunun üstünde). Vana yürüme yolundan erişilir.
+  - Gezer köprü rayları iki dış duvar boyunca; köprü kirişleri orta yürüme yolu korkuluğunun üstünden geçer. Kum pompası basma hattı köprü boyunca gidip dirsekle üst kum oluğuna iner; oluğun tabanından kum seperatörüne iniş borusu.
+  - Çıkış kanalı gözlerden derin (Çokal: tabanı 93,45), çıkış borusu tabanda; üstü yürüme yolu kotunda sahanlık. Merdiven anaerobik havuzdaki gibi: duvara paralel, plaklı, üst sahanlığı sahanlığa bitişik. Giriş kapakları duvarın dağıtma kanalı yüzüne monte.
   - Bir dış duvarın üstünde dışa konsol kum oluğu (iç 40 cm): kum pompaları buraya basar, oluk yandaki kum seperatörüne akar. Dağıtma kanalından her göze kum bölmesi ekseninde 60 × 40 kapaklı açıklık; çıkış duvarında göz başına savak.
 - Giriş terfi istasyonu (ıslak hazne, dalgıç pompa; Çokal AAT T-102 örneği):
   - Yapı nihai kademeye göre boyutlanır; mevcut kademede eksik pompalar sonradan aynı yapıya eklenir.
