@@ -221,7 +221,7 @@
       if (!kp) continue;
       if (H > 0.3) {
         const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb, ym = G.Wo + q.mw / 2;
-        out.push({ anahtar: 'merdiven' + sfx, tur: 'merdiven', pts: [[kp.x0 - Lk, ym], [kp.x0, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr });
+        out.push({ anahtar: 'merdiven' + sfx, tur: 'merdiven', pts: [[kp.x0 - Lk, ym], [kp.x0, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: kp.x1 - kp.x0, t: q.kbT });
       }
       const k0 = kp.x0 + a, k1 = kp.x1 - a, yU = kp.y1 - a, pts = [[kp.x0, yU], [k1, yU], [k1, a], [k0, a]];
       if (kp === G.kopru) for (const s of G.sahanlik) pts.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]); // sahanlıkların çevresinden
@@ -336,11 +336,8 @@
       out.push(e._ag);
       for (const p of G.parca) out.push(ext(f.at(0, 0, p.z0), f.ux, [0, 0, 1], p.pts, p.z1 - p.z0));
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
-      const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], k.z1 - k.z0));
-      { // köprülerin dışarı taşan ucu (merdiven sahanlığı): zeminden köprü altına kadar dolu beton blok
-        const zg = zemin(e, G); for (const kp of [G.kopru, G.kopru2]) if (kp && kp.z0 - zg > 0.05) out.push(ext(f.at(0, 0, zg), f.ux, [0, 0, 1], [[kp.x0, G.Wo], [kp.x1, G.Wo], [kp.x1, kp.y1], [kp.x0, kp.y1]], kp.z0 - zg));
-      }
-      if (G.kopru2) { const k2 = G.kopru2; out.push(ext(f.at(0, 0, k2.z0), f.ux, [0, 0, 1], [[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], k2.z1 - k2.z0)); }
+      const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, k.y0], [k.x1, k.y0], [k.x1, G.Wo], [k.x0, G.Wo]], k.z1 - k.z0)); // dışarıdaki uç merdivenin üst sahanlığı
+      if (G.kopru2) { const k2 = G.kopru2; out.push(ext(f.at(0, 0, k2.z0), f.ux, [0, 0, 1], [[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, G.Wo], [k2.x0, G.Wo]], k2.z1 - k2.z0)); }
       for (const sh of G.sahanlik) { // kapak yarıklı döşeme
         const uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
         const Ks = bolgeKati({ dis: [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], delik: (sh.yarik || []).map(y => y.slice().reverse()) }, sh.z0, sh.z1);
@@ -377,7 +374,7 @@
         : { D: mm(y.D), P: y.P, rpm: y.rpm, hm: Math.max(300, mm(y.D) / 2 + 250), Hd: mm(y.Hd) });
       return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par, p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: y.tur === 'penstok' ? `SK-${un}${y.etiket}` : `Z-${un}/${y.etiket}`, layer: d.katman || C.doc.cur.layer } };
     }
-    if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'H', as: 'H', sah: 0, nos: 0, t: 0, rk: 'H' } }; // betonarme, zemine kadar dolu
+    if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)
     if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } };
     return null;
   }
