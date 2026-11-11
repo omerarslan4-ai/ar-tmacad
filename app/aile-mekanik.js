@@ -130,6 +130,7 @@
       { k: 'Ld', ad: 'Ayaklı boy (kuyruktan)', d: 4000, min: 0, max: 30000, grup: 'Konveyör' },
       { k: 'Dt', ad: 'Tambur çapı', d: 220, grup: 'Konveyör' },
       { k: 'Hs', ad: 'Yan sac (etek) yüksekliği', d: 150, grup: 'Konveyör' },
+      { k: 'ms', ad: 'Motor tarafı (taşıma yönüne bakarken)', d: 'L', opts: [['L', 'Sol'], ['R', 'Sağ']], grup: 'Konveyör' },
       { k: 'W', ad: 'Şase dış eni', f: 'B+160', grup: 'Hesaplanan' },
     ],
     tipler: [{ ad: 'BANT KONVEYÖR 500', p: { L: 4000, B: 500, Hy: 850, Ld: 4000, Dt: 220, Hs: 150 } }],
@@ -139,7 +140,7 @@
       const L = m(q.L), w2 = m(q.W) / 2, b2 = m(q.B) / 2, r = m(q.Dt) / 2;
       g.dik(-w2, -r, w2, L + r, { lw: 35 }); g.dik(-b2, -r, b2, L + r, { lw: 13 });
       g.cizgi([-w2, 0], [w2, 0], { lw: 13 }); g.cizgi([-w2, L], [w2, L], { lw: 13 });
-      g.dik(w2, L - 0.20, w2 + 0.35, L + 0.10, { lw: 25 }); // motor
+      const sm = q.ms === 'R' ? -1 : 1; g.dik(sm * w2, L - 0.20, sm * (w2 + 0.35), L + 0.10, { lw: 25 }); // motor
       g.cizgi([0, L * 0.25], [0, L * 0.6], { lw: 25 }); g.cizgi([0, L * 0.6], [0.08, L * 0.6 - 0.15], { lw: 25 }); g.cizgi([0, L * 0.6], [-0.08, L * 0.6 - 0.15], { lw: 25 });
       g.yazi([w2 + 0.1, L * 0.3], 'BANT KONVEYÖR', 0.10, 'L', 90);
     },
@@ -148,7 +149,7 @@
       for (const s of [-1, 1]) { g.kutu(s * b2, s * w2, -r, L + r, H - 2 * r - 0.06, H - 0.02, KCOL.frame); g.kutu(s * (b2 - 0.01), s * (b2 + 0.01), 0, L, H, H + hs, KCOL.frame); } // şase + etek
       g.kutu(-b2, b2, 0, L, H - 0.02, H, KCOL.belt); g.kutu(-b2, b2, 0, L, H - 2 * r + 0.02, H - 2 * r + 0.04, KCOL.belt);
       for (const y of [0, L]) g.silindir([-b2, y, H - r], [b2, y, H - r], r, KCOL.drum, 16);
-      g.kutu(w2, w2 + 0.35, L - 0.20, L + 0.10, H - 2 * r - 0.05, H + 0.15, KCOL.motor);
+      const sm = q.ms === 'R' ? -1 : 1; g.kutu(sm * w2, sm * (w2 + 0.35), L - 0.20, L + 0.10, H - 2 * r - 0.05, H + 0.15, KCOL.motor);
       const ys = []; if (Ld > 0.3) { const n = Math.max(1, Math.ceil((Ld - 0.4) / 2.5)); for (let k = 0; k <= n; k++) ys.push(0.2 + (Ld - 0.4) * k / n); }
       for (const y of ys) for (const s of [-1, 1]) g.kutu(s * w2 - (s > 0 ? 0.06 : 0), s * w2 + (s < 0 ? 0.06 : 0), y - 0.03, y + 0.03, 0, H - 2 * r - 0.06, KCOL.frame);
     },
@@ -194,6 +195,7 @@
       { k: 'ust', ad: 'Kafa üstü — platformdan', d: 1545, grup: 'Çerçeve ve kafa' },
       { k: 'hdU', ad: 'Deşarj ağzı — platformdan', d: 215, grup: 'Çerçeve ve kafa' },
       { k: 'Lh', ad: 'Tahrik kafası boyu', d: 3450, grup: 'Çerçeve ve kafa' },
+      { k: 'ol', ad: 'Deşarj oluğu boyu (arka yüzden)', d: 950, min: 650, max: 3000, grup: 'Çerçeve ve kafa' },
       { k: 'ms', ad: 'Motor tarafı (akışa bakarken)', d: 'L', opts: [['L', 'Sol'], ['R', 'Sağ']], grup: 'Çerçeve ve kafa' },
       { k: 'W', ad: 'Çerçeve dış genişliği', f: 'B+2*cer', grup: 'Hesaplanan' },
       { k: 'Ht', ad: 'Toplam yükseklik (tabandan)', f: 'D+ust', grup: 'Hesaplanan' },
@@ -203,7 +205,7 @@
     ],
     tipler: [{ ad: 'KABA IZGARA 500 / 10-20 / 75°', p: { B: 500, D: 5400, a: 75, bt: 10, bg: 20, Lr: 1000, cer: 65, dd: 354, ust: 1545, hdU: 215, Lh: 3450, ms: 'L' } }],
     uydur: { gen: 'B', der: 'D' },
-    vekil: q => ({ a: q.a, H: q.Ht / 1000, b: q.B / 1000, W: q.W / 1000, d: q.dd / 1000, bt: q.bt, bg: q.bg, Lr: q.Lr / 1000, Lh: q.Lh / 1000, hd: q.hd / 1000, ms: q.ms }),
+    vekil: q => ({ a: q.a, H: q.Ht / 1000, b: q.B / 1000, W: q.W / 1000, d: q.dd / 1000, bt: q.bt, bg: q.bg, Lr: q.Lr / 1000, Lh: q.Lh / 1000, hd: q.hd / 1000, ms: q.ms, ol: (q.ol || 950) / 1000 }),
     liste: q => `B ${q.B} mm · ${q.bt}/${q.bg} mm (${q.nB} çubuk) · ${q.a}° · Ht ${q.Ht} · deşarj +${(q.hd / 1000).toFixed(2)}`,
     bilgi: q => `Çerçeve ${q.W} mm, toplam yükseklik ${q.Ht} mm (eğim boyu ${Math.round(q.Le)} mm), deşarj ağzı tabandan ${q.hd} mm, ${q.nB} çubuk (${q.bt}/${q.bg} mm)`,
     tutamac: [
@@ -231,7 +233,7 @@
       g.cok([P2(0, 0), P2(Le, 0), P2(Le, d), P2(0, d)], true, { lw: 35 });
       g.cok([P2(Le - Lh, -0.03), P2(Le, -0.03), P2(Le, d + 0.03), P2(Le - Lh, d + 0.03)], true, { lw: 25 });
       g.cizgi(P2(0.02, -0.01), P2(q.Lr / 1000, -0.01), { lw: 25 });
-      const hd = q.hd / 1000, yb = hd / Math.tan(a) + d / sa; g.cok([[yb, hd + 0.25], [yb + 0.95, hd + 0.25], [yb + 0.95, hd], [yb + 0.35, hd]], false, { lw: 25 }); g.yazi([yb + 1.0, hd + 0.05], 'deşarj', 0.09);
+      const hd = q.hd / 1000, yb = hd / Math.tan(a) + d / sa; const ol = (q.ol || 950) / 1000; g.cok([[yb, hd + 0.25], [yb + ol, hd + 0.25], [yb + ol, hd], [yb + ol - 0.60, hd]], false, { lw: 25 }); g.yazi([yb + ol + 0.05, hd + 0.05], 'deşarj', 0.09);
       g.cizgi([-1.0, 0], [Ht / Math.tan(a) + 1.5, 0], { lw: 25 }); g.cizgi([-1.0, D], [D / Math.tan(a) - 0.05, D], { lw: 25 }); g.cizgi([D / Math.tan(a) + d / sa + 0.05, D], [Ht / Math.tan(a) + 1.5, D], { lw: 25 });
       g.yazi([0.1, 0.25], q.a + '°', 0.1);
       g.olcu([Ht / Math.tan(a) + 1.5, 0], [Ht / Math.tan(a) + 1.5, D], 'v', 0.3, `D = ${q.D}`);

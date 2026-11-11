@@ -66,10 +66,13 @@ t('varsayılan: ızgara yapısı 4,00 m (platform − kanal tabanı), terfi ve p
 
 t('bölge uzunlukları ızgaradan: yapı derinleşince yapı uzar, konveyör hep kapaklardan uzak, döşeme açıklığı ızgaranın geçtiği yer', () => {
   const G4 = geo(), G8 = geo(Object.assign({}, COKAL, { Li: null, Lk: null }));
-  yakin(G4.Li, 3.90, 'ince 4 m'); yakin(G4.Lk, 3.85, 'kaba 4 m'); yakin(G4.Lo, 16.25, 'boy 4 m'); assert.ok(G8.Lo > G4.Lo + 2, 'derin yapı daha uzun');
+  yakin(G4.Li, 4.25, 'ince 4 m'); yakin(G4.Lk, 4.20, 'kaba 4 m'); yakin(G4.Lo, 16.95, 'boy 4 m'); assert.ok(G8.Lo > G4.Lo + 2, 'derin yapı daha uzun');
   for (const g of [G4, G8]) {
     const E = ekipmanYer(g, 94.80), kx = g.kapak.map(k => k.x);
     for (const c of E.filter(x => x.tur === 'konveyor')) assert.ok(kx.every(x => Math.abs(c.p[0] - x) >= 0.68 - 1e-6), 'konveyör kapaktan uzak');
+    // ızgara arka yüzü (oluk kotunda) ile konveyör kenarı arası ≥ 0,60
+    const D = g.q.zPl - g.q.zTab, hd = D + g.kotZincir.hdU, a = 75 * Math.PI / 180, yb1 = (hd + 0.25) / Math.tan(a) + 0.354 / Math.sin(a);
+    for (const iz of g.izgara) { const c = g.konveyor.find(k => k.k === iz.k); assert.ok((iz.xa - yb1) - (c.x + (g.q.Bk + 0.16) / 2) >= 0.60 - 1e-6, 'ızgara – konveyör ≥ 0,60'); }
     for (const iz of g.izgara) { const D = g.q.zPl - g.q.zTab, t0 = D / Math.tan(75 * Math.PI / 180); assert.ok(iz.x1 > iz.xa - t0 && iz.x0 < iz.xa - t0 - 0.36, 'ızgara açıklıktan geçer'); yakin(iz.x1 - iz.x0, 0.40 + 0.354 / Math.sin(75 * Math.PI / 180), 'açıklık boyu'); }
   }
 });

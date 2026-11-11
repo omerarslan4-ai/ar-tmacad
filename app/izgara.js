@@ -8,7 +8,7 @@
   const M = C.M, T = C.T, E = C.cmd, { L, P, TX } = C.prim, RAD = Math.PI / 180;
   const I_ = () => C._ins;
   const COL = { frame: [0.50, 0.56, 0.62], bar: [0.78, 0.79, 0.80], head: [0.58, 0.63, 0.68], door: [0.42, 0.47, 0.52], hood: [0.62, 0.65, 0.69], motor: [0.18, 0.34, 0.62], gear: [0.30, 0.32, 0.36], base: [0.35, 0.36, 0.38], rake: [0.85, 0.62, 0.15] };
-  const DEF = { a: 75, H: 6.945, b: 0.50, W: 0.63, d: 0.354, bt: 10, bg: 20, Lr: 1.0, Lh: 3.45, hd: 5.615, ms: 'L' };
+  const DEF = { a: 75, H: 6.945, b: 0.50, W: 0.63, d: 0.354, bt: 10, bg: 20, Lr: 1.0, Lh: 3.45, hd: 5.615, ms: 'L', ol: 0.95 }; // ol: deşarj oluğu boyu (ızgara arka yüzünden), son 0,55 m'si boşaltma ağzı
   const par = e => { const o = {}; for (const k of Object.keys(DEF)) o[k] = e[k] != null && e[k] !== '' ? (typeof DEF[k] === 'number' ? +e[k] : e[k]) : DEF[k]; return o; };
   /* yerel → dünya: x = kanal enine (sol +), y = akış yönü, z = yukarı */
   const frame = e => { const r = (+e.rot || 0) * RAD, c = Math.cos(r), s = Math.sin(r), p = M.p3(e.p), z0 = +e.z || 0; return ([x, y, z]) => [p[0] + y * c - x * s, p[1] + y * s + x * c, z0 + z]; };
@@ -37,9 +37,9 @@
     sbox(out, G, W2, s0h, G.Lf, -0.03, q.d + 0.03, -hwH, hwH, COL.head);
     for (let k = 0; k < 4; k++) { const sk = s0h + 0.15 + k * (q.Lh - 0.3) / 4, sl = sk + (q.Lh - 0.3) / 4 - 0.12; sbox(out, G, W2, sk, sl, -0.045, -0.03, -hwH + 0.1, hwH - 0.1, COL.door); for (const sg of [-1, 1]) sbox(out, G, W2, s0h + k * q.Lh / 4, s0h + k * q.Lh / 4 + 0.05, -0.05, q.d + 0.05, sg > 0 ? hwH : -hwH - 0.03, sg > 0 ? hwH + 0.03 : -hwH, COL.frame); }
     // deşarj kaputu (mansap tarafında) ve çıkış ağzı
-    const zb = q.hd + 0.25, zt = Math.min(q.H - 0.12, q.hd + 1.17), yb1 = G.yb(zb), yb2 = G.yb(zt), ext = 0.95;
+    const zb = q.hd + 0.25, zt = Math.min(q.H - 0.12, q.hd + 1.17), yb1 = G.yb(zb), yb2 = G.yb(zt), ext = Math.max(0.65, q.ol);
     box(out, W2, [[-hw, yb1, zb], [hw, yb1, zb], [hw, yb1 + ext, zb], [-hw, yb1 + ext, zb], [-hw, yb2, zt], [hw, yb2, zt], [hw, yb1 + ext, zt - 0.35], [-hw, yb1 + ext, zt - 0.35]], COL.hood);
-    hbox(out, W2, -q.b / 2, q.b / 2, yb1 + 0.35, yb1 + ext - 0.05, q.hd, zb, COL.hood);
+    hbox(out, W2, -q.b / 2, q.b / 2, yb1 + ext - 0.60, yb1 + ext - 0.05, q.hd, zb, COL.hood);
     // motor - redüktör (yanda, kafanın üst kısmında)
     const sg = q.ms === 'R' ? -1 : 1, sm = G.Lf - 0.75, cM = G.at(sm, q.d * 0.5, 0), xg = sg * (hwH + 0.04);
     hbox(out, W2, Math.min(xg, xg + sg * 0.26), Math.max(xg, xg + sg * 0.26), cM[1] - 0.14, cM[1] + 0.14, cM[2] - 0.16, cM[2] + 0.14, COL.gear);
@@ -55,7 +55,7 @@
     prims: e => {
       const G = geom(e), q = G.q, W2 = frame(e), hw = q.W / 2, yTop = q.H / Math.tan(G.a) + q.d / G.sa, z = p => { const w = W2(p); return [w[0], w[1], 0]; }, out = [];
       out.push(P([[-hw, 0, 0], [hw, 0, 0], [hw, yTop, 0], [-hw, yTop, 0]].map(z), true, { lw: 35 }));
-      const yb1 = G.yb(q.hd + 0.25); out.push(P([[-hw, yb1, 0], [hw, yb1, 0], [hw, yb1 + 0.95, 0], [-hw, yb1 + 0.95, 0]].map(z), true, { lw: 18, lt: 'DASHED' }));
+      const yb1 = G.yb(q.hd + 0.25); out.push(P([[-hw, yb1, 0], [hw, yb1, 0], [hw, yb1 + Math.max(0.65, q.ol), 0], [-hw, yb1 + Math.max(0.65, q.ol), 0]].map(z), true, { lw: 18, lt: 'DASHED' }));
       const pitch = (q.bt + q.bg) / 1000, nB = Math.max(2, Math.floor((q.b + q.bg / 1000) / pitch)), x0 = -((nB - 1) * pitch) / 2, yr = q.Lr * G.ca;
       for (let i = 0; i < nB; i += Math.max(1, Math.floor(nB / 12))) { const x = x0 + i * pitch; out.push(L(z([x, 0, 0]), z([x, yr, 0]), { lw: 9 })); }
       const sg = q.ms === 'R' ? -1 : 1, cM = G.at(G.Lf - 0.75, q.d * 0.5, 0), xg = sg * (hw + 0.1); out.push(P([[xg, cM[1] - 0.14, 0], [xg + sg * 0.26, cM[1] - 0.14, 0], [xg + sg * 0.26, cM[1] + 0.14, 0], [xg, cM[1] + 0.14, 0]].map(z), true, { lw: 18 }));

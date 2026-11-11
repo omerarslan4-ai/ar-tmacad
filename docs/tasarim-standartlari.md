@@ -38,6 +38,7 @@
   - Izgara yapısının yüksekliği (kanal tabanı → platform) 4,00 m alınır (Çokal'da 8,70 m idi); terfi haznesi ve pompa kotları kanal tabanıyla birlikte kayar. Bu derinlikte kapaklar tam şasidir.
   - Kanallar arası orta perde kanal tabanından 1,00 m yüksekliktedir (Çokal C-C) ve bütün kapaklara (çıkıştan girişe, A kapaklarına kadar) uzanır.
   - Kaba ve ince ızgara bölgelerinin boyu (dolayısıyla yapı boyu) ızgaradan türetilir: mansap kapağı + konveyör payı (kapak ekseninden ≥ 0,68 m) + ızgaranın ayaktan boşaltma ağzına yatay izi + ayak → memba kapağı 0,35 m + memba kapağı. Izgara yüksekliği değişince yapı boyu da değişir; konveyör hiçbir kapak tahrikinin üstüne gelmez.
+  - Izgara ile konveyör arası en az 0,60 m: ızgaranın deşarj oluğu buna göre uzar (bant 50 cm'de 1,30 m); konveyör motoru ızgaranın öbür yanında.
   - Döşemedeki ızgara açıklığı: ızgaranın platformu kestiği yer (ön yüz – arka yüz) + her yanda 0,20 m, kanal eninde.
   - Terfi pompaları: basma borusu dış duvar dibinde (iç yüzden ≈0,45 m), pompa gövdesi kanala doğru.
 - Kanal kapakları (penstok): 5 m derinliğe kadar tam şasi (platforma kadar); daha derinde kısa şasi (açıklık + 0,35 m) ve uzatma mili, tahrik platformda zemin ayağı üstünde (Çokal ızgara kanalları).
