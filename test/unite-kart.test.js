@@ -180,29 +180,6 @@ t('debimetre: zincirde nihai kademe; büyük debide boru yetmez uyarısı; Parsh
   assert.strictEqual(pr.ayakIzi, null);
 });
 
-/* GERÇEK PROJE: Çokal AAT, T-105 Anaerobik havuz (3-Çokal_AAT_Anaerobik_R3.dwg, proses raporu Tablo 20)
-   Rapor: 3 göz, her biri en 2,70 × boy 11,00, su 3,00 m; 1. kademe Q proje 145,83, Q maks. 275,83 m³/h, geri devir %75 (= 206,87 m³/h).
-   Çizim carrousel tipi (program dikdörtgen üretir; ayak izi karşılaştırılmaz). Su yüzü 96,64, duvar üstü 97,25, zemin 95,00. */
-t('Çokal AAT T-105: anaerobik havuz hacmi, temas süresi ve kotlar', () => {
-  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 145.83 * 24, Qww: 275.83 }, { zs: 96.64, zz: 95.00 }, {});
-  yakin(p(k, 'V').v, 267.3, 'hacim'); yakin(p(k, 'bg').v, 2.70, 'göz eni'); assert.ok(Math.abs(p(k, 'QRS').v - 206.87) < 0.01, 'geri devir (rapor 206,87)');
-  yakin(p(k, 't').v, 267.3 / (145.83 + 206.87), 'temas süresi');
-  assert.ok(p(k, 't').v > 0.57 && p(k, 't').v < 0.95, 'raporun temas aralığında');
-  yakin(k.kot.ust, 97.24, 'duvar üstü (çizim 97,25)'); yakin(k.kot.taban, 93.64, 'taban = su − 3,00');
-  yakin(k.ayakIzi.en, 3 * 2.7 + 2 * 0.3 + 2 * 0.3, 'en'); yakin(k.ayakIzi.boy, 0.8 + 11 + 1.0 + 4 * 0.3, 'boy');
-  assert.strictEqual(k.uyari.length, 0); assert.deepStrictEqual(k.girisler, ['ham su', 'geri devir', 'süzüntü suyu']);
-});
-
-t('anaerobik: tek göz seçeneği hacmi korur; zincirde mevcut kademe', () => {
-  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, {}, { anGoz: '1' });
-  yakin(p(k, 'bg').v, 8.1, 'tek göz eni'); yakin(p(k, 'V').v, 267.3, 'hacim aynı'); yakin(k.ayakIzi.en, 8.1 + 0.6, 'en');
-  const x = K.kartlar(j, {}).su.find(y => y.id === 'an');
-  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
-  yakin(p(x.kart, 't').v, 3024 / (55300 / 24 + 0.75 * 4608), 'WB 2025 temas süresi');
-  const kisa = K.anaerobikKart('an', { N: 1, L: 5, W: 5, h: 3 }, { Qd: 24000, Qww: 2000 }, {}, {});
-  assert.ok(kisa.uyari.some(u => u.includes('Temas süresi')));
-});
-
 /* BİYOLOJİK HAVUZ: karusel şablonu (app/karusel.js, Zeytinli AAT T107). Modül tarayıcı için yazılmış;
    testte çizim kısımları boş bırakılarak yüklenir, hesap fonksiyonları (hacim, düz uzunluk, mikser) aynen çalışır. */
 const karuselYukle = () => {
@@ -213,6 +190,38 @@ const karuselYukle = () => {
   return { DEF: c.KARUSEL_DEF, Ls: c.karuselLs, geo: c.karuselGeo };
 };
 const KAR = karuselYukle();
+
+/* GERÇEK PROJE: Çokal AAT, T-105 Anaerobik havuz (3-Çokal_AAT_Anaerobik_R3.dwg, proses raporu Tablo 20)
+   Rapor: 3 göz, 2,70 × 11,00, su 3,00 m; 1. kademe Q proje 145,83, Q maks. 275,83 m³/h, geri devir %75 (= 206,87 m³/h).
+   Çizim: 3 karusel halkası (RAS, T-105/1, T-105/2), halka iç eni 3,00, orta duvar 30, halkalar arası 40 cm, R0,70–R1,00 kılavuz,
+   düz boy 11,00; giriş kanalı 0,80 (sol), çıkış kanalı 1,00 (sağ), kanal duvarı 30 → dış ölçü 17,20 × 10,60.
+   Halka eksenleri sol alt köşeden: x 3,00; y 1,90 / 5,30 / 8,70. Su 96,64, duvar üstü 97,25, ağız 95,75–96,75, zemin 95,00. */
+t('Çokal AAT T-105: anaerobik karusel halkaları, ayak izi, temas süresi ve kotlar', () => {
+  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 145.83 * 24, Qww: 275.83 }, { zs: 96.64, zz: 95.00, Ls: 11 }, {}, KAR);
+  yakin(k.ayakIzi.en, 10.60, 'en (çizim 10,60)'); yakin(k.ayakIzi.boy, 17.20, 'boy (çizim 17,20)');
+  yakin(k.halka.x1, 3.00, 'sol yarım daire merkezi'); assert.deepStrictEqual(k.halka.yc, [1.9, 5.3, 8.7]);
+  assert.ok(Math.abs(p(k, 'QRS').v - 206.87) < 0.01, 'geri devir (rapor 206,87)');
+  const Vk = (11 * 3 - 11 * 0.3 + Math.PI * 2.25 - Math.PI * (1 - 0.49)) * 3 * 3;
+  assert.ok(Math.abs(p(k, 'Vk').v - Vk) < 0.01, 'geometri hacmi'); yakin(p(k, 'b').v, 1.35, 'koridor');
+  assert.ok(p(k, 't').v > 0.57 && p(k, 't').v < 0.95, 'raporun temas aralığında');
+  yakin(k.kot.ust, 97.24, 'duvar üstü (çizim 97,25)'); yakin(k.kot.agiz, 95.75, 'ağız alt kotu (çizim 95,75)');
+  assert.ok(p(k, 'mix').v.includes('×'), 'mikser seçildi');
+  assert.deepStrictEqual(k.uyari, []); assert.deepStrictEqual(k.girisler, ['ham su', 'geri devir', 'süzüntü suyu']);
+});
+
+t('anaerobik: düz boy hacimden; tek halka; zincirde mevcut kademe', () => {
+  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, {}, {}, KAR);
+  assert.ok(Math.abs(p(k, 'Vk').v - 267.3) < 0.01, 'hacim korunur'); yakin(p(k, 'Ls').v, (29.7 - (Math.PI * 2.25 - Math.PI * 0.51)) / 2.7, 'düz boy');
+  const t1 = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, {}, { anGoz: '1' }, KAR);
+  yakin(t1.ayakIzi.en, 3.8, 'tek halka eni'); assert.ok(Math.abs(p(t1, 'Vk').v - 267.3) < 0.01, 'tek halkada da hacim');
+  const az = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, { Ls: 5 }, {}, KAR);
+  assert.ok(az.uyari.some(u => u.includes('düz boyu artırın')));
+  const x = K.kartlar(j, {}, { karusel: KAR }).su.find(y => y.id === 'an');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
+  yakin(p(x.kart, 't').v, p(x.kart, 'Vk').v / (55300 / 24 + 0.75 * 4608), 'WB 2025 temas süresi');
+  const kisa = K.anaerobikKart('an', { N: 1, L: 5, W: 5, h: 3 }, { Qd: 24000, Qww: 2000 }, {}, {});
+  assert.ok(kisa.uyari.some(u => u.includes('Temas süresi')));
+});
 
 t('biyolojik havuz: Zeytinli T107 hacmi verilince şablonun düz uzunluğu (135 m) geri bulunur', () => {
   const Gz = KAR.geo(Object.assign({}, KAR.DEF));

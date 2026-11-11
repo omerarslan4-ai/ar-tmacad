@@ -51,12 +51,16 @@
   - Düz boru boyları: debimetre öncesi 5·DN, sonrası 3·DN.
   - Debimetre odası: iç en az 2,00 (akış yönü) × 1,50 m; duvar 25 cm, taban plağı 30 cm; boru altı tabandan 0,42 m yukarıda; üst döşeme zeminden 0,45 m yukarıda.
   - Parshall savağı seçimli: boğaz genişliği standart tablodan; kot düşümü hidrolik profile işlenir.
-- Anaerobik havuz (program üretir; ölçüler Çokal AAT T-105'ten, carrousel şekli alınmadı):
-  - Dikdörtgen gözler yan yana, ortak duvarlı, seri akışlı. Varsayılan 3 göz (1. göz geri devir + süzüntü, 2. ve 3. göz ham su; ayırıcı kapak açıkken hepsi 1. göze); eski projeler için tek göz.
-  - Su gözlerde sırayla dolaşır (1 → 2 → 3, geçişler gözlerin uçlarında sırayla). Ham su 2. göze 1. gözün çıkış ucundan, 1. gözden gelen suyla aynı noktada girer (kademeli karışım); bunun için ham su o uca ayrı bir kanalla taşınır.
+- Anaerobik havuz (Çokal AAT T-105 biçimi):
+  - Karusel halkaları yan yana, ortak duvarlı. Varsayılan 3 halka: 1. halka geri devir (RAS), 2. ve 3. halka ham su; eski projeler için tek halka.
+  - Halka iç eni 3,00 m (iç yarıçap 1,50), ortada 30 cm duvar, iki koridor 1,35 m; uçlar yarım daire, dönüşte R0,70–R1,00 kılavuz duvar (30 cm). Dış duvar ve halkalar arası duvar 40 cm.
+  - Düz boy gerekli hacimden bulunur (elle değiştirilebilir; Çokal 11,00 m → dış ölçü 17,20 × 10,60 m).
+  - Sol yanda giriş kanalı 0,80 m: her halkanın ucuna kapaklı ağız 0,60 × 1,00 m (Çokal 95,75–96,75, su 96,64); kapaklarla ham suyun gireceği halka seçilir. Giriş borusu kanala alttan.
+  - Sağ yanda çıkış kanalı 1,00 m, ara duvarla ikiye bölünür: alt bölüm RAS girişi (RAS halkasına), üst bölüm ham su halkalarının çıkışı (çıkış borusu ortadan). Kanal dış duvarları 30 cm.
+  - Halkalar arası duvarda tabanda 0,50 × 0,50 m orifis; akış RAS → 1 → 2. Ortadan enine 1,50 m servis köprüsü (merdivenli).
   - Temas süresi = V / (Q ort. + geri devir), geri devir = %75 × Q maks.; 0,5–1,5 sa (ATV-DVWK-A 131).
-  - Dış duvar ve gözler arası duvar 30 cm, hava payı 0,60 m, giriş kanalı 0,80 m, çıkış kanalı 1,00 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
-  - Her gözde karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
+  - Hava payı 0,60 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
+  - Her halkada karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
 - Dağıtma yapısı (biyolojik havuzlar ve son çökeltme önü; Çokal AAT T-107 örneği):
   - Mevcut ya da nihai kademede iki ve üzeri hat varsa yapılır; tek hatta yok. Nihai kademedeki fazla hatlar için kör savak (hazır ağız).
   - Son çökeltme önünde debi = Q maks. + %75 geri devir; biyolojik havuz önünde Q maks.
@@ -71,7 +75,7 @@
   - Bölmeler duvarsızdır: anoksik bölge mikserli, aerobik bölge difüzörlü kısım; oranlar proses hesabındaki hacimlerden.
   - Hacim proses hesabından; düz uzunluk, mikser seçimi (mikser programının itki dengesi) ve difüzör sayısı karusel modülünden.
   - Şablon ölçüleri: dış duvar iç yarıçapı 9,0 m, orta duvar 0,40 m, dış duvar 0,80 m, kılavuz duvar Ø4,40 / 0,40 m, hava payı 1,05 m, taban plağı 0,60 m; duvar üstü zeminden en az 0,65 m yukarıda.
-  - Anaerobik havuz ayrı ünitedir (dikdörtgen, üç gözlü).
+  - Anaerobik havuz ayrı ünitedir (Çokal T-105 biçiminde karusel halkalı, üç halkalı).
 - Son çökeltme havuzları dairesel (merkezden alttan beslemeli, çevre savaklı, çevre duvarında tahrikli döner köprülü; Çokal AAT T-108 örneği):
   - Havuz sayısı mevcut kademeden; nihai kademedeki fazlası gelecek kademe havuzu olarak boş ayak izi (kesikli) gösterilir.
   - Duvar 20 cm, hava payı (su yüzü → duvar üstü) 1,20 m; duvar üstü zeminden en az 0,65 m yukarıda.

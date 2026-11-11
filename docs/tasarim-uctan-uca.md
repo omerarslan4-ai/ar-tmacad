@@ -101,6 +101,8 @@ Izgara yüksekliği üç değere bağlıdır: zemin kotu, ızgaranın standart b
 
 ### Üç gözlü anaerobik havuz
 
+> **Karar (11 Kasım 2026):** Anaerobik havuz Çokal AAT T-105 biçiminde yapılır: gözler karusel halkasıdır (1. halka geri devir, diğer ikisi ham su), sol yanda giriş kanalı ve kapaklı ağızlar, sağ yanda ikiye bölünmüş çıkış kanalı, halkalar arasında orifisler. Ölçüler `docs/tasarim-standartlari.md` içinde.
+
 - İki göz ham suyu alır; üçüncü göz geri devir ve süzüntü suyunu alır.
 - Giriş yapısında bir ayırıcı kapak vardır; açıldığında tüm sular karışarak girer.
 - Gözler arasındaki geçiş kapakları kademeli karışım sağlar.
