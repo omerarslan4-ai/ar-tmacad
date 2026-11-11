@@ -51,6 +51,11 @@
   - Düz boru boyları: debimetre öncesi 5·DN, sonrası 3·DN.
   - Debimetre odası: iç en az 2,00 (akış yönü) × 1,50 m; duvar 25 cm, taban plağı 30 cm; boru altı tabandan 0,42 m yukarıda; üst döşeme zeminden 0,45 m yukarıda.
   - Parshall savağı seçimli: boğaz genişliği standart tablodan; kot düşümü hidrolik profile işlenir.
+- Anaerobik havuz (program üretir; ölçüler Çokal AAT T-105'ten, carrousel şekli alınmadı):
+  - Dikdörtgen gözler yan yana, ortak duvarlı, seri akışlı. Varsayılan 3 göz (1. göz geri devir + süzüntü, 2. ve 3. göz ham su; ayırıcı kapak açıkken hepsi 1. göze); eski projeler için tek göz.
+  - Temas süresi = V / (Q ort. + geri devir), geri devir = %75 × Q maks.; 0,5–1,5 sa (ATV-DVWK-A 131).
+  - Dış duvar ve gözler arası duvar 30 cm, hava payı 0,60 m, giriş kanalı 0,80 m, çıkış kanalı 1,00 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
+  - Her gözde karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
 - Ön arıtma yapıları (ızgara, terfi, kum tutucu) bitişik tek blok olarak yapılabilir; aralarında 5 cm derz bırakılır (Çokal).
   Terfi istasyonu bazı projelerde ızgara ve kum tutucudan bağımsız, ayrı bir yapı olarak yapılır (seçimli; giriş ve çıkış saha borusuyla).
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
