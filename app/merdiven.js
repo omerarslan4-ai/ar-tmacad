@@ -140,7 +140,7 @@
           for (const [s0, s1, o0, o1] of [[0, pc.len, -hw - 0.075, -hw], [0, pc.len, hw, hw + 0.075], [-0.075, 0, -hw - 0.075, hw + 0.075], [pc.len, pc.len + 0.075, -hw - 0.075, hw + 0.075]]) sbox(out, pc, s0, s1, o0, o1, zt - 0.2, zt - 0.2, zt - 0.03, zt - 0.03, limonC, true); // çerçeve
           if (zt - G.z0 > 0.3 && !pc.bot) for (const [s, o] of [[0.05, -hw], [0.05, hw], [pc.len - 0.05, -hw], [pc.len - 0.05, hw]]) sbox(out, pc, s - 0.05, s + 0.05, o - 0.05, o + 0.05, G.z0, G.z0, zt - 0.2, zt - 0.2, COL.cel, true); // ayaklar (□100)
         }
-        if (sides.length) { // serbest kenarlarda korkuluk: kola bağlanan kenarlar hariç
+        if (sides.length && !(pc.top && e.usKork === 'H')) { // serbest kenarlarda korkuluk: kola bağlanan kenarlar hariç (usKork=H: üst sahanlık başka yapıya bağlı, korkuluğu orada)
           const cs = [[0, -hw], [pc.len, -hw], [pc.len, hw], [0, hw]].map(([s, o]) => Wd(pc, s, o, 0)), prevEnd = pc.bot ? null : pc.o, nextStart = pc.bot ? [pc.o[0] + pc.u[0] * pc.len, pc.o[1] + pc.u[1] * pc.len] : (G.pieces[pi + 1] || {}).o;
           for (let k = 0; k < 4; k++) { const a = cs[k], b = cs[(k + 1) % 4], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
             if (prevEnd && Math.hypot(m[0] - prevEnd[0], m[1] - prevEnd[1]) < 0.05 + 1e-6 && !pc.strip) continue; if (pc.bot) { if (k === 1) continue; if (k === 3) continue; } if (nextStart && Math.hypot(m[0] - nextStart[0], m[1] - nextStart[1]) < G.w / 2 + 0.06 && Math.abs(Math.hypot(b[0] - a[0], b[1] - a[1]) - G.w) < 0.02) continue;
