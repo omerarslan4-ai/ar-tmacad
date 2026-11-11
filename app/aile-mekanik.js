@@ -214,7 +214,7 @@
       for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * ap; // kum pompaları: motor platformda, emme borusu oluğa iner
         g.silindir([x, 0, zd + 0.04], [x, 0, zd + 0.60], 0.16, GCOL.pompa, 16); g.silindir([x, 0, zd + 0.04], [x, 0, -Hp + 0.45], 0.05, GCOL.boru, 12);
         g.silindir([x, 0, -Hp + 0.45], [x, 0, -Hp + 0.10], 0.14, GCOL.pompa, 16);
-        g.silindir([x + 0.20, 0, zd + 0.30], [x + 0.20, -b2 - 0.25, zd + 0.30], 0.04, GCOL.boru, 10); } // basma borusu
+        g.silindir([x, 0.22, zd + 0.30], [-l2 - 0.30, 0.22, zd + 0.30], 0.04, GCOL.boru, 10); } // basma borusu: köprü boyunca kum oluğu tarafındaki uca (−x)
       const vx = l2 - 0.45, vy = b2 - 0.25; g.silindir([vx, vy, zd + 0.04], [vx, vy, zd + 2.20], 0.07, GCOL.vinc, 12); g.kutu(vx - 1.20, vx + 0.07, vy - 0.05, vy + 0.05, zd + 2.10, zd + 2.22, GCOL.vinc); // pergel vinç
     },
     on: (q, g) => { const l2 = m(q.Ls) / 2, kh = m(q.kh); g.dik(-l2 - 0.15, 0.10, l2 + 0.15, 0.44, { lw: 35 }); g.dik(-l2, 0.44, l2, 0.44 + kh, { lw: 13 }); const N = Math.max(1, Math.round(q.N)); for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * m(q.ap); g.cizgi([x, 0.44], [x, -m(q.Hp) + 0.10], { lw: 25 }); } g.olcu([-l2, 0.44 + kh + 0.3], [l2, 0.44 + kh + 0.3], 'h', 0.2, `${q.Ls}`); },

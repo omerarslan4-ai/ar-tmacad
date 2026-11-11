@@ -92,7 +92,7 @@
   function ekipmanYer(G) {
     const q = G.q, out = [];
     for (const k of G.kapak) out.push({ anahtar: 'pen-' + k.i, tur: 'penstok', etiket: String(k.i + 1), p: [k.x, k.y], aci: 0, z: k.z0, B: k.B, H: k.H, D: G.zu - k.z0, hw: G.zs - k.z0 });
-    out.push({ anahtar: 'kopru', tur: 'kopru', p: [G.xg0 + q.L * 0.6, G.en / 2], aci: 90, z: G.zu, Ls: G.en - q.tw, N: G.N, ap: G.N > 1 ? Math.abs(G.goz[1].yo - G.goz[0].yo) : 1.9, Hp: G.zu - G.zo, yo: G.goz.map(g => g.yo) });
+    out.push({ anahtar: 'kopru', tur: 'kopru', p: [G.xg0 + q.L * 0.6, G.en / 2], aci: 0, /* aile x ekseni (açıklık) havuz enine */  z: G.zu, Ls: G.en - q.tw, N: G.N, ap: G.N > 1 ? Math.abs(G.goz[1].yo - G.goz[0].yo) : 1.9, Hp: G.zu - G.zo, yo: G.goz.map(g => g.yo) });
     const zk = q.zg + 0.10; // seperatör kaidesi
     out.push({ anahtar: 'seperator', tur: 'seperator', p: [G.xg0 + q.L * q.xs, -(G.ustOluk.w + 1.10)], aci: 0, z: zk });
     out.push({ anahtar: 'kont-kum', tur: 'konteyner', etiket: 'KUM', p: [G.xg0 + q.L * q.xs + 2.45, -(G.ustOluk.w + 1.10)], aci: 0, z: q.zg });
