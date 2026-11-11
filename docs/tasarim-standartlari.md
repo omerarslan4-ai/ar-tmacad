@@ -35,7 +35,8 @@
   - Yürüme platformu zeminden en az 0,65 m yukarıda olur (Çokal AAT T-101: zemin 94,80, platform 95,45).
   - Konteynerlerin altında süzüntü suyunu toplayan bir kanal bulunur (Çokal'da 60 cm, ızgara kanalları arasında).
   - Izgara boşaltma ağzı platformdan 1,0 m (halatlı tip). Altında enine bant konveyör: bant = ağız − 0,15 m; konveyörün altı (şase ve tambur, bandın ≈0,28 m altı) konteyner üstünden en az 0,30 m yukarıda; konteyner zorlarsa ızgara boşaltma ağzı yükselir. Konveyör yapının dışındaki konteynere boşaltır; korkuluk geçişte açılır.
-  - Kanallar arası orta perde kanal tabanından 4,00 m yüksekliktedir (Çokal'da 1,00 m idi; firma kararı) ve bütün kapaklara (çıkıştan girişe, A kapaklarına kadar) uzanır; ızgaralar ona dayanır.
+  - Izgara yapısının yüksekliği (kanal tabanı → platform) 4,00 m alınır (Çokal'da 8,70 m idi); terfi haznesi ve pompa kotları kanal tabanıyla birlikte kayar. Bu derinlikte kapaklar tam şasidir.
+  - Kanallar arası orta perde kanal tabanından 1,00 m yüksekliktedir (Çokal C-C) ve bütün kapaklara (çıkıştan girişe, A kapaklarına kadar) uzanır.
   - Izgara yeri, boşaltma ağzının altındaki konveyör hiçbir kapak tahrikinin üstüne gelmeyecek şekilde seçilir.
   - Terfi pompaları: basma borusu dış duvar dibinde (iç yüzden ≈0,45 m), pompa gövdesi kanala doğru.
 - Kanal kapakları (penstok): 5 m derinliğe kadar tam şasi (platforma kadar); daha derinde kısa şasi (açıklık + 0,35 m) ve uzatma mili, tahrik platformda zemin ayağı üstünde (Çokal ızgara kanalları).

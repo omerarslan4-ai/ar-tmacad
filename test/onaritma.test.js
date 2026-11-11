@@ -8,7 +8,8 @@ const { geo, ekipmanYer, su } = require('../app/onaritma.js');
 const { ucgenle } = require('../app/anaerobik.js');
 let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
 const yakin = (a, b, msg, tol) => assert.ok(Math.abs(a - b) < (tol || 0.006), `${msg}: ${a} ≠ ${b}`);
-const G = geo();
+const COKAL = { zTab: 86.75, zTr: 84.80, zTon: 85.89, zToff: 85.15 }; // Çokal kotları (programın varsayılanı 4,00 m yapı yüksekliği)
+const G = geo(COKAL);
 
 t('Çokal çizim 1: dış ölçüler, terfi, kanal', () => {
   yakin(G.Lo, 16.40, 'boy'); yakin(G.tO, 3.30, 'terfi dış eni'); yakin(G.tYo, 4.70, 'terfi dış boyu');
@@ -41,10 +42,10 @@ t('ekipman: 8 penstok kanal eninde, 4 ızgara, 3 pompa, merdiven ve korkuluk', (
   const S = su(G); yakin(S[0].maks, 87.35, 'kanal maks. su'); yakin(S[1].maks, 85.89, 'terfi devreye girme');
 });
 
-t("orta perde 4,00 m ve A kapaklarına kadar; kısaltılırsa A'da kısa parça; pompa basma borusu duvar dibinde", () => {
-  assert.strictEqual(G.q.hA, 4.00); assert.strictEqual(G.ayirici.length, 2);
+t("orta perde 1,00 m (Çokal) ve A kapaklarına kadar; kısaltılırsa A'da kısa parça; pompa basma borusu duvar dibinde", () => {
+  assert.strictEqual(G.q.hA, 1.00); assert.strictEqual(G.ayirici.length, 2);
   yakin(Math.max(...G.ayirici[1].map(p => p[0])), 14.00, 'kaba ayırıcı A kapaklarına kadar');
-  const Gk = geo({ Lka: 2.55 }); assert.strictEqual(Gk.ayirici.length, 3); yakin(Math.max(...Gk.ayirici[1].map(p => p[0])), 12.75, 'Çokal boyu'); const st = Gk.ayirici[2].map(p => p[0]); yakin(Math.min(...st), 13.75, 'kısa parça');
+  const Gk = geo(Object.assign({ Lka: 2.55 }, COKAL)); assert.strictEqual(Gk.ayirici.length, 3); yakin(Math.max(...Gk.ayirici[1].map(p => p[0])), 12.75, 'Çokal boyu'); const st = Gk.ayirici[2].map(p => p[0]); yakin(Math.min(...st), 13.75, 'kısa parça');
   for (const k of G.kapak) assert.ok(G.ayirici.some(a => Math.min(...a.map(p => p[0])) <= k.x - 0.05 && Math.max(...a.map(p => p[0])) >= k.x + 0.05), 'her kapak orta perdeye oturur: ' + k.k);
   const E = ekipmanYer(G, 94.80); for (const p of E.filter(x => x.tur === 'pompa')) { assert.strictEqual(p.aci, 180, 'pompa kanala doğru'); yakin(p.p[0], 0.85, 'basma borusu iç yüzden 0,45'); }
 });
@@ -55,6 +56,12 @@ t('ızgara boşaltma kot zinciri: konteyner zeminde, konveyör altı konteynerin
   const kv = E.filter(x => x.tur === 'konveyor'), ko = E.filter(x => x.tur === 'konteyner'); assert.strictEqual(kv.length, 2); assert.strictEqual(ko.length, 2);
   const kx = G.kapak.map(k => k.x); for (const c of kv) assert.ok(kx.every(x => Math.abs(c.p[0] - x) >= 0.68), 'konveyör kapak tahriklerinin üstünde değil');
   for (const c of kv) { const k = ko.find(o => o.etiket === c.etiket); yakin(k.p[0], c.p[0], 'konteyner bandın ucunda'); assert.ok(c.p[1] - c.L < k.p[1] + 0.54 && c.p[1] - c.L > k.p[1] - 0.54, 'bant ucu konteynerin üstünde'); assert.ok(k.p[1] + 0.535 < G.yc0, 'konteyner yapının dışında'); }
+});
+
+t('varsayılan: ızgara yapısı 4,00 m (platform − kanal tabanı), terfi ve pompa kotları birlikte kayar; konveyör kapaklardan uzak', () => {
+  const G4 = geo(); yakin(G4.q.zPl - G4.q.zTab, 4.00, 'yapı yüksekliği'); yakin(G4.q.zTab - G4.q.zTr, 1.95, 'terfi kanalın 1,95 altında'); yakin(G4.q.zTon - G4.q.zTab, 85.89 - 86.75, 'devreye girme');
+  const E = ekipmanYer(G4, 94.80); assert.ok(E.filter(x => x.tur === 'penstok').every(x => Math.abs(x.D - 4.00) < 1e-6), 'kapak derinliği 4 m (tam şasi)');
+  const kx = G4.kapak.map(k => k.x); for (const c of E.filter(x => x.tur === 'konveyor')) assert.ok(kx.every(x => Math.abs(c.p[0] - x) >= 0.68), 'konveyör kapaktan uzak');
 });
 
 t('parametrik: 3 kanal, geniş kanal', () => {

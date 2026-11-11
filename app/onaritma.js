@@ -17,12 +17,12 @@
     Lc: 1.60, Li: 4.10, Lg: 0.60, Lk: 3.80, Lgi: 2.00, // toplama haznesi, ince bölge, ortak geçiş, kaba bölge, giriş odası
     tX: 2.50, tY: 3.90, tTw: 0.40,                     // terfi ıslak haznesi iç ölçüleri ve duvarı
     gG: 0.15, gE: 0.19, gC: 0.19, gA: 0.10, yw: 0.10, yd: 0.05, // kapak yerleri (bölge uçlarından) ve duvar yuvası
-    zTab: 86.75, zPl: 95.45, dT: 0.25, zTr: 84.80, tb: 0.60, // kanal tabanı, platform (döşeme üstü), döşeme, terfi tabanı, taban plağı
+    zTab: 91.45, zPl: 95.45, dT: 0.25, zTr: 89.50, tb: 0.60, // kanal tabanı (yapı yüksekliği platform − taban = 4,00 m, firma kararı; Çokal 86,75 / 8,70 m), platform, döşeme, terfi tabanı (kanal tabanının 1,95 altı), taban plağı
     kpH: 1.00, pH: 1.00,                                // kapak yüksekliği, terfiye geçiş boşluğu yüksekliği
-    hs: 0.60, hsMin: 0.25, zTon: 85.89, zToff: 85.15,   // kanal su derinliği (maks / min), pompa devreye girme / çıkma
+    hs: 0.60, hsMin: 0.25, zTon: 90.59, zToff: 89.85,   // kanal su derinliği (maks / min), pompa devreye girme / çıkma
     np: 3, Qp: 18, Hp: 14,                              // pompa sayısı (2 asıl + 1 yedek), pompa başına debi l/s, basma m
     bgK: 30, bgI: 6, zg: 94.80, mw: 1.00, mb: 0.25, mh: 0.19,
-    hA: 4.00, Lka: 3.80, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından; Çokal 1,00, firma kararı 4,00), kaba bölgedeki boyu (A kapaklarına kadar), kısa parça
+    hA: 1.00, Lka: 3.80, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından, Çokal C-C 1,00), kaba bölgedeki boyu (A kapaklarına kadar), kısa parça
     hBos: 1.00, pd: 0.15, Hk: 1.37, pk: 0.30, ka: 0.28, Bk: 0.50, // ızgara boşaltma ağzı (platformdan), ağız → bant düşüsü, 1100 L konteyner, konveyör altı → konteyner payı, bant → konveyör altı, bant eni
   };
   const PAR = Object.keys(DEF);
@@ -93,7 +93,7 @@
     // ızgara ayağı: boşaltma ağzının altındaki konveyör hiçbir kapak tahrikinin (platformda kapak ekseni ± 0,30) üstüne gelmesin
     const dX = dusus(D + hdU), kx = [...new Set(G.kapak.map(k => +k.x.toFixed(3)))], yarim = (q.Bk + 0.16) / 2 + 0.05;
     const serbest = xd => kx.every(x => Math.abs(xd - x) >= 0.30 + yarim);
-    const ayak = iz => { const a0 = iz.x0 + 0.30, a1 = iz.x1 - 0.20; if (serbest(a1 - dX)) return a1; for (let s = 0.05; a1 - s >= a0; s += 0.05) if (serbest(a1 - s - dX)) return a1 - s; return a1; };
+    const ayak = iz => { const a0 = iz.x0 + 0.30, a1 = iz.x1 - 0.20; for (let s = 0; a1 - s >= a0; s += 0.05) if (serbest(a1 - s - dX)) return a1 - s; return a1; };
     const grup = {}, ayakX = {};
     for (const iz of G.izgara) { if (ayakX[iz.k] == null) ayakX[iz.k] = ayak(iz); }
     for (const iz of G.izgara) {
