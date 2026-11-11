@@ -258,13 +258,23 @@ t('son çökeltme zincirde: mevcut kademe havuzları, nihaideki fazlası gelecek
    1. kademede 1, nihaide 2 son çökeltme → 2 ağız (1'i kör). Q maks. 2060 298,33, 2045 275,83 m³/h; geri devir %75.
    Çizim: giriş haznesi su 96,46–96,48; savak 96,37; çıkış haznesi su 96,11; taban 91,13; duvar üstü 97,25; en 7,90 m. */
 t('Çokal AAT T-107: dağıtma yapısı savak kotu, düşü ve genişlik çizimle aynı', () => {
-  const k = K.dagitmaKart('dg2', { hat: 1, hatN: 2, hedef: 'sc' }, { Qww: 298.33 }, { Qww: 275.83 }, { zs: 96.45 });
+  const k = K.dagitmaKart('dg2', { hat: 1, hatN: 2, hedef: 'sc' }, { Qww: 298.33 }, { Qww: 275.83 }, { zs: 96.45 }, { dgYer: 'BITISIK' });
   assert.ok(Math.abs(k.kot.savak - 96.37) < 0.005, 'savak 96,37');
   assert.ok(Math.abs(k.kot.cikis - 96.11) < 0.005, 'çıkış su 96,11');
   assert.ok(Math.abs(k.kot.taban - 91.13) < 0.005, 'taban 91,13');
   assert.ok(Math.abs(p(k, 'zsM').v - 96.48) < 0.015, 'mevcut kademede giriş su ≈ 96,48');
   yakin(k.ayakIzi.en, 7.90, 'en (çizim 790)'); assert.strictEqual(p(k, 'kor').v, 1);
   assert.ok(p(k, 'Pv').v < 30); assert.strictEqual(k.uyari.length, 0);
+});
+
+t('dağıtma yapısı ayrı yapı (varsayılan): derinlik çıkış borusundan; bitişikte havuz tabanı girilebilir', () => {
+  const a = K.dagitmaKart('dg2', { hat: 1, hatN: 2, hedef: 'sc' }, { Qww: 298.33 }, { Qww: 275.83 }, { zs: 96.45, zz: 95.0 }, {});
+  assert.strictEqual(a.bitisik, false); assert.strictEqual(p(a, 'ODc').v, 315);
+  // çıkış su 96,109 − dalma 0,50 − Ø0,315 = boru tabanı 95,294; taban 0,27 altı
+  assert.ok(Math.abs(p(a, 'zbc').v - 95.294) < 0.002 && Math.abs(a.kot.taban - 95.024) < 0.002, 'taban borudan');
+  yakin(a.kot.ust, 97.24, 'duvar üstü'); yakin(a.ayakIzi.en, 7.90, 'ayak izi aynı');
+  const b = K.dagitmaKart('dg2', { hat: 1, hatN: 2, hedef: 'sc' }, { Qww: 298.33 }, { Qww: 275.83 }, { zs: 96.45, zh: 91.00 }, { dgYer: 'BITISIK' });
+  yakin(b.kot.taban, 91.00, 'havuz tabanı elle'); assert.strictEqual(p(b, 'zt').kaynak, 'elle');
 });
 
 t('dağıtma yapıları zincirde kart; biyolojik dağıtımda geri devir yok', () => {
@@ -274,7 +284,8 @@ t('dağıtma yapıları zincirde kart; biyolojik dağıtımda geri devir yok', (
   yakin(p(d1.kart, 'QN').v, 20000 / 3600, 'bio dağıtımı Q maks.'); yakin(p(d2.kart, 'QN').v, 20000 / 3600 * 1.75, 'çökeltme dağıtımı + geri devir');
   // büyük debide savak uzar, savak yükü sınırda kalır, enerji sınırı sağlanır
   assert.ok(p(d2.kart, 'Lsv').v > 1.7 && p(d2.kart, 'hN').v <= 0.1505, 'savak boyu debiden');
-  assert.ok(p(d2.kart, 'Pv').v <= 30.01 && d2.kart.uyari.length === 0, 'enerji sınırı');
+  assert.ok(p(d2.kart, 'Pv').v <= 30.01 && !d2.kart.uyari.some(u => u.includes('enerji')), 'enerji sınırı');
+  assert.ok(d2.kart.uyari.some(u => u.includes('yetmiyor')), 'her hatta 1,2 m³/s: tek PE boru yetmez uyarısı');
 });
 
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {

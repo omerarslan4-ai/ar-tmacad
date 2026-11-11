@@ -605,13 +605,18 @@
     ti: { ad: 'İç duvar kalınlığı', v: 0.30, birim: 'm' },
     pd: { ad: 'Savak → çıkış su yüzü serbest düşü', v: 0.26, birim: 'm' },
     hp: { ad: 'Hava payı (giriş su yüzü → duvar üstü)', v: 0.79, birim: 'm' },
-    hd: { ad: 'Çıkış haznesi su derinliği', v: 4.98, birim: 'm' },
+    pz: { ad: 'Duvar üstü — zeminden en az (ayrı yapıda)', v: 0.65, birim: 'm' },
+    hd: { ad: 'Çıkış haznesi su derinliği (bitişikte, havuz tabanı girilmezse)', v: 4.98, birim: 'm' },
+    vc: { ad: 'Çıkış borusu en büyük hızı (ayrı yapıda)', v: 1.20, birim: 'm/s' },
+    dl: { ad: 'Çıkış borusu üstü → çıkış su yüzü dalma', v: 0.50, birim: 'm' },
+    pa: { ad: 'Çıkış borusu altı → hazne tabanı', v: 0.27, birim: 'm' },
     ras: { ad: 'Geri devir oranı (son çökeltme dağıtımında)', v: 0.75, birim: '' },
     vg: { ad: 'Giriş borusu en büyük hızı', v: 1.20, birim: 'm/s' },
     pw: { ad: 'Giriş haznesi enerji sınırı', v: 30, birim: 'W/m³' },
   };
-  K.dagitmaKart = (id, x, debiN, debiM, par) => {
-    par = par || {}; debiN = debiN || {}; debiM = debiM || debiN;
+  K.dagitmaKart = (id, x, debiN, debiM, par, sec) => {
+    par = par || {}; debiN = debiN || {}; debiM = debiM || debiN; sec = sec || {};
+    const bitisik = sec.dgYer === 'BITISIK';
     const P = [], uyari = [];
     const ek = (k, ad, v, birim, kaynak, o) => { const y = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(y); return y.v; };
     const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
@@ -627,14 +632,31 @@
     const Lsv = ek('Lsv', 'Savak boyu (her hat, eşit)', Math.max(S.Ls, QN / nN / (1.84 * Math.pow(S.hmax, 1.5))), 'm', 'türetilen', { f: 'en büyük(en az genişlik ; Q / ağız / (1,84·h_maks^1,5))' });
     const hN = ek('hN', 'Savak su yükü (nihai)', Math.pow(QN / nN / (1.84 * Lsv), 2 / 3), 'm', 'türetilen', { f: '(Q / ağız / (1,84·L))^(2/3)' });
     const hM = ek('hM', 'Savak su yükü (mevcut)', Math.pow(QM / n / (1.84 * Lsv), 2 / 3), 'm', 'türetilen', { f: '(Q / hat / (1,84·L))^(2/3)' });
+    ek('yer', 'Yerleşim', bitisik ? 'havuzun ucuna bitişik (taban havuzla aynı)' : 'ayrı yapı (derinlik çıkış borusundan)', '', 'standart', { not: 'Seçenek: üstteki "Dağıtma yapısı"' });
     // elle
     const zs = dz('zs', 'Giriş haznesi su yüzü (nihai)', 0, 'm', 'elle', 'Önceki ünitenin çıkışından; 3. parçada hidrolik profilden');
     // türetilen kotlar
     const zc = ek('zc', 'Savak kotu', zs - hN, 'm', 'türetilen', { f: 'giriş su yüzü − savak yükü' });
     ek('zsM', 'Giriş haznesi su yüzü (mevcut)', zc + hM, 'm', 'türetilen', { f: 'savak + mevcut savak yükü' });
     const zo = ek('zo', 'Çıkış haznesi su yüzü', zc - S.pd, 'm', 'türetilen', { f: 'savak − serbest düşü' });
-    const zt = ek('zt', 'Taban kotu', zo - S.hd, 'm', 'türetilen', { f: 'çıkış su yüzü − hazne su derinliği' });
-    const zu = ek('zu', 'Duvar üstü kotu', zs + S.hp, 'm', 'türetilen', { f: 'giriş su yüzü + hava payı' });
+    let zt, zu;
+    if (bitisik) {
+      const zhO = par.zh != null && par.zh !== '' && isFinite(+par.zh);
+      zt = ek('zt', 'Taban kotu (bağlı havuzun tabanı)', zhO ? +par.zh : zo - S.hd, 'm', zhO ? 'elle' : 'türetilen', { duz: true, deg: zhO, vars: r3(zo - S.hd), f: zhO ? null : 'çıkış su yüzü − hazne su derinliği', not: 'Bağlandığı havuzun taban kotunu girin' });
+      zu = ek('zu', 'Duvar üstü kotu', zs + S.hp, 'm', 'türetilen', { f: 'giriş su yüzü + hava payı' });
+    } else {
+      // çıkış borusu: katalogdan, hız sınırını sağlayan en küçük PE (PN10)
+      const liste = (C && C.CATALOG && C.CATALOG.PE && C.CATALOG.PE.sizes) || PE_OD, di = od => od * (1 - 2 / 17) / 1000;
+      const Qh = QN / nN, od = liste.find(o => Qh / (Math.PI / 4 * di(o) ** 2) <= S.vc) || liste[liste.length - 1];
+      ek('ODc', 'Çıkış borusu dış çapı (PE100, her hat)', od, 'mm', 'türetilen', { f: 'hız ≤ sınır olan en küçük çap' });
+      const vC = Qh / (Math.PI / 4 * di(od) ** 2);
+      if (vC > S.vc + 1e-6) uyari.push(`Katalogdaki en büyük boru (Ø${od}) çıkış için yetmiyor: hız ${vC.toFixed(2).replace('.', ',')} m/s. Her hatta birden fazla boru ya da kanal gerekir.`);
+      const zb = ek('zbc', 'Çıkış borusu taban kotu', zo - S.dl - od / 1000, 'm', 'türetilen', { f: 'çıkış su yüzü − dalma − boru çapı' });
+      zt = ek('zt', 'Taban kotu', zb - S.pa, 'm', 'türetilen', { f: 'boru tabanı − pay' });
+      const zzVars = zs + S.hp - S.pz, zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+      const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: '2. parçada araziden okunacak' });
+      zu = ek('zu', 'Duvar üstü kotu', Math.max(zs + S.hp, zz + S.pz), 'm', 'türetilen', { f: 'en büyük(giriş su yüzü + hava payı ; zemin + 0,65)' });
+    }
     ek('dz', 'Toplam kot düşümü', zs - zo, 'm', 'türetilen', { f: 'savak yükü + serbest düşü', not: 'Hidrolik profile işlenir' });
     // hazne boyu savağa, giriş haznesi genişliği enerji sınırına göre büyür
     const Lic = ek('Lic', 'Hazne iç boyu', Math.max(S.Li, Lsv + 1.65), 'm', 'türetilen', { f: 'en büyük(standart ; savak + 2·0,825)' });
@@ -647,7 +669,7 @@
     if (hM < 0.02) uyari.push('Mevcut kademede savak yükü 2 cm\'nin altında; eşit dağıtım hassaslaşır, savak boyunu azaltmayı düşünün.');
     if (!QN) uyari.push('Proses verisinde debi yok.');
     return {
-      id, tip: 'dagitma', params: P, uyari, koku: false,
+      id, tip: 'dagitma', params: P, uyari, koku: false, bitisik,
       ayakIzi: { en: r3(en), boy: r3(boy) },
       giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zo },
       kot: { su: zs, savak: zc, cikis: zo, taban: zt, ust: zu },
@@ -667,8 +689,8 @@
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'dagitma') {
-        x.kart = K.dagitmaKart(x.id, x, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id]);
-        x.ayakIzi = x.kart.ayakIzi;
+        x.kart = K.dagitmaKart(x.id, x, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id], sec);
+        x.ayakIzi = x.kart.ayakIzi; x.bitisik = x.kart.bitisik;
       } else if (x.durum === 'kart' && x.tip === 'sc') {
         x.kart = K.scKart(x.id, veri(x.id).dim, par[x.id], (uN[x.id] || {}).dim);
         x.ayakIzi = x.kart.ayakIzi; x.adet = x.kart.adet; x.gelecek = x.kart.gelecek;
@@ -735,7 +757,8 @@
         ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}
         ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
         ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}
-        ${sel('anGoz', 'Anaerobik göz', [['3', '3 göz (ayırıcı kapaklı)'], ['1', 'Tek göz']], A.sec.anGoz || '3')}</div>
+        ${sel('anGoz', 'Anaerobik göz', [['3', '3 göz (ayırıcı kapaklı)'], ['1', 'Tek göz']], A.sec.anGoz || '3')}
+        ${sel('dgYer', 'Dağıtma yapısı', [['AYRI', 'Ayrı yapı'], ['BITISIK', 'Havuz ucuna bitişik']], A.sec.dgYer || 'AYRI')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
       U.querySelectorAll('[data-sec]').forEach(s => s.onchange = () => { A.sec[s.dataset.sec] = s.value; C.changed && C.changed(); ciz(); });
