@@ -45,6 +45,7 @@
   - Terfi pompaları: basma borusu dış duvar dibinde (iç yüzden ≈0,45 m), pompa gövdesi kanala doğru.
 - Kanal kapakları (penstok): 5 m derinliğe kadar tam şasi (platforma kadar); daha derinde kısa şasi (açıklık + 0,35 m) ve uzatma mili, tahrik platformda zemin ayağı üstünde (Çokal ızgara kanalları).
 - Kum ve yağ tutucu (havalandırmalı, gezer köprülü; Çokal AAT T-103 örneği):
+  - Hat (göz) sayısı: en büyük debi / 5.000 m³/h, yukarı yuvarlanır; en az 2 hat (biri bakımdayken öbürü çalışır).
   - Her göz: kum bölmesi + ayırma (yağ lameli) + yağ bölmesi. Gözler arası duvar 30 cm, dış duvar 40 cm.
   - Havuzun bir ucunda dağıtma (giriş) kanalı, öbür ucunda çıkış kanalı; ikisinin de iç genişliği 1,50 m.
   - Duvar üstü = su yüzü + 1,70 m (Çokal: su 97,45, duvar üstü 99,15); orta yürüme yolu duvar üstünden 0,85 m aşağıda; duvar üstü zeminden en az 0,65 m yukarıda.

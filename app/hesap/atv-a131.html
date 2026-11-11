@@ -268,7 +268,7 @@ const UNITS = {
   gr: { n: 'Havalandırmalı Kum ve Yağ Tutucu', c: 'T-104', ref: 'DWA-M 369 / ATV-DVWK KA-5', f: [
     { g: 'Hat sayısı ve kesit' },
     { k: 'Qmax', l: 'Hat başına maks. debi', u: 'm³/h', d: 5000 },
-    { k: 'N', l: 'Hat sayısı', u: 'adet', auto: true },
+    { k: 'N', l: 'Hat sayısı', u: 'adet', auto: true, h: 'Boş: debiden, en az 2 hat' },
     { k: 'h', l: 'Su derinliği', u: 'm', d: 3.5 },
     { k: 'bh', l: 'Kum bölmesi b/h oranı', u: '-', d: 1.0 },
     { k: 'b', l: 'Kum bölmesi genişliği b_SF', u: 'm', auto: true },
@@ -636,7 +636,7 @@ function compute(S, sc, sysKey) {
   // ---------------- KUM-YAĞ TUTUCU ----------------
   if (U.gr) {
     const p = P.gr, o = { rows: [], warn: [], auto: {} };
-    const N = p.N ?? Math.max(1, Math.ceil(Qww / p.Qmax - 1e-9)); o.auto.N = N;
+    const N = p.N ?? Math.max(2, Math.ceil(Qww / p.Qmax - 1e-9)); o.auto.N = Math.max(2, Math.ceil(Qww / p.Qmax - 1e-9)); // en az 2 hat: biri bakımdayken öbürü çalışır (firma standardı)
     const Ql = Qww / N, QlD = Qdw / N;
     const b = p.b ?? ceilTo(p.bh * p.h, 0.1); o.auto.b = ceilTo(p.bh * p.h, 0.1);
     const bF = ceilTo(p.fF * b, 0.05);
