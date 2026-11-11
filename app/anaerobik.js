@@ -282,8 +282,8 @@
     const V = t * (Qo + QRS), A = V / (h * n);
     const alan = (Ro, Ls) => { const rg = 0.47 * Ro; return Ls * (2 * Ro - tw) + Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg); };
     let a = 0.75, b = 15; for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (alan(m, k * 2 * m) < A) a = m; else b = m; }
-    const Ro = Math.max(1.5, yukari(b, 0.05)), rg = Math.round(0.47 * Ro / 0.05) * 0.05, Ls0 = (A - (Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg))) / (2 * Ro - tw);
-    const Ls = Math.max(2, yukari(Ls0, 0.10));
+    const Ro = +Math.max(1.5, yukari(b, 0.05)).toFixed(2), rg = +(Math.round(0.47 * Ro / 0.05) * 0.05).toFixed(2), Ls0 = (A - (Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg))) / (2 * Ro - tw);
+    const Ls = +Math.max(2, yukari(Ls0, 0.10)).toFixed(2);
     // açıklık: en az genişlik / yükseklik (Çokal); önce genişlik büyür (en çok wMax), sonra yükseklik
     const acik = (Qh, w0, wMax, h0) => { const Ar = Qh / 3600 / v; let w = w0, hw = h0 - ust; if (w * hw < Ar) { w = Math.min(wMax, yukari(Ar / hw, 0.05)); if (w * hw < Ar) hw = Ar / w; } const hh = Math.min(h - 0.5, yukari(hw + ust, 0.05)); return { w: +w.toFixed(2), h: +hh.toFixed(2), d: +(hh - ust).toFixed(2), A: w * (hh - ust) }; };
     const ag = acik(Qx + QRS, 0.60, Math.min(2.00, Ro), 1.0); // en büyük akış: son halkadan çıkış ağzı
@@ -594,10 +594,26 @@
     C.log(`  ${p.n} halka: iç eni ${f(2 * p.Ro)}, düz boy ${f(p.Ls)}, su ${f(p.h)} m → dış ölçü ${f(G.Lo)} × ${f(G.Wo)} m`);
     C.log(`  Ağız ${f(p.ag)} × ${f(p.ah)} (v ${f(B.hiz.agiz)} m/s) · pencere ${f(p.ow)} × ${f(p.oh)} (v ${f(B.hiz.pencere)} m/s) · ara duvar orifisi ${f(p.ag)} × ${f(p.bO)} · borular Ø${Math.round(p.dG * 1000)} / Ø${Math.round(p.dR * 1000)} / Ø${Math.round(p.dC * 1000)}`);
   });
+  /* mikser canlandırması: seçili halkanın ölçüleri ve yerleşen mikserler mikser hesabı penceresine aktarılır (akış parçacıkları orada) */
+  C.addCommand(['ANAMIKSER', 'ANAEROBIKMIKSER'], 'Anaerobik havuzun bir halkasını mikser hesabı penceresinde açar: halka ölçüleri ve yerleşen mikserlerle akış canlandırması. ANAMIKSER [HALKA=0]', async (I) => {
+    const kv = takeKV(), r3 = v => Math.round(v * 1000) / 1000; const e = (C.sel || []).find(x => x.type === 'anaerobik') || C.doc.ents.find(x => x.type === 'anaerobik'); if (!e) return C.warn('Çizimde anaerobik havuz yok.');
+    const G = geo(e), q = G.q, hi = Math.max(0, Math.min(G.n - 1, kv.HALKA != null ? Math.round(C.num(kv.HALKA)) : 0)), H = G.halka[hi];
+    const mx = mixKaynak(e, G), yer = ekipmanYer(G, mx, zemin(e, G)).filter(y => y.tur === 'mikser' && Math.abs(y.p[1] - H.yc) < q.Ro);
+    const x0 = G.xc1 - q.Ro, y0 = H.yc - q.Ro, un = unum(e);
+    const mixers = yer.map((y, i) => ({ name: `Z-${un}/${y.etiket}`, D: +y.D, rpm: +y.rpm || 0, P: +y.P, F: null, x: +(y.p[0] - x0).toFixed(3), y: +(y.p[1] - y0).toFixed(3), z: +Math.max(0.3, y.D / 2 + 0.25).toFixed(2), ang: y.aci }));
+    if (!mixers.length) return C.warn('Bu halkada mikser yok (önce ANAEKIPMAN).');
+    const S = { projName: `${e.code || ''} Anaerobik havuz — ${halkaAd(e, G, hi)}`, projBy: '', tank: { type: 'oval', L: r3(q.Ls + 2 * q.Ro), W: r3(2 * q.Ro), Dc: r3(2 * q.Ro), Ls: r3(q.Ls), b: r3(G.b), tw: r3(q.tw), H: r3(q.h) },
+      process: 'ditch', vTarget: 0.30, vDead: 0.15, pMin: 1, pMax: 4, rho: 1000, lam: 0.03, zTurn: 2.0, zTurnOval: 0.8, zSec: 1.5, etaInst: 0.85, fm: 0.65, zBottom: 0.3, plane: 'bottom', particles: true, dead: true, mixers };
+    try { localStorage.setItem('mixer-analysis-v1', JSON.stringify(S)); } catch (er) { return C.warn('Tarayıcı belleğine yazılamadı.'); }
+    const w = window.open('app/hesap/mikser.html', 'hesap_MIKSER', 'width=1280,height=900'); if (!w) return C.warn('Açılır pencere engellendi.');
+    try { if (w.location && /mikser/.test(w.location.href)) w.location.reload(); } catch (er) { }
+    C.log(`✓ ${halkaAd(e, G, hi)}: ${mixers.length} mikser (${mixers.map(m => m.name).join(', ')}) mikser penceresinde; akış parçacıkları suya verilen hareketi gösterir.`);
+  });
+
   /* şerit: Arıtma › Proses */
   if (C.ribbon && C.ribbon.tabs) {
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
-    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }, { cmd: 'ANABOYUT', t: 'Debiden boyutla', i: 'calc' }); try { C.ribbon.render(); } catch (err) { } }
+    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }, { cmd: 'ANABOYUT', t: 'Debiden boyutla', i: 'calc' }, { cmd: 'ANAMIKSER', t: 'Mikser akışı', i: 'calc' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings'], ['Debiden boyutla', 'Size from flow']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings'], ['Debiden boyutla', 'Size from flow'], ['Mikser akışı', 'Mixer flow']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));
