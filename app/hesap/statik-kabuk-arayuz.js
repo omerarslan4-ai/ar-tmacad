@@ -107,6 +107,31 @@
       for (let i = 0; i < ne * 4; i++) { tmp.fill(0); for (const [c, f] of ent) { const a = Q[c], b = i * NQ; for (let q = 0; q < NQ; q++) tmp[q] += f * a[b + q]; }
         const a12 = Math.abs(tmp[2]); z.m11p[i] = Math.max(z.m11p[i], tmp[0] + a12); z.m11n[i] = Math.min(z.m11n[i], tmp[0] - a12); z.m22p[i] = Math.max(z.m22p[i], tmp[1] + a12); z.m22n[i] = Math.min(z.m22n[i], tmp[1] - a12);
         z.n11[i] = Math.max(z.n11[i], tmp[3]); z.n22[i] = Math.max(z.n22[i], tmp[4]); z.v[i] = Math.max(z.v[i], Math.hypot(tmp[6], tmp[7])); } }
+    // şerit ortalaması (model M.seritOrt m verirse; ör. anaerobik 1,0): köşe / serbest uç / birleşim tekil tepeleri yerine
+    // donatı doğrultusuna dik yönde 1 m'lik şerit ortalaması — düşey donatı (M22, N22) yatayda, yatay donatı (M11, N11) düşeyde,
+    // radyede X donatısı Y'de, Y donatısı X'te; kesme 1 × 1 m alanda. Ağırlık: elemanın pencereyle örtüşen boyu.
+    const SO = +(M.seritOrt || (S.tas && S.tas.seritOrt) || 0);
+    if (SO > 0) {
+      const he = h, cen = AG.els.map(e => { const X = e.n.map(i => AG.nodes[i]), m = [0, 1, 2].map(k => X.reduce((s, q) => s + q[k], 0) / X.length); return m; });
+      const grpK = e => e.tur === 'perde' ? 'W' + e.wi : e.tur === 'radye' ? 'R' : e.grp, gm = new Map(); AG.els.forEach((e, i) => { const k = grpK(e); if (!gm.has(k)) gm.set(k, []); gm.get(k).push(i); });
+      const ort = (d) => Math.max(0, Math.min(d + he / 2, SO / 2) - Math.max(d - he / 2, -SO / 2)) / Math.min(SO, he); // örtüşme ağırlığı
+      const ayni = d => Math.abs(d) <= he * 0.45;
+      for (const ids of gm.values()) {
+        const perde = AG.els[ids[0]].tur === 'perde';
+        // komşu listeleri: A = M11 (yatay donatı) penceresi, B = M22 (düşey donatı) penceresi, V = kesme
+        const NA = new Map(), NB = new Map(), NV = new Map();
+        for (const i of ids) { const a = [], b = [], v = [], ci = cen[i];
+          for (const j of ids) { const cj = cen[j];
+            const dh = perde ? Math.hypot(cj[0] - ci[0], cj[1] - ci[1]) : 0, dz = perde ? cj[2] - ci[2] : 0, dx = perde ? 0 : cj[0] - ci[0], dy = perde ? 0 : cj[1] - ci[1];
+            if (perde) { if (ayni(dh)) { const w = ort(dz); if (w > 0) a.push([j, w]); } if (ayni(dz)) { const w = ort(dh); if (w > 0) b.push([j, w]); } const w2 = ort(dh) * ort(dz); if (w2 > 0) v.push([j, w2]); }
+            else { if (ayni(dx)) { const w = ort(dy); if (w > 0) a.push([j, w]); } if (ayni(dy)) { const w = ort(dx); if (w > 0) b.push([j, w]); } const w2 = ort(dx) * ort(dy); if (w2 > 0) v.push([j, w2]); } }
+          NA.set(i, a); NB.set(i, b); NV.set(i, v); }
+        for (const tip of Object.keys(Z)) for (const [key, arr] of Object.entries(Z[tip])) {
+          const N = /^(m11|n11)/.test(key) ? NA : /^(m22|n22)/.test(key) ? NB : key === 'v' ? NV : null; if (!N) continue;
+          const em = new Map(ids.map(i => [i, (arr[i * 4] + arr[i * 4 + 1] + arr[i * 4 + 2] + arr[i * 4 + 3]) / 4]));
+          for (const i of ids) { const L = N.get(i); let s = 0, w = 0; for (const [j, wj] of L) { s += em.get(j) * wj; w += wj; } if (w > 0) { const v = s / w; for (let k = 0; k < 4; k++) arr[i * 4 + k] = v; } } }
+      }
+    }
     // zemin gerilmesi (emniyet kombinasyonları zarfı): q = kw·(−w)
     const nn = AG.nodes.length, qz = new Float32Array(nn); let qmax = 0;
     for (const k of KV.filter(k => k.tip === 'emn')) for (let i = 0; i < nn; i++) { let w = 0; for (const [c, f] of Object.entries(k.f)) if (f && coz.sonuc[c]) w += f * coz.sonuc[c][i * 6 + 2]; const q = -S.zemin.kw * w; if (q > qz[i]) qz[i] = q; }
