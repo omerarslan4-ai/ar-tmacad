@@ -23,7 +23,7 @@
     np: 3, Qp: 18, Hp: 14,                              // pompa sayısı (2 asıl + 1 yedek), pompa başına debi l/s, basma m
     bgK: 30, bgI: 6, zg: 94.80, mw: 1.00, mb: 0.25, mh: 0.19,
     hA: 1.00, Lka: 2.55, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından), kaba bölgedeki boyu, A kapağındaki kısa parça
-    hBos: 1.00, pd: 0.15, Hk: 1.37, pk: 0.30, Bk: 0.50, // ızgara boşaltma ağzı (platformdan), ağız → bant düşüsü, 1100 L konteyner, bant → konteyner payı, bant eni
+    hBos: 1.00, pd: 0.15, Hk: 1.37, pk: 0.30, ka: 0.28, Bk: 0.50, // ızgara boşaltma ağzı (platformdan), ağız → bant düşüsü, 1100 L konteyner, konveyör altı → konteyner payı, bant → konveyör altı, bant eni
   };
   const PAR = Object.keys(DEF);
   const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -87,8 +87,8 @@
     for (const k of G.kapak) out.push({ anahtar: `pen-${k.k}-${k.kanal}`, tur: 'penstok', etiket: `${k.k}${k.kanal + 1}`, p: [k.x, k.y], aci: 180, z: k.z0, B: k.B, H: k.H, D, hw: q.hs });
     // ızgara boşaltma kot zinciri (firma standardı): konteyner zeminde → bant konteyner üstü + pay → boşaltma ağzı = bant + düşü;
     // boşaltma ağzı platformdan en az hBos (halatlı tip, Çokal ≈1,0 m)
-    const zZem = zg != null ? zg : q.zg, zBant = Math.max(q.zPl + q.hBos - q.pd, zZem + q.Hk + q.pk), hdU = zBant + q.pd - q.zPl;
-    G.kotZincir = { zZem, zBant, hdU, zKont: zZem + q.Hk };
+    const zZem = zg != null ? zg : q.zg, zBant = Math.max(q.zPl + q.hBos - q.pd, zZem + q.Hk + q.pk + q.ka), hdU = zBant + q.pd - q.zPl;
+    G.kotZincir = { zZem, zBant, hdU, zKont: zZem + q.Hk, zAlt: zBant - q.ka };
     const IA = 75, ID = 0.354, dusus = hd => (hd + 0.25) / Math.tan(IA * Math.PI / 180) + ID / Math.sin(IA * Math.PI / 180) + 0.625; // ayak → boşaltma ağzı ortası (akış yönünde)
     const grup = {};
     for (const iz of G.izgara) {

@@ -47,9 +47,9 @@ t("Çokal C-C: orta perde 1,00 m, kaba bölgede 12,75 m'de biter, A kapağında 
   const E = ekipmanYer(G, 94.80); for (const p of E.filter(x => x.tur === 'pompa')) { assert.strictEqual(p.aci, 180, 'pompa kanala doğru'); yakin(p.p[0], 0.85, 'basma borusu iç yüzden 0,45'); }
 });
 
-t('ızgara boşaltma kot zinciri: konteyner zeminde, bant konteynerin 0,30 üstünde, ağız bandın 0,15 üstünde, platformdan en az 1,0', () => {
-  const E = ekipmanYer(G, 94.80), K = G.kotZincir; yakin(K.zKont, 96.17, 'konteyner üstü'); yakin(K.zBant, 96.47, 'bant'); yakin(K.hdU, 1.17, 'boşaltma ağzı platformdan');
-  const E2 = ekipmanYer(geo({}), 93.50); yakin(E2.find(x => x.tur === 'izgara').hdU, 1.00, 'zemin düşükse standart 1,0 m');
+t('ızgara boşaltma kot zinciri: konteyner zeminde, konveyör altı konteynerin 0,30 üstünde, ağız bandın 0,15 üstünde, platformdan en az 1,0', () => {
+  const E = ekipmanYer(G, 94.80), K = G.kotZincir; yakin(K.zKont, 96.17, 'konteyner üstü'); yakin(K.zAlt, 96.47, 'konveyör altı konteynerin 0,30 üstünde'); yakin(K.zBant, 96.75, 'bant'); yakin(K.hdU, 1.45, 'boşaltma ağzı platformdan');
+  const E2 = ekipmanYer(geo({}), 93.20); yakin(E2.find(x => x.tur === 'izgara').hdU, 1.00, 'zemin düşükse standart 1,0 m');
   const kv = E.filter(x => x.tur === 'konveyor'), ko = E.filter(x => x.tur === 'konteyner'); assert.strictEqual(kv.length, 2); assert.strictEqual(ko.length, 2);
   for (const c of kv) { const k = ko.find(o => o.etiket === c.etiket); yakin(k.p[0], c.p[0], 'konteyner bandın ucunda'); assert.ok(c.p[1] - c.L < k.p[1] + 0.54 && c.p[1] - c.L > k.p[1] - 0.54, 'bant ucu konteynerin üstünde'); assert.ok(k.p[1] + 0.535 < G.yc0, 'konteyner yapının dışında'); }
 });
