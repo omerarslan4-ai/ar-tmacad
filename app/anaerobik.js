@@ -356,6 +356,24 @@
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
+  /* STATİK: anaerobik havuzdan statik penceresinin 3B kabuk modeli (statik-oval.js C.statikKabukModel ile aynı biçim).
+     Perde eksenleri su tutucu bant yollarından (G.bantlar) alınır; dış duvar / halka yayları / ortak duvarlar / kanal duvarları
+     dış ya da bölme perde, orta ve yönlendirme perdeleri iç perde (iki yanda aynı su). Radye: taban plağı. */
+  const r3 = v => Math.round(v * 1000) / 1000;
+  C.anaerobikStatikModel = e => {
+    const G = geo(e), q = G.q, f = C.frame(e.o, e.rot), W = p => { const w = f.at(p[0], p[1], 0); return [r3(w[0]), r3(w[1])]; };
+    const tur = k => /^(sol|sag)-/.test(k) ? { t: q.two, tip: 'dis', bolme: true } : /^(alt|ust)$/.test(k) ? { t: q.two, tip: 'dis', bolme: false }
+      : /^kanal-/.test(k) ? { t: q.tK, tip: 'dis', bolme: false } : /^ortak-/.test(k) ? { t: q.two, tip: 'ic', bolme: true } : k === 'ara' ? { t: q.tK, tip: 'ic', bolme: true }
+      : /^orta-/.test(k) ? { t: q.tw, tip: 'ic', bolme: false } : { t: q.tg, tip: 'ic', bolme: false };
+    const ad = k => k.replace(/^sol-(\d+)/, (m, i) => `Y${+i + 1}S`).replace(/^sag-(\d+)/, (m, i) => `Y${+i + 1}D`).replace(/^orta-(\d+)/, (m, i) => `O${+i + 1}`).replace(/^perde-sol-(\d+)/, (m, i) => `YP${+i + 1}S`).replace(/^perde-sag-(\d+)/, (m, i) => `YP${+i + 1}D`).replace(/^ortak-(\d+)/, (m, i) => `OR${+i + 1}`).replace('kanal-sol', 'KG').replace('kanal-sag', 'KC').replace('alt', 'DA').replace('ust', 'DU').replace('ara', 'AR');
+    const walls = G.bantlar.map(b => Object.assign({ id: `${e.id}:${b.anahtar}`, ad: ad(b.anahtar), pts: b.pts.map(W), kapali: !!b.closed, zt: r3(G.zTop) }, tur(b.anahtar)));
+    const radye = { id: e.id, pts: G.taban.pts.map(W), t: r3(q.tb), kAlt: r3(G.zF) };
+    const xs = walls.flatMap(w => w.pts.map(p => p[0])), ys = walls.flatMap(w => w.pts.map(p => p[1]));
+    const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t)), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t));
+    const geo0 = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: radye.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: radye.kAlt, kUst: r3(G.zTop), kSu: r3(G.zW), ust: 'S' };
+    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [] }, geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
+      ozet: `${e.code || ''} anaerobik havuz: ${walls.length} perde (${walls.filter(w => w.tip === 'dis').length} dış), radye ${Math.round(radye.t * 100)} cm · kot ${r3(radye.kAlt)} → ${r3(G.zTop)}, su ${r3(G.zW)}`, uyar: [] };
+  };
   C.bolgeKati = bolgeKati; C.ucgenle = ucgenle; // ortak: delikli plan şeklinden katı (ön arıtma vb. de kullanır)
   if (!C.T || !C.prim || typeof document === 'undefined') return;
 

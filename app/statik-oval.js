@@ -311,7 +311,14 @@
     const D = duvarlar(), H = kabuk(D.flatMap(x => x.pts)), pip = (q, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
     const kap = D.filter(x => x.kapali).sort((a, b) => Math.abs(M.polyArea(b.pts)) - Math.abs(M.polyArea(a.pts)))[0], IC = kap ? kap.pts : H;
     let n = 0; C.begin && C.begin();
-    for (const it of items) { const e = it.id != null ? C.byId(it.id) : null; if (!e) { uyar.push(`${it.ad || it.id}: modelde bulunamadı (Modelden yeniden alın)`); continue; }
+    // anaerobik havuz (tek katı ünite): perde grupları parametreye gider — dış / halka yayı / ortak → two, orta → tw, yönlendirme → tg, kanal → tK, radye → tb
+    const anP = new Map();
+    for (const it of items) { const m = String(it.id == null ? '' : it.id).match(/^(\d+):(.+)$/), e = m ? C.byId(+m[1]) : (it.tur === 'radye' && it.id != null ? C.byId(it.id) : null); if (!e || e.type !== 'anaerobik') continue;
+      const k = m ? m[2] : '', p = it.tur === 'radye' ? 'tb' : /^orta-/.test(k) ? 'tw' : /^perde-/.test(k) ? 'tg' : /^kanal-|^ara$/.test(k) ? 'tK' : 'two';
+      const o = anP.get(e) || {}; o[p] = Math.max(o[p] || 0, r3(it.t)); anP.set(e, o); it._an = true; }
+    for (const [e, o] of anP) { const ch = []; for (const [p, t] of Object.entries(o)) { const t0 = +e[p] || (C.anaerobikGeo ? C.anaerobikGeo(e).q[p] : 0); if (Math.abs(t - t0) < 0.004) continue; e[p] = t; ch.push(`${p} ${Math.round(t0 * 100)} → ${Math.round(t * 100)} cm`); }
+      if (ch.length) { delete e._c; delete e._ag; delete e._mx; C.touch && C.touch(e); if (e.ekipman && C.anaerobikEkipman) C.anaerobikEkipman(e, true); n++; log.push(`${e.code || 'Anaerobik'}: ${ch.join(', ')}`); } }
+    for (const it of items) { if (it._an) continue; const e = it.id != null ? C.byId(it.id) : null; if (!e) { uyar.push(`${it.ad || it.id}: modelde bulunamadı (Modelden yeniden alın)`); continue; }
       if (e.type === 'perde') { const F = I.faceOffs(e), tOld = F.tb; if (Math.abs(it.t - tOld) < 0.004) continue; const sf = I.segFrames(e)[0], m = [(sf.a[0] + sf.b[0]) / 2, (sf.a[1] + sf.b[1]) / 2], solIc = pip([m[0] + sf.nn[0] * 0.3, m[1] + sf.nn[1] * 0.3], IC);
         const sabit = it.tip === 'dis' ? (solIc ? F.lB : F.rB) : (F.lB + F.rB) / 2, of = +e.ofs || 0; e.tb = r3(it.t); e.tt = r3(it.t);
         const F2 = I.faceOffs(e); e.ofs = of + 1; const F3 = I.faceOffs(e), k = (F3.lB - F2.lB) || 1; e.ofs = of; const yeni = it.tip === 'dis' ? (solIc ? F2.lB : F2.rB) : (F2.lB + F2.rB) / 2, dd = sabit - yeni; if (Math.abs(dd) > 1e-6) e.ofs = r3(of + dd / k);
@@ -325,6 +332,9 @@
   };
   // statik penceresi için 3B kabuk modeli (perde eksenleri, radye, döşemeler, kotlar)
   C.statikKabukModel = () => {
+    // tek katı ünite yapıları (anaerobik havuz): seçiliyse ya da modelde perde yokken varsa onun modeli
+    if (C.anaerobikStatikModel) { const an = C.doc.ents.filter(e => e.type === 'anaerobik' && C.layer(e.layer).on && !(typeof e.gv === 'string')), sec = an.find(e => SEC && SEC.has(e));
+      if (sec || (an.length && !(SEC && [...SEC].some(e => e.type === 'perde')) && !anaPerdeler().length)) return C.anaerobikStatikModel(sec || an[an.length - 1]); }
     const G = modelOku(), D = duvarlar(); if (!D.length) throw new Error('perde yok');
     const walls = D.map((x, i) => { const ps = G.parca.filter(p => p.e === x.e), Ld = ps.filter(p => p.dis).reduce((s, p) => s + p.L, 0), Lt = ps.reduce((s, p) => s + p.L, 0) || 1;
       return { id: x.e.id, kati: !!x.kati, ...(delikler(x.e).length ? { delik: delikler(x.e) } : {}), ad: x.e.no || (x.kati ? 'K' : 'P') + (i + 1), pts: x.pts.map(q => [r3(q[0]), r3(q[1])]), kapali: !!x.kapali, t: r3(x.t), ...(x.tt != null ? { tt: r3(x.tt), solUst: r3(x.solUst), sagUst: r3(x.sagUst) } : {}), zt: r3(x.zt), tip: Ld / Lt > 0.5 ? 'dis' : 'ic', bolme: ps.some(p => p.bolme) }; });
