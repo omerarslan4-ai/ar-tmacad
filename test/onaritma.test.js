@@ -46,4 +46,12 @@ t('parametrik: 3 kanal, geniş kanal', () => {
   assert.ok(G3.Wc > G3.tYo, 'kanal terfiden geniş'); const ys = G3.bolge.dis.map(p => p[1]); assert.ok(Math.min(...ys) < 0, 'dış sınır terfiyi aşar');
 });
 
+t('su tutucu bant: perde eksenlerinde, betonun içinde, taban üstünden 0,10 m', () => {
+  const ic = (p, h) => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  const beton = p => (ic(p, G.bolge.dis) && !G.bolge.delik.some(h => ic(p, h))) || G.ayirici.some(a => ic(p, a));
+  assert.ok(G.bantlar.length >= 4);
+  for (const b of G.bantlar) { const P = b.closed ? [...b.pts, b.pts[0]] : b.pts; for (let i = 1; i < P.length; i++) { const m = [(P[i - 1][0] + P[i][0]) / 2, (P[i - 1][1] + P[i][1]) / 2]; assert.ok(beton(m), b.anahtar + ' betonun içinde'); } }
+  assert.ok(Math.abs(G.bantlar.find(b => b.anahtar === 'terfi').z - 84.90) < 1e-9); assert.ok(Math.abs(G.bantlar.find(b => b.anahtar === 'kanal').z - 86.85) < 1e-9);
+});
+
 console.log(`\n${n} test geçti.`);

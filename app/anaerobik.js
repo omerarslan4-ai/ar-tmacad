@@ -177,6 +177,16 @@
     boru('ras', [rX, yb], [0, -1], q.dR, zRa, rect(rX - q.dR / 2, yb, rX + q.dR / 2, yb + q.tK), rect(rX - q.dR / 2, yb - dl, rX + q.dR / 2, yb + q.tK + dl), { eksen: 'x', y: yb, a: xR + q.dR / 2, b: xo1 - q.dR / 2, ad: 'RAS borusu (çıkış kanalı alt ucu)' });
     boru('cikis', [Lo, yCk], [1, 0], q.dC, zCi, rect(xo1, yCk - q.dC / 2, Lo, yCk + q.dC / 2), rect(xo1 - dl, yCk - q.dC / 2, Lo + dl, yCk + q.dC / 2), { eksen: 'y', x: Lo, a: cA + q.dC / 2, b: cB - q.dC / 2, ad: 'Çıkış borusu (çıkış kanalı dış duvarı)' });
     // taban plağı ve köprü
+    // su tutucu bant: temel–perde birleşiminde perde eksenleri boyunca (taban plağı üstünden 0,10 m yukarıda)
+    { const zb = zB + 0.10, rc = q.Ro + q.two / 2, B = []; const R2b = q.Ro + q.two, xiL = (y, c) => xc1 - Math.sqrt(Math.max(0, R2b * R2b - (y - c) ** 2)), xiR = (y, c) => xc2 + Math.sqrt(Math.max(0, R2b * R2b - (y - c) ** 2)); const yol = (k, pts, closed) => B.push({ anahtar: k, pts, closed: !!closed, z: zb });
+      for (let i = 0; i < n; i++) { const y = yc[i]; yol('sol-' + i, arc(xc1, y, rc, 90, 270)); yol('sag-' + i, arc(xc2, y, rc, -90, 90)); yol('orta-' + i, [[xc1, y], [xc2, y]]);
+        const s = i % 2 === 0 ? 1 : -1, rp = q.rg + q.tg / 2; yol('perde-sol-' + i, [[xc1 + eB, y + s * rp], ...arc(xc1, y, rp, s > 0 ? 90 : 270, s > 0 ? 270 : 90).map(p => p)]); yol('perde-sag-' + i, [[xc2 - eB, y - s * rp], ...arc(xc2, y, rp, s > 0 ? 270 : 90, s > 0 ? 450 : -90)]); }
+      yol('alt', [[xc1, yc[0] - rc], [xc2, yc[0] - rc]]); yol('ust', [[xc1, yc[n - 1] + rc], [xc2, yc[n - 1] + rc]]);
+      for (let i = 0; i + 1 < n; i++) { const y = yc[i] + q.Ro + q.two / 2; yol('ortak-' + i, [[xc1 - e1, y], [xc2 + e1, y]]); }
+      const m = q.tK / 2; yol('kanal-sol', [[xiL(yb + m, yc[0]), yb + m], [m, yb + m], [m, yt - m], [xiL(yt - m, yc[n - 1]), yt - m]]);
+      yol('kanal-sag', [[xiR(yb + m, yc[0]), yb + m], [Lo - m, yb + m], [Lo - m, yt - m], [xiR(yt - m, yc[n - 1]), yt - m]]);
+      if (G.ara) yol('ara', [[xc2 + e1, G.ara.y], [Lo - m, G.ara.y]]);
+      G.bantlar = B; }
     G.taban = { pts: rect(0, 0, Lo, Wo), z0: G.zF, z1: zB };
     // hacim (halka alanı × h × n) — karusel.js ile aynı formül
     const ring = Math.PI * ((q.rg + q.tg) ** 2 - q.rg ** 2);
@@ -466,6 +476,18 @@
     info: e => { const G = geo(e); return `${e.code || ''} anaerobik havuz: ${G.n} halka, düz ${f2(G.q.Ls)} m, koridor ${f2(G.b)} m, V=${f0(G.V)} m³, ${f2(G.Lo)} × ${f2(G.Wo)} m`; },
   };
 
+  /* ================= SU TUTUCU BANT (tüm su yapıları, ortak) =================
+     yollar: [{ anahtar, pts (yerel), closed, z }] → perde eksenleri boyunca yalıtım/bant nesneleri (PVC iç tip, 24 cm); yapıyla birlikte güncellenir */
+  C.suYapiBant = (e, yollar) => {
+    if (!yollar || !C.T.yalitim) return; const f = C.frame(e.o, e.rot), W2 = p => { const w = f.at(p[0], p[1], 0); return [+w[0].toFixed(4), +w[1].toFixed(4)]; };
+    if (C.ensureLayer) C.ensureLayer('INS_SU_TUTUCU_BANT', 5, 'CONTINUOUS', 25);
+    const mevcut = new Map(C.doc.ents.filter(x => x.type === 'yalitim' && x.kind === 'bant' && x.bag === e.id).map(x => [x.anahtar, x])), yeni = new Set();
+    for (const y of yollar) { const k = 'bant-' + y.anahtar, props = { pts: y.pts.map(W2), closed: !!y.closed, z: +(+y.z).toFixed(4) }; yeni.add(k); const x = mevcut.get(k);
+      if (x) { if (JSON.stringify([x.pts, x.closed, x.z]) !== JSON.stringify([props.pts, props.closed, props.z])) { Object.assign(x, props); delete x._c; } }
+      else { const z = C.add(C.newEnt('yalitim', Object.assign({ kind: 'bant', tip: 'pvc_ic', w: 24, t: 5, layer: 'INS_SU_TUTUCU_BANT', bag: e.id, anahtar: k }, props))); delete z.sp; } }
+    const sil = [...mevcut.values()].filter(x => !yeni.has(x.anahtar)); if (sil.length && C.remove) C.remove(sil);
+  };
+
   /* ================= EKİPMAN (penstok, mikser, merdiven, korkuluk) ================= */
   /* merdiven başındaki zemin kotu: arazi (ARAZI) varsa oradan, yoksa e.zg, yoksa duvar üstü − 2,25 (Çokal) */
   function zemin(e, G) {
@@ -504,6 +526,7 @@
     }
     const sil = [...mevcut.values()].filter(x => !yeniK.has(x.anahtar) && x.oto === imza(x)); if (sil.length && C.remove) { C.remove(sil); s = sil.length; }
     if (!e.suAnahtar) try { C.anaerobikSu(e); } catch (er) { console.error(er); }
+    if (C.suYapiBant) C.suYapiBant(e, G.bantlar);
     e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot, e.code]); delete e._c;
     if (n || g || s) C.changed && C.changed();
     if (!sessiz || n || s) C.log(`✓ ${e.code || ''} ekipman (mikser: ${mxS ? mxS.n + ' / halka, ' + mxS.kaynak : 'yok'}): ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}${s ? `, ${s} kaldırıldı` : ''}.`);

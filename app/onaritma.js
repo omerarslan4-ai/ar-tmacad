@@ -67,6 +67,12 @@
     G.doseme = { dis: G.bolge.dis, z0: zW, z1: q.zPl };
     G.tabanK = { pts: rect(tO, yc0, Lo, yc0 + Wc), z0: q.zTab - q.tb, z1: q.zTab };
     G.tabanT = { pts: rect(0, 0, tO, tYo), z0: q.zTr - q.tb, z1: q.zTr };
+    // su tutucu bant: temel–perde birleşiminde perde eksenleri boyunca (taban plağı üstünden 0,10 m yukarıda)
+    { const m = q.tw / 2, mt = q.tTw / 2, zk = q.zTab + 0.10, zt = q.zTr + 0.10, B = [];
+      B.push({ anahtar: 'terfi', pts: rect(mt, mt, tO - mt, tYo - mt), closed: true, z: zt });
+      B.push({ anahtar: 'kanal', pts: [[tO - mt, yc0 + m], [Lo - m, yc0 + m], [Lo - m, yc0 + Wc - m], [tO - mt, yc0 + Wc - m]], closed: false, z: zk });
+      for (let j = 0; j + 1 < n; j++) { const ym = yi0 + (j + 1) * q.b + j * q.ts + q.ts / 2; B.push({ anahtar: 'ayirici-ince-' + j, pts: [[x1, ym], [x2, ym]], closed: false, z: zk }, { anahtar: 'ayirici-kaba-' + j, pts: [[x3, ym], [x4, ym]], closed: false, z: zk }); }
+      G.bantlar = B; }
     G.terfiAlt = { dis: ccw(rect(0, 0, tO, tYo)), delik: [ccw(rect(q.tTw, q.tTw, tO - q.tTw, tYo - q.tTw)).reverse()], z0: q.zTr, z1: q.zTab };
     return G;
   }
@@ -170,6 +176,7 @@
       const eski = x.oto; Object.assign(x, o.props); delete x._c; delete x._g; delete x._q; x.oto = imza(x); if (x.oto !== eski) { g++; if (C.touch) C.touch(x); }
     }
     const sil = [...mevcut.values()].filter(x => !yeniK.has(x.anahtar) && x.oto === imza(x)); if (sil.length && C.remove) C.remove(sil);
+    if (C.suYapiBant) C.suYapiBant(e, G.bantlar);
     // su (maks. düzeyde)
     const f = C.frame(e.o, e.rot), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; }, suM = new Map(C.doc.ents.filter(x => x.type === 'su' && x.bag === e.id).map(x => [x.anahtar, x]));
     if (C.ensureLayer) C.ensureLayer('INS_SU', 150, 'CONTINUOUS', 13);
