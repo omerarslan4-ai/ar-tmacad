@@ -29,7 +29,8 @@ t('Çokal T-105: pencere, köprü, ara duvar ve borular', () => {
   yakin(G.kopru.x0, 11.00, 'köprü (çizim 16401,3)'); yakin(G.kopru.x1, 12.50, 'köprü sonu (çizim 16551,3)');
   yakin(G.ara.y, 3.60, 'ara duvar'); yakin(G.ara.g0, 16.10, 'ara duvar orifisi'); yakin(G.ara.g1, 16.70, 'orifis sonu');
   const or = G.acik.filter(a => a.k === 'orifis'); assert.strictEqual(or.length, 1, 'yalnız ara duvarda'); yakin(or[0].z0, 93.50, 'tabanda'); yakin(or[0].z1, 94.10, 'üstü perde');
-  const b = k => G.boru.find(x => x.k === k);
+  assert.strictEqual(G.boru.length, 0, 'boru delikleri varsayılanda yok (saha borulamasından gelir)');
+  const b = k => G.boruYer[k];
   yakin(b('giris').p[0], 0.70, 'giriş borusu'); yakin(b('ras').p[0], 16.40, 'RAS borusu'); yakin(b('cikis').p[1], 6.80, 'çıkış borusu (çizim 6,80)', 0.21);
   assert.strictEqual(G.acik.filter(a => a.k === 'agiz').length, 6, 'her halkada iki ağız');
   assert.strictEqual(G.acik.filter(a => a.k === 'pencere').length, 2);
@@ -101,7 +102,7 @@ t('boru delikleri taşınabilir: yer, çap, alt kotu (sınırlar içinde)', () =
   const b = k => g2.boru.find(x => x.k === k);
   yakin(b('giris').p[0], 0.50, 'giriş yeri'); yakin(b('giris').z0, 93.80, 'giriş alt kotu'); yakin(b('giris').d, 0.40, 'çap');
   yakin(b('cikis').p[1], 9.40 - 0.15, 'çıkış kanal ucunda sınırlandı'); yakin(b('ras').p[0], 16.90 - 0.15, 'RAS kanal içinde sınırlandı');
-  assert.ok(g2.kes.filter(k => k.k === 'boru').length === 3);
+  assert.ok(g2.kes.filter(k => k.k === 'boru').length === 3, 'yer verilen üç boru delikli');
 });
 
 t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun kısma bakar', () => {
@@ -121,6 +122,11 @@ t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun
   }
   assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 2); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 2);
   const m2 = E.find(x => x.anahtar === 'merdiven-2'); assert.ok(m2.pts[0][0] > 0, 'ikinci merdiven havuz boyunda');
+  // büyük havuzda iki merdiven birbirine bakar (ikisi de aradaki uzun kısımdan çıkar)
+  const { boyutla } = require('../app/anaerobik.js'); const G5 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1 }, boyutla({ Qd: 50000 }).par)), E5 = ekipmanYer(G5, { n: 2, D: 0.6, P: 3, rpm: 700, name: 'K' }, 95);
+  const a5 = E5.find(x => x.anahtar === 'merdiven').pts, b5 = E5.find(x => x.anahtar === 'merdiven-2').pts;
+  assert.ok(a5[1][0] > a5[0][0] && b5[1][0] < b5[0][0], 'zıt yönde çıkarlar'); assert.ok(b5[0][0] + 1.0 <= a5[0][0] + 1e-9, 'başlangıçlar arasında boşluk'); yakin(b5[1][0], G5.kopru2.x1, 'ikinci yolun sağ kenarına');
+  const k5 = E5.find(x => x.anahtar === 'korkuluk-kopru-2').pts; yakin(k5[k5.length - 1][0], G5.kopru2.x1 - 0.05, 'merdivenin çıktığı kenar açık');
 });
 
 t('sahanlıkta kapak yarığı: kapak çerçevesi geçer, yarık sahanlık içinde', () => {
@@ -155,13 +161,15 @@ t('hidrolik: Çokal debileriyle maks. ve min. su kotları', () => {
 t('debiden boyutlandırma: Çokal debileriyle Çokal açıklıkları, 20.000 m³/gün hız ve temas süresi sınırları', () => {
   const { boyutla } = require('../app/anaerobik.js');
   const c = boyutla({ Qd: 145.83 * 24, Qmax: 275.83, QRS: 206.87, h: 3.14 }).par;
-  yakin(c.Ro, 1.50, 'halka'); yakin(c.ag, 0.60, 'ağız eni'); yakin(c.ah, 1.00, 'ağız yüksekliği'); yakin(c.dAg, 0.89, 'ağız eşiği'); yakin(c.ow, 1.50, 'pencere eni'); yakin(c.oh, 1.00, 'pencere yüksekliği'); yakin(c.rg, 0.70, 'kılavuz perde');
+  yakin(c.Ro, 1.50, 'halka'); yakin(c.ag, 0.60, 'ağız eni'); yakin(c.ah, 1.00, 'ağız yüksekliği'); yakin(c.dAg, 0.89, 'ağız eşiği'); yakin(c.ow, 1.50, 'pencere eni'); yakin(c.oh, 1.00, 'pencere yüksekliği'); yakin(c.rg, 0.70, 'kılavuz perde'); yakin(c.bG, 0.80, 'giriş kanalı (Çokal)'); yakin(c.bC, 1.00, 'çıkış kanalı (Çokal)');
   const B = boyutla({ Qd: 20000 }), p = B.par, Q = (B.debi.Qmax + B.debi.QRS) / 3600;
   assert.ok(B.t >= 0.5 && B.t <= 1.5, 'temas süresi ' + B.t); assert.ok(B.hiz.agiz <= 0.301 && B.hiz.pencere <= 0.301, 'açıklık hızları');
   assert.ok(Math.abs(p.Ls / (2 * p.Ro) - 11 / 3) < 0.3, 'Çokal oranı');
   for (const [d, q] of [[p.dG, B.debi.Qmax], [p.dR, B.debi.QRS], [p.dC, B.debi.Qmax + B.debi.QRS]]) assert.ok(q / 3600 / (Math.PI * (d * (1 - 2 / 17)) ** 2 / 4) <= 1.0001, 'boru hızı ≤ 1 m/s');
   assert.ok(p.ah <= p.h - 0.5 && p.ag <= p.Ro, 'açıklık sınırları');
   const G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, p)); assert.ok(G2.zS > G2.zB + 0.3, 'ağız eşiği tabandan yukarıda');
+  assert.ok(G2.ara.g1 < G2.xR + p.bC - 0.1, 'ara duvar kapağı çıkış kanalının içinde'); assert.ok(p.bG >= p.ag + 0.2 - 1e-9, 'giriş kanalı ağızla büyür');
+  const B5 = boyutla({ Qd: 50000 }); assert.ok(B5.par.bC > p.bC - 1e-9 && B5.t >= 0.5 && B5.hiz.agiz <= 0.301, '50.000');
 });
 
 console.log(`\n${n} test geçti.`);
