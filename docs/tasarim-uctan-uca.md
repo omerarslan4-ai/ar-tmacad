@@ -160,7 +160,7 @@ Her parça gerçek bir projeyle (örneğin Zeytinli AAT) test edilmeden sonrakin
 ## 10. Açık sorular
 
 - [x] Kum tutucu standartları: Çokal AAT T-103'ten alındı, 11 Kasım 2026'da onaylandı (bkz. `tasarim-standartlari.md`).
-- [ ] Terfi istasyonu kartı: hesaptan ve katalogdan gelen ölçüler henüz konuşulmadı.
+- [x] Terfi istasyonu kartı: Çokal AAT T-102'den alındı, 11 Kasım 2026'da onaylandı; bitişik ya da ayrı yapı seçimli (bkz. `tasarim-standartlari.md`).
 - [ ] İnce ızgara kaba ızgarayla aynı kanaldayken iki ekipman arasındaki mesafe. Çokal'da yapının iç boyu 12,70 m; kartta şimdilik kanal boyu + 3 m.
 - [ ] Stabilizasyon tankı ile statik mikserli yoğunlaştırıcı arasındaki seçim neye göre yapılıyor?
 - [ ] Çıkış tarafı: dezenfeksiyon tipi ve geri kazanım üniteleri hangi seçeneklerle gelecek?

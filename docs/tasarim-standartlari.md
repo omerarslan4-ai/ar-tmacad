@@ -40,6 +40,12 @@
   - Duvar üstü = su yüzü + 0,85 m hava payı; zeminden en az 0,65 m yukarıda.
   - Kum oluğu tabandan 0,50 m aşağıda; kum oluğu altındaki taban plağı 0,64 m.
   - Blowerlar tesis büyüklüğüne göre ana blower binasında ya da kum tutucunun yanında küçük binada (Çokal'da ana binada).
+- Giriş terfi istasyonu (ıslak hazne, dalgıç pompa; Çokal AAT T-102 örneği):
+  - Yapı nihai kademeye göre boyutlanır; mevcut kademede eksik pompalar sonradan aynı yapıya eklenir.
+  - Kot zinciri: giriş tabanı → 0,86 m altı 1. pompa devreye girme seviyesi → faydalı yükseklik → durma seviyesi → ölü hacim → hazne tabanı.
+  - Üst döşeme zeminden en az 0,65 m yukarıda. Duvar 40 cm, taban plağı 40 cm.
+  - Monoray vinç kirişi üst döşemeden 2,70 m yukarıda.
+  - Pompalar haznenin uzun kenarı boyunca dizilir: aks aralığı 1,00 m, son pompa aksından duvara 0,95 m (katalog, dalgıç pompa).
 - Ön arıtma yapıları (ızgara, terfi, kum tutucu) bitişik tek blok olarak yapılabilir; aralarında 5 cm derz bırakılır (Çokal).
   Terfi istasyonu bazı projelerde ızgara ve kum tutucudan bağımsız, ayrı bir yapı olarak yapılır (seçimli; giriş ve çıkış saha borusuyla).
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
