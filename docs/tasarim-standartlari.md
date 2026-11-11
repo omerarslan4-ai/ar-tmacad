@@ -34,6 +34,10 @@
   - Çöp konteyneri: standart belediye konteyneri yüksekliği (1100 L, EN 840, ≈1,37 m); konveyör ona göre oturur.
   - Yürüme platformu zeminden en az 0,65 m yukarıda olur (Çokal AAT T-101: zemin 94,80, platform 95,45).
   - Konteynerlerin altında süzüntü suyunu toplayan bir kanal bulunur (Çokal'da 60 cm, ızgara kanalları arasında).
+  - Izgara boşaltma ağzı platformdan 1,0 m (halatlı tip). Altında enine bant konveyör: bant = ağız − 0,15 m ve en az konteyner üstü + 0,30 m; konteyner zorlarsa ağız yükselir. Konveyör yapının dışındaki konteynere boşaltır; korkuluk geçişte açılır.
+  - Kanallar arası orta perde alçaktır: kanal tabanından 1,00 m (Çokal C-C). Kaba ızgaradan sonra biter; giriş kapaklarında (A) kısa bir parça kalır.
+  - Terfi pompaları: basma borusu dış duvar dibinde (iç yüzden ≈0,45 m), pompa gövdesi kanala doğru.
+- Kanal kapakları (penstok): 5 m derinliğe kadar tam şasi (platforma kadar); daha derinde kısa şasi (açıklık + 0,35 m) ve uzatma mili, tahrik platformda zemin ayağı üstünde (Çokal ızgara kanalları).
 - Kum ve yağ tutucu (havalandırmalı, gezer köprülü; Çokal AAT T-103 örneği):
   - Her göz: kum bölmesi + ayırma (yağ lameli) + yağ bölmesi. Gözler arası duvar 30 cm, dış duvar 40 cm.
   - Havuzun bir ucunda dağıtma (giriş) kanalı, öbür ucunda çıkış kanalı; ikisinin de iç genişliği 1,50 m.

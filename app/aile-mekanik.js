@@ -9,15 +9,19 @@
   const m = v => v / 1000;
 
   /* ================= KANAL TİPİ PENSTOCK ================= */
+  /* şasi: TAM = çerçeve platforma kadar; KISA = çerçeve açıklık + üst pay kadar, tahrik platformda zemin ayağında, arada uzatma mili.
+     OTO: derinlik 5,0 m'ye kadar tam şasi, daha derinde kısa şasi (firma kuralı, Çokal ızgara kanalları). */
+  const kisaSasi = q => q.sasi === 'KISA' || (q.sasi !== 'TAM' && q.D > 5000);
   const pen = q => { // türetilmiş geometri (m)
     const b2 = m(q.B) / 2, e = m(q.e), wf2 = b2 + e, wd2 = m(q.Wd) / 2, Hf = m(q.Hf), H = m(q.H), pw = m(q.pw), kt = m(q.kt), dz = q.konum === 'A' ? H : 0;
-    const trz = [Hf - 0.10]; for (let k = 1; k <= q.nTr; k++) trz.push(Hf - 0.10 - k * m(q.tr));
+    const ks = kisaSasi(q), trz = ks ? [] : [Hf - 0.10]; for (let k = 1; k <= q.nTr; k++) trz.push(Hf - 0.10 - k * m(q.tr));
     const actH = q.tahrik === 'AKT' ? 0.55 : 0.85;
-    return { b2, e, wf2, wd2, Hf, H, pw, kt, dz, trz, yk: m(q.yk), yd: m(q.yd), D: m(q.D), r: m(q.mil) / 2, actH };
+    const D = m(q.D), zA = ks ? D : Hf; // tahrik tabanı: tam şaside çerçeve üstü, kısa şaside platform (zemin ayağı)
+    return { b2, e, wf2, wd2, Hf, H, pw, kt, dz, trz, yk: m(q.yk), yd: m(q.yd), D, r: m(q.mil) / 2, actH, ks, zA };
   };
   C.aileKaydet({
     id: 'penstock_kanal', ad: 'Penstock — kanal tipi (duvar yuvalı)', kisaAd: 'PENSTOCK', kat: 'Kapak / vana', katman: 'MEK_KAPAK', renk: 4, ifc: 'IfcValve',
-    aciklama: 'Kanal içine, iki yan perdedeki yuvaya oturan yükselen milli kapak. Kanal genişliği B ve derinliği D kanala uydurulur; çerçeve, kapak, yuva ve mil ölçüleri formüllerle hesaplanır. Kaynak: PEN-A-KNL-1200-1400.',
+    aciklama: 'Kanal içine, iki yan perdedeki yuvaya oturan yükselen milli kapak. Kanal genişliği B ve derinliği D kanala uydurulur; 5 metreye kadar tam şasi, daha derinde kısa şasi + uzatma mili (tahrik platformda); çerçeve, kapak, yuva ve mil ölçüleri formüllerle hesaplanır. Kaynak: PEN-A-KNL-1200-1400.',
     params: [
       { k: 'B', ad: 'Kanal (açıklık) genişliği', d: 1200, min: 300, max: 4000, grup: 'Açıklık' },
       { k: 'H', ad: 'Kapak yüksekliği (açıklık)', d: 1400, min: 300, max: 4000, grup: 'Açıklık' },
@@ -25,6 +29,8 @@
       { k: 'hw', ad: 'Tasarım su derinliği (kapak önünde)', d: 5400, min: 0, max: 15000, grup: 'Açıklık' },
       { k: 'e', ad: 'Çerçevenin perdeye gömülmesi (her yan)', d: 85, grup: 'Çerçeve' },
       { k: 'ust', ad: 'Çerçeve üst taşması (platform üstü)', d: 878, grup: 'Çerçeve' },
+      { k: 'sasi', ad: 'Şasi', d: 'OTO', opts: [['OTO', 'Otomatik (5 metreye kadar tam)'], ['TAM', 'Tam şasi (platforma kadar)'], ['KISA', 'Kısa şasi + uzatma mili']], grup: 'Çerçeve' },
+      { k: 'ustK', ad: 'Kısa şasi üst payı (açıklık üstü)', d: 350, grup: 'Çerçeve' },
       { k: 'pw', ad: 'Çerçeve profil eni (akış yönü)', d: 100, grup: 'Çerçeve' },
       { k: 'tr', ad: 'Ara traverse aralığı', d: 1550, min: 500, grup: 'Çerçeve' },
       { k: 'kt', ad: 'Kapak kalınlığı', d: 64, grup: 'Kapak ve tahrik' },
@@ -35,10 +41,10 @@
       { k: 'yd', ad: 'Perde yuvası derinliği (akış yönü)', d: 200, grup: 'İnşaat (yuva)' },
       { k: 'Wf', ad: 'Çerçeve genişliği', f: 'B+2*e', grup: 'Hesaplanan' },
       { k: 'Wd', ad: 'Kapak genişliği', f: 'B+2*e-15', grup: 'Hesaplanan' },
-      { k: 'Hf', ad: 'Çerçeve yüksekliği', f: 'D+ust', grup: 'Hesaplanan' },
+      { k: 'Hf', ad: 'Çerçeve yüksekliği', f: q => kisaSasi(q) ? q.H + q.ustK : q.D + q.ust, grup: 'Hesaplanan' },
       { k: 'yuva', ad: 'Perde yuvası genişliği (toplam)', f: 'B+2*yk', grup: 'Hesaplanan' },
       { k: 'strok', ad: 'Strok', f: 'H', grup: 'Hesaplanan' },
-      { k: 'nTr', ad: 'Ara traverse (ara yatak) sayısı', birim: 'adet', f: 'max(0, floor((D+ust-150-(2*H+200))/tr))', grup: 'Hesaplanan' },
+      { k: 'nTr', ad: 'Ara traverse (ara yatak) sayısı', birim: 'adet', f: q => kisaSasi(q) ? 0 : Math.max(0, Math.floor((q.D + q.ust - 150 - (2 * q.H + 200)) / q.tr)), grup: 'Hesaplanan' },
       { k: 'F', ad: 'Kapağa su kuvveti (tek taraflı)', birim: 'kN', f: q => { const b = q.B / 1000, h = q.H / 1000, w = q.hw / 1000; return w >= h ? 9.81 * b * h * (w - h / 2) : 9.81 * b * w * w / 2; }, fAcik: 'γw·B·H·(hw − H/2)', grup: 'Hesaplanan' },
       { k: 'G', ad: 'Yaklaşık ağırlık', birim: 'kg', f: q => { const Hf = (q.D + q.ust) / 1000, nT = Math.max(0, Math.floor((q.D + q.ust - 150 - (2 * q.H + 200)) / q.tr)); return Math.round(2 * Hf * 14 + (q.B + 2 * q.e - 15) / 1000 * q.H / 1000 * 75 + (nT + 1) * (q.B + 2 * q.e) / 1000 * 15 + 25 + (q.tahrik === 'AKT' ? 45 : 20) + (Hf - q.H / 1000 + 0.45) * 14); }, fAcik: 'çerçeve + kapak + traverse + mil + tahrik (yaklaşık)', grup: 'Hesaplanan' },
     ],
@@ -77,37 +83,98 @@
       g.kutu(-0.03, 0.03, G.kt / 2, G.kt / 2 + 0.05, G.dz, G.dz + G.H, COL.rib);
       for (const z of G.trz) { g.kutu(-G.wf2, G.wf2, -0.06, 0.06, z, z + 0.10, COL.beam); g.kutu(-0.06, 0.06, -0.08, 0.08, z - 0.04, z + 0.14, COL.gear); }
       g.kutu(-(G.wf2 + 0.05), G.wf2 + 0.05, -0.11, 0.11, G.Hf, G.Hf + 0.15, COL.beam); // boyunduruk
-      g.silindir([0, 0, G.dz + G.H], [0, 0, G.Hf + 0.15 + G.actH + 0.15], G.r, COL.shaft, 14); // mil
-      if (q.tahrik === 'AKT') { g.kutu(-0.15, 0.15, -0.15, 0.15, G.Hf + 0.15, G.Hf + 0.15 + G.actH, COL.act); g.silindir([0.15, 0, G.Hf + 0.35], [0.45, 0, G.Hf + 0.35], 0.09, COL.act); g.silindir([-0.15, 0, G.Hf + 0.45], [-0.20, 0, G.Hf + 0.45], 0.16, COL.wheel, 20); }
-      else { g.kutu(-0.12, 0.12, -0.12, 0.12, G.Hf + 0.15, G.Hf + 0.15 + G.actH, COL.gear); g.silindir([0, 0, G.Hf + 0.15 + G.actH], [0, 0, G.Hf + 0.15 + G.actH + 0.04], 0.25, COL.wheel, 24); }
+      if (G.ks) { g.kutu(-0.20, 0.20, -0.20, 0.20, G.D, G.D + 0.03, COL.beam); g.kutu(-0.10, 0.10, -0.10, 0.10, G.D + 0.03, G.D + 0.15, COL.beam); } // zemin ayağı
+      g.silindir([0, 0, G.dz + G.H], [0, 0, G.zA + 0.15 + G.actH + 0.15], G.r, COL.shaft, 14); // mil
+      if (q.tahrik === 'AKT') { g.kutu(-0.15, 0.15, -0.15, 0.15, G.zA + 0.15, G.zA + 0.15 + G.actH, COL.act); g.silindir([0.15, 0, G.zA + 0.35], [0.45, 0, G.zA + 0.35], 0.09, COL.act); g.silindir([-0.15, 0, G.zA + 0.45], [-0.20, 0, G.zA + 0.45], 0.16, COL.wheel, 20); }
+      else { g.kutu(-0.12, 0.12, -0.12, 0.12, G.zA + 0.15, G.zA + 0.15 + G.actH, COL.gear); g.silindir([0, 0, G.zA + 0.15 + G.actH], [0, 0, G.zA + 0.15 + G.actH + 0.04], 0.25, COL.wheel, 24); }
     },
     on: (q, g) => { // akış yönünden bakış (u = x, v = z)
-      const G = pen(q), top = G.Hf + 0.15 + G.actH;
+      const G = pen(q), top = G.zA + 0.15 + G.actH;
       for (const s of [-1, 1]) { g.dik(s * (G.b2 - 0.015), 0, s * G.wf2, G.Hf, { lw: 35 }); g.cok([[s * G.b2, -0.3], [s * G.b2, G.D]], false, { lt: 'DASHED', lw: 13 }); g.cok([[s * (G.b2 + G.yk), -0.1], [s * (G.b2 + G.yk), G.D]], false, { lt: 'HIDDEN', lw: 13 }); g.cizgi([s * G.b2, G.D], [s * (G.b2 + 0.9), G.D], { lw: 25 }); }
       g.cizgi([-(G.b2 + 0.9), 0], [G.b2 + 0.9, 0], { lw: 25 }); g.yazi([G.b2 + 0.9, G.D + 0.05], 'platform', 0.09, 'R'); g.yazi([G.b2 + 0.9, 0.05], 'kanal tabanı', 0.09, 'R');
       g.dik(-G.wf2, 0, G.wf2, 0.03);
       g.dik(-G.wd2, G.dz, G.wd2, G.dz + G.H, { lw: 35 }); const nR = Math.max(2, Math.round(G.H / 0.35)); for (let k = 1; k < nR; k++) { const z = G.dz + G.H * k / nR; g.cizgi([-G.wd2, z], [G.wd2, z], { lw: 13 }); } g.cizgi([0, G.dz], [0, G.dz + G.H], { lw: 13 });
       for (const z of G.trz) g.dik(-G.wf2, z, G.wf2, z + 0.10);
-      g.dik(-(G.wf2 + 0.05), G.Hf, G.wf2 + 0.05, G.Hf + 0.15, { lw: 35 });
+      g.dik(-(G.wf2 + 0.05), G.Hf, G.wf2 + 0.05, G.Hf + 0.15, { lw: 35 }); if (G.ks) { g.dik(-0.20, G.D, 0.20, G.D + 0.03, { lw: 25 }); g.dik(-0.10, G.D + 0.03, 0.10, G.D + 0.15, { lw: 25 }); }
       g.cizgi([-G.r, G.dz + G.H], [-G.r, top + 0.15]); g.cizgi([G.r, G.dz + G.H], [G.r, top + 0.15]);
-      if (q.tahrik === 'AKT') { g.dik(-0.15, G.Hf + 0.15, 0.15, top, { lw: 25 }); g.dik(0.15, G.Hf + 0.26, 0.45, G.Hf + 0.44); g.dik(-0.20, G.Hf + 0.29, -0.15, G.Hf + 0.61); }
-      else { g.dik(-0.12, G.Hf + 0.15, 0.12, top); g.dik(-0.25, top, 0.25, top + 0.04, { lw: 25 }); }
+      if (q.tahrik === 'AKT') { g.dik(-0.15, G.zA + 0.15, 0.15, top, { lw: 25 }); g.dik(0.15, G.zA + 0.26, 0.45, G.zA + 0.44); g.dik(-0.20, G.zA + 0.29, -0.15, G.zA + 0.61); }
+      else { g.dik(-0.12, G.zA + 0.15, 0.12, top); g.dik(-0.25, top, 0.25, top + 0.04, { lw: 25 }); }
       const yz = -0.45, oz = G.wf2 + 0.35;
       g.olcu([-G.b2, 0], [G.b2, 0], 'h', -0.35, `B = ${q.B}`); g.olcu([-G.wf2, 0], [G.wf2, 0], 'h', yz - 0.25, `çerçeve ${q.Wf}`); g.olcu([-(G.b2 + G.yk), 0], [G.b2 + G.yk, 0], 'h', yz - 0.55, `yuva ${q.yuva}`);
       g.olcu([G.wf2, G.dz], [G.wf2, G.dz + G.H], 'v', 0.35, `H = ${q.H}`); g.olcu([G.wf2, 0], [G.wf2, G.D], 'v', 0.75, `D = ${q.D}`); g.olcu([G.wf2, 0], [G.wf2, G.Hf], 'v', 1.10, `${q.Hf}`);
-      g.yazi([-(G.wf2 + 0.1), G.Hf + 0.25], `PENSTOCK ${q.B}×${q.H} — kanal tipi`, 0.12, 'R');
+      g.yazi([-(G.wf2 + 0.1), G.zA + 0.25], `PENSTOCK ${q.B}×${q.H} — kanal tipi`, 0.12, 'R');
     },
     yan: (q, g) => { // yandan (u = y akış, v = z)
-      const G = pen(q), top = G.Hf + 0.15 + G.actH;
+      const G = pen(q), top = G.zA + 0.15 + G.actH;
       g.dik(-G.pw / 2, 0, G.pw / 2, G.Hf, { lw: 35 }); g.dik(-G.kt / 2, G.dz, G.kt / 2, G.dz + G.H, { lw: 35 }); g.dik(G.kt / 2, G.dz, G.kt / 2 + 0.05, G.dz + G.H, { lw: 13 });
       g.dik(-G.yd / 2, -0.1, G.yd / 2, G.D, { lt: 'HIDDEN', lw: 13 });
       for (const z of G.trz) g.dik(-0.06, z, 0.06, z + 0.10);
-      g.dik(-0.11, G.Hf, 0.11, G.Hf + 0.15, { lw: 35 }); g.cizgi([-G.r, G.dz + G.H], [-G.r, top + 0.15]); g.cizgi([G.r, G.dz + G.H], [G.r, top + 0.15]);
-      if (q.tahrik === 'AKT') g.dik(-0.15, G.Hf + 0.15, 0.15, top, { lw: 25 }); else { g.dik(-0.12, G.Hf + 0.15, 0.12, top); g.dik(-0.25, top, 0.25, top + 0.04, { lw: 25 }); }
+      g.dik(-0.11, G.Hf, 0.11, G.Hf + 0.15, { lw: 35 }); if (G.ks) { g.dik(-0.20, G.D, 0.20, G.D + 0.03, { lw: 25 }); g.dik(-0.10, G.D + 0.03, 0.10, G.D + 0.15, { lw: 25 }); } g.cizgi([-G.r, G.dz + G.H], [-G.r, top + 0.15]); g.cizgi([G.r, G.dz + G.H], [G.r, top + 0.15]);
+      if (q.tahrik === 'AKT') g.dik(-0.15, G.zA + 0.15, 0.15, top, { lw: 25 }); else { g.dik(-0.12, G.zA + 0.15, 0.12, top); g.dik(-0.25, top, 0.25, top + 0.04, { lw: 25 }); }
       g.cizgi([-1.2, 0], [1.2, 0], { lw: 25 }); g.cizgi([-1.2, G.D], [-G.yd / 2, G.D], { lw: 25 }); g.cizgi([G.yd / 2, G.D], [1.2, G.D], { lw: 25 });
       g.cizgi([-1.0, G.D * 0.5], [-0.45, G.D * 0.5], { lw: 25 }); g.cizgi([-0.45, G.D * 0.5], [-0.55, G.D * 0.5 + 0.06], { lw: 25 }); g.cizgi([-0.45, G.D * 0.5], [-0.55, G.D * 0.5 - 0.06], { lw: 25 }); g.yazi([-1.0, G.D * 0.5 + 0.08], 'akış', 0.09);
       g.olcu([-G.yd / 2, G.D], [G.yd / 2, G.D], 'h', 0.3, `yuva ${q.yd}`); g.olcu([G.pw / 2, G.dz + G.H], [G.pw / 2, G.Hf], 'v', 0.45, `${Math.round(q.Hf - (G.dz * 1000) - q.H)}`);
     },
+  });
+
+  /* ================= BANT KONVEYÖR (ızgara atığı) ve ÇÖP KONTEYNERİ ================= */
+  /* Konveyör: orijin = kuyruk ucu ortası, destek döşemesi kotunda; y = taşıma yönü. Ld boyunca ayaklı (yapı üstü), ötesi konsol (konteyner üstü). */
+  const KCOL = { frame: [0.55, 0.60, 0.66], belt: [0.15, 0.15, 0.17], drum: [0.80, 0.81, 0.83], motor: [0.18, 0.36, 0.62], bin: [0.20, 0.45, 0.25], lid: [0.15, 0.35, 0.20], wheel: [0.12, 0.12, 0.12] };
+  C.aileKaydet({
+    id: 'bant_konveyor', ad: 'Bant konveyör — ızgara atığı', kisaAd: 'BANT KONVEYÖR', kat: 'Konveyör', katman: 'MEK_KONVEYOR', renk: 3, ifc: 'IfcTransportElement',
+    aciklama: 'Izgaraların boşaltma ağızlarının altından geçer, atığı çöp konteynerine boşaltır. Bant kotu ızgara boşaltma ağzından 0,15 m aşağıda ve konteyner üstünden en az 0,30 m yukarıda (firma standardı).',
+    params: [
+      { k: 'L', ad: 'Konveyör boyu (tambur eksenleri arası)', d: 4000, min: 500, max: 30000, grup: 'Konveyör' },
+      { k: 'B', ad: 'Bant eni', d: 500, min: 300, max: 1400, grup: 'Konveyör' },
+      { k: 'Hy', ad: 'Bant üstü — destek döşemesinden', d: 850, min: 200, max: 4000, grup: 'Konveyör' },
+      { k: 'Ld', ad: 'Ayaklı boy (kuyruktan)', d: 4000, min: 0, max: 30000, grup: 'Konveyör' },
+      { k: 'Dt', ad: 'Tambur çapı', d: 220, grup: 'Konveyör' },
+      { k: 'Hs', ad: 'Yan sac (etek) yüksekliği', d: 150, grup: 'Konveyör' },
+      { k: 'W', ad: 'Şase dış eni', f: 'B+160', grup: 'Hesaplanan' },
+    ],
+    tipler: [{ ad: 'BANT KONVEYÖR 500', p: { L: 4000, B: 500, Hy: 850, Ld: 4000, Dt: 220, Hs: 150 } }],
+    liste: q => `bant ${q.B} mm · boy ${(q.L / 1000).toFixed(2)} m · bant üstü +${(q.Hy / 1000).toFixed(2)} m`,
+    bilgi: q => `Bant eni ${q.B} mm, boy ${q.L} mm, bant üstü destek döşemesinden ${q.Hy} mm; ${q.Ld} mm ayaklı, kalan ${Math.max(0, q.L - q.Ld)} mm konsol`,
+    plan: (q, g) => {
+      const L = m(q.L), w2 = m(q.W) / 2, b2 = m(q.B) / 2, r = m(q.Dt) / 2;
+      g.dik(-w2, -r, w2, L + r, { lw: 35 }); g.dik(-b2, -r, b2, L + r, { lw: 13 });
+      g.cizgi([-w2, 0], [w2, 0], { lw: 13 }); g.cizgi([-w2, L], [w2, L], { lw: 13 });
+      g.dik(w2, L - 0.20, w2 + 0.35, L + 0.10, { lw: 25 }); // motor
+      g.cizgi([0, L * 0.25], [0, L * 0.6], { lw: 25 }); g.cizgi([0, L * 0.6], [0.08, L * 0.6 - 0.15], { lw: 25 }); g.cizgi([0, L * 0.6], [-0.08, L * 0.6 - 0.15], { lw: 25 });
+      g.yazi([w2 + 0.1, L * 0.3], 'BANT KONVEYÖR', 0.10, 'L', 90);
+    },
+    mesh: (q, g) => {
+      const L = m(q.L), w2 = m(q.W) / 2, b2 = m(q.B) / 2, r = m(q.Dt) / 2, H = m(q.Hy), hs = m(q.Hs), Ld = Math.min(m(q.Ld), L);
+      for (const s of [-1, 1]) { g.kutu(s * b2, s * w2, -r, L + r, H - 2 * r - 0.06, H - 0.02, KCOL.frame); g.kutu(s * (b2 - 0.01), s * (b2 + 0.01), 0, L, H, H + hs, KCOL.frame); } // şase + etek
+      g.kutu(-b2, b2, 0, L, H - 0.02, H, KCOL.belt); g.kutu(-b2, b2, 0, L, H - 2 * r + 0.02, H - 2 * r + 0.04, KCOL.belt);
+      for (const y of [0, L]) g.silindir([-b2, y, H - r], [b2, y, H - r], r, KCOL.drum, 16);
+      g.kutu(w2, w2 + 0.35, L - 0.20, L + 0.10, H - 2 * r - 0.05, H + 0.15, KCOL.motor);
+      const ys = []; if (Ld > 0.3) { const n = Math.max(1, Math.ceil((Ld - 0.4) / 2.5)); for (let k = 0; k <= n; k++) ys.push(0.2 + (Ld - 0.4) * k / n); }
+      for (const y of ys) for (const s of [-1, 1]) g.kutu(s * w2 - (s > 0 ? 0.06 : 0), s * w2 + (s < 0 ? 0.06 : 0), y - 0.03, y + 0.03, 0, H - 2 * r - 0.06, KCOL.frame);
+    },
+    on: (q, g) => { const w2 = m(q.W) / 2, H = m(q.Hy), r = m(q.Dt) / 2; g.dik(-w2, H - 2 * r - 0.06, w2, H + m(q.Hs), { lw: 35 }); g.dik(-w2, 0, -w2 + 0.06, H - 2 * r - 0.06); g.dik(w2 - 0.06, 0, w2, H - 2 * r - 0.06); g.cizgi([-w2 - 0.5, 0], [w2 + 0.5, 0], { lw: 25 }); g.olcu([w2, 0], [w2, H], 'v', 0.3, `${q.Hy}`); },
+    yan: (q, g) => { const L = m(q.L), H = m(q.Hy), r = m(q.Dt) / 2; g.dik(-r, H - 2 * r - 0.06, L + r, H + m(q.Hs), { lw: 35 }); g.daire([0, H - r], r); g.daire([L, H - r], r); g.cizgi([-0.5, 0], [Math.min(m(q.Ld), L) + 0.5, 0], { lw: 25 }); g.olcu([0, H + 0.3], [L, H + 0.3], 'h', 0.2, `${q.L}`); },
+  });
+  /* Çöp konteyneri: 1100 L belediye tipi (EN 840). Orijin = taban ortası; x = uzun kenar. */
+  C.aileKaydet({
+    id: 'cop_konteyner', ad: 'Çöp konteyneri — 1100 L (EN 840)', kisaAd: 'KONTEYNER', kat: 'Konteyner', katman: 'MEK_KONVEYOR', renk: 3, ifc: 'IfcFurnishingElement',
+    aciklama: 'Izgara atığı için tekerlekli belediye tipi konteyner. Yüksekliği bant konveyörün kotunu belirler.',
+    params: [
+      { k: 'W', ad: 'Genişlik', d: 1370, grup: 'Konteyner' },
+      { k: 'Dk', ad: 'Derinlik', d: 1070, grup: 'Konteyner' },
+      { k: 'H', ad: 'Yükseklik (kapak üstü)', d: 1370, grup: 'Konteyner' },
+      { k: 'V', ad: 'Hacim', birim: 'L', d: 1100, grup: 'Konteyner' },
+    ],
+    tipler: [{ ad: 'KONTEYNER 1100 L', p: { W: 1370, Dk: 1070, H: 1370, V: 1100 } }],
+    liste: q => `${q.V} L · ${q.W}×${q.Dk}×${q.H} mm`,
+    plan: (q, g) => { const w = m(q.W) / 2, d = m(q.Dk) / 2; g.dik(-w, -d, w, d, { lw: 35 }); g.cizgi([-w, -d], [w, d], { lw: 13, lt: 'DASHED' }); g.cizgi([-w, d], [w, -d], { lw: 13, lt: 'DASHED' }); g.yazi([-w, -d - 0.18], `ATIK KONTEYNERİ ${q.V} L`, 0.10); },
+    mesh: (q, g) => {
+      const w = m(q.W) / 2, d = m(q.Dk) / 2, H = m(q.H);
+      g.kutu(-w + 0.04, w - 0.04, -d + 0.05, d - 0.05, 0.16, H - 0.08, KCOL.bin);
+      g.kutu(-w, w, -d, d, H - 0.08, H, KCOL.lid);
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) g.silindir([sx * (w - 0.15) - 0.03, sy * (d - 0.15), 0.08], [sx * (w - 0.15) + 0.03, sy * (d - 0.15), 0.08], 0.08, KCOL.wheel, 12);
+    },
+    on: (q, g) => { const w = m(q.W) / 2, H = m(q.H); g.dik(-w, 0.16, w, H, { lw: 35 }); g.olcu([w, 0], [w, H], 'v', 0.3, `${q.H}`); },
   });
 
   /* ================= MEKANİK KABA IZGARA (izgara.js geometrisi) ================= */

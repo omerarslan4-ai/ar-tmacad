@@ -22,6 +22,8 @@
     hs: 0.60, hsMin: 0.25, zTon: 85.89, zToff: 85.15,   // kanal su derinliği (maks / min), pompa devreye girme / çıkma
     np: 3, Qp: 18, Hp: 14,                              // pompa sayısı (2 asıl + 1 yedek), pompa başına debi l/s, basma m
     bgK: 30, bgI: 6, zg: 94.80, mw: 1.00, mb: 0.25, mh: 0.19,
+    hA: 1.00, Lka: 2.55, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından), kaba bölgedeki boyu, A kapağındaki kısa parça
+    hBos: 1.00, pd: 0.15, Hk: 1.37, pk: 0.30, Bk: 0.50, // ızgara boşaltma ağzı (platformdan), ağız → bant düşüsü, 1100 L konteyner, bant → konteyner payı, bant eni
   };
   const PAR = Object.keys(DEF);
   const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -44,7 +46,9 @@
     // ayırıcı perdeler: ince bölgede (sağ ucu yuvarlak) ve kaba bölgede (sol ucu yuvarlak); aradaki boşluk ortak geçiş
     for (let j = 0; j + 1 < n; j++) {
       const ya = yi0 + (j + 1) * q.b + j * q.ts, yb = ya + q.ts, ym = (ya + yb) / 2, r = q.ts / 2;
-      G.ayirici.push(ccw([[x1, ya], [x2, ya], ...yay(x2, ym, r, -90, 90).slice(1, -1), [x2, yb], [x1, yb]]), ccw([[x3, yb], ...yay(x3, ym, r, 90, 270).slice(1, -1), [x3, ya], [x4, ya], [x4, yb]]));
+      const xk = Math.min(x4, x3 + q.Lka); // Çokal: orta perde kaba ızgaradan sonra biter, A kapaklarında kısa bir parça kalır
+      G.ayirici.push(ccw([[x1, ya], [x2, ya], ...yay(x2, ym, r, -90, 90).slice(1, -1), [x2, yb], [x1, yb]]), ccw([[x3, yb], ...yay(x3, ym, r, 90, 270).slice(1, -1), [x3, ya], [xk, ya], [xk, yb]]));
+      if (x4 - q.Lsa > xk + 0.05) G.ayirici.push(ccw(rect(x4 - q.Lsa, ya, x4, yb)));
     }
     // kapaklar (akış −x): A girişte, C kaba ızgaradan sonra, E ince ızgaradan önce, G terfi önünde
     const kx = { A: x4 - q.gA, C: x3 + q.gC, E: x2 - q.gE, G: x1 + q.gG };
@@ -55,7 +59,7 @@
     }
     // ızgaralar: kaba (A–C arası), ince (E–G arası); döşemede ızgara boşluğu
     for (const c of G.kanal) {
-      G.izgara.push({ k: 'kaba', kanal: c.i, x0: kx.C + 0.35, x1: kx.A - 0.35, y: c.ym });
+      G.izgara.push({ k: 'kaba', kanal: c.i, x0: kx.C + 0.35, x1: Math.min(kx.A - 0.35, x3 + q.Lka), y: c.ym });
       G.izgara.push({ k: 'ince', kanal: c.i, x0: kx.G + 0.35, x1: kx.E - 0.35, y: c.ym });
     }
     for (const iz of G.izgara) { const c = G.kanal[iz.kanal]; G.dosemeBos.push({ k: 'izgara', pts: rect(iz.x0, c.y0, iz.x1, c.y1) }); }
@@ -63,7 +67,7 @@
     G.kes.push({ k: 'gecis', pts: rect(tO - q.tTw - 0.05, yi0, tO + 0.05, yi1), z0: q.zTab - 0.01, z1: q.zTab + q.pH });
     // pompalar ve döşemede pompa kapakları
     G.pompa = [];
-    for (let k = 0; k < q.np; k++) { const y = q.tTw + q.tY * (k + 0.5) / q.np, x = q.tTw + Math.min(0.9, q.tX / 2); G.pompa.push({ k, x, y }); G.dosemeBos.push({ k: 'pompa', pts: rect(x - 0.45, y - 0.45, x + 0.45, y + 0.45) }); }
+    for (let k = 0; k < q.np; k++) { const y = q.tTw + q.tY * (k + 0.5) / q.np, x = q.tTw + Math.min(0.45, q.tX / 4); G.pompa.push({ k, x, y }); G.dosemeBos.push({ k: 'pompa', pts: rect(x - 0.20, y - 0.45, Math.min(x + 1.00, G.tO - q.tTw - 0.05), y + 0.45) }); } // Çokal: basma borusu dış duvar dibinde, pompa kanala doğru
     G.doseme = { dis: G.bolge.dis, z0: zW, z1: q.zPl };
     G.tabanK = { pts: rect(tO, yc0, Lo, yc0 + Wc), z0: q.zTab - q.tb, z1: q.zTab };
     G.tabanT = { pts: rect(0, 0, tO, tYo), z0: q.zTr - q.tb, z1: q.zTr };
@@ -71,7 +75,7 @@
     { const m = q.tw / 2, mt = q.tTw / 2, zk = q.zTab + 0.10, zt = q.zTr + 0.10, B = [];
       B.push({ anahtar: 'terfi', pts: rect(mt, mt, tO - mt, tYo - mt), closed: true, z: zt });
       B.push({ anahtar: 'kanal', pts: [[tO - mt, yc0 + m], [Lo - m, yc0 + m], [Lo - m, yc0 + Wc - m], [tO - mt, yc0 + Wc - m]], closed: false, z: zk });
-      for (let j = 0; j + 1 < n; j++) { const ym = yi0 + (j + 1) * q.b + j * q.ts + q.ts / 2; B.push({ anahtar: 'ayirici-ince-' + j, pts: [[x1, ym], [x2, ym]], closed: false, z: zk }, { anahtar: 'ayirici-kaba-' + j, pts: [[x3, ym], [x4, ym]], closed: false, z: zk }); }
+      for (let j = 0; j + 1 < n; j++) { const ym = yi0 + (j + 1) * q.b + j * q.ts + q.ts / 2; B.push({ anahtar: 'ayirici-ince-' + j, pts: [[x1, ym], [x2, ym]], closed: false, z: zk }, { anahtar: 'ayirici-kaba-' + j, pts: [[x3, ym], [Math.min(x4, x3 + q.Lka), ym]], closed: false, z: zk }); }
       G.bantlar = B; }
     G.terfiAlt = { dis: ccw(rect(0, 0, tO, tYo)), delik: [ccw(rect(q.tTw, q.tTw, tO - q.tTw, tYo - q.tTw)).reverse()], z0: q.zTr, z1: q.zTab };
     return G;
@@ -81,8 +85,25 @@
   function ekipmanYer(G, zg) {
     const q = G.q, out = [], D = q.zPl - q.zTab;
     for (const k of G.kapak) out.push({ anahtar: `pen-${k.k}-${k.kanal}`, tur: 'penstok', etiket: `${k.k}${k.kanal + 1}`, p: [k.x, k.y], aci: 180, z: k.z0, B: k.B, H: k.H, D, hw: q.hs });
-    for (const iz of G.izgara) out.push({ anahtar: `izg-${iz.k}-${iz.kanal}`, tur: 'izgara', ince: iz.k === 'ince', etiket: `${iz.k === 'kaba' ? 'ME1' : 'ME2'}/${iz.kanal + 1}`, p: [iz.x1 - 0.2, iz.y], aci: 180, z: q.zTab, B: q.b, D, bg: iz.k === 'kaba' ? q.bgK : q.bgI });
-    for (const p of G.pompa) out.push({ anahtar: `pom-${p.k}`, tur: 'pompa', etiket: `${p.k + 1}`, p: [p.x, p.y], aci: 0, z: q.zTr, Q: q.Qp, H: q.Hp, D: q.zPl - q.zTr, yedek: p.k === G.pompa.length - 1 });
+    // ızgara boşaltma kot zinciri (firma standardı): konteyner zeminde → bant konteyner üstü + pay → boşaltma ağzı = bant + düşü;
+    // boşaltma ağzı platformdan en az hBos (halatlı tip, Çokal ≈1,0 m)
+    const zZem = zg != null ? zg : q.zg, zBant = Math.max(q.zPl + q.hBos - q.pd, zZem + q.Hk + q.pk), hdU = zBant + q.pd - q.zPl;
+    G.kotZincir = { zZem, zBant, hdU, zKont: zZem + q.Hk };
+    const IA = 75, ID = 0.354, dusus = hd => (hd + 0.25) / Math.tan(IA * Math.PI / 180) + ID / Math.sin(IA * Math.PI / 180) + 0.625; // ayak → boşaltma ağzı ortası (akış yönünde)
+    const grup = {};
+    for (const iz of G.izgara) {
+      out.push({ anahtar: `izg-${iz.k}-${iz.kanal}`, tur: 'izgara', ince: iz.k === 'ince', etiket: `${iz.k === 'kaba' ? 'ME1' : 'ME2'}/${iz.kanal + 1}`, p: [iz.x1 - 0.2, iz.y], aci: 180, z: q.zTab, B: q.b, D, bg: iz.k === 'kaba' ? q.bgK : q.bgI, hdU });
+      grup[iz.k] = iz.x1 - 0.2 - dusus(D + hdU); // akış −x: boşaltma ağzı ayaktan mansaba doğru
+    }
+    // bant konveyör: her ızgara grubunun boşaltma ağızlarının altından enine geçer, alt dış duvarın dışındaki konteynere boşaltır
+    const kD = 1.07, yK = G.yc0 - 0.35 - kD / 2, y0 = G.yi1 + 0.15, yE = yK + 0.15;
+    G.konveyor = [];
+    for (const [k, xd] of Object.entries(grup)) {
+      G.konveyor.push({ k, x: xd });
+      out.push({ anahtar: `konv-${k}`, tur: 'konveyor', etiket: k === 'kaba' ? 'ME1' : 'ME2', p: [xd, y0], aci: -90, z: q.zPl, L: y0 - yE, Bk: q.Bk, Hy: zBant - q.zPl, Ld: y0 - G.yc0 });
+      out.push({ anahtar: `kont-${k}`, tur: 'konteyner', etiket: k === 'kaba' ? 'ME1' : 'ME2', p: [xd, yK], aci: 0, z: zZem });
+    }
+    for (const p of G.pompa) out.push({ anahtar: `pom-${p.k}`, tur: 'pompa', etiket: `${p.k + 1}`, p: [p.x, p.y], aci: 180, z: q.zTr, Q: q.Qp, H: q.Hp, D: q.zPl - q.zTr, yedek: p.k === G.pompa.length - 1 });
     // merdiven: zeminden platforma, kanalın alt dış duvarına dik, giriş ucuna yakın
     const z0 = zg != null ? zg : q.zg, Hm = q.zPl - z0;
     if (Hm > 0.15) {
@@ -90,7 +111,9 @@
       out.push({ anahtar: 'merdiven', tur: 'merdiven', pts: [[xm, G.yc0 - Lm], [xm, G.yc0]], z0, z1: q.zPl, w: q.mw, b: q.mb, hmax: q.mh, nr, xm });
       // korkuluk: platform çevresi (merdivenin çıktığı yer açık)
       const a = 0.05, d = G.bolge.dis, xa = xm - q.mw / 2, xb = xm + q.mw / 2, yA = G.yc0 + a;
-      out.push({ anahtar: 'korkuluk', tur: 'korkuluk', z: q.zPl, pts: [[xa, yA], [G.tO + a, yA], [G.tO + a, a], [a, a], [a, G.tYo - a], [G.tO + a, G.tYo - a], [G.tO + a, G.yc0 + G.Wc - a], [G.Lo - a, G.yc0 + G.Wc - a], [G.Lo - a, yA], [xb, yA]] });
+      const kes = G.konveyor.map(c => [c.x - 0.45, c.x + 0.45]).sort((u, v) => v[0] - u[0]); let xs = xa, ki = 0;
+      for (const [g0, g1] of kes) { if (g1 < xs && g0 > G.tO + a + 0.2) { out.push({ anahtar: 'korkuluk-' + (++ki), tur: 'korkuluk', z: q.zPl, pts: [[xs, yA], [g1, yA]] }); xs = g0; } }
+      out.push({ anahtar: 'korkuluk', tur: 'korkuluk', z: q.zPl, pts: [[xs, yA], [G.tO + a, yA], [G.tO + a, a], [a, a], [a, G.tYo - a], [G.tO + a, G.tYo - a], [G.tO + a, G.yc0 + G.Wc - a], [G.Lo - a, G.yc0 + G.Wc - a], [G.Lo - a, yA], [xb, yA]] });
       void d;
     }
     return out;
@@ -141,7 +164,7 @@
       }
       out.push(e._ag);
       out.push(triAg(f, bolgeKati({ dis: G.terfiAlt.dis, delik: G.terfiAlt.delik }, G.terfiAlt.z0, G.terfiAlt.z1))); // terfi duvarlarının kanal tabanı altındaki kısmı
-      for (const a of G.ayirici) out.push(ext(f.at(0, 0, q.zTab), f.ux, [0, 0, 1], a, G.zW - q.zTab));
+      for (const a of G.ayirici) out.push(ext(f.at(0, 0, q.zTab), f.ux, [0, 0, 1], a, Math.min(q.hA, G.zW - q.zTab))); // orta perde alçak (Çokal C-C: 1,00 m)
       for (const t of [G.tabanK, G.tabanT]) out.push(ext(f.at(0, 0, t.z0), f.ux, [0, 0, 1], t.pts, t.z1 - t.z0));
       out.push(triAg(f, bolgeKati({ dis: G.doseme.dis, delik: G.dosemeBos.map(b => ccw(b.pts).reverse()) }, G.doseme.z0, G.doseme.z1)));
       return out;
@@ -158,8 +181,10 @@
     const f = C.frame(e.o, e.rot), un = unum(e), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; };
     const aile = (fam, par, ad) => { const d = C.AILELER && C.AILELER[fam]; if (!d) return null; const t0 = d.tipler && d.tipler[0]; return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par: Object.assign({}, t0 ? t0.p : {}, par), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad, layer: d.katman || C.doc.cur.layer } }; };
     if (y.tur === 'penstok') return aile('penstock_kanal', { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.B * y.H > 1.0 ? 'AKT' : 'EL', konum: 'K' }, `SK-${un}/${y.etiket}`);
-    if (y.tur === 'izgara') return aile('kaba_izgara', { B: mm(y.B), D: mm(y.D), bg: y.bg }, `${y.ince ? 'İNCE' : 'KABA'} IZGARA T${un}.01 ${y.etiket}`);
+    if (y.tur === 'izgara') return aile('kaba_izgara', { B: mm(y.B), D: mm(y.D), bg: y.bg, hdU: mm(y.hdU) }, `${y.ince ? 'İNCE' : 'KABA'} IZGARA T${un}.01 ${y.etiket}`);
     if (y.tur === 'pompa') { const fam = C.AILELER && C.AILELER.dalgic_pompa_ksb_amarexn ? 'dalgic_pompa_ksb_amarexn' : 'dalgic_pompa_wilo_supra'; return aile(fam, { Q: y.Q, H: y.H, D: mm(y.D) }, `TERFİ POMPASI P-${un}/${y.etiket}${y.yedek ? ' (yedek)' : ''}`); }
+    if (y.tur === 'konveyor') return aile('bant_konveyor', { L: mm(y.L), B: mm(y.Bk), Hy: mm(y.Hy), Ld: mm(y.Ld) }, `BANT KONVEYÖR T${un}.02 ${y.etiket}`);
+    if (y.tur === 'konteyner') return aile('cop_konteyner', {}, `ATIK KONTEYNERİ T${un}.03 ${y.etiket}`);
     if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: 'iki', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'H', as: 'H', sah: 0, nos: 0, t: 0, rk: 'H' } };
     if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } };
     return null;
