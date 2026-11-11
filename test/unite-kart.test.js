@@ -1,7 +1,8 @@
 /* Ünite kartı çekirdeği testi — çalıştır: node test/unite-kart.test.js
    Veri: ATV penceresinin West Benghazi örneğinden aktarılan iki kademe (2025 mevcut, 2035 nihai).
    Beklenen değerler elle hesaplandı (firma standardı: hava payı 1,0 m, duvar 0,30 m, taban 0,40 m,
-   konteyner 1,37 m, konteyner payı 0,30 m, düşü 0,15 m; katalog: deşarj ağzı platformdan 0,215 m, kafa üstü 1,545 m). */
+   konteyner 1,37 m, konteyner payı 0,30 m, düşü 0,15 m, platform zeminden ≥ 0,65 m;
+   katalog: deşarj ağzı platformdan 1,0 m (halatlı tip), kafa üstü 1,545 m). */
 'use strict';
 const assert = require('assert');
 const path = require('path');
@@ -50,10 +51,11 @@ t('kaba ızgara yapısı kartı (2035): ayak izi ve kot zinciri', () => {
   assert.strictEqual(p(k, 'b').kaynak, 'hesap'); assert.strictEqual(p(k, 'hp').kaynak, 'standart'); assert.strictEqual(p(k, 'hBos').kaynak, 'katalog'); assert.strictEqual(p(k, 'zp').kaynak, 'türetilen');
   // en = 5 kanal × 1,8 + süzüntü kanalı 0,6 + bölme yok + 2 × dış duvar 0,3
   yakin(k.ayakIzi.en, 5 * 1.8 + 0.6 + 2 * 0.3, 'en'); yakin(k.ayakIzi.boy, 6, 'boy');
-  // zemin bilinmiyor → 2,2 − 0,65 = 1,55; platform konteynerden: 1,55 + 1,37 + 0,30 + 0,15 − 0,215 = 3,155
-  yakin(k.kot.zemin, 1.55, 'zemin'); yakin(k.kot.platform, 3.155, 'platform'); yakin(p(k, 'D').v, 3.155, 'kanal derinliği');
+  // zemin bilinmiyor → 2,2 − 0,65 = 1,55; platform konteynerden: 1,55 + 1,37 + 0,30 + 0,15 − 1,0 = 2,37
+  yakin(k.kot.zemin, 1.55, 'zemin'); yakin(k.kot.platform, 2.37, 'platform'); yakin(p(k, 'D').v, 2.37, 'kanal derinliği');
   yakin(k.kot.desarj, 3.37, 'deşarj'); yakin(k.kot.bant, 3.22, 'bant'); yakin(k.kot.temel, -0.4, 'temel');
-  yakin(p(k, 'Ht').v, 4.70, 'ızgara yüksekliği'); yakin(p(k, 'Le').v, 4.70 / Math.sin(75 * Math.PI / 180), 'eğim boyu');
+  yakin(p(k, 'Ht').v, 3.915, 'ızgara yüksekliği'); yakin(p(k, 'Le').v, 3.915 / Math.sin(75 * Math.PI / 180), 'eğim boyu');
+  yakin(p(k, 'hBos').v, 1.0, 'katalog deşarj ağzı');
   assert.ok(p(k, 'zp').not.includes('konteyner'));
   assert.ok(k.uyari.some(u => u.includes('Kanal derinleşti')));
   assert.ok(k.uyari.some(u => u.includes('80°')), 'ATV açısı farkı uyarısı');

@@ -27,9 +27,10 @@
     pd: { ad: 'Izgara deşarj ağzı → konveyör bandı düşüsü', v: 0.15, birim: 'm' },
   };
   K.STD_ARA = { ad: 'Aynı kanalda kaba – ince ızgara arası (açık soru)', v: 3.0, birim: 'm' };
-  /* ekipman kataloğu varsayılanları: mekanik kaba ızgara ailesinin ilk tipi (aile-mekanik.js, üretici çizimi 02-FF-010102010301) */
+  /* ekipman kataloğu varsayılanları. Deşarj ağzı: halatlı tip ızgara, Çokal AAT T-101 çiziminden ≈1,0 m (firma kararı).
+     Açı ve kafa üstü: mekanik kaba ızgara ailesinin ilk tipi (aile-mekanik.js, üretici çizimi 02-FF-010102010301) */
   K.KAT_IZGARA = {
-    hBos: { ad: 'Izgara deşarj ağzı — platformdan', v: 0.215, birim: 'm' },
+    hBos: { ad: 'Izgara deşarj ağzı — platformdan', v: 1.0, birim: 'm', not: 'Halatlı tip ızgara (Çokal AAT çiziminden)' },
     ust: { ad: 'Tahrik kafası üstü — platformdan', v: 1.545, birim: 'm' },
     a: { ad: 'Izgara eğim açısı (yataydan)', v: 75, birim: '°' },
   };
@@ -38,7 +39,7 @@
     const o = kopya(K.KAT_IZGARA);
     try {
       const t = C && C.aileTipleri && C.aileTipleri('kaba_izgara')[0];
-      if (t && t.p) { if (t.p.hdU != null) o.hBos.v = t.p.hdU / 1000; if (t.p.ust != null) o.ust.v = t.p.ust / 1000; if (t.p.a != null) o.a.v = +t.p.a; o.tip = t.ad; }
+      if (t && t.p) { if (t.p.ust != null) o.ust.v = t.p.ust / 1000; if (t.p.a != null) o.a.v = +t.p.a; o.tip = t.ad; } // deşarj ağzı aileden alınmaz (zincirli tip, 0,215 m)
     } catch (e) { }
     return o;
   };
@@ -147,8 +148,8 @@
     // katalog
     const a = dz('a', kat.a.ad, kat.a.v, kat.a.birim, 'katalog');
     for (const x of dims) if (x.dim.th != null && Math.abs(+x.dim.th - a) > 0.5) uyari.push(`ATV hesabında ${x.rol} ızgara açısı ${x.dim.th}°, katalogda ${a}°. Yük kaybı hesabını kontrol edin.`);
-    const hBos = dz('hBos', kat.hBos.ad, kat.hBos.v, 'm', 'katalog', kat.tip ? 'Aile tipi: ' + kat.tip : null);
-    const ust = dz('ust', kat.ust.ad, kat.ust.v, 'm', 'katalog');
+    const hBos = dz('hBos', kat.hBos.ad, kat.hBos.v, 'm', 'katalog', kat.hBos.not || null);
+    const ust = dz('ust', kat.ust.ad, kat.ust.v, 'm', 'katalog', kat.tip ? 'Aile tipi: ' + kat.tip : null);
     // elle (sonraki parçalarda otomatik gelecek)
     const zt = dz('zt', 'Kanal taban kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
     const zzVars = zt + h + S.hp - S.pz; // zemin bilinmiyorsa: platform tam su yüzü + hava payında kalır
