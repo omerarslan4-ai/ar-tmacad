@@ -200,7 +200,7 @@
     try {
       const Z = C.kart && C.kart.hesapla && C.kart.hesapla(), x = Z && Z.su.find(y => y.id === 'gr'), k = x && x.kart; if (!k || !k.params) return null;
       const v = id => (k.params.find(p => p.k === id) || {}).v, o = {};
-      for (const [a, b] of [['N', 'N'], ['b', 'b'], ['bF', 'bF'], ['ta', 'ta'], ['h', 'h'], ['L', 'L'], ['tw', 'tw'], ['ti', 'ti'], ['bD', 'bD'], ['bC', 'bC'], ['ho', 'ho'], ['tb', 'td'], ['zu', 'zu'], ['zz', 'zg']]) { const d = v(a); if (d != null && isFinite(+d) && (+d > 0 || a === 'zz')) o[b] = +d; }
+      for (const [a, b] of [['N', 'N'], ['b', 'b'], ['bF', 'bF'], ['ta', 'ta'], ['h', 'h'], ['L', 'L'], ['tw', 'tw'], ['ti', 'ti'], ['bD', 'bD'], ['bC', 'bC'], ['ho', 'ho'], ['tb', 'td'], ['tr', 'tr'], ['zu', 'zu'], ['zz', 'zg']]) { const d = v(a); if (d != null && isFinite(+d) && (+d > 0 || a === 'zz')) o[b] = +d; }
       if (v('zs')) o.zs = +v('zs'); else { delete o.zu; delete o.zg; } // su kotu girilmemişse kotlar varsayılanda kalır
       return o.b && o.L && o.h ? o : null;
     } catch (err) { return null; }

@@ -47,8 +47,8 @@
 - Kum ve yağ tutucu (havalandırmalı, gezer köprülü; Çokal AAT T-103 örneği):
   - Her göz: kum bölmesi + ayırma (yağ lameli) + yağ bölmesi. Gözler arası duvar 30 cm, dış duvar 40 cm.
   - Havuzun bir ucunda dağıtma (giriş) kanalı, öbür ucunda çıkış kanalı; ikisinin de iç genişliği 1,50 m.
-  - Duvar üstü = su yüzü + 0,85 m hava payı; zeminden en az 0,65 m yukarıda.
-  - Kum oluğu tabandan 0,50 m aşağıda; kum oluğu altındaki taban plağı 0,64 m.
+  - Duvar üstü = su yüzü + 1,70 m (Çokal: su 97,45, duvar üstü 99,15); orta yürüme yolu duvar üstünden 0,85 m aşağıda; duvar üstü zeminden en az 0,65 m yukarıda.
+  - Kum oluğu tabandan 0,50 m aşağıda; oluğun altında 0,64 m grobeton dolgu, onun altında 0,50 m taban plağı.
   - Blowerlar tesis büyüklüğüne göre ana blower binasında ya da kum tutucunun yanında küçük binada (Çokal'da ana binada).
   - Çizim kuralları (KUMTUTUCU komutu, Çokal G-G kesiti; 11 Kasım 2026'da onaylandı): yağ bölmesi dış duvar tarafında, komşu gözler aynalı; kum oluğu 50 cm taban eninde, yanları 10 cm açılır, ayırma kirişinin dibinde; taban oluğun üstünden duvar diplerine 45° yükselen grobeton dolgu, altı düz taban plağı (50 cm).
   - Ayırma kirişi betonarme (su yüzünün 30 cm üstünden 55 cm aşağı), altında sac yağ lameli. Gözler arası duvar alçak, üstünde 1,00 m yürüme yolu (duvar üstünden 0,85 m aşağıda); gezer köprü rayları dış duvarların üstünde.

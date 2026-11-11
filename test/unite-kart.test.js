@@ -100,22 +100,22 @@ t('Çokal AAT T-101: platform, kanal derinliği ve genişlik çizimle aynı', ()
   yakin(s.kot.platform, 95.62, 'standart konteynerle platform');
 });
 
-/* GERÇEK PROJE: Çokal AAT, T-103 Kum ve Yağ Tutucu (aynı çizim, F-F enine kesit ve plan)
-   2 göz; göz iç 1,60 m (kum 1,00 + lamel 0,10 + yağ 0,50); ara duvar 30, dış duvar 40 → en 4,30 m.
-   Boyuna: 40 | 150 dağıtma | 40 | 1100 havuz | 40 | 150 çıkış | 40 → 15,60 m.
-   Kotlar: su 98,30; duvar üstü 99,15; kum oluğu üstü 96,19, dibi 95,69; temel altı (grobeton üstü) 95,05; tabii zemin 95,40. */
+/* GERÇEK PROJE: Çokal AAT, T-103 Kum ve Yağ Tutucu (aynı çizim, G-G enine kesit ve plan; ölçüler DXF'ten okundu)
+   2 göz; göz iç 1,60 m (kum 1,00 + ayırma kirişi 0,20 + yağ 0,40); ara duvar 30, dış duvar 40 → en 4,30 m.
+   Boyuna: 40 | 150 dağıtma | 40 | 1140 havuz | 40 | 150 çıkış | 40 → 16,00 m.
+   Kotlar: su 97,45; duvar üstü 99,15 (orta yürüme yolu 98,30); kum oluğu üstü 96,19, dibi 95,69; taban plağı üstü 95,05, altı 94,55; tabii zemin 95,40. */
 t('Çokal AAT T-103: kum tutucu ayak izi ve kotları çizimle aynı', () => {
-  const k = K.kumKart('gr', { N: 2, b: 1.00, bF: 0.50, tw: 0.10, h: 2.11, L: 11.0 }, { zs: 98.30, zz: 95.40 });
-  yakin(k.ayakIzi.en, 4.30, 'en (çizim 430)'); yakin(k.ayakIzi.boy, 15.60, 'boy (çizim 1560)');
+  const k = K.kumKart('gr', { N: 2, b: 1.00, bF: 0.40, tw: 0.20, h: 1.26, L: 11.4 }, { zs: 97.45, zz: 95.40 });
+  yakin(k.ayakIzi.en, 4.30, 'en (çizim 430)'); yakin(k.ayakIzi.boy, 16.00, 'boy (çizim 1600)');
   yakin(k.kot.ust, 99.15, 'duvar üstü'); yakin(k.kot.taban, 96.19, 'kum oluğu üstü');
-  yakin(k.kot.oluk, 95.69, 'kum oluğu dibi'); yakin(k.kot.temel, 95.05, 'temel altı');
+  yakin(k.kot.oluk, 95.69, 'kum oluğu dibi'); yakin(k.kot.plak, 95.05, 'taban plağı üstü'); yakin(k.kot.temel, 94.55, 'temel altı');
   assert.ok(p(k, 'zu').not.includes('su yüzü'));
   assert.strictEqual(p(k, 'b').kaynak, 'hesap'); assert.strictEqual(p(k, 'hp').kaynak, 'standart'); assert.strictEqual(p(k, 'en').kaynak, 'türetilen');
 });
 
 t('kum tutucu: gömülü yapıda duvar üstü zemin + 0,65', () => {
-  const k = K.kumKart('gr', { N: 2, b: 1, bF: 0.5, tw: 0.1, h: 2, L: 10 }, { zs: 98.30, zz: 99.00 });
-  yakin(k.kot.ust, 99.65, 'duvar üstü'); assert.ok(k.uyari.some(u => u.includes('zemin')));
+  const k = K.kumKart('gr', { N: 2, b: 1, bF: 0.5, tw: 0.1, h: 2, L: 10 }, { zs: 98.30, zz: 99.50 });
+  yakin(k.kot.ust, 100.15, 'duvar üstü'); assert.ok(k.uyari.some(u => u.includes('zemin')));
 });
 
 t('akış zincirinde kum tutucu kartı ATV verisinden (2035)', () => {

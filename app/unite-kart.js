@@ -201,17 +201,19 @@
   /* ---------- KUM VE YAĞ TUTUCU KARTI (havalandırmalı, gezer köprülü) ----------
      Standartlar Çokal AAT T-103 çiziminden alındı (F-F enine kesit, plan):
      göz iç genişliği = kum bölmesi + ayırma (yağ lameli) + yağ bölmesi; gözler arası 30 cm duvar; dış duvar 40 cm;
-     boyuna: dağıtma kanalı 1,50 + havuz + çıkış kanalı 1,50 (aralarda duvar); su yüzü + 0,85 = duvar üstü;
-     kum oluğu tabandan 0,50 aşağıda; kum oluğu altında taban plağı. */
+     boyuna: dağıtma kanalı 1,50 + havuz + çıkış kanalı 1,50 (aralarda duvar); su yüzü (97,45) + 1,70 = duvar üstü (99,15);
+     orta yürüme yolu duvar üstünden 0,85 aşağıda (98,30); kum oluğu tabandan 0,50 aşağıda; oluğun altında 0,64 grobeton dolgu,
+     onun altında 0,50 taban plağı (G-G kesiti: 95,69 → 95,05 → 94,55). */
   K.STD_KUM = {
-    hp: { ad: 'Hava payı (su yüzü → duvar üstü)', v: 0.85, birim: 'm' },
+    hp: { ad: 'Hava payı (su yüzü → duvar üstü)', v: 1.70, birim: 'm' },
     pz: { ad: 'Duvar üstü — zeminden en az yükseklik', v: 0.65, birim: 'm' },
     tw: { ad: 'Dış duvar kalınlığı', v: 0.40, birim: 'm' },
     ti: { ad: 'Gözler arası duvar kalınlığı', v: 0.30, birim: 'm' },
     bD: { ad: 'Dağıtma (giriş) kanalı iç genişliği', v: 1.50, birim: 'm' },
     bC: { ad: 'Çıkış kanalı iç genişliği', v: 1.50, birim: 'm' },
     ho: { ad: 'Kum oluğu derinliği (tabandan)', v: 0.50, birim: 'm' },
-    tb: { ad: 'Kum oluğu altı taban plağı kalınlığı', v: 0.64, birim: 'm' },
+    tb: { ad: 'Kum oluğu altı dolgu (grobeton) kalınlığı', v: 0.64, birim: 'm' },
+    tr: { ad: 'Taban plağı kalınlığı', v: 0.50, birim: 'm' },
   };
   K.kumKart = (id, dim, par, sec) => {
     par = par || {}; dim = dim || {}; sec = sec || {};
@@ -242,7 +244,8 @@
     const zu = ek('zu', 'Duvar üstü kotu (köprü yolu)', zuV, 'm', 'türetilen', { f: 'en büyük(su yüzü + hava payı ; zemin + 0,65)', not: 'Belirleyen: ' + neden });
     const zt = ek('zt', 'Taban kotu (kum oluğu üstü)', zs - h, 'm', 'türetilen', { f: 'su yüzü − h' });
     const zo = ek('zo', 'Kum oluğu dibi kotu', zt - S.ho, 'm', 'türetilen', { f: 'taban − kum oluğu derinliği' });
-    const zf = ek('zf', 'Temel alt kotu', zo - S.tb, 'm', 'türetilen', { f: 'kum oluğu dibi − taban plağı' });
+    const zp = ek('zp', 'Taban plağı üst kotu (dolgu altı)', zo - S.tb, 'm', 'türetilen', { f: 'kum oluğu dibi − dolgu' });
+    const zf = ek('zf', 'Temel alt kotu', zp - S.tr, 'm', 'türetilen', { f: 'taban plağı üstü − taban plağı' });
     const gz = ek('gz', 'Göz iç genişliği', b + ta + bF, 'm', 'türetilen', { f: 'kum + ayırma + yağ bölmesi' });
     const en = ek('en', 'Ayak izi eni', N * gz + (N - 1) * S.ti + 2 * S.tw, 'm', 'türetilen', { f: 'N·göz + (N−1)·ara duvar + 2·dış duvar' });
     const boy = ek('boy', 'Ayak izi boyu', S.bD + L + S.bC + 4 * S.tw, 'm', 'türetilen', { f: 'dağıtma kanalı + havuz + çıkış kanalı + 4·duvar' });
@@ -254,7 +257,7 @@
       id, tip: 'kum', params: P, uyari, koku: true,
       ayakIzi: { en: r3(en), boy: r3(boy) },
       giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zs },
-      kot: { su: zs, ust: zu, taban: zt, oluk: zo, temel: zf, zemin: zz },
+      kot: { su: zs, ust: zu, taban: zt, oluk: zo, plak: zp, temel: zf, zemin: zz },
     };
   };
 
