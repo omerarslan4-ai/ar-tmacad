@@ -36,15 +36,17 @@ t('Çokal T-105: pencere, köprü, ara duvar ve borular', () => {
   assert.strictEqual(G.acik.filter(a => a.k === 'pencere').length, 2);
 });
 
-t('yuvarlak perdeler: her halkada iki, R0,70–R1,00, çıkış ucunda 0,60 uzantı; komşu halkalar ters döner', () => {
+t('yuvarlak perdeler: her halkada iki, R0,70–R1,00, çıkış ucunda kulvar/2 baston; komşu halkalar ters döner', () => {
   const pr = G.parca.filter(p => p.k === 'perde'); assert.strictEqual(pr.length, 6);
   assert.deepStrictEqual(G.halka.map(h => h.yon), [1, -1, 1]);
-  // RAS sol perde: üst uçta x 3,00 → 3,60 uzantı (çizim 15601,3 → 15661,3), alt uçta uzantı yok
+  // RAS sol perde: üst uçta baston = kulvar / 2 = 0,675 (Çokal çiziminde 0,60), alt uçta baston yok
   const p0 = pr[0].pts, xs = p0.map(p => p[0]), ys = p0.map(p => p[1]);
-  yakin(Math.max(...xs.filter((x, i) => ys[i] > 1.9 + 0.69)), 3.60 + 0.15, 'uzantı + yuvarlak uç');
+  yakin(Math.max(...xs.filter((x, i) => ys[i] > 1.9 + 0.69)), 3.00 + 0.675 + 0.15, 'baston + yuvarlak uç'); yakin(G.baston, 1.35 / 2, 'baston = kulvar / 2');
   yakin(Math.min(...xs), 3.00 - 1.00, 'dış yarıçap'); yakin(Math.max(...ys), 1.90 + 1.00, 'üst');
   // halka 1 sol perde: uzantı altta
-  const p1 = pr[2].pts; yakin(Math.max(...p1.filter(p => p[1] < 5.3 - 0.69).map(p => p[0])), 3.75, 'halka 1 alt uzantı');
+  const p1 = pr[2].pts; yakin(Math.max(...p1.filter(p => p[1] < 5.3 - 0.69).map(p => p[0])), 3.825, 'halka 1 alt baston');
+  // yürüyüş yolu bastonun ucundan kulvar / 2 sonra (Çokal 12,50)
+  yakin(G.kopru.x1, 14.00 - 0.675 - 0.15 - 0.675, 'köprü bastona göre');
 });
 
 t('hacim karusel formülüyle aynı; duvar parçaları kapalı ve geçerli', () => {

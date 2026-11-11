@@ -18,9 +18,9 @@
 
   /* Çokal AAT T-105 varsayılanları (3-Çokal_AAT_Anaerobik_R3.dwg) */
   const DEF = {
-    n: 3, Ls: 11.0, Ro: 1.50, tw: 0.30, two: 0.40, rg: 0.70, tg: 0.30, ext: 0.60,
+    n: 3, Ls: 11.0, Ro: 1.50, tw: 0.30, two: 0.40, rg: 0.70, tg: 0.30, ext: null, kbA: null, // yönlendirme perdesi bastonu ve baston–yürüyüş yolu arası: boşsa kulvar / 2 (Çokal 0,60 ≈ 0,675)
     bG: 0.80, bC: 1.00, tK: 0.30, ag: 0.60, ah: 1.00, dAg: 0.89, kp: 0.40,
-    or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.50, kbT: 0.20,
+    or: 0.50, ow: 1.50, kb: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
     oh: null, dPe: null, // pencere yüksekliği ve eşik derinliği (boşsa ağızla aynı)
@@ -90,6 +90,7 @@
     const ada = (pts, k) => G.parca.push({ pts: ccw(pts), z0: zB, z1: zTop, k }); // bağımsız perdeler (orta duvar, yuvarlak perde)
     const kes = (pts, z0, z1, k) => G.kes.push({ pts, z0, z1, k }); // betondan çıkarılacak boşluk prizması
     const e1 = Math.sqrt(R2 * R2 - q.Ro * q.Ro), fi = Math.asin(q.Ro / R2) / RAD;
+    const eB = q.ext != null ? +q.ext : G.b / 2, aB = q.kbA != null ? +q.kbA : G.b / 2; G.baston = eB;
     const dl = 0.05; // boşluk prizması duvar yüzlerinden taşma payı
     // ---- halkalar: ağızlar, orta duvar, yuvarlak perdeler ----
     for (let i = 0; i < n; i++) {
@@ -104,11 +105,12 @@
       }
       const r = q.tw / 2;
       ada([...arc(xc2, y, r, -90, 90, 8), ...arc(xc1, y, r, 90, 270, 8)], 'orta');
-      ada(perde(xc1, y, q.rg, q.rg + q.tg, q.ext, -1, s), 'perde'); // sol uçta çıkış s yönünde
-      ada(perde(xc2, y, q.rg, q.rg + q.tg, q.ext, 1, -s), 'perde'); // sağ uçta −s yönünde
+      ada(perde(xc1, y, q.rg, q.rg + q.tg, eB, -1, s), 'perde'); // sol uçta çıkış s yönünde
+      ada(perde(xc2, y, q.rg, q.rg + q.tg, eB, 1, -s), 'perde'); // sağ uçta −s yönünde
     }
     // ---- ortak duvarlarda orifis ve kapaklı pencere; köprü ----
-    const xk0 = Math.max(xc1 + 0.5, xc2 - q.kbX - q.kb);
+    // yürüyüş yolu bastonun ucundan (yuvarlak uç dahil) kulvar / 2 sonra başlar (Çokal köprü 11,00 – 12,50)
+    const xk0 = Math.max(xc1 + 0.5, xc2 - eB - q.tg / 2 - aB - q.kb);
     let xw1 = xk0 - q.kpA, xw0 = xw1 - q.ow, xo = xw0;
     if (xo < xc1) { const kay = xc1 + 0.3 - xo; xo += kay; xw0 += kay; xw1 += kay; }
     G.kopru = { x0: xk0, x1: xk0 + q.kb, z0: zTop, z1: zTop + q.kbT };

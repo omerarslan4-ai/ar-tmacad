@@ -53,7 +53,7 @@
   - Parshall savağı seçimli: boğaz genişliği standart tablodan; kot düşümü hidrolik profile işlenir.
 - Anaerobik havuz (Çokal AAT T-105 biçimi):
   - Karusel halkaları yan yana, ortak duvarlı. Varsayılan 3 halka: 1. halka geri devir (RAS), 2. ve 3. halka ham su; eski projeler için tek halka.
-  - Halka iç eni 3,00 m (iç yarıçap 1,50), ortada 30 cm duvar, iki koridor 1,35 m; uçlar yarım daire, dönüşte R0,70–R1,00 kılavuz duvar (30 cm). Dış duvar ve halkalar arası duvar 40 cm.
+  - Halka iç eni 3,00 m (iç yarıçap 1,50), ortada 30 cm duvar, iki koridor 1,35 m; uçlar yarım daire, dönüşte R0,70–R1,00 kılavuz duvar (yönlendirme perdesi, 30 cm); perdenin çıkış ucundaki düz kısmı (baston) kulvar genişliğinin yarısı (Çokal 0,60 ≈ 0,675). Yürüyüş yolları bastonun ucundan kulvar / 2 sonra başlar (Çokal köprü 11,00–12,50); mikserler yolla birlikte konumlanır. Dış duvar ve halkalar arası duvar 40 cm.
   - Düz boy gerekli hacimden bulunur (elle değiştirilebilir; Çokal 11,00 m → dış ölçü 17,20 × 10,60 m).
   - Sol yanda giriş kanalı 0,80 m: her halkanın ucuna kapaklı ağız 0,60 × 1,00 m (Çokal 95,75–96,75, su 96,64); kapaklarla ham suyun gireceği halka seçilir. Giriş borusu kanala alttan.
   - Sağ yanda çıkış kanalı 1,00 m, ara duvarla ikiye bölünür (ara duvar boydan boya perde, tabanda 0,60 × 0,60 kapaklı orifis; kapak perdenin RAS yüzünde): alt bölüm RAS girişi (RAS halkasına), üst bölüm ham su halkalarının çıkışı (çıkış borusu ortadan). Kanal dış duvarları 30 cm.
