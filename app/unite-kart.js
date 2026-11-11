@@ -67,12 +67,15 @@
     gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre', tip: 'debimetre' }, pc: { ad: 'Ön çökeltme' },
     dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)', tip: 'dagitma' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz', tip: 'bio' },
     dg2: { ad: 'Dağıtma yapısı (son çökeltme)', tip: 'dagitma' }, sc: { ad: 'Son çökeltme', tip: 'sc' },
-    uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
+    // çıkış hattı (yuvalar): AKM filtresi → [ultrafiltrasyon] → UV → çıkış debimetresi → [klor temas + temiz su]
+    df: { ad: 'Disk filtre' }, fp: { ad: 'Filtre besleme pompaları' }, kf: { ad: 'Basınçlı kum filtresi' },
+    uf: { ad: 'Ultrafiltrasyon' }, uv: { ad: 'UV dezenfeksiyon' }, dmc: { ad: 'Çıkış debimetresi', tip: 'debimetre' },
+    kt: { ad: 'Klor temas tankı' }, ts: { ad: 'Temiz su deposu' },
     pt: { ad: 'Çamur yoğunlaştırma' }, et: { ad: 'Çamur depolama / stabilizasyon' }, dw: { ad: 'Çamur susuzlaştırma (dekantör binası)' },
     cp: { ad: 'Kimyasal fosfor giderimi' },
   };
   /* nihai kademe debisiyle boyutlanan üniteler (ön arıtma). Terfi istasyonu yapısı da nihai kademeye göre (varsayım) */
-  K.NIHAI = new Set(['cs', 'fs', 'izB', 'ps', 'gr', 'dm']);
+  K.NIHAI = new Set(['cs', 'fs', 'izB', 'ps', 'gr', 'dm', 'df', 'fp', 'kf', 'uf', 'uv', 'dmc', 'kt', 'ts']); // çıkış hattı da nihai Q maks. (Çokal)
   const KOKU = new Set(['cs', 'fs', 'izB', 'gr', 'dw', 'et']);
 
   /* akış zinciri: proses seçimlerine göre ünite sırası. Durum: kart | taslak (proses ebatlı ayak izi) | eksik (hesapta yok) | bekliyor (şablon yok) */
@@ -106,9 +109,15 @@
     zorunlu(su, 'bio');
     if (veri('sc') && Math.max(N('sc'), NN('sc')) >= 2) ekle(su, 'dg2', { durum: 'kart', hat: N('sc'), hatN: Math.max(N('sc'), NN('sc')), hedef: 'sc' });
     zorunlu(su, 'sc');
-    if ((sec.cikis || 'DEZ') === 'GK') ekle(su, 'gk', { durum: 'bekliyor' });
-    else if (veri('uv')) ekle(su, 'uv', { durum: 'taslak' });
-    else ekle(su, 'cik', { durum: 'bekliyor' });
+    // çıkış hattı: UV her projede; önünde AKM filtresi (disk ya da basınçlı kum), isteğe bağlı ultrafiltrasyon;
+    // UV'den sonra çıkış debimetresi; isteğe bağlı klor temas tankı + temiz su deposu. Eski "Geri kazanım" seçimi = kum filtresi + klor.
+    const eskiGK = sec.cikis === 'GK';
+    if ((sec.akm || 'KUM') === 'DISK') ekle(su, 'df', { durum: 'bekliyor' });
+    else { ekle(su, 'fp', { durum: 'bekliyor' }); ekle(su, 'kf', { durum: 'bekliyor' }); }
+    if (sec.uf === 'VAR') ekle(su, 'uf', { durum: 'bekliyor' });
+    ekle(su, 'uv', { durum: veri('uv') ? 'taslak' : 'bekliyor', secenek: sec.uvTip === 'BORU' ? 'Boru tipi' : 'Kanal tipi' });
+    ekle(su, 'dmc', { durum: 'kart', secenek: 'Manyetik debimetre' });
+    if (sec.klor === 'VAR' || (sec.klor == null && eskiGK)) { ekle(su, 'kt', { durum: 'bekliyor' }); ekle(su, 'ts', { durum: 'bekliyor' }); }
     // çamur hattı ve yardımcılar
     for (const id of ['pt', 'et', 'dw']) secimli(camur, id);
     secimli(yard, 'cp');
@@ -684,6 +693,8 @@
     const uN = Z.kademe.nihai.units || {}, uM = Z.kademe.mevcut.units || {};
     const veri = id => (K.NIHAI.has(id) ? uN : uM)[id] || null;
     for (const x of [...Z.su, ...Z.camur, ...Z.yard]) {
+      // yapı grubu: aynı adı taşıyan üniteler aynı yapıdadır (2. parçada ayak izleri birleşir)
+      x.grup = String(((par[x.id] || {}).grup) || '').trim();
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
@@ -702,7 +713,8 @@
         x.kart = K.anaerobikKart(x.id, veri(x.id).dim, Z.kademe.mevcut.debi, par[x.id], sec);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'debimetre') {
-        x.kart = K.debimetreKart(x.id, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id], sec, C && C.CATALOG && C.CATALOG.PE && C.CATALOG.PE.sizes);
+        // çıkış debimetresi her zaman manyetik (boru üstünde); giriş debimetresinin tipi üstteki seçenekten
+        x.kart = K.debimetreKart(x.id, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id], x.id === 'dmc' ? { debimetre: 'MAN' } : sec, C && C.CATALOG && C.CATALOG.PE && C.CATALOG.PE.sizes);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'terfi') {
         x.kart = K.terfiKart(x.id, veri(x.id).dim, par[x.id], (uM[x.id] || {}).dim, sec);
@@ -754,7 +766,10 @@
       U.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px 0;align-items:center">
         ${sel('onaritma', 'Ön arıtma', [['A', 'A: kaba ızgara → terfi → ince ızgara'], ['B', 'B: kaba + ince aynı kanalda → terfi']], A.sec.onaritma || 'A')}
         ${sel('debimetre', 'Debimetre', [['MAN', 'Manyetik'], ['PAR', 'Parshall savağı']], A.sec.debimetre || 'MAN')}
-        ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}
+        ${sel('akm', 'AKM filtresi', [['KUM', 'Basınçlı kum filtresi'], ['DISK', 'Disk filtre']], A.sec.akm || 'KUM')}
+        ${sel('uf', 'Ultrafiltrasyon', [['YOK', 'Yok'], ['VAR', 'Var']], A.sec.uf || 'YOK')}
+        ${sel('uvTip', 'UV', [['KANAL', 'Kanal tipi'], ['BORU', 'Boru tipi']], A.sec.uvTip || 'KANAL')}
+        ${sel('klor', 'Klor temas + temiz su', [['YOK', 'Yok'], ['VAR', 'Var']], A.sec.klor || (A.sec.cikis === 'GK' ? 'VAR' : 'YOK'))}
         ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
         ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}
         ${sel('anGoz', 'Anaerobik göz', [['3', '3 göz (ayırıcı kapaklı)'], ['1', 'Tek göz']], A.sec.anGoz || '3')}
@@ -765,7 +780,7 @@
       const grup = (ad, xs) => xs.length ? `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin:8px 0 4px">${esc(ad)}</div>` + xs.map(x => {
         const d = DURUM[x.durum] || DURUM.taslak, ai = x.ayakIzi ? `${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m${x.adet > 1 ? ' × ' + x.adet : ''}${x.gelecek ? ' (+' + x.gelecek + ' gelecek kademe)' : ''}` : '—';
         return `<button data-k="${x.id}" style="display:block;width:100%;text-align:left;margin:2px 0;${x.id === secId ? 'border-color:var(--acc,#4c9be8);background:rgba(76,155,232,.15)' : ''}">
-          <b>${esc(x.kod)}</b> ${esc(x.ad)} ${rozet(d[0], d[1])}<br><span class="hint">${x.kademe} kademe · ayak izi ${ai}${x.koku ? ' · koku' : ''}</span></button>`;
+          <b>${esc(x.kod)}</b> ${esc(x.ad)} ${rozet(d[0], d[1])}<br><span class="hint">${x.kademe} kademe · ayak izi ${ai}${x.koku ? ' · koku' : ''}${x.grup ? ' · yapı: ' + esc(x.grup) : ''}</span></button>`;
       }).join('') : '';
       L1.innerHTML = grup('Su hattı', Z.su) + grup('Çamur hattı', Z.camur) + grup('Yardımcı', Z.yard);
       L1.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { secId = x.dataset.k; ciz(); });
@@ -773,13 +788,15 @@
       if (!x) { R1.innerHTML = ''; return; }
       secId = x.id; detay(x, kd);
     };
+    const grupBagla = x => { const g = R1.querySelector('#ukGrup'); if (!g) return; g.onchange = () => { const p = (A.par[x.id] = A.par[x.id] || {}); const v = g.value.trim(); if (v) p.grup = v; else delete p.grup; C.changed && C.changed(); ciz(); }; };
     const detay = (x, kd) => {
       const kdm = x.kademe === 'nihai' ? kd.nihai : kd.mevcut;
       let h = `<div style="font-weight:600;font-size:15px">${esc(x.kod)} ${esc(x.ad)}</div>
-        <div class="hint" style="margin-bottom:8px">${x.kademe === 'nihai' ? 'Nihai' : 'Mevcut'} kademe: ${esc(kdm.ad)}${x.sonraki ? ' · sonraki ünite ' + esc(x.sonraki) : ''}${x.koku ? ' · koku bayrağı: kapalı örtü ve emiş kanalı' : ''}${x.secenek ? ' · ' + esc(x.secenek) : ''}${x.hat ? ' · ' + x.hat + ' hat' : ''}</div>`;
+        <div class="hint" style="margin-bottom:8px">${x.kademe === 'nihai' ? 'Nihai' : 'Mevcut'} kademe: ${esc(kdm.ad)}${x.sonraki ? ' · sonraki ünite ' + esc(x.sonraki) : ''}${x.koku ? ' · koku bayrağı: kapalı örtü ve emiş kanalı' : ''}${x.secenek ? ' · ' + esc(x.secenek) : ''}${x.hat ? ' · ' + x.hat + ' hat' : ''}</div>
+        <label style="display:block;margin-bottom:8px">Yapı grubu <input id="ukGrup" value="${esc(x.grup || '')}" placeholder="boş = ayrı yapı" style="width:200px"> <span class="hint">aynı adı taşıyan üniteler aynı yapıda</span></label>`;
       if (!x.kart) {
         const m = { taslak: 'Bu ünitenin kartı henüz yok; ayak izi proses hesabındaki ebatlardan alındı.', eksik: 'Bu ünite proses hesabında yok. ATV penceresinde üniteyi seçip yeniden aktarın.', bekliyor: 'Bu ünitenin şablonu henüz yok; sonraki adımlarda eklenecek.' }[x.durum] || '';
-        R1.innerHTML = h + `<p>${esc(m)}</p>${x.ayakIzi ? `<p>Ayak izi: ${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m</p>` : ''}`; return;
+        R1.innerHTML = h + `<p>${esc(m)}</p>${x.ayakIzi ? `<p>Ayak izi: ${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m</p>` : ''}`; grupBagla(x); return;
       }
       const k = x.kart;
       h += `<table class="bom" style="width:100%"><thead><tr><th>Parametre</th><th>Değer</th><th>Birim</th><th>Kaynak</th></tr></thead><tbody>`;
@@ -789,7 +806,7 @@
       }
       h += '</tbody></table>';
       if (k.uyari.length) h += `<div class="hint" style="color:#e0a030;margin-top:8px">${k.uyari.map(esc).join('<br>')}</div>`;
-      R1.innerHTML = h;
+      R1.innerHTML = h; grupBagla(x);
       const pr = () => (A.par[x.id] = A.par[x.id] || {});
       R1.querySelectorAll('[data-p]').forEach(i => i.onchange = () => { const v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) pr()[i.dataset.p] = v; else delete pr()[i.dataset.p]; C.changed && C.changed(); ciz(); });
       R1.querySelectorAll('[data-sil]').forEach(i => i.onclick = () => { delete pr()[i.dataset.sil]; C.changed && C.changed(); ciz(); });
@@ -827,7 +844,9 @@
       ['Giriş terfi istasyonu', 'Inlet pumping station'], ['Kum ve yağ tutucu', 'Grit and grease chamber'], ['Debimetre', 'Flow meter'], ['Ön çökeltme', 'Primary clarifier'],
       ['Dağıtma yapısı (biyolojik havuzlar)', 'Distribution chamber (biological tanks)'], ['Dağıtma yapısı (son çökeltme)', 'Distribution chamber (final clarifiers)'],
       ['Anaerobik havuz', 'Anaerobic tank'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
-      ['Çıkış yapısı', 'Outlet structure'], ['Geri kazanım üniteleri', 'Water reuse units'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],
+      ['Disk filtre', 'Disc filter'], ['Filtre besleme pompaları', 'Filter feed pumps'], ['Basınçlı kum filtresi', 'Pressure sand filter'],
+      ['Ultrafiltrasyon', 'Ultrafiltration'], ['UV dezenfeksiyon', 'UV disinfection'], ['Çıkış debimetresi', 'Outlet flow meter'],
+      ['Klor temas tankı', 'Chlorine contact tank'], ['Temiz su deposu', 'Treated water tank'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],
       ['Çamur susuzlaştırma (dekantör binası)', 'Sludge dewatering (decanter building)'], ['Kimyasal fosfor giderimi', 'Chemical phosphorus removal'],
       ['Yürüme platformu kotu', 'Walkway platform level'], ['Izgara deşarj ağzı kotu', 'Screen discharge level'], ['Konveyör bandı kotu', 'Conveyor belt level'], ['Kanal taban kotu', 'Channel invert level'],
     ], {});

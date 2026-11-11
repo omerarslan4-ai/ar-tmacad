@@ -23,11 +23,11 @@ t('kademe seçimi: nihai = en büyük debi, mevcut = ATV etkin kademe', () => {
 
 t('akış zinciri (ön arıtma A): sıra, numara, kademe', () => {
   const Z = K.zincir(j, {});
-  assert.deepStrictEqual(Z.su.map(x => x.id), ['cs', 'ps', 'fs', 'gr', 'dm', 'pc', 'dg1', 'an', 'bio', 'dg2', 'sc', 'cik']);
+  assert.deepStrictEqual(Z.su.map(x => x.id), ['cs', 'ps', 'fs', 'gr', 'dm', 'pc', 'dg1', 'an', 'bio', 'dg2', 'sc', 'fp', 'kf', 'uv', 'dmc']);
   assert.deepStrictEqual(Z.camur.map(x => x.id), ['pt', 'et', 'dw']);
   assert.deepStrictEqual(Z.yard.map(x => x.id), ['cp']);
   assert.deepStrictEqual(Z.su.map(x => x.kod).slice(0, 3), ['T-101', 'T-102', 'T-103']);
-  assert.strictEqual(Z.yard[0].kod, 'T-116');
+  assert.strictEqual(Z.yard[0].kod, 'T-119');
   assert.strictEqual(Z.su[0].sonraki, 'T-102');
   assert.strictEqual(Z.su.find(x => x.id === 'cs').kademe, 'nihai');
   assert.strictEqual(Z.su.find(x => x.id === 'bio').kademe, 'mevcut');
@@ -286,6 +286,20 @@ t('dağıtma yapıları zincirde kart; biyolojik dağıtımda geri devir yok', (
   assert.ok(p(d2.kart, 'Lsv').v > 1.7 && p(d2.kart, 'hN').v <= 0.1505, 'savak boyu debiden');
   assert.ok(p(d2.kart, 'Pv').v <= 30.01 && !d2.kart.uyari.some(u => u.includes('enerji')), 'enerji sınırı');
   assert.ok(d2.kart.uyari.some(u => u.includes('yetmiyor')), 'her hatta 1,2 m³/s: tek PE boru yetmez uyarısı');
+});
+
+t('çıkış hattı yuvaları: AKM filtresi → [UF] → UV (her zaman) → çıkış debimetresi → [klor + temiz su]', () => {
+  const ids = sec => K.zincir(j, sec).su.slice(11).map(x => x.id);
+  assert.deepStrictEqual(ids({}), ['fp', 'kf', 'uv', 'dmc']);
+  assert.deepStrictEqual(ids({ akm: 'DISK', uf: 'VAR', uvTip: 'BORU', klor: 'VAR' }), ['df', 'uf', 'uv', 'dmc', 'kt', 'ts']);
+  assert.deepStrictEqual(ids({ cikis: 'GK' }), ['fp', 'kf', 'uv', 'dmc', 'kt', 'ts'], 'eski "Geri kazanım" seçimi açılır');
+  assert.strictEqual(K.zincir(j, { uvTip: 'BORU' }).su.find(x => x.id === 'uv').secenek, 'Boru tipi');
+  const Z = K.kartlar(j, { par: { uv: { grup: 'İleri arıtma binası' }, dmc: { grup: 'İleri arıtma binası' } } }, { karusel: KAR });
+  const dmc = Z.su.find(x => x.id === 'dmc');
+  assert.strictEqual(dmc.durum, 'kart'); assert.strictEqual(dmc.kademe, 'nihai'); assert.strictEqual(p(dmc.kart, 'tip').v, 'Manyetik debimetre');
+  assert.strictEqual(dmc.grup, 'İleri arıtma binası'); assert.strictEqual(Z.su.find(x => x.id === 'uv').grup, 'İleri arıtma binası');
+  const P = K.kartlar(j, { sec: { debimetre: 'PAR' } }, { karusel: KAR }).su;
+  assert.strictEqual(p(P.find(x => x.id === 'dm').kart, 'tip').v, 'Parshall savağı'); assert.strictEqual(p(P.find(x => x.id === 'dmc').kart, 'tip').v, 'Manyetik debimetre');
 });
 
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
