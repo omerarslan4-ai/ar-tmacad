@@ -76,7 +76,7 @@ t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
   const { ekipmanYer } = require('../app/anaerobik.js');
   const E = ekipmanYer(G, { n: 2, D: 0.37, P: 2.5, rpm: 1400, name: 'Kompakt' }, 95.00), tur = k => E.filter(x => x.tur === k);
   assert.strictEqual(tur('penstok').length, 9, '6 ağız + 2 pencere + 1 ara duvar orifisi');
-  const p0 = E.find(x => x.anahtar === 'pen-sol-0'); yakin(p0.p[0], 1.00, 'giriş kanalında'); yakin(p0.z, 95.75, 'eşik'); yakin(p0.D, 1.50, 'eşik → duvar üstü'); yakin(p0.B, 0.60, 'B');
+  const p0 = E.find(x => x.anahtar === 'pen-sol-0'); yakin(p0.p[0], 1.10 - 0.06, 'giriş kanalında, düz yüze dayalı'); yakin(p0.z, 95.75, 'eşik'); yakin(p0.D, 1.50, 'eşik → duvar üstü'); yakin(p0.B, 0.60, 'B');
   assert.strictEqual(E.find(x => x.anahtar === 'pen-sag-0').aci, 180, 'RAS halkasına giriş'); assert.strictEqual(E.find(x => x.anahtar === 'pen-sag-1').aci, 0, 'çıkış');
   const pp = E.find(x => x.anahtar === 'pen-pen-0'); yakin(pp.B, 1.50, 'pencere kapağı'); assert.strictEqual(pp.aci, 90);
   const m = tur('merdiven')[0]; yakin(m.pts[1][0], 11.00, 'köprüye çıkar'); yakin(m.pts[0][1], 11.10, 'merdiven ekseni (çizim 11,10)'); yakin(m.z1, 97.45, 'köprü üstü');
@@ -86,7 +86,7 @@ t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
   const s0 = G.sahanlik[0]; yakin(s0.x0, 9.30 - 0.40, 'sahanlık başı'); yakin(s0.y0, 3.40 - 0.45, 'alt'); yakin(s0.y1, 3.80 + 0.30, 'üst');
   assert.ok(k.some(p => Math.abs(p[0] - 8.95) < 0.006 && Math.abs(p[1] - 3.00) < 0.006), 'korkuluk sahanlık çevresinden');
   // kapaklar perdenin içinde değil, yüzünde
-  const pp0 = E.find(x => x.anahtar === 'pen-pen-0'); yakin(pp0.p[1], 3.40 - 0.10, 'pencere kapağı perde yüzünde'); const pb = E.find(x => x.anahtar === 'pen-bolme'); yakin(pb.p[1], 3.45 - 0.10, 'ara duvar kapağı perde yüzünde'); yakin(pb.H, 0.60, 'orifis kapağı');
+  const pp0 = E.find(x => x.anahtar === 'pen-pen-0'); yakin(pp0.p[1], 3.40 - 0.06, 'pencere kapağı perde yüzüne dayalı'); const pb = E.find(x => x.anahtar === 'pen-bolme'); yakin(pb.p[1], 3.45 - 0.06, 'ara duvar kapağı perde yüzüne dayalı'); yakin(pb.H, 0.60, 'orifis kapağı');
   // kapak çerçevesi (B + 2·85 mm) ve el çarkı (r 0,25) korkuluğa değmez
   for (const x of tur('penstok').filter(x => /pen-pen/.test(x.anahtar))) { const s = G.sahanlik[+x.anahtar.slice(-1)], w = x.B / 2 + 0.085; assert.ok(x.p[0] - w > s.x0 + 0.05 && x.p[0] + w < G.kopru.x0 && x.p[1] - 0.25 > s.y0 + 0.05 && x.p[1] + 0.25 < s.y1 - 0.05, 'kapak sahanlıkta: ' + x.anahtar); }
   // tahrik kuralı: alan > 1 m² ya da kuvvet > 10 kN → aktüatör
@@ -170,6 +170,33 @@ t('debiden boyutlandırma: Çokal debileriyle Çokal açıklıkları, 20.000 m³
   const G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, p)); assert.ok(G2.zS > G2.zB + 0.3, 'ağız eşiği tabandan yukarıda');
   assert.ok(G2.ara.g1 < G2.xR + p.bC - 0.1, 'ara duvar kapağı çıkış kanalının içinde'); assert.ok(p.bG >= p.ag + 0.2 - 1e-9, 'giriş kanalı ağızla büyür');
   const B5 = boyutla({ Qd: 50000 }); assert.ok(B5.par.bC > p.bC - 1e-9 && B5.t >= 0.5 && B5.hiz.agiz <= 0.301, '50.000');
+});
+
+t('akış yolu: halkanın içinde kalır, yön halkanın dönüşüne uyar', () => {
+  const { akisNokta } = require('../app/anaerobik.js');
+  const ic = (p, h) => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  for (let i = 0; i < G.n; i++) for (const r of [0.3, 0.8, 1.35]) for (let s = 0; s < 40; s += 0.7) assert.ok(ic(akisNokta(G, i, r, s), G.bolge.delik[i]), 'halka içinde');
+  for (const H of G.halka) { const a = akisNokta(G, H.i, 0.8, 1), b = akisNokta(G, H.i, 0.8, 1.5), ust = a[1] > H.yc; assert.ok(Math.sign(b[0] - a[0]) === (ust ? H.yon : -H.yon), 'koridorda akış yönü = halka dönüşü'); }
+});
+
+t('kapaklar: ağız önünde düz yüz, her kapak açıldığı açıklığın ölçüsünde', () => {
+  const { ekipmanYer, boyutla } = require('../app/anaerobik.js');
+  for (const G0 of [G, geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1 }, boyutla({ Qd: 50000 }).par))]) {
+    const q = G0.q, R2 = q.Ro + q.two, E = ekipmanYer(G0, null, 95);
+    // düz yüz: her halka ucunda dış sınırda x = xc ∓ R2 olan, en az çerçeve eni (B + 2·85 mm) kadar düz kenar
+    for (const [xc, sg] of [[G0.xc1, -1], [G0.xc2, 1]]) for (const yc of G0.yc) {
+      const xF = xc + sg * R2, ys = [G0.bolge.dis, ...G0.bolge.delik].flat().filter(p => Math.abs(p[0] - xF) < 1e-6 && Math.abs(p[1] - yc) < R2).map(p => p[1]);
+      assert.ok(ys.length >= 2 && Math.max(...ys) - Math.min(...ys) >= q.ag + 0.17 - 1e-9, 'düz yüz çerçeveden geniş');
+    }
+    // ölçüler açıklıkla aynı
+    const ac = G0.acik, eb = a => [+(a.pts[2][0] - a.pts[0][0]).toFixed(3), +(a.pts[2][1] - a.pts[0][1]).toFixed(3), +(a.z1 - a.z0).toFixed(3)];
+    for (const x of E.filter(y => y.tur === 'penstok')) {
+      const H = +x.H.toFixed(3), B = +x.B.toFixed(3);
+      if (/pen-(sol|sag)/.test(x.anahtar)) { const a = ac.find(a => a.k === 'agiz' && a.halka === +x.anahtar.slice(-1)); assert.strictEqual(B, eb(a)[1]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'eşik'); }
+      if (/pen-pen/.test(x.anahtar)) { const a = ac.filter(a => a.k === 'pencere')[+x.anahtar.slice(-1)]; assert.strictEqual(B, eb(a)[0]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'pencere eşiği'); }
+      if (x.anahtar === 'pen-bolme') { const a = ac.find(a => a.k === 'orifis'); assert.strictEqual(B, eb(a)[0]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'orifis tabanı'); }
+    }
+  }
 });
 
 console.log(`\n${n} test geçti.`);

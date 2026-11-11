@@ -24,7 +24,7 @@
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
     oh: null, dPe: null, // pencere yüksekliği ve eşik derinliği (boşsa ağızla aynı)
-    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.10, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
+    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.06, pD: 0.20, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
   const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC']; // elle taşınan boru delikleri
@@ -124,8 +124,17 @@
     const xo1 = xR + q.bC, rx = xR + q.bC / 2, gx = q.tK + q.bG / 2;
     // halkaların dış sınırı: sağda alttan üste, solda üstten alta (aralarda ortak duvar ucu düşey)
     const zR = [], zL = [];
-    for (let i = 0; i < n; i++) zR.push(...arc(xc2, yc[i], R2, i === 0 ? -90 : -fi, i === n - 1 ? 90 : fi));
-    for (let i = n - 1; i >= 0; i--) zL.push(...arc(xc1, yc[i], R2, i === n - 1 ? 90 : 180 - fi, i === 0 ? 270 : 180 + fi));
+    // ağız önünde düz yüz: kapak çerçevesi yuvarlak duvara değil düz yüze oturur (yüz eni = ağız + 2 × pD)
+    const wD = Math.min(2 * R2 - 0.1, q.ag + 2 * q.pD);
+    const duzle = (pts, xc, y0, sg) => {
+      const yA = y0 - wD / 2, yB = y0 + wD / 2, xF = xc + sg * R2, xa = yy => xc + sg * Math.sqrt(Math.max(0, R2 * R2 - (yy - y0) ** 2));
+      const art = pts.length > 1 && pts[pts.length - 1][1] > pts[0][1], [y1, y2] = art ? [yA, yB] : [yB, yA], o = []; let kondu = false;
+      for (const p of pts) { const ic = p[1] > yA + 1e-9 && p[1] < yB - 1e-9; if (ic) { if (!kondu) { o.push([xa(y1), y1], [xF, y1], [xF, y2], [xa(y2), y2]); kondu = true; } continue; } o.push(p); }
+      return o;
+    };
+    for (let i = 0; i < n; i++) zR.push(...duzle(arc(xc2, yc[i], R2, i === 0 ? -90 : -fi, i === n - 1 ? 90 : fi), xc2, yc[i], 1));
+    for (let i = n - 1; i >= 0; i--) zL.push(...duzle(arc(xc1, yc[i], R2, i === n - 1 ? 90 : 180 - fi, i === 0 ? 270 : 180 + fi), xc1, yc[i], -1));
+    G.duzYuz = wD;
     const kirp = (z, ya, yb_) => { // tek yönlü (y'ye göre sıralı) zinciri [ya, yb_] aralığına kırp
       const lo = Math.min(ya, yb_), hi = Math.max(ya, yb_), o = [], ic = y => y >= lo - 1e-9 && y <= hi + 1e-9;
       for (let k = 0; k < z.length; k++) {
@@ -196,8 +205,8 @@
       out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw, F, tahrik });
     };
     for (let i = 0; i < n; i++) {
-      pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - 0.10, G.yc[i]], 0, G.zS, q.ag, q.ah); // giriş kanalından halkaya
-      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + 0.10, G.yc[i]], n > 1 && i === 0 ? 180 : 0, G.zS, q.ag, q.ah); // RAS halkasına giriş, diğerlerinde çıkış
+      pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - q.kY, G.yc[i]], 0, G.zS, q.ag, q.ah); // giriş kanalından halkaya; düz yüze dayalı
+      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + q.kY, G.yc[i]], n > 1 && i === 0 ? 180 : 0, G.zS, q.ag, q.ah); // RAS halkasına giriş, diğerlerinde çıkış
     }
     for (let i = 0; i + 1 < n; i++) { // ortak duvarda: pencere kapağı perdenin yüzünde
       pen(`pen-pen-${i}`, `P/${LET[i]}`, [(G.pen.xw0 + G.pen.xw1) / 2, G.yc[i] + q.Ro - q.kY], 90, G.zSp, q.ow, G.zHp - G.zSp); // perde yüzüne monte (akışın geldiği yüz)
@@ -460,6 +469,7 @@
   }
   /* yerleştir / güncelle: programın koyduğu ve yerinde duran ekipman güncellenir; elle taşınan korunur; kullanıcının sildiği yeniden konmaz */
   C.anaerobikEkipman = (e, sessiz) => {
+    if (!e.code && C.uniteNumarala) C.uniteNumarala(true); // etiketler ünite numarasından
     const mxS = mixKaynak(e, geo(e)), k2 = mxS && mxS.n >= 2 ? 1 : 0; if ((e.k2 || 0) !== k2) { e.k2 = k2; delete e._c; delete e._ag; } // halka başına 2+ mikser → ikinci yürüyüş yolu
     const G = geo(e), yer = ekipmanYer(G, mxS, zemin(e, G)), once = new Set(e.ekAnahtar || []), yeniK = new Set(yer.map(y => y.anahtar));
     const mevcut = new Map(C.doc.ents.filter(x => x.bag === e.id && x.anahtar).map(x => [x.anahtar, x]));
@@ -472,12 +482,12 @@
     }
     const sil = [...mevcut.values()].filter(x => !yeniK.has(x.anahtar) && x.oto === imza(x)); if (sil.length && C.remove) { C.remove(sil); s = sil.length; }
     if (!e.suAnahtar) try { C.anaerobikSu(e); } catch (er) { console.error(er); }
-    e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot]); delete e._c;
+    e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot, e.code]); delete e._c;
     if (n || g || s) C.changed && C.changed();
     if (!sessiz || n || s) C.log(`✓ ${e.code || ''} ekipman (mikser: ${mxS ? mxS.n + ' / halka, ' + mxS.kaynak : 'yok'}): ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}${s ? `, ${s} kaldırıldı` : ''}.`);
   };
   // havuz değişince (ölçü, konum, dönüş) ekipman kendiliğinden güncellenir
-  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot]); if (e._ekK !== k) { if (e._ekK == null) { e._ekK = k; continue; } C.anaerobikEkipman(e, true); } } });
+  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]); if (e._ekK !== k) { if (e._ekK == null) { e._ekK = k; continue; } C.anaerobikEkipman(e, true); } } });
 
   // mikser hesabı penceresinde sonuç değişince (aynı tarayıcı belleği) ekipman güncellenir
   if (typeof window !== 'undefined') window.addEventListener('storage', ev => { if (ev.key !== 'mixer-analysis-v1' || !C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) C.anaerobikEkipman(e, true); });
