@@ -62,7 +62,7 @@
 
   /* ---------- ünite listesi ---------- */
   K.UNITE = {
-    cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
+    cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu', tip: 'terfi' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
     gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre' }, pc: { ad: 'Ön çökeltme' },
     dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz' }, bio: { ad: 'Biyolojik havuz' },
@@ -247,6 +247,69 @@
     };
   };
 
+  /* ---------- GİRİŞ TERFİ İSTASYONU KARTI (ıslak hazne, dalgıç pompa) ----------
+     Standartlar Çokal AAT T-102 çiziminden (D-D kesiti, plan):
+     hazne iç 3,90 × 2,50 m, duvar 40 cm; 3 pompa aks aralığı 1,00 m, duvara 0,95 m;
+     giriş kanalı tabanı 86,75 → 1. pompa devreye girme 85,89 (0,86 m altında) → durma 85,15 → taban 84,80;
+     üst döşeme 95,45 = zemin + 0,65; monoray vinç kirişi döşemeden 2,70 m yukarıda.
+     Yapı nihai kademeye göre; pompa sayısı mevcut kademede daha az olabilir (aynı yapıya sonradan eklenir). */
+  K.STD_TERFI = {
+    pg: { ad: 'Giriş kanalı tabanı → en üst çalışma seviyesi payı', v: 0.86, birim: 'm' },
+    pz: { ad: 'Üst döşeme — zeminden en az yükseklik', v: 0.65, birim: 'm' },
+    tw: { ad: 'Duvar kalınlığı', v: 0.40, birim: 'm' },
+    tb: { ad: 'Taban plağı kalınlığı', v: 0.40, birim: 'm' },
+    hv: { ad: 'Monoray vinç kirişi — döşemeden', v: 2.70, birim: 'm' },
+  };
+  K.KAT_TERFI = {
+    ap: { ad: 'Pompa aks aralığı', v: 1.00, birim: 'm' },
+    ak: { ad: 'Son pompa aksı → duvar', v: 0.95, birim: 'm' },
+  };
+  K.terfiKart = (id, dim, par, dimM) => {
+    par = par || {}; dim = dim || {};
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    // hesaptan (ATV: nd asil, n bölme başına toplam, nc bölme, L, W, hd ölü, hu faydalı)
+    const nc = ek('nc', 'Bölme sayısı', Math.max(1, Math.round(+dim.nc || 1)), 'adet', 'hesap');
+    const nP = ek('nP', 'Toplam pompa (asil + yedek, nihai)', Math.max(1, Math.round(+dim.n || 1)) * nc, 'adet', 'hesap');
+    const nd = ek('nd', 'Asil pompa (nihai)', Math.round(+dim.nd || 0), 'adet', 'hesap');
+    if (dimM) ek('ndM', 'Asil pompa (mevcut kademe)', Math.round(+dimM.nd || 0), 'adet', 'hesap', { not: 'Eksik pompalar nihai kademede aynı yapıya eklenir' });
+    const Lh = ek('L', 'Hazne iç boyu (akış yönü)', +dim.L || 0, 'm', 'hesap');
+    const W = ek('W', 'Hazne iç genişliği (bölme başına)', +dim.W || 0, 'm', 'hesap');
+    const hd = ek('hd', 'Ölü hacim yüksekliği', +dim.hd || 0, 'm', 'hesap');
+    const hu = ek('hu', 'Faydalı yükseklik (çalışma aralığı)', +dim.hu || 0, 'm', 'hesap');
+    // standart, katalog
+    const S = {}; for (const [k, s] of Object.entries(K.STD_TERFI)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart');
+    const Kt = {}; for (const [k, s] of Object.entries(K.KAT_TERFI)) Kt[k] = dz(k, s.ad, s.v, s.birim, 'katalog', 'Islak tip dalgıç pompa (Çokal)');
+    // elle
+    const zg = dz('zg', 'Giriş kanalı taban kotu', 0, 'm', 'elle', 'Önceki ünitenin çıkış tabanı; 3. parçada otomatik');
+    const zzVars = zg - S.pz;
+    const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+    const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: 'Boşsa döşeme = giriş tabanı alınır. 2. parçada araziden okunacak' });
+    // türetilen kot zinciri
+    const z1 = ek('z1', 'En üst çalışma seviyesi (1. pompa devreye girer)', zg - S.pg, 'm', 'türetilen', { f: 'giriş tabanı − pay' });
+    const z0 = ek('z0', 'Durma seviyesi (ölü hacim üstü)', z1 - hu, 'm', 'türetilen', { f: 'en üst seviye − faydalı yükseklik' });
+    const zt = ek('zt', 'Hazne taban kotu', z0 - hd, 'm', 'türetilen', { f: 'durma − ölü hacim' });
+    const zf = ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
+    const zu = ek('zu', 'Üst döşeme kotu', Math.max(zg, zz + S.pz), 'm', 'türetilen', { f: 'en büyük(giriş tabanı ; zemin + 0,65)' });
+    ek('D', 'Hazne derinliği (taban → döşeme)', zu - zt, 'm', 'türetilen', { f: 'döşeme − taban' });
+    ek('zv', 'Monoray vinç kirişi kotu', zu + S.hv, 'm', 'türetilen', { f: 'döşeme + vinç yüksekliği' });
+    const nb = Math.max(1, Math.ceil(nP / nc));
+    const Wmin = ek('Wmin', 'Pompa sırası için gereken kenar', (nb - 1) * Kt.ap + 2 * Kt.ak, 'm', 'türetilen', { f: '(bölmedeki pompa − 1)·aks aralığı + 2·duvar mesafesi', not: 'Pompalar haznenin uzun kenarı boyunca dizilir' });
+    const en = ek('en', 'Ayak izi eni', nc * W + (nc + 1) * S.tw, 'm', 'türetilen', { f: 'bölme·genişlik + (bölme+1)·duvar' });
+    const boy = ek('boy', 'Ayak izi boyu', Lh + 2 * S.tw, 'm', 'türetilen', { f: 'hazne boyu + 2·duvar' });
+
+    const kenar = Math.max(W, Lh);
+    if (Wmin > kenar + 0.005) uyari.push(`Hazne (${kenar.toFixed(2).replace('.', ',')} m) ${nb} pompa için dar; katalog aks aralığıyla en az ${Wmin.toFixed(2).replace('.', ',')} m gerekir.`);
+    if (!Lh || !W) uyari.push('Terfi haznesi ölçüleri proses hesabında eksik (L, W).');
+    return {
+      id, tip: 'terfi', params: P, uyari, koku: false,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zg }, cikis: { x: r3(boy), y: r3(en / 2), z: null }, // çıkış: basma hattı (saha borulamasında)
+      kot: { giris: zg, ust: z1, durma: z0, taban: zt, temel: zf, doseme: zu, zemin: zz },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -258,6 +321,9 @@
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'terfi') {
+        x.kart = K.terfiKart(x.id, veri(x.id).dim, par[x.id], (uM[x.id] || {}).dim);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'kum') {
         x.kart = K.kumKart(x.id, veri(x.id).dim, par[x.id], sec);

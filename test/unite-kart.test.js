@@ -126,6 +126,30 @@ t('akış zincirinde kum tutucu kartı ATV verisinden (2035)', () => {
   assert.ok(p(x.kart, 'blower').v.includes('küçük binada'));
 });
 
+/* GERÇEK PROJE: Çokal AAT, T-102 Giriş Terfi Merkezi (aynı çizim, D-D kesiti ve plan)
+   Hazne iç 3,90 × 2,50, duvar 40 → 4,70 × 3,30; 3 pompa (2+1) aks aralığı 1,00, duvara 0,95.
+   Giriş (ızgara) tabanı 86,75; h1 85,89; hölü 85,15; taban 84,80; döşeme 95,45 (ölçü 1065); vinç 98,15; zemin 94,80. */
+t('Çokal AAT T-102: terfi haznesi kotları ve ayak izi çizimle aynı', () => {
+  const k = K.terfiKart('ps', { L: 2.5, W: 3.9, hd: 0.35, hu: 0.74, n: 3, nd: 2, nc: 1 }, { zg: 86.75, zz: 94.80 }, { nd: 1 });
+  yakin(k.kot.ust, 85.89, 'h1'); yakin(k.kot.durma, 85.15, 'hölü'); yakin(k.kot.taban, 84.80, 'taban');
+  yakin(k.kot.temel, 84.40, 'temel'); yakin(k.kot.doseme, 95.45, 'döşeme'); yakin(p(k, 'D').v, 10.65, 'derinlik (çizim 1065)');
+  yakin(p(k, 'zv').v, 98.15, 'monoray'); yakin(p(k, 'Wmin').v, 3.90, 'pompalar sığıyor');
+  yakin(k.ayakIzi.en, 4.70, 'en'); yakin(k.ayakIzi.boy, 3.30, 'boy');
+  assert.strictEqual(p(k, 'ndM').v, 1); assert.strictEqual(k.uyari.length, 0);
+});
+
+t('terfi zincirde: yapı nihai kademeden, pompa sayısı iki kademeyle; pompa sığma kontrolü', () => {
+  const Z = K.kartlar(j, {});
+  const x = Z.su.find(y => y.id === 'ps');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'nihai');
+  assert.strictEqual(p(x.kart, 'nd').v, 14); assert.strictEqual(p(x.kart, 'ndM').v, 4);
+  yakin(x.ayakIzi.en, 2 + 2 * 0.4, 'en'); yakin(x.ayakIzi.boy, 36 + 2 * 0.4, 'boy');
+  // 18 pompa 36 m'lik uzun kenara sığar (17 × 1,0 + 2 × 0,95 = 18,9 m)
+  assert.ok(!x.kart.uyari.some(u => u.includes('dar')));
+  const dar = K.terfiKart('ps', { L: 3, W: 2, hd: 1, hu: 1.5, n: 5, nd: 4, nc: 1 }, {});
+  assert.ok(dar.uyari.some(u => u.includes('dar')));
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));
