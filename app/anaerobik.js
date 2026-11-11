@@ -23,7 +23,7 @@
     or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
-    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.10, k2: 0,
+    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, owA: 0.40, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
   /* yardımcılar (yerel 2B) */
@@ -106,7 +106,7 @@
     }
     // ---- ortak duvarlarda orifis ve kapaklı pencere; köprü ----
     const xk0 = Math.max(xc1 + 0.5, xc2 - q.kbX - q.kb);
-    let xw1 = xk0 - q.kpA, xw0 = xw1 - q.ow, xo = xw0 - 0.05 - q.or;
+    let xw1 = xk0 - q.kpA, xw0 = xw1 - q.ow, xo = xw0 - q.owA - q.or;
     if (xo < xc1) { const kay = xc1 + 0.3 - xo; xo += kay; xw0 += kay; xw1 += kay; }
     G.kopru = { x0: xk0, x1: xk0 + q.kb, z0: zTop, z1: zTop + q.kbT };
     for (let i = 0; i + 1 < n; i++) {
@@ -171,7 +171,9 @@
     if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < Math.min(xo, xw0) - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: 0, y1: Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
     G.sahanlik = [];
     // kapak işletme sahanlığı: orifis ve pencere kapaklarını içine alır, ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
-    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two; G.sahanlik.push({ x0: Math.min(xo, xw0) - q.sahX, x1: xk0, y0: y0 - q.sahE, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT }); }
+    // döşemede kapak yarıkları: kapak çerçevesi (açıklık + 2 × 85 mm yuva gömmesi) + her yanda 5 cm; akış yönünde 0,30 m (çerçeve, kapak ve kaburgalar geçer)
+    const yarik = (xm, B, ym) => { const w = B + 2 * q.yE + 2 * q.yP; return rect(xm - w / 2, ym - q.yD / 2, xm + w / 2, ym + q.yD / 2); };
+    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = (y0 + y1) / 2; G.sahanlik.push({ x0: Math.min(xo, xw0) - q.sahX, x1: xk0, y0: y0 - q.sahE, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((xw0 + xw1) / 2, q.ow, ym), yarik(xo + q.or / 2, q.or, ym)] }); }
     // tretuvar (zemin kotunda, havuz çevresinde): kanallar boyunca dar, halkalar boyunca geniş, aralarda pahlı
     const t = q.tre, xa = Math.max(0, xc1 - R2 - t), xb = Math.min(Lo, xc2 + R2 + t * 0.6);
     G.tretuvar = { dis: [[-t, yb - t], [xa, yb - t], [xc1, -t], [xc2, -t], [xb, yb - t], [Lo + t, yb - t], [Lo + t, yt + t], [xb, yt + t], [xc2, Wo + t], [xc1, Wo + t], [xa, yt + t], [-t, yt + t]], kal: q.treT };
@@ -277,7 +279,7 @@
       for (const a of G.acik) if (a.k !== 'bolme') out.push(PL(a.pts, true, { lt: 'DASHED', color: 8, lw: 18 }));
       // köprü
       const k = G.kopru; out.push(PL([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], true, { color: 30, lw: 35 }));
-      for (const sh of G.sahanlik) out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, { color: 30, lw: 25 }));
+      for (const sh of G.sahanlik) { out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, { color: 30, lw: 25 })); for (const y of sh.yarik || []) out.push(PL(y, true, { color: 30, lw: 18 })); }
       out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, { color: 8, lw: 18 }));
       out.push(T1((k.x0 + k.x1) / 2, G.Wo + 0.9, `Servis köprüsü ${f2(q.kb)} m · ${kot(k.z1)}`, { color: 30 }));
       if (G.kopru2) { const k2 = G.kopru2; out.push(PL([[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], true, { color: 30, lw: 35 }), T1((k2.x0 + k2.x1) / 2, G.Wo + 0.9, `Yürüyüş yolu ${f2(q.kb)} m · ${kot(k2.z1)}`, { color: 30 })); }
@@ -337,7 +339,11 @@
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
       const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], k.z1 - k.z0));
       if (G.kopru2) { const k2 = G.kopru2; out.push(ext(f.at(0, 0, k2.z0), f.ux, [0, 0, 1], [[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], k2.z1 - k2.z0)); }
-      for (const sh of G.sahanlik) out.push(ext(f.at(0, 0, sh.z0), f.ux, [0, 0, 1], [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], sh.z1 - sh.z0));
+      for (const sh of G.sahanlik) { // kapak yarıklı döşeme
+        const uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
+        const Ks = bolgeKati({ dis: [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], delik: (sh.yarik || []).map(y => y.slice().reverse()) }, sh.z0, sh.z1);
+        out.push({ t: 'tri', v: Ks.v.map(W), vn: Ks.vn.map(Wn), f: Ks.f, edges3: Ks.e.map(ab => ab.map(W)) });
+      }
       { // tretuvar: zemin kotunda havuz çevresi
         const zg = zemin(e, G), uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
         const Kt = bolgeKati({ dis: G.tretuvar.dis, delik: [G.bolge.dis.slice().reverse()] }, zg - G.tretuvar.kal, zg);

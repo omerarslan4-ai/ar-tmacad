@@ -64,7 +64,7 @@
   - Ekipman yerleşimi (Çokal T-105 mimari paftası + firma varsayılanı; 11.11.2026 onaylandı):
     - Merdiven betonarme; havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
     - Korkuluk köprünün iki yanında ve merdivenin dış yanında.
-    - Ortak duvardaki orifis ve pencere kapakları duvar yuvasında; köprüye bitişik kapak işletme sahanlığı iki kapağı da içine alır (kapaklardan 0,40 m geniş, duvarın iki yanına 0,30 m taşar), korkuluk çevresinden dolanır. Pencere köprüden 0,10 m geride (kapak çerçevesi köprüye girmesin).
+    - Ortak duvardaki orifis ve pencere kapakları duvar yuvasında; köprüye bitişik kapak işletme sahanlığı iki kapağı da içine alır (kapaklardan 0,40 m geniş, duvarın iki yanına 0,30 m taşar), korkuluk çevresinden dolanır. Kapaklar sahanlık döşemesindeki yarıktan geçer: yarık = çerçeve eni (açıklık + 2 × 85 mm) + her yanda 5 cm, akış yönünde 0,30 m. Pencere köprüden 0,20 m geride, orifis pencereden 0,40 m uzakta (çerçeveler ve yarıklar çakışmasın).
     - Havuz çevresinde zemin kotunda 1,00 m tretuvar.
     - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000), her orifise (500 × 500) ve sağ kanaldaki bölme geçişine birer adet. Ölçüler açıklıktan gelir.
     - Tahrik kendiliğinden seçilir: kapak alanı 1,0 m²'yi ya da su kuvveti 10 kN'u aşarsa elektrikli aktüatör, değilse el çarkı Aynı perdedeki kapaklar tek tip: biri aktüatörlüyse hepsi aktüatörlü (projede tümü el çarkı / tümü aktüatör yapılabilir).
