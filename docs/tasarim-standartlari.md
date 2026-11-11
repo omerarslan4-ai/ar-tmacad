@@ -59,6 +59,11 @@
 - Ön arıtma yapıları (ızgara, terfi, kum tutucu) bitişik tek blok olarak yapılabilir; aralarında 5 cm derz bırakılır (Çokal).
   Terfi istasyonu bazı projelerde ızgara ve kum tutucudan bağımsız, ayrı bir yapı olarak yapılır (seçimli; giriş ve çıkış saha borusuyla).
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
+- Biyolojik (havalandırma) havuz: tüm proses tiplerinde karusel (oksidasyon hendeği) şablonu kullanılır — Zeytinli AAT T107, `app/karusel.js` (karar: 11 Kasım 2026).
+  - Bölmeler duvarsızdır: anoksik bölge mikserli, aerobik bölge difüzörlü kısım; oranlar proses hesabındaki hacimlerden.
+  - Hacim proses hesabından; düz uzunluk, mikser seçimi (mikser programının itki dengesi) ve difüzör sayısı karusel modülünden.
+  - Şablon ölçüleri: dış duvar iç yarıçapı 9,0 m, orta duvar 0,40 m, dış duvar 0,80 m, kılavuz duvar Ø4,40 / 0,40 m, hava payı 1,05 m, taban plağı 0,60 m; duvar üstü zeminden en az 0,65 m yukarıda.
+  - Anaerobik havuz ayrı ünitedir (dikdörtgen, üç gözlü).
 - Son çökeltme havuzları dairesel.
 - Ön arıtma (ızgara, kum tutucu) gelecek kademeyi de kapsayacak şekilde boyutlandırılır; proses havuzları tek kademe için çözülür.
 - Karıştırıcılar kullanıcının mikser programıyla seçilir ve mekanik listeye eklenir; merdivenler genel yerleşimdeki arazi kotlarından güncellenir; difüzör yerleşimi ayrı sekmede yapılır.

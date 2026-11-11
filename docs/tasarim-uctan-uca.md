@@ -85,6 +85,8 @@ Izgara yüksekliği üç değere bağlıdır: zemin kotu, ızgaranın standart b
 
 ### Biyolojik havuz şablonu
 
+> **Karar (11 Kasım 2026):** Tüm proses tiplerinde karusel şablonu kullanılır (Zeytinli AAT T107, `app/karusel.js`). Aşağıdaki tablo bölge sırasını tarif etmeye devam eder; ancak bölmeler karusel içinde duvarsız bölgelerdir (anoksik = mikserli, aerobik = difüzörlü), duvarlı bölme ve savaklı geçiş anlatımı karusel için geçerli değildir. Anaerobik bölme ayrı ünitedir (aşağıda "Üç gözlü anaerobik havuz").
+
 | Proses tipi | Bölme sırası |
 | --- | --- |
 | A2O | Anaerobik → anoksik → aerobik |
