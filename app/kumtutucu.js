@@ -110,7 +110,7 @@
     G.tabanC = { pts: rect(xg1, 0, boy, en), z0: zcs - q.tr, z1: zcs };
     G.kutu.push({ k: 'cikis-dolgu', pts: rect(xC0, q.tw, xC1, en - q.tw), z0: zcs, z1: zcf });
     // gezer köprü rayları: iki dış duvar ekseninde, yapı boyunca
-    G.ray = [q.tw / 2, en - q.tw / 2].map(y => ({ y, x0: 0.10, x1: xg1 + q.tw - 0.10 }));
+    G.ray = [q.tw / 2, en - q.tw / 2].map(y => ({ y, x0: 0.10, x1: xg1 - 0.05 })); // göz sonunda biter: ötesinde duvar sahanlık kotuna alçalıyor
     // üst kum oluğu (alt dış duvarın dışında konsol): taban + dış duvar + uç duvarları
     { const xa = xg0, xb = xg1 - q.okb, w = q.ok + q.okd, zb = zu - q.okh - q.okt, zf = zu - q.okh;
       G.ustOluk = { xa, xb, w, zb, zf, ic: rect(xa + q.okd, -q.ok, xb - q.okd, 0) };
