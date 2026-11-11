@@ -62,12 +62,14 @@
   - Hava payı 0,60 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Her halkada karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
   - Ekipman yerleşimi (Çokal T-105 mimari paftası + firma varsayılanı; 11.11.2026 onaylandı):
-    - Merdiven havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
+    - Merdiven betonarme; havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
     - Korkuluk köprünün iki yanında ve merdivenin dış yanında.
-    - Halkalar arası pencerelerin yanında köprüye bitişik 0,70 × 1,50 m kapak işletme sahanlığı; korkuluk çevresinden dolanır.
+    - Ortak duvardaki orifis ve pencere kapakları duvar yuvasında; köprüye bitişik kapak işletme sahanlığı iki kapağı da içine alır (kapaklardan 0,40 m geniş, duvarın iki yanına 0,30 m taşar), korkuluk çevresinden dolanır. Pencere köprüden 0,10 m geride (kapak çerçevesi köprüye girmesin).
     - Havuz çevresinde zemin kotunda 1,00 m tretuvar.
-    - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000) ve sağ kanaldaki bölme geçişine birer adet. Ölçüler açıklıktan gelir. Tahrik varsayılanı el çarkı (elektrikli aktüatör seçilebilir).
-    - Mikser: halka başına mikser programının seçtiği dalgıç mikserler, perdelerin çıkış ucundaki koridorlarda; kaldırma direği duvar üstünde.
+    - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000), her orifise (500 × 500) ve sağ kanaldaki bölme geçişine birer adet. Ölçüler açıklıktan gelir.
+    - Tahrik kendiliğinden seçilir: kapak alanı 1,0 m²'yi ya da su kuvveti 10 kN'u aşarsa elektrikli aktüatör, değilse el çarkı (projede tümü el çarkı / tümü aktüatör yapılabilir).
+    - Mikser: servis köprüsünün önünde, her koridorda akış yönünde itki; kılavuz direk köprü kenarında, vinçle köprüden alınır. Sayı ve tip mikser hesabı penceresinin sonucundan (aynı halka için yapılmışsa), yoksa aynı yöntemle otomatik seçimden.
+    - Boru delikleri (giriş, RAS, çıkış) saha borulamasına göre yer değiştirir: saha borusunun ucu duvara yakınsa delik borunun eksenine, çapına ve kotuna kayar; elle de taşınabilir.
     - Yerleşen ekipman elle taşınabilir; yeniden üretimde elle taşınanlar korunur. Etiketler (SK-…, Z-…) mekanik listeye girer.
 - Dağıtma yapısı (biyolojik havuzlar ve son çökeltme önü; Çokal AAT T-107 örneği):
   - Mevcut ya da nihai kademede iki ve üzeri hat varsa yapılır; tek hatta yok. Nihai kademedeki fazla hatlar için kör savak (hazır ağız).

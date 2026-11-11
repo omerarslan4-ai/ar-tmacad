@@ -24,7 +24,8 @@ t('Çokal T-105: kotlar (taban, su, ağız)', () => {
 });
 
 t('Çokal T-105: orifis, pencere, köprü, ara duvar ve borular', () => {
-  yakin(G.pen.xo, 8.95, 'orifis'); yakin(G.pen.xw0, 9.50, 'pencere başı'); yakin(G.pen.xw1, 11.00, 'pencere sonu');
+  // pencere köprüden 0,10 geri (kapak çerçevesi köprü döşemesine girmesin — Çokal'da bitişik: 9,50 – 11,00, orifis 8,95)
+  yakin(G.pen.xo, 8.85, 'orifis'); yakin(G.pen.xw0, 9.40, 'pencere başı'); yakin(G.pen.xw1, 10.90, 'pencere sonu');
   yakin(G.kopru.x0, 11.00, 'köprü (çizim 16401,3)'); yakin(G.kopru.x1, 12.50, 'köprü sonu (çizim 16551,3)');
   yakin(G.ara.y, 3.60, 'ara duvar'); yakin(G.ara.g0, 16.10, 'kapaklı geçiş'); yakin(G.ara.g1, 16.70, 'kapaklı geçiş sonu');
   const b = k => G.boru.find(x => x.k === k);
@@ -72,16 +73,32 @@ t('orta duvar ve yuvarlak perdeler halkanın içinde kalır (dışarı taşmaz)'
 t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
   const { ekipmanYer } = require('../app/anaerobik.js');
   const E = ekipmanYer(G, { n: 2, D: 0.37, P: 2.5, rpm: 1400, name: 'Kompakt' }, 95.00), tur = k => E.filter(x => x.tur === k);
-  assert.strictEqual(tur('penstok').length, 9, '6 ağız + 2 pencere + 1 bölme');
+  assert.strictEqual(tur('penstok').length, 11, '6 ağız + 2 pencere + 2 orifis + 1 bölme');
   const p0 = E.find(x => x.anahtar === 'pen-sol-0'); yakin(p0.p[0], 1.00, 'giriş kanalında'); yakin(p0.z, 95.75, 'eşik'); yakin(p0.D, 1.50, 'eşik → duvar üstü'); yakin(p0.B, 0.60, 'B');
   assert.strictEqual(E.find(x => x.anahtar === 'pen-sag-0').aci, 180, 'RAS halkasına giriş'); assert.strictEqual(E.find(x => x.anahtar === 'pen-sag-1').aci, 0, 'çıkış');
   const pp = E.find(x => x.anahtar === 'pen-pen-0'); yakin(pp.B, 1.50, 'pencere kapağı'); assert.strictEqual(pp.aci, 90);
   const m = tur('merdiven')[0]; yakin(m.pts[1][0], 11.00, 'köprüye çıkar'); yakin(m.pts[0][1], 11.10, 'merdiven ekseni (çizim 11,10)'); yakin(m.z1, 97.45, 'köprü üstü');
   assert.ok(Math.abs(m.pts[0][0] - 7.75) < 0.3, 'merdiven başı (çizim 7,75): ' + m.pts[0][0]); assert.ok(m.z1 - m.z0 <= m.nr * 0.19 + 1e-9);
   const k = tur('korkuluk')[0].pts; yakin(Math.max(...k.map(p => p[0])), 12.45, 'sağ kenar (çizim 12,45)');
-  assert.ok(k.some(p => Math.abs(p[0] - 9.55) < 0.006 && Math.abs(p[1] - 3.45) < 0.006), 'sahanlık çevresi (çizim 9,55 / 3,45)');
-  yakin(G.sahanlik[1].y1, 7.50, 'sahanlık ucu (çizim −2924,5 → 7,50)');
+  // sahanlık (Ömer Bey düzeltmesi): orifis + pencere kapaklarını içine alır, duvarın iki yanına 0,30 taşar
+  const s0 = G.sahanlik[0]; yakin(s0.x0, 8.85 - 0.40, 'sahanlık başı'); yakin(s0.y0, 3.10, 'alt'); yakin(s0.y1, 4.10, 'üst');
+  assert.ok(k.some(p => Math.abs(p[0] - 8.50) < 0.006 && Math.abs(p[1] - 3.15) < 0.006), 'korkuluk sahanlık çevresinden');
+  // kapak çerçevesi (B + 2·85 mm) ve el çarkı (r 0,25) korkuluğa değmez
+  for (const x of tur('penstok').filter(x => /pen-(pen|or)/.test(x.anahtar))) { const s = G.sahanlik[+x.anahtar.slice(-1)], w = x.B / 2 + 0.085; assert.ok(x.p[0] - w > s.x0 + 0.05 && x.p[0] + w < G.kopru.x0 && x.p[1] - 0.25 > s.y0 + 0.05 && x.p[1] + 0.25 < s.y1 - 0.05, 'kapak sahanlıkta: ' + x.anahtar); }
+  // tahrik kuralı: alan > 1 m² ya da kuvvet > 10 kN → aktüatör
+  const th = k2 => E.find(x => x.anahtar === k2).tahrik; assert.strictEqual(th('pen-sol-0'), 'EL'); assert.strictEqual(th('pen-pen-0'), 'AKT', 'pencere 1,5 m²'); assert.strictEqual(th('pen-bolme'), 'AKT', 'bölme ≈ 15,5 kN'); assert.strictEqual(th('pen-or-0'), 'EL', 'orifis ≈ 7 kN');
+  assert.ok(ekipmanYer(geo({ zt: 97.25, fb: 0.61, h: 3.14, tahrik: 'EL' })).filter(x => x.tur === 'penstok').every(x => x.tahrik === 'EL'), 'elle zorlama');
   assert.strictEqual(tur('mikser').length, 6, 'halka başına 2 mikser');
+  for (const x of tur('mikser')) assert.ok(Math.abs(x.direk[0] - 10.80) < 1e-6 || Math.abs(x.direk[0] - 12.70) < 1e-6, 'direk köprü kenarında: ' + x.direk[0]);
+  assert.strictEqual(ekipmanYer(G, { n: 4, D: 0.37, P: 2.5, rpm: 1400, name: 'K' }, 95).filter(x => x.tur === 'mikser').length, 12, 'sayı hesaptan');
+});
+
+t('boru delikleri taşınabilir: yer, çap, alt kotu (sınırlar içinde)', () => {
+  const g2 = geo({ zt: 97.25, fb: 0.61, h: 3.14, gx: 0.5, dG: 0.4, hG: 0.3, yC: 9.5, rx: 99 });
+  const b = k => g2.boru.find(x => x.k === k);
+  yakin(b('giris').p[0], 0.50, 'giriş yeri'); yakin(b('giris').z0, 93.80, 'giriş alt kotu'); yakin(b('giris').d, 0.40, 'çap');
+  yakin(b('cikis').p[1], 9.40 - 0.15, 'çıkış kanal ucunda sınırlandı'); yakin(b('ras').p[0], 16.90 - 0.15, 'RAS kanal içinde sınırlandı');
+  assert.ok(g2.kes.filter(k => k.k === 'boru').length === 3);
 });
 
 console.log(`\n${n} test geçti.`);
