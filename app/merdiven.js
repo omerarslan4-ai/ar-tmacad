@@ -115,6 +115,11 @@
         }
         // son rıht: üst sahanlık / döşeme kenarı
         if (tip === 'beton') { const s0 = (pc.n - 1) * pc.b, zt = pc.z + pc.n * pc.h; out.edges3.push([Wd(pc, s0, -hw, zt - pc.h), Wd(pc, s0, hw, zt - pc.h)]); }
+        // plaklı merdivende alt yüz, sonraki sahanlığın alt yüzüne kavuşana kadar sahanlığın altında devam eder (birleşimde basamaklanma olmaz)
+        if (tip === 'beton' && !dolu && pi < G.pieces.length - 1) {
+          const sE = (pc.n - 1) * pc.b, zbE = pc.z + sE * tanA - t / cosA, zL = pc.z + pc.n * pc.h - t;
+          if (zL - zbE > 1e-3 && tanA > 1e-6) { const sI = sE + (zL - zbE) / tanA; sbox(out, pc, sE, sI, -hw, hw, zbE, zL, zL, zL, COL.beton, false); Q.beton += 0.5 * (sI - sE) * (zL - zbE) * G.w; out.edges3.push([Wd(pc, sI, -hw, zL), Wd(pc, sI, hw, zL)]); }
+        }
         if (tip !== 'beton') { // limonlar (UPN 200 / CTP U 200), alt uç zemine oturur
           const dep = 0.2, th = 0.075;
           for (const sg of [1, -1]) { const o0 = sg > 0 ? hw : -hw - th, o1 = sg > 0 ? hw + th : -hw, sEnd = pc.len + pc.b * 0.3, zTop0 = pc.z + pc.h * 0.6, zTop1 = pc.z + pc.h + sEnd * tanA + 0.03;
