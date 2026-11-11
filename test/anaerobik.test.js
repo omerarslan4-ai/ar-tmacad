@@ -129,13 +129,13 @@ t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun
   const a5 = E5.find(x => x.anahtar === 'merdiven').pts, b5 = E5.find(x => x.anahtar === 'merdiven-2').pts;
   assert.ok(a5[1][0] > a5[0][0] && b5[1][0] < b5[0][0], 'karşılıklı'); yakin(a5[1][0], G5.kopru.x0, 'servis köprüsünün sol kenarına'); yakin(b5[1][0], G5.kopru2.x1, 'ikinci yolun sağ kenarına');
   assert.ok(b5[0][0] + 1.0 <= a5[0][0] + 1e-9, 'başlangıçlar arasında boşluk');
-  // seçimli: servis köprüsü alt yandan sağdan, ikinci yol üst yandan soldan
-  const G7 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1, m1: 'alt-sag', m2: 'ust-sol' }, boyutla({ Qd: 50000 }).par)), E7 = ekipmanYer(G7, null, 95);
+  // seçimli yan (üst / alt), yön hep içe: servis köprüsü alt yanda soldan, ikinci yol üst yanda sağdan
+  const G7 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1, m1: 'alt', m2: 'ust' }, boyutla({ Qd: 50000 }).par)), E7 = ekipmanYer(G7, null, 95);
   const n1 = E7.find(x => x.anahtar === 'merdiven'), n2 = E7.find(x => x.anahtar === 'merdiven-2');
-  assert.ok(n1.pts[0][1] < 0 && n1.pts[1][0] === G7.kopru.x1 && n1.pts[0][0] > G7.kopru.x1, 'alt yanda, sağdan'); yakin(G7.kopru.y0, -G7.q.mw, 'yolun ucu altta');
-  assert.ok(n2.pts[0][1] > G7.Wo && n2.pts[1][0] === G7.kopru2.x0, 'üst yanda, soldan');
-  assert.strictEqual(n1.kork, 'sol', 'alt yanda sola çıkan merdivenin dış korkuluğu'); assert.strictEqual(n2.kork, 'sol');
-  const k7 = E7.find(x => x.anahtar === 'korkuluk-kopru').pts; yakin(k7[0][0], G7.kopru.x1 - 0.05, 'açıklık sağ kenarda'); yakin(k7[k7.length - 1][1], -G7.q.mw + 0.05, 'açıklık merdiven sahanlığında');
+  assert.ok(n1.pts[0][1] < 0 && n1.pts[1][0] === G7.kopru.x0 && n1.pts[0][0] < G7.kopru.x0, 'alt yanda, içe bakar (soldan)'); yakin(G7.kopru.y0, -G7.q.mw, 'yolun ucu altta');
+  assert.ok(n2.pts[0][1] > G7.Wo && n2.pts[1][0] === G7.kopru2.x1, 'üst yanda, içe bakar (sağdan)');
+  assert.strictEqual(n1.kork, 'sag', 'alt yanda sağa çıkan merdivenin dış korkuluğu'); assert.strictEqual(n2.kork, 'sag');
+  const k7 = E7.find(x => x.anahtar === 'korkuluk-kopru').pts; yakin(k7[0][0], G7.kopru.x0 + 0.05, 'açıklık sol kenarda'); yakin(k7[0][1], -G7.q.mw + 0.05, 'açıklık merdiven sahanlığında (başı)'); yakin(k7[k7.length - 1][1], 0, 'açıklık merdiven sahanlığında (sonu)');
 });
 
 t('sahanlıkta kapak yarığı: kapak çerçevesi geçer, yarık sahanlık içinde', () => {

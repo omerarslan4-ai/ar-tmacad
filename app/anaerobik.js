@@ -261,8 +261,10 @@
   /* merdiven yeri: { yan: 'ust' | 'alt', yon: 'sol' | 'sag' } — q.m1 / q.m2 ('ust-sol' gibi) ya da varsayılan */
   function merdivenYeri(G, k, Lk) {
     const q = G.q, kp = k === 1 ? G.kopru : G.kopru2, el = String((k === 1 ? q.m1 : q.m2) || '');
-    let yan = /alt/.test(el) ? 'alt' : 'ust', yon = /sag/.test(el) ? 'sag' : /sol/.test(el) ? 'sol' : null;
-    if (!yon) yon = k === 1 ? 'sol' : (G.kopru2 && G.kopru2.x1 + Lk + 1.0 <= G.kopru.x0 - Lk ? 'sag' : 'sol'); // karşılıklı
+    const yan = /alt/.test(el) ? 'alt' : 'ust';
+    // merdiven hep içe bakar: yola havuzun ortasındaki uzun kısımdan çıkar (servis köprüsüne soldan, ikinci yola sağdan); aynı yandaki öbür merdivenle çakışırsa ya da yer yetmezse dıştan
+    let yon = k === 1 ? 'sol' : 'sag';
+    if (k === 2 && G.kopru2) { const yan1 = /alt/.test(String(q.m1 || '')) ? 'alt' : 'ust'; if (yan1 === yan && !(G.kopru2.x1 + Lk + 1.0 <= G.kopru.x0 - Lk)) yon = 'sol'; }
     if (yon === 'sol' && kp.x0 - Lk < -q.tre) yon = 'sag'; else if (yon === 'sag' && kp.x1 + Lk > G.Lo + q.tre) yon = 'sol';
     return { yan, yon };
   }
@@ -693,15 +695,15 @@
     else C.log('3B akış canlandırması kapatıldı.');
   });
 
-  C.addCommand(['ANAMERDIVEN', 'ANAEROBIKMERDIVEN'], 'Anaerobik havuzda merdiven yeri: havuzun yanında merdiveni istediğiniz yere tıklayın (en yakın yürüyüş yolunun merdiveni o yana ve yöne taşınır). ANAMERDIVEN VARSAYILAN → karşılıklı', async (I) => {
+  C.addCommand(['ANAMERDIVEN', 'ANAEROBIKMERDIVEN'], 'Anaerobik havuzda merdiven yeri: havuzun üst ya da alt yanında yürüyüş yolunun yakınına tıklayın (en yakın yolun merdiveni o yana taşınır, hep içe bakar). ANAMERDIVEN VARSAYILAN → ikisi de üst yanda', async (I) => {
     const kv = takeKV(); const e = (C.sel || []).find(x => x.type === 'anaerobik') || C.doc.ents.find(x => x.type === 'anaerobik'); if (!e) return C.warn('Çizimde anaerobik havuz yok.');
     if (C.cmd.queue.some(t => /^VARSAYILAN$/i.test(t))) { C.cmd.queue = C.cmd.queue.filter(t => !/^VARSAYILAN$/i.test(t)); e.m1 = null; e.m2 = null; }
     else {
-      const p = await I.pt('Merdiveni istediğiniz yere tıklayın (havuzun üst ya da alt uzun yanında, yürüyüş yolunun solunda ya da sağında)'); if (!p || typeof p === 'string') return;
+      const p = await I.pt('Merdiveni istediğiniz yana tıklayın (havuzun üst ya da alt uzun yanında, yürüyüş yolunun yakınında)'); if (!p || typeof p === 'string') return;
       const G = geo(e), l = yerel(e, p), yollar = [[1, G.kopru], [2, G.kopru2]].filter(x => x[1]);
       const [k, kp] = yollar.reduce((a, b) => (Math.abs(l[0] - (b[1].x0 + b[1].x1) / 2) < Math.abs(l[0] - (a[1].x0 + a[1].x1) / 2) ? b : a));
-      const yer = `${l[1] < G.Wo / 2 ? 'alt' : 'ust'}-${l[0] < (kp.x0 + kp.x1) / 2 ? 'sol' : 'sag'}`; e['m' + k] = yer;
-      C.log(`✓ ${k === 1 ? 'Servis köprüsünün' : 'İkinci yolun'} merdiveni: havuzun ${yer.startsWith('alt') ? 'alt' : 'üst'} yanında, yola ${yer.endsWith('sol') ? 'soldan' : 'sağdan'} çıkar.`);
+      const yer = l[1] < G.Wo / 2 ? 'alt' : 'ust'; e['m' + k] = yer;
+      C.log(`✓ ${k === 1 ? 'Servis köprüsünün' : 'İkinci yolun'} merdiveni havuzun ${yer === 'alt' ? 'alt' : 'üst'} yanında; içe bakar (yola ortadaki uzun kısımdan çıkar).`);
     }
     delete e._c; delete e._ag; if (C.touch) C.touch(e); if (e.ekipman) C.anaerobikEkipman(e, true); C.changed && C.changed();
   });
