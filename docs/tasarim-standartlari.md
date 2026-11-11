@@ -56,17 +56,17 @@
   - Halka iç eni 3,00 m (iç yarıçap 1,50), ortada 30 cm duvar, iki koridor 1,35 m; uçlar yarım daire, dönüşte R0,70–R1,00 kılavuz duvar (30 cm). Dış duvar ve halkalar arası duvar 40 cm.
   - Düz boy gerekli hacimden bulunur (elle değiştirilebilir; Çokal 11,00 m → dış ölçü 17,20 × 10,60 m).
   - Sol yanda giriş kanalı 0,80 m: her halkanın ucuna kapaklı ağız 0,60 × 1,00 m (Çokal 95,75–96,75, su 96,64); kapaklarla ham suyun gireceği halka seçilir. Giriş borusu kanala alttan.
-  - Sağ yanda çıkış kanalı 1,00 m, ara duvarla ikiye bölünür: alt bölüm RAS girişi (RAS halkasına), üst bölüm ham su halkalarının çıkışı (çıkış borusu ortadan). Kanal dış duvarları 30 cm.
-  - Halkalar arası duvarda tabanda 0,50 × 0,50 m orifis; akış RAS → 1 → 2. Ortadan enine 1,50 m servis köprüsü (merdivenli).
+  - Sağ yanda çıkış kanalı 1,00 m, ara duvarla ikiye bölünür (ara duvar boydan boya perde, tabanda 0,60 × 0,60 kapaklı orifis; kapak perdenin RAS yüzünde): alt bölüm RAS girişi (RAS halkasına), üst bölüm ham su halkalarının çıkışı (çıkış borusu ortadan). Kanal dış duvarları 30 cm.
+  - Halkalar arası geçiş köprü yanındaki kapaklı pencereden; akış RAS → 1 → 2. Ortadan enine 1,50 m servis köprüsü (merdivenli).
   - Temas süresi = V / (Q ort. + geri devir), geri devir = %75 × Q maks.; 0,5–1,5 sa (ATV-DVWK-A 131).
   - Hava payı 0,60 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Her halkada karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
   - Ekipman yerleşimi (Çokal T-105 mimari paftası + firma varsayılanı; 11.11.2026 onaylandı):
     - Merdiven betonarme; havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
     - Korkuluk köprünün iki yanında ve merdivenin dış yanında.
-    - Ortak duvardaki orifis ve pencere kapakları duvar yuvasında; köprüye bitişik kapak işletme sahanlığı iki kapağı da içine alır (kapaklardan 0,40 m geniş, duvarın iki yanına 0,30 m taşar), korkuluk çevresinden dolanır. Kapaklar sahanlık döşemesindeki yarıktan geçer: yarık = çerçeve eni (açıklık + 2 × 85 mm) + her yanda 5 cm, akış yönünde 0,30 m. Pencere köprüden 0,20 m geride, orifis pencereden 0,40 m uzakta (çerçeveler ve yarıklar çakışmasın).
+    - Ortak duvarda yalnız kapaklı pencere var (orifis yok). Pencere kapağı perdenin akışın geldiği yüzüne monte edilir (perdenin içine girmez). Köprüye bitişik kapak işletme sahanlığı kapağı içine alır (kapak tarafında 0,70, öbür yanda 0,30 m taşar, pencereden 0,40 m geniş); korkuluk çevresinden dolanır. Kapak sahanlık döşemesindeki yarıktan geçer: yarık = çerçeve eni (açıklık + 2 × 85 mm) + her yanda 5 cm, akış yönünde 0,30 m. Pencere köprüden 0,20 m geride.
     - Havuz çevresinde zemin kotunda 1,00 m tretuvar.
-    - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000), her orifise (500 × 500) ve sağ kanaldaki bölme geçişine birer adet. Ölçüler açıklıktan gelir.
+    - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000), ve sağ kanaldaki ara duvar orifisine (600 × 600) birer adet. Ölçüler açıklıktan gelir.
     - Tahrik kendiliğinden seçilir: kapak alanı 1,0 m²'yi ya da su kuvveti 10 kN'u aşarsa elektrikli aktüatör, değilse el çarkı Aynı perdedeki kapaklar tek tip: biri aktüatörlüyse hepsi aktüatörlü (projede tümü el çarkı / tümü aktüatör yapılabilir).
     - Mikser: yürüyüş yolunun havuzun uzun kısmına bakan yüzünde, uzun kısma doğru akan koridorda, uzun kısma doğru iter; kısa tarafa bakan yüzde mikser yok. Kılavuz direk yol kenarında, vinçle yoldan alınır. Halka başına 2 ve üzeri mikser gerekiyorsa uzun kısmın öbür ucuna ikinci yürüyüş yolu (merdivenli, korkuluklu) eklenir; mikserlerin yarısı oraya, yine uzun kısma bakacak şekilde konur. Sayı ve tip mikser hesabı penceresinin sonucundan (aynı halka için yapılmışsa), yoksa aynı yöntemle otomatik seçimden.
     - Boru delikleri (giriş, RAS, çıkış) saha borulamasına göre yer değiştirir: saha borusunun ucu duvara yakınsa delik borunun eksenine, çapına ve kotuna kayar; elle de taşınabilir.

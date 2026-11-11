@@ -5,7 +5,7 @@
    - Her halkada orta duvar (uçları yuvarlak) ve iki uçta R rg–rg+tg yuvarlak perde (kılavuz duvar);
      perde çıkış ucunda ext kadar düz devam eder. Komşu halkalar ters yönde döner (ortak duvarda akış aynı yönde).
    - Halka uçlarında (orta duvar ekseninde) kapaklı ağız ag × ah; alt kotu su yüzünden 0,89 m aşağıda (Çokal 95,75).
-   - Ortak duvarda tabanda kare orifis (or) ve köprünün yanında kapaklı pencere (ow × ah).
+   - Ortak duvarda köprünün yanında kapaklı pencere (ow × ah). Sağ kanaldaki ara duvarda tabanda kapaklı orifis (ag × bO), üstü perde.
    - Solda giriş kanalı (bG), sağda çıkış kanalı (bC); kanal dış duvarı tK. Sağ kanal RAS halkasıyla 2. halka
      arasında ara duvarla bölünür (kapaklı geçiş): alt bölüm RAS girişi, üst bölüm çıkış.
    - Borular: giriş borusu sol kanalın alt ucundan, RAS borusu sağ kanalın alt ucundan, çıkış borusu sağ dış duvardan.
@@ -23,7 +23,7 @@
     or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
-    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, owA: 0.40, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
+    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.10, sahG: 0.70, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
   /* yardımcılar (yerel 2B) */
@@ -106,14 +106,12 @@
     }
     // ---- ortak duvarlarda orifis ve kapaklı pencere; köprü ----
     const xk0 = Math.max(xc1 + 0.5, xc2 - q.kbX - q.kb);
-    let xw1 = xk0 - q.kpA, xw0 = xw1 - q.ow, xo = xw0 - q.owA - q.or;
+    let xw1 = xk0 - q.kpA, xw0 = xw1 - q.ow, xo = xw0;
     if (xo < xc1) { const kay = xc1 + 0.3 - xo; xo += kay; xw0 += kay; xw1 += kay; }
     G.kopru = { x0: xk0, x1: xk0 + q.kb, z0: zTop, z1: zTop + q.kbT };
     for (let i = 0; i + 1 < n; i++) {
       const y0 = yc[i] + q.Ro, y1 = y0 + q.two;
-      G.acik.push({ k: 'orifis', pts: rect(xo, y0, xo + q.or, y1), z0: zB, z1: zB + q.or, arasi: [i, i + 1] });
       G.acik.push({ k: 'pencere', pts: rect(xw0, y0, xw1, y1), z0: zS, z1: zH, arasi: [i, i + 1] });
-      kes(rect(xo, y0 - dl, xo + q.or, y1 + dl), zB - 0.01, zB + q.or, 'orifis');
       kes(rect(xw0, y0 - dl, xw1, y1 + dl), zS, zH, 'pencere');
       G.kapak.push({ k: 'pencere', a: [xw0, y1], b: [xw1, y1], arasi: [i, i + 1], eb: `${(q.ow * 1000).toFixed(0)}×${(q.ah * 1000).toFixed(0)}` });
     }
@@ -141,10 +139,12 @@
     const ysh = n > 1 ? yc[0] + q.Ro + q.two / 2 : null;
     if (n > 1) { // çıkış kanalı ara duvarla ikiye bölünür: alt RAS bölümü, üst çıkış bölümü
       const ya = ysh - q.tK / 2, yb2 = ysh + q.tK / 2, g0 = xR + 0.20, g1 = g0 + q.ag;
-      // tek su hacmi: ara duvarın iki parçası (gövdeye ve dış duvara bağlı) arasında kapaklı geçiş boşluğu
-      delik.push([...kirp(zR, yb + q.tK, ya), [g0, ya], [g0, yb2], ...kirp(zR, yb2, yt - q.tK), [xo1, yt - q.tK], [xo1, yb2], [g1, yb2], [g1, ya], [xo1, ya], [xo1, yb + q.tK]]);
-      G.acik.push({ k: 'bolme', pts: rect(g0, ya, g1, yb2), z0: zB, z1: zTop });
-      G.kapak.push({ k: 'bolme', a: [g0 - 0.1, yb2], b: [g1 + 0.1, yb2], eb: `${(q.ag * 1000).toFixed(0)}×${((zTop - zB) * 1000).toFixed(0)}` });
+      // ara duvar boydan boya perde; tabanda kapaklı orifis (RAS bölümü ↔ çıkış bölümü)
+      delik.push([...kirp(zR, yb + q.tK, ya), [xo1, ya], [xo1, yb + q.tK]]);
+      delik.push([...kirp(zR, yb2, yt - q.tK), [xo1, yt - q.tK], [xo1, yb2]]);
+      G.acik.push({ k: 'orifis', pts: rect(g0, ya, g1, yb2), z0: zB, z1: zB + q.bO });
+      kes(rect(g0, ya - dl, g1, yb2 + dl), zB - 0.01, zB + q.bO, 'orifis');
+      G.kapak.push({ k: 'bolme', a: [g0 - 0.1, yb2], b: [g1 + 0.1, yb2], eb: `${(q.ag * 1000).toFixed(0)}×${(q.bO * 1000).toFixed(0)}` });
       G.ara = { y: ysh, g0, g1 };
     } else delik.push([...kirp(zR, yb + q.tK, yt - q.tK), [xo1, yt - q.tK], [xo1, yb + q.tK]]);
     G.bolge = { dis: ccw(dis), delik: delik.map(d => ccw(d).reverse()) }; // dış saat yönü tersi, delikler saat yönü
@@ -168,12 +168,12 @@
     // köprü dışarıda merdiven sahanlığı kadar uzar; pencere kapakları için köprüye bitişik işletme sahanlıkları
     G.kopru.y0 = 0; G.kopru.y1 = Wo + q.mw;
     // ikinci yürüyüş yolu (halka başına 2 ve üzeri mikserde): uzun kısmın öbür ucunda, servis köprüsünün aynası
-    if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < Math.min(xo, xw0) - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: 0, y1: Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
+    if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < xw0 - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: 0, y1: Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
     G.sahanlik = [];
-    // kapak işletme sahanlığı: orifis ve pencere kapaklarını içine alır, ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
+    // kapak işletme sahanlığı: perde yüzündeki pencere kapağını içine alır (kapak tarafında 0,70, öbür yanda 0,30 taşar), ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
     // döşemede kapak yarıkları: kapak çerçevesi (açıklık + 2 × 85 mm yuva gömmesi) + her yanda 5 cm; akış yönünde 0,30 m (çerçeve, kapak ve kaburgalar geçer)
     const yarik = (xm, B, ym) => { const w = B + 2 * q.yE + 2 * q.yP; return rect(xm - w / 2, ym - q.yD / 2, xm + w / 2, ym + q.yD / 2); };
-    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = (y0 + y1) / 2; G.sahanlik.push({ x0: Math.min(xo, xw0) - q.sahX, x1: xk0, y0: y0 - q.sahE, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((xw0 + xw1) / 2, q.ow, ym), yarik(xo + q.or / 2, q.or, ym)] }); }
+    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = y0 - q.kY; G.sahanlik.push({ x0: xw0 - q.sahX, x1: xk0, y0: y0 - q.sahG, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((xw0 + xw1) / 2, q.ow, ym)] }); }
     // tretuvar (zemin kotunda, havuz çevresinde): kanallar boyunca dar, halkalar boyunca geniş, aralarda pahlı
     const t = q.tre, xa = Math.max(0, xc1 - R2 - t), xb = Math.min(Lo, xc2 + R2 + t * 0.6);
     G.tretuvar = { dis: [[-t, yb - t], [xa, yb - t], [xc1, -t], [xc2, -t], [xb, yb - t], [Lo + t, yb - t], [Lo + t, yt + t], [xb, yt + t], [xc2, Wo + t], [xc1, Wo + t], [xa, yt + t], [-t, yt + t]], kal: q.treT };
@@ -194,15 +194,13 @@
       pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - 0.10, G.yc[i]], 0, G.zS, q.ag, q.ah); // giriş kanalından halkaya
       pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + 0.10, G.yc[i]], n > 1 && i === 0 ? 180 : 0, G.zS, q.ag, q.ah); // RAS halkasına giriş, diğerlerinde çıkış
     }
-    for (let i = 0; i + 1 < n; i++) { // ortak duvarda: pencere ve orifis kapakları duvar yuvasında (duvar ekseninde)
-      const ym = G.yc[i] + q.Ro + q.two / 2;
-      pen(`pen-pen-${i}`, `P/${LET[i]}`, [(G.pen.xw0 + G.pen.xw1) / 2, ym], 90, G.zS, q.ow, q.ah);
-      pen(`pen-or-${i}`, `O/${LET[i]}`, [G.pen.xo + q.or / 2, ym], 90, G.zB, q.or, q.or);
+    for (let i = 0; i + 1 < n; i++) { // ortak duvarda: pencere kapağı perdenin yüzünde
+      pen(`pen-pen-${i}`, `P/${LET[i]}`, [(G.pen.xw0 + G.pen.xw1) / 2, G.yc[i] + q.Ro - q.kY], 90, G.zS, q.ow, q.ah); // perde yüzüne monte (akışın geldiği yüz)
       if (q.tahrik !== 'EL' && q.tahrik !== 'AKT') { // aynı perdedeki kapaklar tek tip: biri aktüatörlüyse ikisi de
         const ik = out.slice(-2); if (ik.some(x => x.tahrik === 'AKT')) ik.forEach(x => { x.tahrik = 'AKT'; });
       }
     }
-    if (G.ara) pen('pen-bolme', 'B', [(G.ara.g0 + G.ara.g1) / 2, G.ara.y], 90, G.zB, q.ag, q.ah);
+    if (G.ara) pen('pen-bolme', 'B', [(G.ara.g0 + G.ara.g1) / 2, G.ara.y - q.tK / 2 - q.kY], 90, G.zB, q.ag, q.bO); // ara duvarda tabandaki orifis kapağı, perdenin RAS yüzünde
     /* mikserler: yürüyüş yolunun uzun kısma bakan yüzünde, uzun kısma doğru akan koridorda (kılavuz direk köprü kenarında, vinçle köprüden alınır).
        Servis köprüsünde ceil(n/2), ikinci yürüyüş yolunda (halka başına 2 ve üzeri mikserde) kalanı */
     if (mx && mx.n) {
@@ -276,7 +274,7 @@
       for (const h of [G.bolge.dis, ...G.bolge.delik]) out.push(PL(h, true, { lw: 50 }));
       for (const p of G.parca) out.push(PL(p.pts, true, { lw: 35 }));
       // görünmeyen açıklıklar (kesikli): ağız, orifis, pencere, boru
-      for (const a of G.acik) if (a.k !== 'bolme') out.push(PL(a.pts, true, { lt: 'DASHED', color: 8, lw: 18 }));
+      for (const a of G.acik) out.push(PL(a.pts, true, { lt: 'DASHED', color: 8, lw: 18 }));
       // köprü
       const k = G.kopru; out.push(PL([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], true, { color: 30, lw: 35 }));
       for (const sh of G.sahanlik) { out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, { color: 30, lw: 25 })); for (const y of sh.yarik || []) out.push(PL(y, true, { color: 30, lw: 18 })); }
@@ -315,7 +313,7 @@
       const cb = G.boru.find(b => b.k === 'cikis'); if (cb) out.push(T1(cb.p[0] + 0.3, cb.p[1], `Çıkış Ø${f0(q.dC * 1000)}`, { color: 1 }, 'L'));
       out.push(T1(q.tK + q.bG / 2, (G.kanal.yb + G.kanal.yt) / 2, `Giriş kanalı ${f2(q.bG)}`, { color: 8 }), T1(G.xR + q.bC / 2, (G.kanal.yb + G.kanal.yt) / 2 + 1.2, `Çıkış kanalı ${f2(q.bC)}`, { color: 8 }));
       if (G.n > 1) out.push(T1(G.xR + q.bC / 2, G.yc[0], 'RAS girişi', { color: 8 }));
-      const o0 = G.acik.find(a => a.k === 'orifis'); if (o0) out.push(T1(G.pen.xo + q.or / 2, o0.pts[0][1] - 0.35, `Orifis ${f0(q.or * 100)}×${f0(q.or * 100)} (${kot(G.zB)})`, { color: 8 }));
+      const o0 = G.acik.find(a => a.k === 'orifis'); if (o0) out.push(T1((G.ara.g0 + G.ara.g1) / 2, o0.pts[0][1] - 0.35, `Orifis ${f0(q.ag * 100)}×${f0(q.bO * 100)} (${kot(G.zB)})`, { color: 8 }));
       out.push(T1(G.Lo / 2, -1.4, `Ağız ${f2(q.ag)}×${f2(q.ah)} m: ${kot(G.zS)} – ${kot(G.zH)} · su ${kot(G.zW)} · taban ${kot(G.zB)} · duvar üstü ${kot(G.zTop)}`, { color: 3 }));
       // başlık
       out.push(TX(f.at(G.Lo / 2, G.Wo + h * 9, z), tH(5), `${e.code || ''} ${e.name || 'Anaerobik havuz'}`.trim(), rd, 'C', { color: 2 }));
