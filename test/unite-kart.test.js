@@ -48,11 +48,13 @@ t('kaba ızgara yapısı kartı (2035): ayak izi ve kot zinciri', () => {
   const k = Z.su.find(x => x.id === 'cs').kart;
   assert.strictEqual(p(k, 'N').v, 4); assert.strictEqual(p(k, 'Nsb').v, 1); assert.strictEqual(p(k, 'n').v, 5);
   assert.strictEqual(p(k, 'b').kaynak, 'hesap'); assert.strictEqual(p(k, 'hp').kaynak, 'standart'); assert.strictEqual(p(k, 'hBos').kaynak, 'katalog'); assert.strictEqual(p(k, 'zp').kaynak, 'türetilen');
-  yakin(k.ayakIzi.en, 5 * 1.8 + 6 * 0.3, 'en'); yakin(k.ayakIzi.boy, 6, 'boy');
-  // zemin = kanal üstü (2,2); platform konteynerden: 2,2 + 1,37 + 0,30 + 0,15 − 0,215 = 3,805
-  yakin(k.kot.platform, 3.805, 'platform'); yakin(p(k, 'D').v, 3.805, 'kanal derinliği');
-  yakin(k.kot.desarj, 4.02, 'deşarj'); yakin(k.kot.bant, 3.87, 'bant'); yakin(k.kot.temel, -0.4, 'temel');
-  yakin(p(k, 'Ht').v, 5.35, 'ızgara yüksekliği'); yakin(p(k, 'Le').v, 5.35 / Math.sin(75 * Math.PI / 180), 'eğim boyu');
+  // en = 5 kanal × 1,8 + süzüntü kanalı 0,6 + bölme yok + 2 × dış duvar 0,3
+  yakin(k.ayakIzi.en, 5 * 1.8 + 0.6 + 2 * 0.3, 'en'); yakin(k.ayakIzi.boy, 6, 'boy');
+  // zemin bilinmiyor → 2,2 − 0,65 = 1,55; platform konteynerden: 1,55 + 1,37 + 0,30 + 0,15 − 0,215 = 3,155
+  yakin(k.kot.zemin, 1.55, 'zemin'); yakin(k.kot.platform, 3.155, 'platform'); yakin(p(k, 'D').v, 3.155, 'kanal derinliği');
+  yakin(k.kot.desarj, 3.37, 'deşarj'); yakin(k.kot.bant, 3.22, 'bant'); yakin(k.kot.temel, -0.4, 'temel');
+  yakin(p(k, 'Ht').v, 4.70, 'ızgara yüksekliği'); yakin(p(k, 'Le').v, 4.70 / Math.sin(75 * Math.PI / 180), 'eğim boyu');
+  assert.ok(p(k, 'zp').not.includes('konteyner'));
   assert.ok(k.uyari.some(u => u.includes('Kanal derinleşti')));
   assert.ok(k.uyari.some(u => u.includes('80°')), 'ATV açısı farkı uyarısı');
   yakin(k.giris.y, k.ayakIzi.en / 2, 'giriş ortada'); yakin(k.cikis.x, 6, 'çıkış uçta');
@@ -75,8 +77,24 @@ t('ön arıtma B: kaba ve ince aynı kanalda tek yapı', () => {
   assert.deepStrictEqual(Z.su.slice(0, 2).map(x => x.id), ['izB', 'ps']);
   const k = Z.su[0].kart;
   yakin(p(k, 'b').v, 3.4, 'büyük genişlik'); yakin(p(k, 'h').v, 1.2, 'büyük su derinliği');
-  yakin(k.ayakIzi.boy, 6 + 3.0, 'boy = kanal + ara'); yakin(k.ayakIzi.en, 5 * 3.4 + 6 * 0.3, 'en');
+  yakin(k.ayakIzi.boy, 6 + 3.0, 'boy = kanal + ara'); yakin(k.ayakIzi.en, 5 * 3.4 + 0.6 + 2 * 0.3, 'en');
   assert.ok(p(k, 'e_kaba') && p(k, 'e_ince'));
+});
+
+/* GERÇEK PROJE: Çokal AAT, T-101 Kaba ve İnce Izgara (1-Çokal_AAT_Kaba-İnce-Giriş-Kum Yağ Tutucu_R3.dwg, C-C kesiti)
+   Proses raporu R07: kaba ve ince ızgara 1 asıl + 1 yedek, kanal 0,60 m, Q maks. su derinliği 0,23 m, 75°.
+   Çizim: kanal tabanı 86,75; tabii zemin 94,80; platform 95,45 (ölçü 870); iç 60 + 60 + 60 (ortada süzüntü kanalı), dış duvar 40 cm → 2,60 m.
+   Çokal'a özgü değerler: dış duvar 0,40 (8,7 m derinlik), halatlı ızgara deşarj ağzı platformdan ≈ 1,0 m, konteyner 1 m³ ≈ 1,05 m. */
+t('Çokal AAT T-101: platform, kanal derinliği ve genişlik çizimle aynı', () => {
+  const kaba = { N: 1, Nsb: 1, b: 0.60, h: 0.23, L: 6, th: 75, e: 40 }, ince = { N: 1, Nsb: 1, b: 0.60, h: 0.23, L: 6, th: 75, e: 10 };
+  const k = K.izgaraKart('izB', [{ rol: 'kaba', dim: kaba }, { rol: 'ince', dim: ince }], { zt: 86.75, zz: 94.80, tw: 0.40, hBos: 1.0, Hk: 1.05 });
+  yakin(k.kot.platform, 95.45, 'platform (çizim 95,45)');
+  yakin(p(k, 'D').v, 8.70, 'kanal derinliği (çizim 870)');
+  yakin(k.ayakIzi.en, 2.60, 'dış genişlik (çizim 260)');
+  assert.ok(p(k, 'zp').not.includes('zemin + platform payı'), 'platformu zemin + 0,65 belirler');
+  // firma standardı konteynerle (1,37 m) platform 0,17 m yükselir
+  const s = K.izgaraKart('izB', [{ rol: 'kaba', dim: kaba }, { rol: 'ince', dim: ince }], { zt: 86.75, zz: 94.80, tw: 0.40, hBos: 1.0 });
+  yakin(s.kot.platform, 95.62, 'standart konteynerle platform');
 });
 
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {

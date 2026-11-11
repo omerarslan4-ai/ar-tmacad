@@ -4,7 +4,8 @@
    Kademe: ızgara, terfi ve kum tutucu NİHAİ kademe debisiyle; havuzlar ve çökeltme MEVCUT (etkin) kademeyle boyutlanır.
    İlk tam kart ızgara yapısıdır (kaba / ince ayrı yapıda ya da aynı kanalda). Diğer üniteler şimdilik "taslak": yalnız ayak izi.
    Izgara kot zinciri: konteyner zeminde → konveyör bandı konteynerin üstünde → ızgara deşarj ağzı bandın üstünde
-   → platform = deşarj ağzı − ızgaranın platformdan boşaltma yüksekliği; ama platform en az taban + su derinliği + hava payı.
+   → platform = deşarj ağzı − ızgaranın platformdan boşaltma yüksekliği; ama platform en az taban + su derinliği + hava payı
+   ve en az zemin + 0,65 m. Konteynerlerin altında süzüntü suyu kanalı vardır (ayak izine girer). Çokal AAT T-101 ile doğrulandı.
    Saf hesap kısmı tarayıcısız da çalışır (node test/unite-kart.test.js); pencere ve komut yalnız tarayıcıda kurulur.
    Proje ayarları: C.doc.set.uniteKart = { sec:{ onaritma:'A'|'B', debimetre:'MAN'|'PAR', cikis:'DEZ'|'GK', nihai, mevcut }, par:{ kartId:{ k:v } } } */
 (function (C) {
@@ -16,7 +17,10 @@
   /* ---------- firma standartları (docs/tasarim-standartlari.md) — proje bazında değiştirilebilir ---------- */
   K.STD_IZGARA = {
     hp: { ad: 'Hava payı (su yüzü → platform)', v: 1.0, birim: 'm' },
-    tw: { ad: 'Kanal duvar kalınlığı', v: 0.30, birim: 'm' },
+    pz: { ad: 'Platform — zeminden en az yükseklik', v: 0.65, birim: 'm' },
+    tw: { ad: 'Dış duvar kalınlığı', v: 0.30, birim: 'm' },
+    ti: { ad: 'Kanallar arası bölme kalınlığı', v: 0.0, birim: 'm' },
+    bs: { ad: 'Süzüntü suyu kanalı genişliği (konteyner altı, 0 = yok)', v: 0.60, birim: 'm' },
     tb: { ad: 'Taban plağı kalınlığı', v: 0.40, birim: 'm' },
     Hk: { ad: 'Çöp konteyneri yüksekliği (1100 L belediye tipi, EN 840)', v: 1.37, birim: 'm' },
     pk: { ad: 'Konveyör bandı → konteyner üstü payı', v: 0.30, birim: 'm' },
@@ -147,14 +151,16 @@
     const ust = dz('ust', kat.ust.ad, kat.ust.v, 'm', 'katalog');
     // elle (sonraki parçalarda otomatik gelecek)
     const zt = dz('zt', 'Kanal taban kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
-    const zzV = par.zz != null && par.zz !== '' && isFinite(+par.zz) ? +par.zz : zt + h + S.hp;
-    const zz = ek('zz', 'Zemin kotu (konteyner yeri)', zzV, 'm', 'elle', { duz: true, deg: par.zz != null && par.zz !== '', vars: r3(zt + h + S.hp), not: 'Boşsa kanal üstü = zemin. 2. parçada araziden okunacak' });
+    const zzVars = zt + h + S.hp - S.pz; // zemin bilinmiyorsa: platform tam su yüzü + hava payında kalır
+    const zzV = par.zz != null && par.zz !== '' && isFinite(+par.zz) ? +par.zz : zzVars;
+    const zz = ek('zz', 'Zemin kotu (konteyner yeri)', zzV, 'm', 'elle', { duz: true, deg: par.zz != null && par.zz !== '', vars: r3(zzVars), not: 'Boşsa platform = su yüzü + hava payı alınır. 2. parçada araziden okunacak' });
 
-    // türetilen
+    // türetilen — platform üç koşulun en büyüğü: su yüzü + hava payı, zemin + platform payı, konteyner ve konveyörün sığması
     const n = ek('n', 'Toplam kanal (çalışan + yedek)', N + Nsb, 'adet', 'türetilen', { f: 'N + Nsb' });
     const Dmin = h + S.hp;
-    const zpKont = zz + S.Hk + S.pk + S.pd - hBos;
-    const zp = ek('zp', 'Yürüme platformu kotu', Math.max(zt + Dmin, zpKont), 'm', 'türetilen', { f: 'en büyük(taban + h + hava payı ; zemin + konteyner + pay + düşü − deşarj yük.)' });
+    const adaylar = [[zt + Dmin, 'su yüzü + hava payı'], [zz + S.pz, 'zemin + platform payı'], [zz + S.Hk + S.pk + S.pd - hBos, 'konteyner ve konveyör yüksekliği']];
+    const [zpV, neden] = adaylar.reduce((a, b) => (b[0] > a[0] + 1e-9 ? b : a));
+    const zp = ek('zp', 'Yürüme platformu kotu', zpV, 'm', 'türetilen', { f: 'en büyük(taban + h + hava payı ; zemin + platform payı ; zemin + konteyner + pay + düşü − deşarj yük.)', not: 'Belirleyen: ' + neden });
     const D = ek('D', 'Kanal derinliği (taban → platform)', zp - zt, 'm', 'türetilen', { f: 'platform − taban' });
     const zd = ek('zd', 'Izgara deşarj ağzı kotu', zp + hBos, 'm', 'türetilen', { f: 'platform + deşarj yüksekliği' });
     const zb = ek('zb', 'Konveyör bandı kotu', zd - S.pd, 'm', 'türetilen', { f: 'deşarj ağzı − düşü' });
@@ -163,11 +169,12 @@
     ek('Le', 'Izgara eğim boyu', (D + ust) / Math.sin(a * Math.PI / 180), 'm', 'türetilen', { f: 'toplam yükseklik / sin(açı)' });
     const zs = ek('zs', 'Su yüzü kotu (Q maks.)', zt + h, 'm', 'türetilen', { f: 'taban + h' });
     const zf = ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
-    const en = ek('en', 'Ayak izi eni', n * b + (n + 1) * S.tw, 'm', 'türetilen', { f: 'n·b + (n+1)·duvar' });
+    const nb = n + (S.bs > 0 ? 1 : 0); // süzüntü kanalı da bir göz
+    const en = ek('en', 'Ayak izi eni', n * b + S.bs + (nb - 1) * S.ti + 2 * S.tw, 'm', 'türetilen', { f: 'n·b + süzüntü kanalı + bölmeler + 2·dış duvar' });
     const boy = ek('boy', 'Ayak izi boyu', L, 'm', 'türetilen', { f: 'kanal uzunluğu' });
 
     if (Nsb < 1) uyari.push('Yedek kanal yok: firma standardına göre baypas (yedek) kanal zorunlu. ATV hesabında yedek kanal sayısını 1 yapın.');
-    if (zp > zt + Dmin + 0.005) uyari.push(`Konteyner ve konveyör yüksekliği nedeniyle platform, su yüzü + hava payının ${(zp - zt - Dmin).toFixed(2).replace('.', ',')} m üstünde. Kanal derinleşti.`);
+    if (zp > zt + Dmin + 0.005) uyari.push(`Platformu ${neden} belirliyor: su yüzü + hava payının ${(zp - zt - Dmin).toFixed(2).replace('.', ',')} m üstünde. Kanal derinleşti.`);
     if (zb < zz + S.Hk + S.pk - 0.005) uyari.push('Konveyör bandı konteynerin üstünde kalmıyor.');
     if (dims.length > 1) uyari.push('Kaba ve ince ızgara arası mesafe henüz netleşmedi (açık soru); standart değer kullanıldı.');
 
