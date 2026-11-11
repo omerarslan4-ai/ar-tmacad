@@ -18,7 +18,7 @@
 
   /* Çokal AAT T-105 varsayılanları (3-Çokal_AAT_Anaerobik_R3.dwg) */
   const DEF = {
-    n: 3, Ls: 11.0, Ro: 1.50, tw: 0.30, two: 0.40, rg: 0.70, tg: 0.30, ext: null, kbA: null, kAc: 2.50, kOtur: null, // kOtur: E / H elle zorlama // yönlendirme perdesi bastonu ve baston–yürüyüş yolu arası: boşsa kulvar / 2 (Çokal 0,60 ≈ 0,675)
+    n: 3, Ls: 11.0, Ro: 1.50, tw: 0.30, two: 0.40, rg: 0.70, tg: 0.30, ext: null, kbA: null, kAc: 2.50, kOtur: null, m1: null, m2: null, // merdiven yeri: 'ust-sol', 'alt-sag' … // kOtur: E / H elle zorlama // yönlendirme perdesi bastonu ve baston–yürüyüş yolu arası: boşsa kulvar / 2 (Çokal 0,60 ≈ 0,675)
     bG: 0.80, bC: 1.00, tK: 0.30, ag: 0.60, ah: 1.00, dAg: 0.89, kp: 0.40,
     or: 0.50, ow: 1.50, kb: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
@@ -184,9 +184,10 @@
     G.V = G.Ahalka * q.h * n;
     G.pen = { xo, xw0, xw1 };
     // köprü dışarıda merdiven sahanlığı kadar uzar; pencere kapakları için köprüye bitişik işletme sahanlıkları
-    G.kopru.y0 = 0; G.kopru.y1 = Wo + q.mw;
+    const altY = m => /alt/.test(String(m || '')); // merdiven havuzun alt uzun yanındaysa yolun dış ucu (merdiven sahanlığı) altta
+    G.kopru.y0 = altY(q.m1) ? -q.mw : 0; G.kopru.y1 = altY(q.m1) ? Wo : Wo + q.mw;
     // ikinci yürüyüş yolu (halka başına 2 ve üzeri mikserde): uzun kısmın öbür ucunda, servis köprüsünün aynası
-    if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < xw0 - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: 0, y1: Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
+    if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < xw0 - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: altY(q.m2) ? -q.mw : 0, y1: altY(q.m2) ? Wo : Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
     G.sahanlik = [];
     // kapak işletme sahanlığı: perde yüzündeki pencere kapağını içine alır (kapak tarafında 0,45, öbür yanda 0,30 taşar), ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
     // döşemede kapak yarıkları: kapak çerçevesi (açıklık + 2 × 85 mm yuva gömmesi) + her yanda 5 cm; akış yönünde 0,30 m (çerçeve, kapak ve kaburgalar geçer)
@@ -233,24 +234,37 @@
         }
       }
     }
-    // merdiven(ler): üst dış duvar boyunca, köprünün dışarı uzanan ucuna soldan çıkar; korkuluk: köprü dış ucu + iki kenar
+    // merdiven(ler): yer seçimli — havuzun yanı (üst / alt uzun yan) ve yola giriş yönü (soldan / sağdan); m1 = servis köprüsü, m2 = ikinci yol.
+    // Varsayılan: üst yanda, iki merdiven birbirine bakar (ikisi de aradaki uzun kısımdan kendi yoluna çıkar); yer yetmezse yön çevrilir.
     const z0 = zg != null ? zg : G.zTop - 2.25, H = zK - z0, a = 0.05;
+    const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb;
     for (const [kp, sfx] of [[G.kopru, ''], [G.kopru2, '-2']]) {
-      if (!kp) continue; let sag = false;
+      if (!kp) continue;
+      const m = merdivenYeri(G, kp === G.kopru ? 1 : 2, Lk), alt = m.yan === 'alt', sag = m.yon === 'sag';
       if (H > 0.3) {
-        const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb, ym = G.Wo + q.mw / 2;
-        // iki yürüyüş yolunda merdivenler sırt sırta: servis köprüsününki sağ uçtan, ikinci yolunki sol uçtan çıkar (yer yetmezse öbür yandan)
-        if (G.kopru2) sag = kp === G.kopru ? kp.x1 + Lk <= G.Lo + q.tre : !(kp.x0 - Lk >= -q.tre);
-        const xs = sag ? kp.x1 : kp.x0, d = sag ? 1 : -1;
-        out.push({ anahtar: 'merdiven' + sfx, tur: 'merdiven', pts: [[xs + d * Lk, ym], [xs, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: kp.x1 - kp.x0, t: q.kbT, kork: sag ? 'sag' : 'sol' }); // dış korkuluk havuzun dışında kalan yanda
+        const ym = alt ? -q.mw / 2 : G.Wo + q.mw / 2, xs = sag ? kp.x1 : kp.x0, d = sag ? 1 : -1;
+        const kork = (sag ? -1 : 1) * (alt ? -1 : 1) > 0 ? 'sol' : 'sag'; // dış korkuluk havuzun dışında kalan yanda
+        out.push({ anahtar: 'merdiven' + sfx, tur: 'merdiven', pts: [[xs + d * Lk, ym], [xs, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: kp.x1 - kp.x0, t: q.kbT, kork, yan: m.yan, yon: m.yon });
       }
-      // korkuluk: merdivenin çıktığı kenar açık; sol kenar sahanlıkların çevresinden dolanır
-      const k0 = kp.x0 + a, k1 = kp.x1 - a, yU = kp.y1 - a, dol = [];
+      // korkuluk: yolun ve merdiven sahanlığının çevresi; merdivenin çıktığı kenar açık, sol kenar kapak sahanlıklarının çevresinden dolanır
+      const k0 = kp.x0 + a, k1 = kp.x1 - a, yA = kp.y0 + a, yB = kp.y1 - a, dol = [];
       if (kp === G.kopru) for (const s of G.sahanlik) dol.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]);
-      const pts = sag ? [[kp.x1, yU], [k0, yU], ...dol.slice().reverse(), [k0, a], [k1, a], [k1, G.Wo]] : [[kp.x0, yU], [k1, yU], [k1, a], [k0, a], ...dol, [k0, G.Wo]];
+      const dolA = dol.slice().reverse(); // sol kenar yukarıdan aşağı
+      const [lo, hi] = alt ? [yA, 0] : [G.Wo, yB];
+      const pts = !sag
+        ? [[k0, lo], ...dolA.filter(p => p[1] < lo), [k0, yA], [k1, yA], [k1, yB], [k0, yB], ...dolA.filter(p => p[1] > hi), [k0, hi]]
+        : [[k1, hi], [k1, yB], [k0, yB], ...dolA, [k0, yA], [k1, yA], [k1, lo]];
       out.push({ anahtar: 'korkuluk-kopru' + sfx, tur: 'korkuluk', pts, z: zK });
     }
     return out;
+  }
+  /* merdiven yeri: { yan: 'ust' | 'alt', yon: 'sol' | 'sag' } — q.m1 / q.m2 ('ust-sol' gibi) ya da varsayılan */
+  function merdivenYeri(G, k, Lk) {
+    const q = G.q, kp = k === 1 ? G.kopru : G.kopru2, el = String((k === 1 ? q.m1 : q.m2) || '');
+    let yan = /alt/.test(el) ? 'alt' : 'ust', yon = /sag/.test(el) ? 'sag' : /sol/.test(el) ? 'sol' : null;
+    if (!yon) yon = k === 1 ? 'sol' : (G.kopru2 && G.kopru2.x1 + Lk + 1.0 <= G.kopru.x0 - Lk ? 'sag' : 'sol'); // karşılıklı
+    if (yon === 'sol' && kp.x0 - Lk < -q.tre) yon = 'sag'; else if (yon === 'sag' && kp.x1 + Lk > G.Lo + q.tre) yon = 'sol';
+    return { yan, yon };
   }
 
   /* ================= HİDROLİK: maks. ve min. su kotları =================
@@ -283,7 +297,7 @@
 
   /* ================= DEBİDEN BOYUTLANDIRMA (öneri kuralları; Çokal T-105 oranlarından) =================
      o: { Qd (m³/gün), Qmax, Qmin, QRS (m³/h; boşsa Çokal oranları), h (su derinliği; boşsa 4,5 m), n (3), t (temas süresi 0,75 sa),
-          v (açıklıklarda en çok hız 0,30 m/s), vb (borularda 1,0 m/s), k (düz boy / halka iç eni, Çokal 11/3 ≈ 3,7) }
+          v (pencere ve orifiste en çok hız 0,30 m/s), va (ağızda 0,50 m/s), vb (borularda 1,0 m/s), k (düz boy / halka iç eni, Çokal 11/3 ≈ 3,7) }
      - Debiler: Q ort. = Qd/24, Q maks. = 1,9 × Q ort. (Çokal 275,83 / 145,83), Q min. = 0,5 × Q ort., RAS = %75 × Q maks.
      - Hacim = t × (Q ort. + RAS); halka iç yarıçapı, düz boy = k × halka iç eni olacak şekilde; kılavuz perde rg = 0,47 Ro (Çokal 0,70/1,50).
      - Ağız, pencere, orifis: ıslak alan ≥ Q / v; ağız ve pencere üstü su yüzünden 0,11 m yukarıda (Çokal 96,75 / 96,64).
@@ -292,15 +306,15 @@
   const yukari = (v, s) => Math.ceil(v / s - 1e-9) * s;
   function boyutla(o) {
     o = o || {}; const n = o.n || 3, Qo = (+o.Qd || 0) / 24, Qx = +o.Qmax || 1.9 * Qo, Qn = +o.Qmin || 0.5 * Qo, QRS = +o.QRS || 0.75 * Qx;
-    const t = o.t || 0.75, h = o.h || 4.5, v = o.v || 0.30, vb = o.vb || 1.0, k = o.k || 11 / 3, tw = DEF.tw, tg = DEF.tg, ust = 0.11;
+    const t = o.t || 0.75, h = o.h || 4.5, v = o.v || 0.30, va = o.va || 0.50, vb = o.vb || 1.0, k = o.k || 11 / 3, tw = DEF.tw, tg = DEF.tg, ust = 0.11;
     const V = t * (Qo + QRS), A = V / (h * n);
     const alan = (Ro, Ls) => { const rg = 0.47 * Ro; return Ls * (2 * Ro - tw) + Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg); };
     let a = 0.75, b = 15; for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (alan(m, k * 2 * m) < A) a = m; else b = m; }
     const Ro = +Math.max(1.5, yukari(b, 0.05)).toFixed(2), rg = +(Math.round(0.47 * Ro / 0.05) * 0.05).toFixed(2), Ls0 = (A - (Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg))) / (2 * Ro - tw);
     const Ls = +Math.max(2, yukari(Ls0, 0.10)).toFixed(2);
     // açıklık: en az genişlik / yükseklik (Çokal); önce genişlik büyür (en çok wMax), sonra yükseklik
-    const acik = (Qh, w0, wMax, h0) => { const Ar = Qh / 3600 / v; let w = w0, hw = h0 - ust; if (w * hw < Ar) { w = Math.min(wMax, yukari(Ar / hw, 0.05)); if (w * hw < Ar) hw = Ar / w; } const hh = Math.min(h - 0.5, yukari(hw + ust, 0.05)); return { w: +w.toFixed(2), h: +hh.toFixed(2), d: +(hh - ust).toFixed(2), A: w * (hh - ust) }; };
-    const ag = acik(Qx + QRS, 0.60, Math.min(2.00, Ro), 1.0); // en büyük akış: son halkadan çıkış ağzı
+    const acik = (Qh, w0, wMax, h0, vv) => { const Ar = Qh / 3600 / (vv || v); let w = w0, hw = h0 - ust; if (w * hw < Ar) { w = Math.min(wMax, yukari(Ar / hw, 0.05)); if (w * hw < Ar) hw = Ar / w; } const hh = Math.min(h - 0.5, yukari(hw + ust, 0.05)); return { w: +w.toFixed(2), h: +hh.toFixed(2), d: +(hh - ust).toFixed(2), A: w * (hh - ust) }; };
+    const ag = acik(Qx + QRS, 0.60, Math.min(2.00, Ro), 1.0, va); // ağızda hız sınırı 0,50 m/s (onaylandı) // en büyük akış: son halkadan çıkış ağzı
     const pe = acik(Qx + QRS, 1.50, Math.min(3.00, 2 * Ro - 0.6), 1.0);
     const bO = Math.max(0.60, yukari(QRS / 3600 / v / ag.w, 0.05)); // ara duvar orifisi (RAS)
     const boru = Qh => { const di = Math.sqrt(4 * Qh / 3600 / (Math.PI * vb)); const od = PE.find(d => d / 1000 * (1 - 2 / 17) >= di) || PE[PE.length - 1]; return od / 1000; };
@@ -430,8 +444,8 @@
       out.push(e._ag);
       for (const p of G.parca) out.push(ext(f.at(0, 0, p.z0), f.ux, [0, 0, 1], p.pts, p.z1 - p.z0));
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
-      const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, k.y0], [k.x1, k.y0], [k.x1, G.Wo], [k.x0, G.Wo]], k.z1 - k.z0)); // dışarıdaki uç merdivenin üst sahanlığı
-      if (G.kopru2) { const k2 = G.kopru2; out.push(ext(f.at(0, 0, k2.z0), f.ux, [0, 0, 1], [[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, G.Wo], [k2.x0, G.Wo]], k2.z1 - k2.z0)); }
+      const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, 0], [k.x1, 0], [k.x1, G.Wo], [k.x0, G.Wo]], k.z1 - k.z0)); // dışarıdaki uç merdivenin üst sahanlığı
+      if (G.kopru2) { const k2 = G.kopru2; out.push(ext(f.at(0, 0, k2.z0), f.ux, [0, 0, 1], [[k2.x0, 0], [k2.x1, 0], [k2.x1, G.Wo], [k2.x0, G.Wo]], k2.z1 - k2.z0)); }
       for (const sh of G.sahanlik) { // kapak yarıklı döşeme
         const uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
         const Ks = bolgeKati({ dis: [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], delik: (sh.yarik || []).map(y => y.slice().reverse()) }, sh.z0, sh.z1);
@@ -679,10 +693,22 @@
     else C.log('3B akış canlandırması kapatıldı.');
   });
 
+  C.addCommand(['ANAMERDIVEN', 'ANAEROBIKMERDIVEN'], 'Anaerobik havuzda merdiven yeri: havuzun yanında merdiveni istediğiniz yere tıklayın (en yakın yürüyüş yolunun merdiveni o yana ve yöne taşınır). ANAMERDIVEN VARSAYILAN → karşılıklı', async (I) => {
+    const kv = takeKV(); const e = (C.sel || []).find(x => x.type === 'anaerobik') || C.doc.ents.find(x => x.type === 'anaerobik'); if (!e) return C.warn('Çizimde anaerobik havuz yok.');
+    if (C.cmd.queue.some(t => /^VARSAYILAN$/i.test(t))) { C.cmd.queue = C.cmd.queue.filter(t => !/^VARSAYILAN$/i.test(t)); e.m1 = null; e.m2 = null; }
+    else {
+      const p = await I.pt('Merdiveni istediğiniz yere tıklayın (havuzun üst ya da alt uzun yanında, yürüyüş yolunun solunda ya da sağında)'); if (!p || typeof p === 'string') return;
+      const G = geo(e), l = yerel(e, p), yollar = [[1, G.kopru], [2, G.kopru2]].filter(x => x[1]);
+      const [k, kp] = yollar.reduce((a, b) => (Math.abs(l[0] - (b[1].x0 + b[1].x1) / 2) < Math.abs(l[0] - (a[1].x0 + a[1].x1) / 2) ? b : a));
+      const yer = `${l[1] < G.Wo / 2 ? 'alt' : 'ust'}-${l[0] < (kp.x0 + kp.x1) / 2 ? 'sol' : 'sag'}`; e['m' + k] = yer;
+      C.log(`✓ ${k === 1 ? 'Servis köprüsünün' : 'İkinci yolun'} merdiveni: havuzun ${yer.startsWith('alt') ? 'alt' : 'üst'} yanında, yola ${yer.endsWith('sol') ? 'soldan' : 'sağdan'} çıkar.`);
+    }
+    delete e._c; delete e._ag; if (C.touch) C.touch(e); if (e.ekipman) C.anaerobikEkipman(e, true); C.changed && C.changed();
+  });
   /* şerit: Arıtma › Proses */
   if (C.ribbon && C.ribbon.tabs) {
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
-    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }, { cmd: 'ANABOYUT', t: 'Debiden boyutla', i: 'calc' }, { cmd: 'ANAMIKSER', t: 'Mikser akışı', i: 'calc' }, { cmd: 'ANAKIS', t: 'Akış 3B', i: 'water' }); try { C.ribbon.render(); } catch (err) { } }
+    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }, { cmd: 'ANABOYUT', t: 'Debiden boyutla', i: 'calc' }, { cmd: 'ANAMIKSER', t: 'Mikser akışı', i: 'calc' }, { cmd: 'ANAKIS', t: 'Akış 3B', i: 'water' }, { cmd: 'ANAMERDIVEN', t: 'Merdiven yeri', i: 'table' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings'], ['Debiden boyutla', 'Size from flow'], ['Mikser akışı', 'Mixer flow'], ['Akış 3B', 'Flow 3D']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings'], ['Debiden boyutla', 'Size from flow'], ['Mikser akışı', 'Mixer flow'], ['Akış 3B', 'Flow 3D'], ['Merdiven yeri', 'Stair position']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));

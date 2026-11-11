@@ -124,12 +124,18 @@ t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun
   }
   assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 2); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 2);
   const m2 = E.find(x => x.anahtar === 'merdiven-2'); assert.ok(m2.pts[0][0] > 0, 'ikinci merdiven havuz boyunda');
-  // iki merdiven sırt sırta: servis köprüsününki sağ uçtan sola, ikinci yolunki sol uçtan sağa çıkar
+  // varsayılan: iki merdiven birbirine bakar (ikisi de aradaki uzun kısımdan kendi yoluna çıkar)
   const { boyutla } = require('../app/anaerobik.js'); const G5 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1 }, boyutla({ Qd: 50000 }).par)), E5 = ekipmanYer(G5, { n: 2, D: 0.6, P: 3, rpm: 700, name: 'K' }, 95);
   const a5 = E5.find(x => x.anahtar === 'merdiven').pts, b5 = E5.find(x => x.anahtar === 'merdiven-2').pts;
-  assert.ok(a5[1][0] < a5[0][0] && b5[1][0] > b5[0][0], 'zıt yönde, sırt sırta'); yakin(a5[1][0], G5.kopru.x1, 'servis köprüsünün sağ kenarına'); yakin(b5[1][0], G5.kopru2.x0, 'ikinci yolun sol kenarına');
-  assert.ok(a5[0][0] > G5.kopru.x1 && b5[0][0] < G5.kopru2.x0, 'başlangıçlar dış uçlarda');
-  const k5 = E5.find(x => x.anahtar === 'korkuluk-kopru').pts; yakin(k5[k5.length - 1][0], G5.kopru.x1 - 0.05, 'merdivenin çıktığı kenar açık');
+  assert.ok(a5[1][0] > a5[0][0] && b5[1][0] < b5[0][0], 'karşılıklı'); yakin(a5[1][0], G5.kopru.x0, 'servis köprüsünün sol kenarına'); yakin(b5[1][0], G5.kopru2.x1, 'ikinci yolun sağ kenarına');
+  assert.ok(b5[0][0] + 1.0 <= a5[0][0] + 1e-9, 'başlangıçlar arasında boşluk');
+  // seçimli: servis köprüsü alt yandan sağdan, ikinci yol üst yandan soldan
+  const G7 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1, m1: 'alt-sag', m2: 'ust-sol' }, boyutla({ Qd: 50000 }).par)), E7 = ekipmanYer(G7, null, 95);
+  const n1 = E7.find(x => x.anahtar === 'merdiven'), n2 = E7.find(x => x.anahtar === 'merdiven-2');
+  assert.ok(n1.pts[0][1] < 0 && n1.pts[1][0] === G7.kopru.x1 && n1.pts[0][0] > G7.kopru.x1, 'alt yanda, sağdan'); yakin(G7.kopru.y0, -G7.q.mw, 'yolun ucu altta');
+  assert.ok(n2.pts[0][1] > G7.Wo && n2.pts[1][0] === G7.kopru2.x0, 'üst yanda, soldan');
+  assert.strictEqual(n1.kork, 'sol', 'alt yanda sola çıkan merdivenin dış korkuluğu'); assert.strictEqual(n2.kork, 'sol');
+  const k7 = E7.find(x => x.anahtar === 'korkuluk-kopru').pts; yakin(k7[0][0], G7.kopru.x1 - 0.05, 'açıklık sağ kenarda'); yakin(k7[k7.length - 1][1], -G7.q.mw + 0.05, 'açıklık merdiven sahanlığında');
 });
 
 t('sahanlıkta kapak yarığı: kapak çerçevesi geçer, yarık sahanlık içinde', () => {
@@ -166,13 +172,13 @@ t('debiden boyutlandırma: Çokal debileriyle Çokal açıklıkları, 20.000 m³
   const c = boyutla({ Qd: 145.83 * 24, Qmax: 275.83, QRS: 206.87, h: 3.14 }).par;
   yakin(c.Ro, 1.50, 'halka'); yakin(c.ag, 0.60, 'ağız eni'); yakin(c.ah, 1.00, 'ağız yüksekliği'); yakin(c.dAg, 0.89, 'ağız eşiği'); yakin(c.ow, 1.50, 'pencere eni'); yakin(c.oh, 1.00, 'pencere yüksekliği'); yakin(c.rg, 0.70, 'kılavuz perde'); yakin(c.bG, 0.80, 'giriş kanalı (Çokal)'); yakin(c.bC, 1.00, 'çıkış kanalı (Çokal)');
   const B = boyutla({ Qd: 20000 }), p = B.par, Q = (B.debi.Qmax + B.debi.QRS) / 3600;
-  assert.ok(B.t >= 0.5 && B.t <= 1.5, 'temas süresi ' + B.t); assert.ok(B.hiz.agiz <= 0.301 && B.hiz.pencere <= 0.301, 'açıklık hızları');
+  assert.ok(B.t >= 0.5 && B.t <= 1.5, 'temas süresi ' + B.t); assert.ok(B.hiz.agiz <= 0.501 && B.hiz.pencere <= 0.301, 'açıklık hızları (ağız 0,50, pencere 0,30)');
   assert.ok(Math.abs(p.Ls / (2 * p.Ro) - 11 / 3) < 0.3, 'Çokal oranı');
   for (const [d, q] of [[p.dG, B.debi.Qmax], [p.dR, B.debi.QRS], [p.dC, B.debi.Qmax + B.debi.QRS]]) assert.ok(q / 3600 / (Math.PI * (d * (1 - 2 / 17)) ** 2 / 4) <= 1.0001, 'boru hızı ≤ 1 m/s');
   assert.ok(p.ah <= p.h - 0.5 && p.ag <= p.Ro, 'açıklık sınırları');
   const G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, p)); assert.ok(G2.zS > G2.zB + 0.3, 'ağız eşiği tabandan yukarıda');
   assert.ok(G2.ara.g1 < G2.xR + p.bC - 0.1, 'ara duvar kapağı çıkış kanalının içinde'); assert.ok(p.bG >= p.ag + 0.2 - 1e-9, 'giriş kanalı ağızla büyür');
-  const B5 = boyutla({ Qd: 50000 }); assert.ok(B5.par.bC > p.bC - 1e-9 && B5.t >= 0.5 && B5.hiz.agiz <= 0.301, '50.000');
+  const B5 = boyutla({ Qd: 50000 }); assert.ok(B5.par.bC > p.bC - 1e-9 && B5.t >= 0.5 && B5.hiz.agiz <= 0.501, '50.000');
 });
 
 t('akış yolu: halkanın içinde kalır, yön halkanın dönüşüne uyar', () => {
