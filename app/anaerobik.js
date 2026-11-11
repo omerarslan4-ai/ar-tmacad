@@ -380,7 +380,7 @@
     const xs = walls.flatMap(w => w.pts.map(p => p[0])), ys = walls.flatMap(w => w.pts.map(p => p[1]));
     const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t)), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t));
     const geo0 = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: radye.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: radye.kAlt, kUst: r3(G.zTop), kSu: r3(G.zW), ust: 'S' };
-    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [], bolmeler, senaryolar, seritOrt: 1.0 }, // 1 m şerit ortalaması (kullanıcı kararı) geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
+    return { t: Date.now(), kaynak: 'anaerobik', kabuk: { walls, radye, dosemeler: [], bolmeler, senaryolar, seritOrt: 1.0, wmax: 0.2 }, // 1 m şerit ortalaması (kullanıcı kararı) geo: geo0, koken: [Math.min(...xs), Math.min(...ys)],
       ozet: `${e.code || ''} anaerobik havuz: ${walls.length} perde (${walls.filter(w => w.tip === 'dis').length} dış), radye ${Math.round(radye.t * 100)} cm · kot ${r3(radye.kAlt)} → ${r3(G.zTop)}, su ${r3(G.zW)}`, uyar: [] };
   };
   C.bolgeKati = bolgeKati; C.ucgenle = ucgenle; // ortak: delikli plan şeklinden katı (ön arıtma vb. de kullanır)

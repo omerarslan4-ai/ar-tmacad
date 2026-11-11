@@ -415,14 +415,17 @@
       let cols = [], cur = { w: 0, h: 0, items: [] };
       for (const b of bl) { const w = (b.kutu[2] - b.kutu[0]) / Kf + 12, h = (b.kutu[3] - b.kutu[1]) / Kf + 10; if (cur.items.length && cur.h + h > IC) { cols.push(cur); cur = { w: 0, h: 0, items: [] }; } cur.items.push({ b, w, h, y: cur.h }); cur.h += h; cur.w = Math.max(cur.w, w); }
       cols.push(cur);
+      /* uzun pafta bölünür: çizim sütunları A0 boyuna (1189 mm) sığacak kadar; fazlası aynı adla (1/n, 2/n …) yeni paftaya */
+      const MAXW = 1189 - MARJ.l - 8 - SUT - MARJ.r - 6, parts = [[]]; { let w = 0; for (const c of cols) { if (parts[parts.length - 1].length && w + c.w > MAXW) { parts.push([]); w = 0; } parts[parts.length - 1].push(c); w += c.w; } }
+      parts.forEach((cols, ci) => { const pAd = adlar[pi] + (parts.length > 1 ? ` (${ci + 1}/${parts.length})` : '');
       const cizW = cols.reduce((s, c) => s + c.w, 0), PW = Math.max(420, MARJ.l + 8 + cizW + SUT + MARJ.r + 6), D = D0.yeniCizim(Kf); let spec = [];
       const fx0 = mm(MARJ.l), fy0 = mm(MARJ.b), fx1 = mm(PW - MARJ.r), fy1 = mm(PH - MARJ.t); D.REC(fx0, fy0, fx1, fy1, 'STA_CERCEVE'); D.REC(0, 0, mm(PW), mm(PH), 'STA_TABLO');
       const sx = fx1 - mm(SUT); D.L([sx, fy0], [sx, fy1], 'STA_CERCEVE');
       let cx = fx0 + mm(6); for (const col of cols) { for (const it of col.items) { const b = it.b, tx = cx + (mm(col.w) - (b.kutu[2] - b.kutu[0])) / 2 - b.kutu[0], ty = fy1 - mm(6 + it.y) - (b.kutu[3] - b.kutu[1]) - b.kutu[1]; spec = spec.concat(D0.kaydir(b.spec, tx, ty)); } cx += mm(col.w); }
-      const info = { idare: rp.idare || 'DEVLET SU İŞLERİ GENEL MÜDÜRLÜĞÜ\nİÇMESUYU VE ATIKSU DAİRESİ BAŞKANLIĞI', sehir: rp.idareSehir || 'ANKARA', bolge: rp.bolge || '', bolgeSehir: rp.bolgeSehir || '', proje: rp.projeAd || (pr.tesis || '').toLocaleUpperCase('tr'), kod, yapi: ad, pafta: adlar[pi], yapan: rp.yapan || pr.hazirlayan || '', yapanUnv: rp.yapanUnv || '', cizen: rp.cizen || '', cizenUnv: rp.cizenUnv || '', kontrol: rp.kontrol || pr.kontrol || '', kontrolUnv: rp.kontrolUnv || '', tarih: pr.tarih || '', arsiv: rp.arsiv || '', olcek: `1/${olcek}`, yuklenici: rp.yuklenici || '', resimNo: (rp.resimNo || (kod ? kod + '-' : '') + 'S') + '-' + String(out.length + 1).padStart(2, '0') };
+      const info = { idare: rp.idare || 'DEVLET SU İŞLERİ GENEL MÜDÜRLÜĞÜ\nİÇMESUYU VE ATIKSU DAİRESİ BAŞKANLIĞI', sehir: rp.idareSehir || 'ANKARA', bolge: rp.bolge || '', bolgeSehir: rp.bolgeSehir || '', proje: rp.projeAd || (pr.tesis || '').toLocaleUpperCase('tr'), kod, yapi: ad, pafta: pAd, yapan: rp.yapan || pr.hazirlayan || '', yapanUnv: rp.yapanUnv || '', cizen: rp.cizen || '', cizenUnv: rp.cizenUnv || '', kontrol: rp.kontrol || pr.kontrol || '', kontrolUnv: rp.kontrolUnv || '', tarih: pr.tarih || '', arsiv: rp.arsiv || '', olcek: `1/${olcek}`, yuklenici: rp.yuklenici || '', resimNo: (rp.resimNo || (kod ? kod + '-' : '') + 'S') + '-' + String(out.length + 1).padStart(2, '0') };
       D0.antet(D, sx + mm(2), fy0 + mm(2), mm(SUT - 4), mm(P.ANTET_YUK), info);
       if (D0.notSutunu) D0.notSutunu(D, sx + mm(4), fy1 - mm(2), SUT - 8, { S, MAL: K.MAL }, rp);
-      spec = spec.concat(D.out); out.push({ ad: adlar[pi], spec, pw: PW, ph: PH, olcek: olcek || 50, resimNo: info.resimNo });
+      spec = spec.concat(D.out); out.push({ ad: pAd, spec, pw: PW, ph: PH, olcek: olcek || 50, resimNo: info.resimNo }); });
     }
     return out;
   };

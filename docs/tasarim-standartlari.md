@@ -121,3 +121,4 @@
 ## Çalışma şekli
 - Program yalnız tamamen bittiğinde kurulabilir masaüstü uygulamasına (Electron/Tauri) çevrilecek; şimdilik .bat ile tarayıcıda çalışır.
 - Kullanıcının bilgisayarında SAP2000 kurulu değildir.
+- Statik paftalar A0 boyunu (1189 mm) aşmaz: sığmayan çizim sütunları aynı adla (1/n, 2/n …) yeni paftaya geçer. Anaerobik havuzda çatlak sınırı (0,20 mm) modelle birlikte hesap penceresine gelir.
