@@ -53,6 +53,7 @@
   - Parshall savağı seçimli: boğaz genişliği standart tablodan; kot düşümü hidrolik profile işlenir.
 - Anaerobik havuz (program üretir; ölçüler Çokal AAT T-105'ten, carrousel şekli alınmadı):
   - Dikdörtgen gözler yan yana, ortak duvarlı, seri akışlı. Varsayılan 3 göz (1. göz geri devir + süzüntü, 2. ve 3. göz ham su; ayırıcı kapak açıkken hepsi 1. göze); eski projeler için tek göz.
+  - Su gözlerde sırayla dolaşır (1 → 2 → 3, geçişler gözlerin uçlarında sırayla). Ham su 2. göze 1. gözün çıkış ucundan, 1. gözden gelen suyla aynı noktada girer (kademeli karışım); bunun için ham su o uca ayrı bir kanalla taşınır.
   - Temas süresi = V / (Q ort. + geri devir), geri devir = %75 × Q maks.; 0,5–1,5 sa (ATV-DVWK-A 131).
   - Dış duvar ve gözler arası duvar 30 cm, hava payı 0,60 m, giriş kanalı 0,80 m, çıkış kanalı 1,00 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Her gözde karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
