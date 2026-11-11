@@ -95,6 +95,7 @@
   - Taban merkeze eğimli (Çokal 1/12); çamur hunisi merkez tabandan 1,36 m derin; taban plağı 40 cm.
   - Giriş yapısı çapı iç çapın 0,15–0,25 katı. Çıkış yapısı iç 1,50 m, duvarı 30 cm, havuz duvarına bitişik.
 - Ön arıtma (ızgara, kum tutucu) gelecek kademeyi de kapsayacak şekilde boyutlandırılır; proses havuzları tek kademe için çözülür.
+- Mikser seçiminde ortalama akış hızı en az 0,30 m/s ve buna çok yakın olur: tip ve adet seçildikten sonra motor gücü, hızı 0,30'un hemen üstünde tutan en küçük standart güce (0,37 – 0,55 – 0,75 – 1,1 – 1,5 – 2,2 – 3 – 4 … kW) indirilir; eşit güçte hedefe en yakın hız seçilir (karusel ve anaerobik).
 - Karıştırıcılar kullanıcının mikser programıyla seçilir ve mekanik listeye eklenir; merdivenler genel yerleşimdeki arazi kotlarından güncellenir; difüzör yerleşimi ayrı sekmede yapılır.
 
 ## Mekanik tesisat (bina)

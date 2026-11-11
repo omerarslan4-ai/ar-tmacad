@@ -298,7 +298,21 @@
     return { par, debi: { Qort: Qo, Qmax: Qx, Qmin: Qn, QRS }, V, Vk: alan(Ro, Ls) * h * n, t: alan(Ro, Ls) * h * n / (Qo + QRS), hiz: { agiz: (Qx + QRS) / 3600 / ag.A, pencere: (Qx + QRS) / 3600 / pe.A }, Ah };
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati, ekipmanYer, hidrolik, boyutla };
+  /* ================= AKIŞ YOLU (3B canlandırma için) =================
+     Halkada su, koridor ekseni boyunca yarış pisti yolunda döner: r yarıçaplı yolda s mesafesindeki nokta (yerel).
+     yon +1: üst koridor +x (saat yönü), −1: alt koridor +x. Yol boyu = 2·Ls + 2πr. */
+  function akisNokta(G, i, r, s) {
+    const q = G.q, H = G.halka[i], L = q.Ls, P = 2 * L + 2 * Math.PI * r; let u = ((s % P) + P) % P;
+    let x, y; // saat yönü tersi: alt düz (+x) → sağ yay → üst düz (−x) → sol yay
+    if (u < L) { x = G.xc1 + u; y = H.yc - r; }
+    else if ((u -= L) < Math.PI * r) { const a = -Math.PI / 2 + u / r; x = G.xc2 + r * Math.cos(a); y = H.yc + r * Math.sin(a); }
+    else if ((u -= Math.PI * r) < L) { x = G.xc2 - u; y = H.yc + r; }
+    else { u -= L; const a = Math.PI / 2 + u / r; x = G.xc1 + r * Math.cos(a); y = H.yc + r * Math.sin(a); }
+    if (H.yon > 0) y = 2 * H.yc - y; // saat yönü: aynala (üst koridor +x)
+    return [x, y];
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati, ekipmanYer, hidrolik, boyutla, akisNokta };
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
@@ -610,10 +624,50 @@
     C.log(`✓ ${halkaAd(e, G, hi)}: ${mixers.length} mikser (${mixers.map(m => m.name).join(', ')}) mikser penceresinde; akış parçacıkları suya verilen hareketi gösterir.`);
   });
 
+  /* ================= 3B AKIŞ CANLANDIRMASI =================
+     Halkalarda su yüzünde akış parçacıkları; hız mikser seçiminin ortalama hızı (≥ 0,30 m/s), görüntüde HIZLANDIR katı kadar hızlı.
+     3B görünümün çizim üstü katmanına (C.h3.draw) eklenir; açıkken görünüm sürekli yenilenir. */
+  const AKIS = { hizlandir: 4, n: 140, t0: performance.now() };
+  const parcaciklar = (e, G) => { // halka başına sabit rastgele dağılım (yarıçap, başlangıç)
+    if (e._akP && e._akP.key === G.n + '|' + G.q.Ro + '|' + G.q.Ls) return e._akP.p;
+    const p = []; let sd = 12345; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < G.n; i++) for (let k = 0; k < AKIS.n; k++) { const r = G.q.tw / 2 + 0.12 + rnd() * (G.q.Ro - G.q.tw / 2 - 0.24); p.push({ i, r, s0: rnd() * (2 * G.q.Ls + 2 * Math.PI * r), f: 0.85 + rnd() * 0.3 }); }
+    e._akP = { key: G.n + '|' + G.q.Ro + '|' + G.q.Ls, p }; return p;
+  };
+  const akisCiz = (v, g) => {
+    if (!C.doc) return; const ts = (performance.now() - AKIS.t0) / 1000;
+    for (const e of C.doc.ents) {
+      if (e.type !== 'anaerobik' || !e.akis) continue;
+      const G = geo(e), f = C.frame(e.o, e.rot), mx = mixKaynak(e, G), hz = (mx && mx.v ? +mx.v : 0.30) * AKIS.hizlandir;
+      const zs = (C.doc.ents.find(x => x.type === 'su' && x.bag === e.id) || {}).zs, z = (zs != null ? zs : G.zW) + 0.02;
+      g.save(); g.lineCap = 'round';
+      for (const P of parcaciklar(e, G)) {
+        const s = P.s0 + ts * hz * P.f, a = akisNokta(G, P.i, P.r, s), b = akisNokta(G, P.i, P.r, s - 0.7);
+        const A = v.project(f.at(a[0], a[1], z)), B = v.project(f.at(b[0], b[1], z)); if (!A || !B) continue;
+        const gr = g.createLinearGradient(B[0], B[1], A[0], A[1]); gr.addColorStop(0, 'rgba(220,245,255,0)'); gr.addColorStop(1, 'rgba(235,250,255,0.95)');
+        g.strokeStyle = gr; g.lineWidth = 2; g.beginPath(); g.moveTo(B[0], B[1]); g.lineTo(A[0], A[1]); g.stroke();
+      }
+      g.restore();
+    }
+  };
+  const kancaKur = () => { if (!C.h3 || C.h3._akis) return; const d0 = C.h3.draw; C.h3.draw = (v, g) => { try { if (d0) d0(v, g); } finally { try { akisCiz(v, g); } catch (er) { } } }; C.h3._akis = true; };
+  let akisZ = null;
+  const akisDongu = () => { const on = C.doc && C.doc.ents.some(x => x.type === 'anaerobik' && x.akis); if (on && !akisZ) akisZ = setInterval(() => { kancaKur(); if (C.views && C.views.v3) C.views.v3.dirty = true; }, 40); if (!on && akisZ) { clearInterval(akisZ); akisZ = null; if (C.views && C.views.v3) C.views.v3.dirty = true; } };
+  setTimeout(() => { kancaKur(); akisDongu(); }, 0);
+  C.on && C.on('changeIdle', akisDongu);
+  C.addCommand(['ANAKIS', 'ANAEROBIKAKIS'], 'Anaerobik havuzda 3B akış canlandırması (su yüzünde akış parçacıkları, mikserlerin verdiği hızla): ANAKIS [AC|KAPAT] [HIZLANDIR=4]', async (I) => {
+    const kv = takeKV(); if (kv.HIZLANDIR != null && isFinite(C.num(kv.HIZLANDIR))) AKIS.hizlandir = Math.max(1, C.num(kv.HIZLANDIR));
+    const L = (C.sel || []).filter(x => x.type === 'anaerobik'), s = L.length ? L : C.doc.ents.filter(x => x.type === 'anaerobik'); if (!s.length) return C.warn('Çizimde anaerobik havuz yok.');
+    const a = await I.kw('Akış canlandırması', [['AC', 'Aç'], ['KAPAT', 'Kapat']], s[0].akis ? 'KAPAT' : 'AC');
+    for (const e of s) e.akis = a === 'AC'; kancaKur(); akisDongu();
+    if (a === 'AC') { const G = geo(s[0]), mx = mixKaynak(s[0], G); C.log(`✓ 3B akış: halkada ortalama ${mx && mx.v ? (+mx.v).toFixed(2).replace('.', ',') : '0,30'} m/s (görüntü ${AKIS.hizlandir} kat hızlı). 3B görünüme geçin.`); if (C.setView && C.currentView !== '3d') C.setView('3d'); }
+    else C.log('3B akış canlandırması kapatıldı.');
+  });
+
   /* şerit: Arıtma › Proses */
   if (C.ribbon && C.ribbon.tabs) {
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
-    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }, { cmd: 'ANABOYUT', t: 'Debiden boyutla', i: 'calc' }, { cmd: 'ANAMIKSER', t: 'Mikser akışı', i: 'calc' }); try { C.ribbon.render(); } catch (err) { } }
+    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }, { cmd: 'ANABOYUT', t: 'Debiden boyutla', i: 'calc' }, { cmd: 'ANAMIKSER', t: 'Mikser akışı', i: 'calc' }, { cmd: 'ANAKIS', t: 'Akış 3B', i: 'water' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings'], ['Debiden boyutla', 'Size from flow'], ['Mikser akışı', 'Mixer flow']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings'], ['Debiden boyutla', 'Size from flow'], ['Mikser akışı', 'Mixer flow'], ['Akış 3B', 'Flow 3D']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));
