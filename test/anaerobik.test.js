@@ -201,4 +201,14 @@ t('kapaklar: ağız önünde düz yüz, her kapak açıldığı açıklığın �
   }
 });
 
+t('yürüyüş yolu açıklığa göre: dar kulvarda Çokal gibi, genişte bastonun üstünde; direk bastona çarpmaz', () => {
+  const { boyutla, ekipmanYer } = require('../app/anaerobik.js');
+  assert.strictEqual(G.kopruBaston, false, 'Çokal (kulvar 1,35)'); yakin(G.kopru.x1, 12.50, 'Çokal köprüsü');
+  const G6 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1 }, boyutla({ Qd: 60000 }).par)), q = G6.q;
+  assert.strictEqual(G6.kopruBaston, true, '60.000 (kulvar 4,30)'); assert.ok(G6.baston >= q.kb - 1e-9, 'baston en az köprü eni');
+  const uc = G6.xc2 - G6.baston - q.tg / 2; yakin(G6.kopru.x0, uc, 'köprü baston ucundan başlar'); assert.ok(G6.kopru.x1 <= G6.xc2 + 1e-9, 'köprü baston üzerinde');
+  yakin(G6.kopru2.x1 - G6.xc1, G6.xc2 - G6.kopru.x0, 'ikinci yol aynası (bastonun üstünde)');
+  for (const x of ekipmanYer(G6, { n: 2, D: 2.5, P: 0.55, rpm: 40, name: 'K' }, 95).filter(y => y.tur === 'mikser')) assert.ok(x.direk[0] + 0.05 <= G6.kopru.x0 + 1e-9 || x.direk[0] - 0.05 >= G6.kopru2.x1 - 1e-9, 'direk baston ucunun önünde');
+});
+
 console.log(`\n${n} test geçti.`);
