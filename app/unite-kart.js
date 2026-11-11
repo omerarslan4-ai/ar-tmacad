@@ -65,7 +65,7 @@
     cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu', tip: 'terfi' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
     gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre', tip: 'debimetre' }, pc: { ad: 'Ön çökeltme' },
-    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz' }, bio: { ad: 'Biyolojik havuz' },
+    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz' },
     dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme' },
     uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
     pt: { ad: 'Çamur yoğunlaştırma' }, et: { ad: 'Çamur depolama / stabilizasyon' }, dw: { ad: 'Çamur susuzlaştırma (dekantör binası)' },
@@ -392,6 +392,70 @@
     };
   };
 
+  /* ---------- ANAEROBİK HAVUZ KARTI (program üretir; docs/tasarim-uctan-uca.md "Üç gözlü anaerobik havuz") ----------
+     Gözler dikdörtgen, yan yana, ortak duvarlı, seri akışlı. 1. göz geri devir + süzüntü suyunu, diğerleri ham suyu alır;
+     giriş yapısındaki ayırıcı kapak açılınca tüm sular 1. göze karışarak girer. Göz sayısı seçimli (3 / 1).
+     Toplam hacim ATV'den; temas süresi = V / (Q ort. + geri devir), geri devir = oran × Q maks. (Çokal raporu yöntemi), 0,5–1,5 sa.
+     Standart ölçüler Çokal AAT T-105 çiziminden (carrousel şekli alınmadı): duvar 30 cm, hava payı 0,60 m,
+     giriş kanalı 0,80 m, çıkış kanalı 1,00 m, taban plağı 0,50 m. */
+  K.STD_AN = {
+    hp: { ad: 'Hava payı (su yüzü → duvar üstü)', v: 0.60, birim: 'm' },
+    pz: { ad: 'Duvar üstü — zeminden en az yükseklik', v: 0.65, birim: 'm' },
+    tw: { ad: 'Dış duvar kalınlığı', v: 0.30, birim: 'm' },
+    ti: { ad: 'Gözler arası ortak duvar', v: 0.30, birim: 'm' },
+    bG: { ad: 'Giriş (dağıtım) kanalı iç genişliği', v: 0.80, birim: 'm' },
+    bC: { ad: 'Çıkış kanalı iç genişliği', v: 1.00, birim: 'm' },
+    tb: { ad: 'Taban plağı kalınlığı', v: 0.50, birim: 'm' },
+    ras: { ad: 'Geri devir oranı (Q maks.\'a göre)', v: 0.75, birim: '' },
+  };
+  K.anaerobikKart = (id, dim, debi, par, sec) => {
+    par = par || {}; dim = dim || {}; debi = debi || {}; sec = sec || {};
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    // hesaptan (ATV: N hat × L × W × h)
+    const Nh = Math.max(1, Math.round(+dim.N || 1));
+    const L = ek('L', 'Göz boyu (akış yönü)', +dim.L || 0, 'm', 'hesap');
+    const h = ek('h', 'Su derinliği', +dim.h || 0, 'm', 'hesap');
+    const V = ek('V', 'Toplam hacim', Nh * (+dim.L || 0) * (+dim.W || 0) * (+dim.h || 0), 'm³', 'hesap', { f: 'ATV: hat × L × W × h' });
+    const Qo = ek('Qo', 'Ortalama debi (mevcut kademe)', (+debi.Qd || 0) / 24, 'm³/h', 'hesap');
+    const Qm = ek('Qm', 'En büyük debi (mevcut kademe)', +debi.Qww || 0, 'm³/h', 'hesap');
+    // seçenek ve standart
+    const ng = sec.anGoz === '1' ? 1 : 3;
+    ek('ng', 'Göz sayısı', ng, 'adet', 'standart', { not: 'Seçenek: üstteki "Anaerobik göz"' });
+    const S = {}; for (const [k, s] of Object.entries(K.STD_AN)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart');
+    ek('rol', 'Gözlerin görevi', ng === 3 ? '1. göz: geri devir + süzüntü · 2. ve 3. göz: ham su (ayırıcı kapak açıkken hepsi 1. göze)' : 'tek göz: ham su + geri devir + süzüntü', '', 'standart');
+    ek('mik', 'Karıştırıcı', 'her gözde; tabanda ≥ 0,3 m/s (mikser programıyla seçilir)', '', 'katalog');
+    // elle
+    const zs = dz('zs', 'Su yüzü kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
+    const zzVars = zs + S.hp - S.pz;
+    const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+    const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: '2. parçada araziden okunacak' });
+    // türetilen
+    const bg = ek('bg', 'Göz eni', ng ? Nh * (+dim.W || 0) / ng : 0, 'm', 'türetilen', { f: 'toplam en / göz sayısı (hacim korunur)' });
+    ek('Vg', 'Göz hacmi', V / ng, 'm³', 'türetilen', { f: 'toplam hacim / göz sayısı' });
+    const QRS = ek('QRS', 'Geri devir debisi', S.ras * Qm, 'm³/h', 'türetilen', { f: 'oran × Q maks.' });
+    const t = ek('t', 'Temas süresi', Qo + QRS > 0 ? V / (Qo + QRS) : 0, 'sa', 'türetilen', { f: 'V / (Q ort. + geri devir)', not: 'Süzüntü suyu debisi dahil değil' });
+    const adaylar = [[zs + S.hp, 'su yüzü + hava payı'], [zz + S.pz, 'zemin + 0,65']];
+    const [zuV, neden] = adaylar.reduce((a, c) => (c[0] > a[0] + 1e-9 ? c : a));
+    const zu = ek('zu', 'Duvar üstü kotu', zuV, 'm', 'türetilen', { f: 'en büyük(su yüzü + hava payı ; zemin + 0,65)', not: 'Belirleyen: ' + neden });
+    const zt = ek('zt', 'Taban kotu', zs - h, 'm', 'türetilen', { f: 'su yüzü − h' });
+    const zf = ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
+    const en = ek('en', 'Ayak izi eni', ng * bg + (ng - 1) * S.ti + 2 * S.tw, 'm', 'türetilen', { f: 'göz·en + ara duvarlar + 2·dış duvar' });
+    const boy = ek('boy', 'Ayak izi boyu', S.bG + L + S.bC + 4 * S.tw, 'm', 'türetilen', { f: 'giriş kanalı + göz boyu + çıkış kanalı + 4·duvar' });
+    ek('sen', 'Hidrolik senaryolar', 'ayırıcı kapak açık (tam karışım) · kapalı (kademeli karışım)', '', 'standart', { not: '3. parçada profil iki senaryoyla kontrol edilir' });
+
+    if (!V) uyari.push('Anaerobik havuz ölçüleri proses hesabında eksik.');
+    if (t && (t < 0.5 || t > 1.5)) uyari.push(`Temas süresi ${t.toFixed(2).replace('.', ',')} sa; ATV-DVWK-A 131'e göre 0,5–1,5 sa olmalı.`);
+    return {
+      id, tip: 'anaerobik', params: P, uyari, koku: false,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zs },
+      girisler: ['ham su', 'geri devir', 'süzüntü suyu'],
+      kot: { su: zs, ust: zu, taban: zt, temel: zf, zemin: zz },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -403,6 +467,9 @@
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'anaerobik') {
+        x.kart = K.anaerobikKart(x.id, veri(x.id).dim, Z.kademe.mevcut.debi, par[x.id], sec);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'debimetre') {
         x.kart = K.debimetreKart(x.id, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id], sec, C && C.CATALOG && C.CATALOG.PE && C.CATALOG.PE.sizes);
@@ -459,7 +526,8 @@
         ${sel('debimetre', 'Debimetre', [['MAN', 'Manyetik'], ['PAR', 'Parshall savağı']], A.sec.debimetre || 'MAN')}
         ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}
         ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
-        ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}</div>
+        ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}
+        ${sel('anGoz', 'Anaerobik göz', [['3', '3 göz (ayırıcı kapaklı)'], ['1', 'Tek göz']], A.sec.anGoz || '3')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
       U.querySelectorAll('[data-sec]').forEach(s => s.onchange = () => { A.sec[s.dataset.sec] = s.value; C.changed && C.changed(); ciz(); });

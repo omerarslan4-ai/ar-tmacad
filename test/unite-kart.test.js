@@ -179,6 +179,29 @@ t('debimetre: zincirde nihai kademe; büyük debide boru yetmez uyarısı; Parsh
   assert.strictEqual(pr.ayakIzi, null);
 });
 
+/* GERÇEK PROJE: Çokal AAT, T-105 Anaerobik havuz (3-Çokal_AAT_Anaerobik_R3.dwg, proses raporu Tablo 20)
+   Rapor: 3 göz, her biri en 2,70 × boy 11,00, su 3,00 m; 1. kademe Q proje 145,83, Q maks. 275,83 m³/h, geri devir %75 (= 206,87 m³/h).
+   Çizim carrousel tipi (program dikdörtgen üretir; ayak izi karşılaştırılmaz). Su yüzü 96,64, duvar üstü 97,25, zemin 95,00. */
+t('Çokal AAT T-105: anaerobik havuz hacmi, temas süresi ve kotlar', () => {
+  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 145.83 * 24, Qww: 275.83 }, { zs: 96.64, zz: 95.00 }, {});
+  yakin(p(k, 'V').v, 267.3, 'hacim'); yakin(p(k, 'bg').v, 2.70, 'göz eni'); assert.ok(Math.abs(p(k, 'QRS').v - 206.87) < 0.01, 'geri devir (rapor 206,87)');
+  yakin(p(k, 't').v, 267.3 / (145.83 + 206.87), 'temas süresi');
+  assert.ok(p(k, 't').v > 0.57 && p(k, 't').v < 0.95, 'raporun temas aralığında');
+  yakin(k.kot.ust, 97.24, 'duvar üstü (çizim 97,25)'); yakin(k.kot.taban, 93.64, 'taban = su − 3,00');
+  yakin(k.ayakIzi.en, 3 * 2.7 + 2 * 0.3 + 2 * 0.3, 'en'); yakin(k.ayakIzi.boy, 0.8 + 11 + 1.0 + 4 * 0.3, 'boy');
+  assert.strictEqual(k.uyari.length, 0); assert.deepStrictEqual(k.girisler, ['ham su', 'geri devir', 'süzüntü suyu']);
+});
+
+t('anaerobik: tek göz seçeneği hacmi korur; zincirde mevcut kademe', () => {
+  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, {}, { anGoz: '1' });
+  yakin(p(k, 'bg').v, 8.1, 'tek göz eni'); yakin(p(k, 'V').v, 267.3, 'hacim aynı'); yakin(k.ayakIzi.en, 8.1 + 0.6, 'en');
+  const x = K.kartlar(j, {}).su.find(y => y.id === 'an');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
+  yakin(p(x.kart, 't').v, 3024 / (55300 / 24 + 0.75 * 4608), 'WB 2025 temas süresi');
+  const kisa = K.anaerobikKart('an', { N: 1, L: 5, W: 5, h: 3 }, { Qd: 24000, Qww: 2000 }, {}, {});
+  assert.ok(kisa.uyari.some(u => u.includes('Temas süresi')));
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));
