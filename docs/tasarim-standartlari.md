@@ -67,8 +67,8 @@
     - Ortak duvardaki orifis ve pencere kapakları duvar yuvasında; köprüye bitişik kapak işletme sahanlığı iki kapağı da içine alır (kapaklardan 0,40 m geniş, duvarın iki yanına 0,30 m taşar), korkuluk çevresinden dolanır. Pencere köprüden 0,10 m geride (kapak çerçevesi köprüye girmesin).
     - Havuz çevresinde zemin kotunda 1,00 m tretuvar.
     - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000), her orifise (500 × 500) ve sağ kanaldaki bölme geçişine birer adet. Ölçüler açıklıktan gelir.
-    - Tahrik kendiliğinden seçilir: kapak alanı 1,0 m²'yi ya da su kuvveti 10 kN'u aşarsa elektrikli aktüatör, değilse el çarkı (projede tümü el çarkı / tümü aktüatör yapılabilir).
-    - Mikser: servis köprüsünün önünde, her koridorda akış yönünde itki; kılavuz direk köprü kenarında, vinçle köprüden alınır. Sayı ve tip mikser hesabı penceresinin sonucundan (aynı halka için yapılmışsa), yoksa aynı yöntemle otomatik seçimden.
+    - Tahrik kendiliğinden seçilir: kapak alanı 1,0 m²'yi ya da su kuvveti 10 kN'u aşarsa elektrikli aktüatör, değilse el çarkı Aynı perdedeki kapaklar tek tip: biri aktüatörlüyse hepsi aktüatörlü (projede tümü el çarkı / tümü aktüatör yapılabilir).
+    - Mikser: yürüyüş yolunun havuzun uzun kısmına bakan yüzünde, uzun kısma doğru akan koridorda, uzun kısma doğru iter; kısa tarafa bakan yüzde mikser yok. Kılavuz direk yol kenarında, vinçle yoldan alınır. Halka başına 2 ve üzeri mikser gerekiyorsa uzun kısmın öbür ucuna ikinci yürüyüş yolu (merdivenli, korkuluklu) eklenir; mikserlerin yarısı oraya, yine uzun kısma bakacak şekilde konur. Sayı ve tip mikser hesabı penceresinin sonucundan (aynı halka için yapılmışsa), yoksa aynı yöntemle otomatik seçimden.
     - Boru delikleri (giriş, RAS, çıkış) saha borulamasına göre yer değiştirir: saha borusunun ucu duvara yakınsa delik borunun eksenine, çapına ve kotuna kayar; elle de taşınabilir.
     - Yerleşen ekipman elle taşınabilir; yeniden üretimde elle taşınanlar korunur. Etiketler (SK-…, Z-…) mekanik listeye girer.
 - Dağıtma yapısı (biyolojik havuzlar ve son çökeltme önü; Çokal AAT T-107 örneği):

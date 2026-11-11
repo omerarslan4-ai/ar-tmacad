@@ -23,7 +23,7 @@
     or: 0.50, ow: 1.50, kb: 1.50, kbX: 1.50, kbT: 0.20,
     dG: 0.50, dR: 0.30, dC: 0.30,
     h: 3.14, fb: 0.61, tb: 0.50, zt: 97.25,
-    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.10,
+    mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.10, k2: 0,
   };
 
   /* yardımcılar (yerel 2B) */
@@ -167,6 +167,8 @@
     G.pen = { xo, xw0, xw1 };
     // köprü dışarıda merdiven sahanlığı kadar uzar; pencere kapakları için köprüye bitişik işletme sahanlıkları
     G.kopru.y0 = 0; G.kopru.y1 = Wo + q.mw;
+    // ikinci yürüyüş yolu (halka başına 2 ve üzeri mikserde): uzun kısmın öbür ucunda, servis köprüsünün aynası
+    if (q.k2) { const x0 = xc1 + (xc2 - G.kopru.x1); if (x0 + q.kb < Math.min(xo, xw0) - q.sahX - 0.5) G.kopru2 = { x0, x1: x0 + q.kb, y0: 0, y1: Wo + q.mw, z0: zTop, z1: zTop + q.kbT }; }
     G.sahanlik = [];
     // kapak işletme sahanlığı: orifis ve pencere kapaklarını içine alır, ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
     for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two; G.sahanlik.push({ x0: Math.min(xo, xw0) - q.sahX, x1: xk0, y0: y0 - q.sahE, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT }); }
@@ -194,30 +196,37 @@
       const ym = G.yc[i] + q.Ro + q.two / 2;
       pen(`pen-pen-${i}`, `P/${LET[i]}`, [(G.pen.xw0 + G.pen.xw1) / 2, ym], 90, G.zS, q.ow, q.ah);
       pen(`pen-or-${i}`, `O/${LET[i]}`, [G.pen.xo + q.or / 2, ym], 90, G.zB, q.or, q.or);
+      if (q.tahrik !== 'EL' && q.tahrik !== 'AKT') { // aynı perdedeki kapaklar tek tip: biri aktüatörlüyse ikisi de
+        const ik = out.slice(-2); if (ik.some(x => x.tahrik === 'AKT')) ik.forEach(x => { x.tahrik = 'AKT'; });
+      }
     }
     if (G.ara) pen('pen-bolme', 'B', [(G.ara.g0 + G.ara.g1) / 2, G.ara.y], 90, G.zB, q.ag, q.ah);
-    // mikserler: servis köprüsünün önünde (kılavuz direk köprü kenarında, vinçle köprüden alınır); her koridorda akış yönünde itki
+    /* mikserler: yürüyüş yolunun uzun kısma bakan yüzünde, uzun kısma doğru akan koridorda (kılavuz direk köprü kenarında, vinçle köprüden alınır).
+       Servis köprüsünde ceil(n/2), ikinci yürüyüş yolunda (halka başına 2 ve üzeri mikserde) kalanı */
     if (mx && mx.n) {
-      const per = Math.ceil(mx.n / 2), Lm = 0.70; let k = 0;
-      for (const H of G.halka) for (const [ust, cnt] of [[true, per], [false, mx.n - per]]) {
-        const dir = ust ? H.yon : -H.yon, xd = dir > 0 ? G.kopru.x1 + 0.20 : G.kopru.x0 - 0.20, x = xd + dir * (Lm / 2 + 0.12);
+      const Lm = 0.70, n1 = G.kopru2 ? Math.ceil(mx.n / 2) : mx.n, n2 = G.kopru2 ? mx.n - n1 : 0; let k = 0;
+      for (const H of G.halka) for (const [kp, dir, cnt] of [[G.kopru, -1, n1], [G.kopru2, 1, n2]]) {
+        if (!kp || !cnt) continue;
+        const ust = H.yon === dir, xd = dir > 0 ? kp.x1 + 0.20 : kp.x0 - 0.20, x = xd + dir * (Lm / 2 + 0.12); // üst koridor akışı = yon
         for (let m = 0; m < cnt; m++) {
           const y = ust ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt;
-          out.push({ anahtar: `mik-${H.i}-${ust ? 'u' : 'a'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, ad: mx.name, Hd: G.zTop - G.zB, direk: [xd, y] });
+          out.push({ anahtar: `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, ad: mx.name, Hd: G.zTop - G.zB, direk: [xd, y] });
         }
       }
     }
-    // merdiven: üst dış duvar boyunca, köprünün dışarı uzanan ucuna çıkar
-    const z0 = zg != null ? zg : G.zTop - 2.25, H = zK - z0;
-    if (H > 0.3) {
-      const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb, ym = G.Wo + q.mw / 2;
-      out.push({ anahtar: 'merdiven', tur: 'merdiven', pts: [[G.kopru.x0 - Lk, ym], [G.kopru.x0, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr });
+    // merdiven(ler): üst dış duvar boyunca, köprünün dışarı uzanan ucuna soldan çıkar; korkuluk: köprü dış ucu + iki kenar
+    const z0 = zg != null ? zg : G.zTop - 2.25, H = zK - z0, a = 0.05;
+    for (const [kp, sfx] of [[G.kopru, ''], [G.kopru2, '-2']]) {
+      if (!kp) continue;
+      if (H > 0.3) {
+        const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb, ym = G.Wo + q.mw / 2;
+        out.push({ anahtar: 'merdiven' + sfx, tur: 'merdiven', pts: [[kp.x0 - Lk, ym], [kp.x0, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr });
+      }
+      const k0 = kp.x0 + a, k1 = kp.x1 - a, yU = kp.y1 - a, pts = [[kp.x0, yU], [k1, yU], [k1, a], [k0, a]];
+      if (kp === G.kopru) for (const s of G.sahanlik) pts.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]); // sahanlıkların çevresinden
+      pts.push([k0, G.Wo]);
+      out.push({ anahtar: 'korkuluk-kopru' + sfx, tur: 'korkuluk', pts, z: zK });
     }
-    // korkuluk: köprü dış ucu + sağ kenar + sol kenar (sahanlıkların çevresinden dolanır); merdiven korkuluğu merdivende
-    const a = 0.05, k0 = G.kopru.x0 + a, k1 = G.kopru.x1 - a, yU = G.kopru.y1 - a, kp = [[G.kopru.x0, yU], [k1, yU], [k1, a], [k0, a]];
-    for (const s of G.sahanlik) kp.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]);
-    kp.push([k0, G.Wo]);
-    out.push({ anahtar: 'korkuluk-kopru', tur: 'korkuluk', pts: kp, z: zK });
     return out;
   }
 
@@ -271,6 +280,7 @@
       for (const sh of G.sahanlik) out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, { color: 30, lw: 25 }));
       out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, { color: 8, lw: 18 }));
       out.push(T1((k.x0 + k.x1) / 2, G.Wo + 0.9, `Servis köprüsü ${f2(q.kb)} m · ${kot(k.z1)}`, { color: 30 }));
+      if (G.kopru2) { const k2 = G.kopru2; out.push(PL([[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], true, { color: 30, lw: 35 }), T1((k2.x0 + k2.x1) / 2, G.Wo + 0.9, `Yürüyüş yolu ${f2(q.kb)} m · ${kot(k2.z1)}`, { color: 30 })); }
       // kapaklar
       const un = unum(e);
       if (!e.ekipman) G.kapak.forEach((c, i) => out.push(L(f.at(c.a[0], c.a[1], z), f.at(c.b[0], c.b[1], z), { color: 6, lw: 70 })));
@@ -326,6 +336,7 @@
       for (const p of G.parca) out.push(ext(f.at(0, 0, p.z0), f.ux, [0, 0, 1], p.pts, p.z1 - p.z0));
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
       const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], k.z1 - k.z0));
+      if (G.kopru2) { const k2 = G.kopru2; out.push(ext(f.at(0, 0, k2.z0), f.ux, [0, 0, 1], [[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], k2.z1 - k2.z0)); }
       for (const sh of G.sahanlik) out.push(ext(f.at(0, 0, sh.z0), f.ux, [0, 0, 1], [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], sh.z1 - sh.z0));
       { // tretuvar: zemin kotunda havuz çevresi
         const zg = zemin(e, G), uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
@@ -364,7 +375,8 @@
   }
   /* yerleştir / güncelle: programın koyduğu ve yerinde duran ekipman güncellenir; elle taşınan korunur; kullanıcının sildiği yeniden konmaz */
   C.anaerobikEkipman = (e, sessiz) => {
-    const G = geo(e), mxS = mixKaynak(e, G), yer = ekipmanYer(G, mxS, zemin(e, G)), once = new Set(e.ekAnahtar || []), yeniK = new Set(yer.map(y => y.anahtar));
+    const mxS = mixKaynak(e, geo(e)), k2 = mxS && mxS.n >= 2 ? 1 : 0; if ((e.k2 || 0) !== k2) { e.k2 = k2; delete e._c; delete e._ag; } // halka başına 2+ mikser → ikinci yürüyüş yolu
+    const G = geo(e), yer = ekipmanYer(G, mxS, zemin(e, G)), once = new Set(e.ekAnahtar || []), yeniK = new Set(yer.map(y => y.anahtar));
     const mevcut = new Map(C.doc.ents.filter(x => x.bag === e.id && x.anahtar).map(x => [x.anahtar, x]));
     let n = 0, g = 0, el = 0, s = 0;
     for (const y of yer) {

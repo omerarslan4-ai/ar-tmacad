@@ -86,10 +86,10 @@ t('ekipman yerleri: Çokal penstok, merdiven ve köprü korkuluğu', () => {
   // kapak çerçevesi (B + 2·85 mm) ve el çarkı (r 0,25) korkuluğa değmez
   for (const x of tur('penstok').filter(x => /pen-(pen|or)/.test(x.anahtar))) { const s = G.sahanlik[+x.anahtar.slice(-1)], w = x.B / 2 + 0.085; assert.ok(x.p[0] - w > s.x0 + 0.05 && x.p[0] + w < G.kopru.x0 && x.p[1] - 0.25 > s.y0 + 0.05 && x.p[1] + 0.25 < s.y1 - 0.05, 'kapak sahanlıkta: ' + x.anahtar); }
   // tahrik kuralı: alan > 1 m² ya da kuvvet > 10 kN → aktüatör
-  const th = k2 => E.find(x => x.anahtar === k2).tahrik; assert.strictEqual(th('pen-sol-0'), 'EL'); assert.strictEqual(th('pen-pen-0'), 'AKT', 'pencere 1,5 m²'); assert.strictEqual(th('pen-bolme'), 'AKT', 'bölme ≈ 15,5 kN'); assert.strictEqual(th('pen-or-0'), 'EL', 'orifis ≈ 7 kN');
+  const th = k2 => E.find(x => x.anahtar === k2).tahrik; assert.strictEqual(th('pen-sol-0'), 'EL'); assert.strictEqual(th('pen-pen-0'), 'AKT', 'pencere 1,5 m²'); assert.strictEqual(th('pen-bolme'), 'AKT', 'bölme ≈ 15,5 kN'); assert.strictEqual(th('pen-or-0'), 'AKT', 'orifis kendi başına el çarkı (≈ 7 kN) ama aynı perdedeki pencereyle tek tip');
   assert.ok(ekipmanYer(geo({ zt: 97.25, fb: 0.61, h: 3.14, tahrik: 'EL' })).filter(x => x.tur === 'penstok').every(x => x.tahrik === 'EL'), 'elle zorlama');
   assert.strictEqual(tur('mikser').length, 6, 'halka başına 2 mikser');
-  for (const x of tur('mikser')) assert.ok(Math.abs(x.direk[0] - 10.80) < 1e-6 || Math.abs(x.direk[0] - 12.70) < 1e-6, 'direk köprü kenarında: ' + x.direk[0]);
+  for (const x of tur('mikser')) { assert.ok(Math.abs(x.direk[0] - 10.80) < 1e-6, 'tek yürüyüş yolunda: köprünün uzun kısma bakan yüzü ' + x.direk[0]); assert.strictEqual(x.aci, 180, 'uzun kısma iter'); }
   assert.strictEqual(ekipmanYer(G, { n: 4, D: 0.37, P: 2.5, rpm: 1400, name: 'K' }, 95).filter(x => x.tur === 'mikser').length, 12, 'sayı hesaptan');
 });
 
@@ -99,6 +99,23 @@ t('boru delikleri taşınabilir: yer, çap, alt kotu (sınırlar içinde)', () =
   yakin(b('giris').p[0], 0.50, 'giriş yeri'); yakin(b('giris').z0, 93.80, 'giriş alt kotu'); yakin(b('giris').d, 0.40, 'çap');
   yakin(b('cikis').p[1], 9.40 - 0.15, 'çıkış kanal ucunda sınırlandı'); yakin(b('ras').p[0], 16.90 - 0.15, 'RAS kanal içinde sınırlandı');
   assert.ok(g2.kes.filter(k => k.k === 'boru').length === 3);
+});
+
+t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun kısma bakar', () => {
+  const { ekipmanYer } = require('../app/anaerobik.js');
+  const G2 = geo({ zt: 97.25, fb: 0.61, h: 3.14, k2: 1 }); yakin(G2.kopru2.x0, 4.50, 'ikinci yol (aynası)'); yakin(G2.kopru2.x1, 6.00, 'ikinci yol sonu');
+  const E = ekipmanYer(G2, { n: 2, D: 0.37, P: 2.5, rpm: 1400, name: 'K' }, 95.00), mk = E.filter(x => x.tur === 'mikser');
+  assert.strictEqual(mk.length, 6);
+  for (const H of G2.halka) {
+    const m = mk.filter(x => Math.abs(x.p[1] - H.yc) < 1.5); assert.strictEqual(m.length, 2, 'halkada 2');
+    const a = m.find(x => x.aci === 180), b = m.find(x => x.aci === 0);
+    yakin(a.direk[0], 10.80, 'servis köprüsü yüzü'); yakin(b.direk[0], 6.20, 'ikinci yol yüzü');
+    // her mikser akışla aynı yönde: üst koridor akışı = yon
+    assert.strictEqual(a.p[1] > H.yc ? H.yon : -H.yon, -1); assert.strictEqual(b.p[1] > H.yc ? H.yon : -H.yon, 1);
+    assert.ok(a.p[0] < 10.8 && b.p[0] > 6.2, 'gövde uzun kısımda');
+  }
+  assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 2); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 2);
+  const m2 = E.find(x => x.anahtar === 'merdiven-2'); assert.ok(m2.pts[0][0] > 0, 'ikinci merdiven havuz boyunda');
 });
 
 console.log(`\n${n} test geçti.`);
