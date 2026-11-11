@@ -29,6 +29,9 @@
 
 ## Proses ve ünite tasarımı
 - Izgara yapısı: kanal derinliği ≈ su derinliği + yaklaşık 1 m hava payı; temel kotu arazi kotundan türer; baypas kanalı zorunlu.
+  - Kanal derinliğinde ATV formülü (su derinliği + yük kaybı + hava payı) değil, bu standart kullanılır.
+  - Baypas kanalı = yedek kanal (ayrı bir baypas kanalı çizilmez).
+  - Çöp konteyneri: standart belediye konteyneri yüksekliği (1100 L, EN 840, ≈1,37 m); konveyör ona göre oturur.
 - Biyolojik bölmeler bitişik tek tank olarak yapılır (ortak duvarlı). Geçişler genelde savaklı, bazı yerlerde orifis.
 - Son çökeltme havuzları dairesel.
 - Ön arıtma (ızgara, kum tutucu) gelecek kademeyi de kapsayacak şekilde boyutlandırılır; proses havuzları tek kademe için çözülür.

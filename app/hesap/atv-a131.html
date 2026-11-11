@@ -1820,11 +1820,19 @@ document.addEventListener('click', (e) => {
   if (t.id === 'navT') { document.body.classList.toggle('navopen'); return; }
 });
 // ---------- ArıtmaCAD aktarımı: ünite ebatları → çizim ----------
-function cadData() {
-  const res = compute(S, sc()), units = {};
+// tek kademenin ünite ebatları ve debileri
+function cadUnits(res) {
+  const units = {};
   for (const u of unitList(res)) { const o = res.R[u]; if (o && o.dim) units[u] = { kod: UNITS[u].c, ad: UNITS[u].n, dim: JSON.parse(JSON.stringify(o.dim)), key: o.key || [] }; }
+  return units;
+}
+const cadDebi = c => ({ Qd: c.Qd, Qh: c.Qh, Qdw: c.Qdw, Qww: c.Qww, Qmin: c.Qmin, PE: c.PE });
+function cadData() {
+  const res = compute(S, sc()), units = cadUnits(res);
   const c = res.ctx || {};
-  return { format: 'AritmaCAD-proses', surum: 2, kaynak: 'ATV-A 131 Proses Hesabı', zaman: new Date().toISOString(), proje: { name: S.project.name, loc: S.project.loc }, kademe: sc().name, sistem: S.system, sistemAd: SYS[S.system].n, debi: { Qd: c.Qd, Qh: c.Qh, Qdw: c.Qdw, Qww: c.Qww, Qmin: c.Qmin, PE: c.PE }, units };
+  // kademeler: ünite kartları ön arıtmayı nihai kademeden, havuzları mevcut (etkin) kademeden boyutlar
+  const kademeler = S.scen.map(s => { const r = compute(S, s); return { ad: s.name, debi: cadDebi(r.ctx || {}), units: cadUnits(r) }; });
+  return { format: 'AritmaCAD-proses', surum: 2, kaynak: 'ATV-A 131 Proses Hesabı', zaman: new Date().toISOString(), proje: { name: S.project.name, loc: S.project.loc }, kademe: sc().name, sistem: S.system, sistemAd: SYS[S.system].n, debi: cadDebi(c), units, kademeler, aktifKademe: S.act };
 }
 function cadExport() {
   const d = cadData(); let sent = false;

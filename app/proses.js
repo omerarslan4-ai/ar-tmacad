@@ -26,6 +26,7 @@
   const ZONE = { AN: { n: 'Anaerobik', c: 30 }, AX: { n: 'Anoksik', c: 150 }, OX: { n: 'Aerobik', c: 3 }, SIM: { n: 'Sim. DN', c: 4 }, INT: { n: 'Kesikli DN', c: 4 }, ST: { n: '', c: 7 } };
   const kindOf = (u, d) => { const k = (UNIT[u] || {}).kind || 'rect'; return k === 'auto' ? (d.circ ? 'circ' : 'rect') : k; };
   const DEF_T = { rect: [0.4, 0.3, 0.5], circ: [0.4, 0, 0.5], screen: [0.3, 0, 0.4], grit: [0.3, 0.2, 0.4], pump: [0.4, 0.3, 0.6], vtank: [0.3, 0, 0.4], uv: [0.3, 0, 0.4] };
+  C.prosesKind = kindOf; C.prosesKalinlik = k => DEF_T[k] || [0.4, 0.3, 0.5]; // ünite kartları (unite-kart.js) ayak izi için
 
   /* ---------- yerel yerleşim (x = akış yönü, y = enine; köken = dış sol-alt köşe) ---------- */
   function layout(e) {

@@ -1,0 +1,311 @@
+/* ArıtmaCAD — ÜNİTE KARTI ÇEKİRDEĞİ (uçtan uca tesis tasarımı, 1. parça — docs/tasarim-uctan-uca.md)
+   Proses verisinden (C.doc.set.proses) akış zincirindeki ünite kartlarını üretir.
+   Kart = parametre tablosu. Her parametrenin kaynağı: hesap | standart | katalog | elle | türetilen.
+   Kademe: ızgara, terfi ve kum tutucu NİHAİ kademe debisiyle; havuzlar ve çökeltme MEVCUT (etkin) kademeyle boyutlanır.
+   İlk tam kart ızgara yapısıdır (kaba / ince ayrı yapıda ya da aynı kanalda). Diğer üniteler şimdilik "taslak": yalnız ayak izi.
+   Izgara kot zinciri: konteyner zeminde → konveyör bandı konteynerin üstünde → ızgara deşarj ağzı bandın üstünde
+   → platform = deşarj ağzı − ızgaranın platformdan boşaltma yüksekliği; ama platform en az taban + su derinliği + hava payı.
+   Saf hesap kısmı tarayıcısız da çalışır (node test/unite-kart.test.js); pencere ve komut yalnız tarayıcıda kurulur.
+   Proje ayarları: C.doc.set.uniteKart = { sec:{ onaritma:'A'|'B', debimetre:'MAN'|'PAR', cikis:'DEZ'|'GK', nihai, mevcut }, par:{ kartId:{ k:v } } } */
+(function (C) {
+  'use strict';
+  const K = {};
+  const r3 = v => Math.round(v * 1000) / 1000;
+  const kopya = o => JSON.parse(JSON.stringify(o || {}));
+
+  /* ---------- firma standartları (docs/tasarim-standartlari.md) — proje bazında değiştirilebilir ---------- */
+  K.STD_IZGARA = {
+    hp: { ad: 'Hava payı (su yüzü → platform)', v: 1.0, birim: 'm' },
+    tw: { ad: 'Kanal duvar kalınlığı', v: 0.30, birim: 'm' },
+    tb: { ad: 'Taban plağı kalınlığı', v: 0.40, birim: 'm' },
+    Hk: { ad: 'Çöp konteyneri yüksekliği (1100 L belediye tipi, EN 840)', v: 1.37, birim: 'm' },
+    pk: { ad: 'Konveyör bandı → konteyner üstü payı', v: 0.30, birim: 'm' },
+    pd: { ad: 'Izgara deşarj ağzı → konveyör bandı düşüsü', v: 0.15, birim: 'm' },
+  };
+  K.STD_ARA = { ad: 'Aynı kanalda kaba – ince ızgara arası (açık soru)', v: 3.0, birim: 'm' };
+  /* ekipman kataloğu varsayılanları: mekanik kaba ızgara ailesinin ilk tipi (aile-mekanik.js, üretici çizimi 02-FF-010102010301) */
+  K.KAT_IZGARA = {
+    hBos: { ad: 'Izgara deşarj ağzı — platformdan', v: 0.215, birim: 'm' },
+    ust: { ad: 'Tahrik kafası üstü — platformdan', v: 1.545, birim: 'm' },
+    a: { ad: 'Izgara eğim açısı (yataydan)', v: 75, birim: '°' },
+  };
+  /* tarayıcıda: katalog değerleri aile tipinden okunur (tip değişirse kart da değişir) */
+  const katalog = () => {
+    const o = kopya(K.KAT_IZGARA);
+    try {
+      const t = C && C.aileTipleri && C.aileTipleri('kaba_izgara')[0];
+      if (t && t.p) { if (t.p.hdU != null) o.hBos.v = t.p.hdU / 1000; if (t.p.ust != null) o.ust.v = t.p.ust / 1000; if (t.p.a != null) o.a.v = +t.p.a; o.tip = t.ad; }
+    } catch (e) { }
+    return o;
+  };
+
+  /* ---------- kademeler ---------- */
+  K.kademeler = j => (j && Array.isArray(j.kademeler) && j.kademeler.length)
+    ? j.kademeler
+    : [{ ad: (j && j.kademe) || 'Tek kademe', debi: (j && j.debi) || {}, units: (j && j.units) || {} }];
+  const qOf = k => +(((k || {}).debi || {}).Qww || ((k || {}).debi || {}).Qd || 0);
+  K.kademeSec = (j, sec) => {
+    const L = K.kademeler(j), uy = [];
+    const ok = i => i != null && i !== '' && L[+i];
+    const iN = ok(sec && sec.nihai) ? +sec.nihai : L.reduce((b, k, i) => (qOf(k) > qOf(L[b]) ? i : b), 0);
+    const iM = ok(sec && sec.mevcut) ? +sec.mevcut : (ok(j && j.aktifKademe) ? +j.aktifKademe : 0);
+    if (L.length < 2) uy.push('Proses verisinde tek kademe var: ön arıtma ve havuzlar aynı debiyle boyutlandı. ATV penceresinde iki kademe tanımlayıp yeniden aktarın.');
+    else if (iN === iM) uy.push('Nihai ve mevcut kademe aynı seçili.');
+    if (qOf(L[iN]) < qOf(L[iM])) uy.push('Nihai kademe debisi mevcut kademeden küçük; seçimi kontrol edin.');
+    return { liste: L, nihai: L[iN], mevcut: L[iM], iN, iM, uyari: uy };
+  };
+
+  /* ---------- ünite listesi ---------- */
+  K.UNITE = {
+    cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
+    izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
+    gr: { ad: 'Kum ve yağ tutucu' }, dm: { ad: 'Debimetre' }, pc: { ad: 'Ön çökeltme' },
+    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz' }, bio: { ad: 'Biyolojik havuz' },
+    dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme' },
+    uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
+    pt: { ad: 'Çamur yoğunlaştırma' }, et: { ad: 'Çamur depolama / stabilizasyon' }, dw: { ad: 'Çamur susuzlaştırma (dekantör binası)' },
+    cp: { ad: 'Kimyasal fosfor giderimi' },
+  };
+  /* nihai kademe debisiyle boyutlanan üniteler (ön arıtma). Terfi istasyonu yapısı da nihai kademeye göre (varsayım) */
+  K.NIHAI = new Set(['cs', 'fs', 'izB', 'ps', 'gr']);
+  const KOKU = new Set(['cs', 'fs', 'izB', 'gr', 'dw', 'et']);
+
+  /* akış zinciri: proses seçimlerine göre ünite sırası. Durum: kart | taslak (proses ebatlı ayak izi) | eksik (hesapta yok) | bekliyor (şablon yok) */
+  K.zincir = (j, sec) => {
+    sec = sec || {};
+    const kd = K.kademeSec(j, sec), uN = kd.nihai.units || {}, uM = kd.mevcut.units || {};
+    const veri = id => (K.NIHAI.has(id) ? uN : uM)[id] || null;
+    const N = id => { const d = (veri(id) || {}).dim || {}; return Math.max(1, Math.round(+d.N || 1)); };
+    const su = [], camur = [], yard = [], uyari = kd.uyari.slice();
+    const ekle = (dizi, id, o) => { const t = K.UNITE[id]; dizi.push(Object.assign({ id, ad: t.ad, tip: t.tip || 'taslak', kademe: K.NIHAI.has(id) ? 'nihai' : 'mevcut', koku: KOKU.has(id) }, o)); };
+    const durum = id => (veri(id) ? (K.UNITE[id].tip ? 'kart' : 'taslak') : 'eksik');
+    const zorunlu = (dizi, id) => { ekle(dizi, id, { durum: durum(id) }); if (!veri(id)) uyari.push(`${K.UNITE[id].ad} proses hesabında yok.`); };
+    const secimli = (dizi, id) => { if (veri(id)) ekle(dizi, id, { durum: durum(id), secimli: true }); };
+
+    // ön arıtma
+    if ((sec.onaritma || 'A') === 'B') {
+      const v = veri('cs') || veri('fs');
+      ekle(su, 'izB', { durum: v ? 'kart' : 'eksik', kaynak: ['cs', 'fs'].filter(veri) });
+      if (!v) uyari.push('Kaba / ince ızgara proses hesabında yok.');
+      secimli(su, 'ps');
+    } else {
+      zorunlu(su, 'cs'); secimli(su, 'ps'); secimli(su, 'fs');
+    }
+    zorunlu(su, 'gr');
+    ekle(su, 'dm', { durum: 'bekliyor', secenek: (sec.debimetre || 'MAN') === 'PAR' ? 'Parshall savağı' : 'Manyetik debimetre' });
+    secimli(su, 'pc');
+    if (veri('bio') && N('bio') >= 2) ekle(su, 'dg1', { durum: 'bekliyor', hat: N('bio') });
+    secimli(su, 'an');
+    zorunlu(su, 'bio');
+    if (veri('sc') && N('sc') >= 2) ekle(su, 'dg2', { durum: 'bekliyor', hat: N('sc') });
+    zorunlu(su, 'sc');
+    if ((sec.cikis || 'DEZ') === 'GK') ekle(su, 'gk', { durum: 'bekliyor' });
+    else if (veri('uv')) ekle(su, 'uv', { durum: 'taslak' });
+    else ekle(su, 'cik', { durum: 'bekliyor' });
+    // çamur hattı ve yardımcılar
+    for (const id of ['pt', 'et', 'dw']) secimli(camur, id);
+    secimli(yard, 'cp');
+
+    // numara: firma standardı — ünite eklenip çıkarıldıkça yeniden numaralanır
+    let no = 101;
+    for (const x of [...su, ...camur, ...yard]) x.kod = 'T-' + no++;
+    for (const d of [su, camur]) d.forEach((x, i) => { x.sonraki = d[i + 1] ? d[i + 1].kod : null; });
+    if (su.length && camur.length) camur[camur.length - 1].sonraki = null; // süzüntü suyu: biyolojik havuzun başına (saha borulamasında)
+    return { kademe: kd, su, camur, yard, uyari };
+  };
+
+  /* ---------- IZGARA YAPISI KARTI ---------- */
+  /* dims: [{ rol:'kaba'|'ince', dim:{ N, Nsb, b, h, H, L, th, e } }], par: proje değişiklikleri { k: v } */
+  K.izgaraKart = (id, dims, par, katV) => {
+    par = par || {};
+    const kat = katV || kopya(K.KAT_IZGARA), P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    // proje değişikliği varsa onu kullan (kaynak aynı kalır, "değişti" işaretlenir)
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+
+    // hesaptan (B seçeneğinde iki ekipman tek kanalda: büyük olan ölçü)
+    const d = dims.map(x => x.dim || {}), mx = k => Math.max(...d.map(x => +x[k] || 0));
+    const rol = dims.map(x => (x.rol === 'kaba' ? 'kaba' : 'ince')).join(' + ');
+    const N = ek('N', 'Çalışan kanal sayısı', Math.max(1, Math.round(mx('N'))), 'adet', 'hesap');
+    const Nsb = ek('Nsb', 'Yedek (baypas) kanal sayısı', Math.round(mx('Nsb')), 'adet', 'hesap');
+    const b = ek('b', 'Kanal genişliği', mx('b'), 'm', 'hesap');
+    const h = ek('h', 'Su derinliği (Q maks.)', mx('h'), 'm', 'hesap');
+    const Lk = dims.map(x => +(x.dim || {}).L || 0);
+    dims.forEach((x, i) => {
+      const r = x.rol === 'kaba' ? 'kaba' : 'ince';
+      if (x.dim.e != null) ek('e_' + r, `Çubuk aralığı (${r})`, +x.dim.e, 'mm', 'hesap');
+    });
+    if (mx('H')) ek('H_atv', 'Kanal yüksekliği — ATV hesabı (bilgi)', mx('H'), 'm', 'hesap', { not: 'ATV: su derinliği + yük kaybı + hava payı. Kartta firma standardı kullanılır.' });
+    // standart
+    const S = {}; for (const [k, s] of Object.entries(K.STD_IZGARA)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart');
+    const ara = dims.length > 1 ? dz('ara', K.STD_ARA.ad, K.STD_ARA.v, K.STD_ARA.birim, 'standart') : 0;
+    const L = ek('L', 'Kanal uzunluğu', dims.length > 1 ? Math.max(...Lk) + ara : Lk[0], 'm', dims.length > 1 ? 'türetilen' : 'hesap', dims.length > 1 ? { f: 'en uzun kanal + kaba–ince arası' } : {});
+    // katalog
+    const a = dz('a', kat.a.ad, kat.a.v, kat.a.birim, 'katalog');
+    for (const x of dims) if (x.dim.th != null && Math.abs(+x.dim.th - a) > 0.5) uyari.push(`ATV hesabında ${x.rol} ızgara açısı ${x.dim.th}°, katalogda ${a}°. Yük kaybı hesabını kontrol edin.`);
+    const hBos = dz('hBos', kat.hBos.ad, kat.hBos.v, 'm', 'katalog', kat.tip ? 'Aile tipi: ' + kat.tip : null);
+    const ust = dz('ust', kat.ust.ad, kat.ust.v, 'm', 'katalog');
+    // elle (sonraki parçalarda otomatik gelecek)
+    const zt = dz('zt', 'Kanal taban kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
+    const zzV = par.zz != null && par.zz !== '' && isFinite(+par.zz) ? +par.zz : zt + h + S.hp;
+    const zz = ek('zz', 'Zemin kotu (konteyner yeri)', zzV, 'm', 'elle', { duz: true, deg: par.zz != null && par.zz !== '', vars: r3(zt + h + S.hp), not: 'Boşsa kanal üstü = zemin. 2. parçada araziden okunacak' });
+
+    // türetilen
+    const n = ek('n', 'Toplam kanal (çalışan + yedek)', N + Nsb, 'adet', 'türetilen', { f: 'N + Nsb' });
+    const Dmin = h + S.hp;
+    const zpKont = zz + S.Hk + S.pk + S.pd - hBos;
+    const zp = ek('zp', 'Yürüme platformu kotu', Math.max(zt + Dmin, zpKont), 'm', 'türetilen', { f: 'en büyük(taban + h + hava payı ; zemin + konteyner + pay + düşü − deşarj yük.)' });
+    const D = ek('D', 'Kanal derinliği (taban → platform)', zp - zt, 'm', 'türetilen', { f: 'platform − taban' });
+    const zd = ek('zd', 'Izgara deşarj ağzı kotu', zp + hBos, 'm', 'türetilen', { f: 'platform + deşarj yüksekliği' });
+    const zb = ek('zb', 'Konveyör bandı kotu', zd - S.pd, 'm', 'türetilen', { f: 'deşarj ağzı − düşü' });
+    ek('zk', 'Konteyner üstü kotu', zz + S.Hk, 'm', 'türetilen', { f: 'zemin + konteyner' });
+    ek('Ht', 'Izgara toplam yüksekliği (tabandan)', D + ust, 'm', 'türetilen', { f: 'kanal derinliği + kafa üstü' });
+    ek('Le', 'Izgara eğim boyu', (D + ust) / Math.sin(a * Math.PI / 180), 'm', 'türetilen', { f: 'toplam yükseklik / sin(açı)' });
+    const zs = ek('zs', 'Su yüzü kotu (Q maks.)', zt + h, 'm', 'türetilen', { f: 'taban + h' });
+    const zf = ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
+    const en = ek('en', 'Ayak izi eni', n * b + (n + 1) * S.tw, 'm', 'türetilen', { f: 'n·b + (n+1)·duvar' });
+    const boy = ek('boy', 'Ayak izi boyu', L, 'm', 'türetilen', { f: 'kanal uzunluğu' });
+
+    if (Nsb < 1) uyari.push('Yedek kanal yok: firma standardına göre baypas (yedek) kanal zorunlu. ATV hesabında yedek kanal sayısını 1 yapın.');
+    if (zp > zt + Dmin + 0.005) uyari.push(`Konteyner ve konveyör yüksekliği nedeniyle platform, su yüzü + hava payının ${(zp - zt - Dmin).toFixed(2).replace('.', ',')} m üstünde. Kanal derinleşti.`);
+    if (zb < zz + S.Hk + S.pk - 0.005) uyari.push('Konveyör bandı konteynerin üstünde kalmıyor.');
+    if (dims.length > 1) uyari.push('Kaba ve ince ızgara arası mesafe henüz netleşmedi (açık soru); standart değer kullanıldı.');
+
+    return {
+      id, tip: 'izgara', rol, params: P, uyari, koku: true,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zs }, // yerel: x akış yönü, köken dış sol-alt köşe
+      kot: { taban: zt, su: zs, platform: zp, desarj: zd, bant: zb, zemin: zz, temel: zf },
+    };
+  };
+
+  /* ---------- tüm kartlar ---------- */
+  /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
+  K.kartlar = (j, ayar, opts) => {
+    ayar = ayar || {}; opts = opts || {};
+    const sec = ayar.sec || {}, par = ayar.par || {}, Z = K.zincir(j, sec), kat = opts.katalog || katalog();
+    const uN = Z.kademe.nihai.units || {}, uM = Z.kademe.mevcut.units || {};
+    const veri = id => (K.NIHAI.has(id) ? uN : uM)[id] || null;
+    for (const x of [...Z.su, ...Z.camur, ...Z.yard]) {
+      if (x.durum === 'kart' && x.tip === 'izgara') {
+        const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
+        x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'taslak' && opts.ayakIzi) {
+        const v = veri(x.id); try { x.ayakIzi = v ? opts.ayakIzi(x.id, v.dim) : null; } catch (e) { x.ayakIzi = null; }
+      }
+    }
+    return Z;
+  };
+
+  if (C) C.kart = K;
+  if (typeof module !== 'undefined' && module.exports) module.exports = K;
+  if (typeof document === 'undefined' || !C || !C.addCommand) return;
+
+  /* ================= PENCERE (yalnız tarayıcı) ================= */
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fm = (v, n) => (typeof v === 'number' ? v.toFixed(n == null ? 2 : n).replace('.', ',') : esc(v));
+  const RENK = { hesap: '#4c9be8', standart: '#e0a030', katalog: '#9b6ad6', elle: '#d9534f', 'türetilen': '#5cb85c' };
+  const DURUM = { kart: ['kart', '#5cb85c'], taslak: ['taslak', '#8a96a3'], eksik: ['hesapta yok', '#d9534f'], bekliyor: ['şablon bekliyor', '#8a96a3'] };
+  const rozet = (t, c) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;font-size:11px;line-height:17px;color:#fff;background:${c}">${esc(t)}</span>`;
+  const ayar = () => { const s = C.doc.set; s.uniteKart = s.uniteKart || {}; s.uniteKart.sec = s.uniteKart.sec || {}; s.uniteKart.par = s.uniteKart.par || {}; return s.uniteKart; };
+  const ayakIzi = (u, dim) => {
+    if (!C.prosesKind || !C.uniteLayout) return null;
+    const k = C.prosesKind(u, dim), t = C.prosesKalinlik ? C.prosesKalinlik(k) : [0.4, 0.3, 0.5];
+    const lay = C.uniteLayout({ kind: k, d: dim, tw: t[0], ti: t[1] || 0.3 });
+    return lay && lay.Lo ? { en: r3(lay.Wo), boy: r3(lay.Lo) } : null;
+  };
+  K.hesapla = () => { const j = C.proses && C.proses(); return j ? K.kartlar(j, ayar(), { ayakIzi }) : null; };
+
+  C.uniteKartPencere = () => {
+    if (!(C.proses && C.proses())) { C.warn('Proses verisi yok. ATV hesabından "ArıtmaCAD\'e aktar" deyin ya da PROSESAC ile dosya açın.'); return; }
+    const A = ayar(); let secId = null;
+    const b = C.modal('Ünite kartları — akış zinciri', `<div id="ukUst" style="margin-bottom:10px"></div>
+      <div style="display:grid;grid-template-columns:minmax(240px,340px) minmax(0,1fr);gap:14px;min-height:460px;max-height:70vh">
+      <div id="ukL" style="overflow:auto;border-right:1px solid var(--line,#3a4250);padding-right:8px"></div><div id="ukR" style="overflow:auto"></div></div>
+      <div class="bar" style="justify-content:space-between;margin-top:10px"><div class="hint">${Object.entries(RENK).map(([k, c]) => rozet(k, c)).join(' ')}</div>
+      <div style="display:flex;gap:8px"><button id="ukLog">Listeyi komut satırına yaz</button><button id="ukKapat" class="pri">Kapat</button></div></div>`);
+    const box = document.querySelector('#modal .box'); if (box) box.style.width = 'min(1240px,97vw)';
+    const U = b.querySelector('#ukUst'), L1 = b.querySelector('#ukL'), R1 = b.querySelector('#ukR');
+    const sel = (k, ad, opts, v) => `<label style="margin-right:12px;white-space:nowrap">${esc(ad)} <select data-sec="${k}">${opts.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select></label>`;
+    const ciz = () => {
+      const Z = K.hesapla(); if (!Z) return;
+      const kd = Z.kademe, kOpt = kd.liste.map((k, i) => [i, `${k.ad}${k.debi && k.debi.Qww ? ' (Q maks. ' + Math.round(k.debi.Qww) + ' m³/h)' : ''}`]);
+      U.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px 0;align-items:center">
+        ${sel('onaritma', 'Ön arıtma', [['A', 'A: kaba ızgara → terfi → ince ızgara'], ['B', 'B: kaba + ince aynı kanalda → terfi']], A.sec.onaritma || 'A')}
+        ${sel('debimetre', 'Debimetre', [['MAN', 'Manyetik'], ['PAR', 'Parshall savağı']], A.sec.debimetre || 'MAN')}
+        ${sel('cikis', 'Çıkış', [['DEZ', 'Dezenfeksiyon ve çıkış'], ['GK', 'Geri kazanım']], A.sec.cikis || 'DEZ')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
+        ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
+      U.querySelectorAll('[data-sec]').forEach(s => s.onchange = () => { A.sec[s.dataset.sec] = s.value; C.changed && C.changed(); ciz(); });
+      const grup = (ad, xs) => xs.length ? `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin:8px 0 4px">${esc(ad)}</div>` + xs.map(x => {
+        const d = DURUM[x.durum] || DURUM.taslak, ai = x.ayakIzi ? `${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m` : '—';
+        return `<button data-k="${x.id}" style="display:block;width:100%;text-align:left;margin:2px 0;${x.id === secId ? 'border-color:var(--acc,#4c9be8);background:rgba(76,155,232,.15)' : ''}">
+          <b>${esc(x.kod)}</b> ${esc(x.ad)} ${rozet(d[0], d[1])}<br><span class="hint">${x.kademe} kademe · ayak izi ${ai}${x.koku ? ' · koku' : ''}</span></button>`;
+      }).join('') : '';
+      L1.innerHTML = grup('Su hattı', Z.su) + grup('Çamur hattı', Z.camur) + grup('Yardımcı', Z.yard);
+      L1.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { secId = x.dataset.k; ciz(); });
+      const hepsi = [...Z.su, ...Z.camur, ...Z.yard], x = hepsi.find(y => y.id === secId) || hepsi.find(y => y.kart) || hepsi[0];
+      if (!x) { R1.innerHTML = ''; return; }
+      secId = x.id; detay(x, kd);
+    };
+    const detay = (x, kd) => {
+      const kdm = x.kademe === 'nihai' ? kd.nihai : kd.mevcut;
+      let h = `<div style="font-weight:600;font-size:15px">${esc(x.kod)} ${esc(x.ad)}</div>
+        <div class="hint" style="margin-bottom:8px">${x.kademe === 'nihai' ? 'Nihai' : 'Mevcut'} kademe: ${esc(kdm.ad)}${x.sonraki ? ' · sonraki ünite ' + esc(x.sonraki) : ''}${x.koku ? ' · koku bayrağı: kapalı örtü ve emiş kanalı' : ''}${x.secenek ? ' · ' + esc(x.secenek) : ''}${x.hat ? ' · ' + x.hat + ' hat' : ''}</div>`;
+      if (!x.kart) {
+        const m = { taslak: 'Bu ünitenin kartı henüz yok; ayak izi proses hesabındaki ebatlardan alındı.', eksik: 'Bu ünite proses hesabında yok. ATV penceresinde üniteyi seçip yeniden aktarın.', bekliyor: 'Bu ünitenin şablonu henüz yok; sonraki adımlarda eklenecek.' }[x.durum] || '';
+        R1.innerHTML = h + `<p>${esc(m)}</p>${x.ayakIzi ? `<p>Ayak izi: ${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m</p>` : ''}`; return;
+      }
+      const k = x.kart;
+      h += `<table class="bom" style="width:100%"><thead><tr><th>Parametre</th><th>Değer</th><th>Birim</th><th>Kaynak</th></tr></thead><tbody>`;
+      for (const p of k.params) {
+        const v = p.duz ? `<input data-p="${p.k}" type="number" step="any" value="${p.v}" style="width:80px${p.deg ? ';border-color:#d9534f' : ''}">${p.deg ? ` <button data-sil="${p.k}" title="Varsayılan: ${fm(p.vars, 3)}">↺</button>` : ''}` : `<b>${fm(p.v, p.birim === 'adet' || p.birim === 'mm' || p.birim === '°' ? 0 : 2)}</b>`;
+        h += `<tr><td>${esc(p.ad)}${p.f ? `<div class="hint">= ${esc(p.f)}</div>` : ''}${p.not ? `<div class="hint">${esc(p.not)}</div>` : ''}</td><td style="white-space:nowrap">${v}</td><td>${esc(p.birim)}</td><td>${rozet(p.kaynak + (p.deg ? ' (değişti)' : ''), RENK[p.kaynak] || '#888')}</td></tr>`;
+      }
+      h += '</tbody></table>';
+      if (k.uyari.length) h += `<div class="hint" style="color:#e0a030;margin-top:8px">${k.uyari.map(esc).join('<br>')}</div>`;
+      R1.innerHTML = h;
+      const pr = () => (A.par[x.id] = A.par[x.id] || {});
+      R1.querySelectorAll('[data-p]').forEach(i => i.onchange = () => { const v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) pr()[i.dataset.p] = v; else delete pr()[i.dataset.p]; C.changed && C.changed(); ciz(); });
+      R1.querySelectorAll('[data-sil]').forEach(i => i.onclick = () => { delete pr()[i.dataset.sil]; C.changed && C.changed(); ciz(); });
+    };
+    ciz();
+    let done = false; const fin = () => { if (done) return; done = true; clearInterval(tm); if (box) box.style.width = ''; C.closeModal(); };
+    b.querySelector('#ukKapat').onclick = fin;
+    b.querySelector('#ukLog').onclick = () => { C.uniteKartListe(); };
+    const tm = setInterval(() => { const m = document.querySelector('#modal'); if (m && m.classList.contains('hidden')) fin(); }, 300);
+  };
+
+  C.uniteKartListe = () => {
+    const Z = K.hesapla(); if (!Z) { C.warn('Proses verisi yok.'); return; }
+    C.log(`Ünite kartları — nihai kademe: ${Z.kademe.nihai.ad}, mevcut kademe: ${Z.kademe.mevcut.ad}`);
+    for (const [ad, xs] of [['Su hattı', Z.su], ['Çamur hattı', Z.camur], ['Yardımcı', Z.yard]]) {
+      if (!xs.length) continue; C.log('  ' + ad + ':');
+      for (const x of xs) C.log(`    ${x.kod} ${x.ad} — ${x.kademe} kademe — ${(DURUM[x.durum] || [x.durum])[0]}${x.ayakIzi ? ` — ayak izi ${fm(x.ayakIzi.en)} × ${fm(x.ayakIzi.boy)} m` : ''}${x.kart ? ` — platform ${fm(x.kart.kot.platform)}, kanal derinliği ${fm(x.kart.params.find(p => p.k === 'D').v)} m` : ''}`);
+    }
+    for (const u of Z.uyari) C.warn(u);
+  };
+
+  C.addCommand(['UNITEKART', 'UNITEKARTLARI', 'KARTLAR'], 'Proses verisinden akış zincirini ve ünite kartlarını gösterir (ön arıtma seçeneği, kademeler, ızgara yapısı kot zinciri ve ayak izleri).', async () => { C.uniteKartPencere(); }, { noUndo: true });
+  C.addCommand(['UNITEKARTLISTE'], 'Ünite kartlarının listesini ve ayak izlerini komut satırına yazar.', async () => { C.uniteKartListe(); }, { noUndo: true });
+
+  /* şerit: Arıtma → Proses paneline */
+  try {
+    const tab = C.ribbon && C.ribbon.tabs && C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pn = tab && tab[1].find(p => p[0] === 'Proses');
+    if (pn && !pn[1].some(x => x.cmd === 'UNITEKART')) { const i = pn[1].findIndex(x => x.cmd === 'PROSES'); pn[1].splice(i + 1, 0, { cmd: 'UNITEKART', t: 'Ünite kartları', i: 'table', big: true }); C.ribbon.render(); }
+  } catch (er) { console.error('ünite kartı şerit', er); }
+
+  /* çizim / pafta dili */
+  try {
+    if (window.DIL) window.DIL.ekle('en', 'English', [
+      ['Kaba ızgara yapısı', 'Coarse screen structure'], ['İnce ızgara yapısı', 'Fine screen structure'], ['Kaba ve ince ızgara yapısı (aynı kanal)', 'Coarse and fine screen structure (common channel)'],
+      ['Giriş terfi istasyonu', 'Inlet pumping station'], ['Kum ve yağ tutucu', 'Grit and grease chamber'], ['Debimetre', 'Flow meter'], ['Ön çökeltme', 'Primary clarifier'],
+      ['Dağıtma yapısı (biyolojik havuzlar)', 'Distribution chamber (biological tanks)'], ['Dağıtma yapısı (son çökeltme)', 'Distribution chamber (final clarifiers)'],
+      ['Anaerobik havuz', 'Anaerobic tank'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
+      ['Çıkış yapısı', 'Outlet structure'], ['Geri kazanım üniteleri', 'Water reuse units'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],
+      ['Çamur susuzlaştırma (dekantör binası)', 'Sludge dewatering (decanter building)'], ['Kimyasal fosfor giderimi', 'Chemical phosphorus removal'],
+      ['Yürüme platformu kotu', 'Walkway platform level'], ['Izgara deşarj ağzı kotu', 'Screen discharge level'], ['Konveyör bandı kotu', 'Conveyor belt level'], ['Kanal taban kotu', 'Channel invert level'],
+    ], {});
+  } catch (er) { }
+})(typeof window !== 'undefined' ? window.C : null);
