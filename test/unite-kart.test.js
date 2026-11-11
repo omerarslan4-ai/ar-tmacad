@@ -23,16 +23,17 @@ t('kademe seçimi: nihai = en büyük debi, mevcut = ATV etkin kademe', () => {
 
 t('akış zinciri (ön arıtma A): sıra, numara, kademe', () => {
   const Z = K.zincir(j, {});
-  assert.deepStrictEqual(Z.su.map(x => x.id), ['cs', 'ps', 'fs', 'gr', 'dm', 'pc', 'an', 'bio', 'dg2', 'sc', 'cik']);
+  assert.deepStrictEqual(Z.su.map(x => x.id), ['cs', 'ps', 'fs', 'gr', 'dm', 'pc', 'dg1', 'an', 'bio', 'dg2', 'sc', 'cik']);
   assert.deepStrictEqual(Z.camur.map(x => x.id), ['pt', 'et', 'dw']);
   assert.deepStrictEqual(Z.yard.map(x => x.id), ['cp']);
   assert.deepStrictEqual(Z.su.map(x => x.kod).slice(0, 3), ['T-101', 'T-102', 'T-103']);
-  assert.strictEqual(Z.yard[0].kod, 'T-115');
+  assert.strictEqual(Z.yard[0].kod, 'T-116');
   assert.strictEqual(Z.su[0].sonraki, 'T-102');
   assert.strictEqual(Z.su.find(x => x.id === 'cs').kademe, 'nihai');
   assert.strictEqual(Z.su.find(x => x.id === 'bio').kademe, 'mevcut');
-  // mevcut kademede tek biyolojik havuz → dağıtma yok; iki son çökeltme → dağıtma var
-  assert.ok(!Z.su.some(x => x.id === 'dg1'));
+  // mevcut kademede tek biyolojik havuz ama nihaide 3 → dağıtma var (2 kör savakla); iki son çökeltme → dağıtma var
+  const d1 = Z.su.find(x => x.id === 'dg1');
+  assert.strictEqual(d1.hat, 1); assert.strictEqual(d1.hatN, 3);
   assert.strictEqual(Z.su.find(x => x.id === 'dg2').hat, 2);
 });
 
@@ -251,6 +252,29 @@ t('son çökeltme zincirde: mevcut kademe havuzları, nihaideki fazlası gelecek
   assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
   assert.strictEqual(x.adet, 2); assert.strictEqual(x.gelecek, 6);
   assert.ok(x.kart.uyari.some(u => u.includes('Giriş yapısı')));
+});
+
+/* GERÇEK PROJE: Çokal AAT, T-107 Son çökeltme dağıtma yapısı (4-Çokal_AAT_Havalandırma Havuzu_R3.dwg, F-F kesiti)
+   1. kademede 1, nihaide 2 son çökeltme → 2 ağız (1'i kör). Q maks. 2060 298,33, 2045 275,83 m³/h; geri devir %75.
+   Çizim: giriş haznesi su 96,46–96,48; savak 96,37; çıkış haznesi su 96,11; taban 91,13; duvar üstü 97,25; en 7,90 m. */
+t('Çokal AAT T-107: dağıtma yapısı savak kotu, düşü ve genişlik çizimle aynı', () => {
+  const k = K.dagitmaKart('dg2', { hat: 1, hatN: 2, hedef: 'sc' }, { Qww: 298.33 }, { Qww: 275.83 }, { zs: 96.45 });
+  assert.ok(Math.abs(k.kot.savak - 96.37) < 0.005, 'savak 96,37');
+  assert.ok(Math.abs(k.kot.cikis - 96.11) < 0.005, 'çıkış su 96,11');
+  assert.ok(Math.abs(k.kot.taban - 91.13) < 0.005, 'taban 91,13');
+  assert.ok(Math.abs(p(k, 'zsM').v - 96.48) < 0.015, 'mevcut kademede giriş su ≈ 96,48');
+  yakin(k.ayakIzi.en, 7.90, 'en (çizim 790)'); assert.strictEqual(p(k, 'kor').v, 1);
+  assert.ok(p(k, 'Pv').v < 30); assert.strictEqual(k.uyari.length, 0);
+});
+
+t('dağıtma yapıları zincirde kart; biyolojik dağıtımda geri devir yok', () => {
+  const Z = K.kartlar(j, {}, { karusel: KAR });
+  const d1 = Z.su.find(x => x.id === 'dg1'), d2 = Z.su.find(x => x.id === 'dg2');
+  assert.strictEqual(d1.durum, 'kart'); assert.strictEqual(p(d1.kart, 'kor').v, 2);
+  yakin(p(d1.kart, 'QN').v, 20000 / 3600, 'bio dağıtımı Q maks.'); yakin(p(d2.kart, 'QN').v, 20000 / 3600 * 1.75, 'çökeltme dağıtımı + geri devir');
+  // büyük debide savak uzar, savak yükü sınırda kalır, enerji sınırı sağlanır
+  assert.ok(p(d2.kart, 'Lsv').v > 1.7 && p(d2.kart, 'hN').v <= 0.1505, 'savak boyu debiden');
+  assert.ok(p(d2.kart, 'Pv').v <= 30.01 && d2.kart.uyari.length === 0, 'enerji sınırı');
 });
 
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {

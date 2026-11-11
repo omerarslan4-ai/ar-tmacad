@@ -65,8 +65,8 @@
     cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu', tip: 'terfi' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
     gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre', tip: 'debimetre' }, pc: { ad: 'Ön çökeltme' },
-    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz', tip: 'bio' },
-    dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme', tip: 'sc' },
+    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)', tip: 'dagitma' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz', tip: 'bio' },
+    dg2: { ad: 'Dağıtma yapısı (son çökeltme)', tip: 'dagitma' }, sc: { ad: 'Son çökeltme', tip: 'sc' },
     uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
     pt: { ad: 'Çamur yoğunlaştırma' }, et: { ad: 'Çamur depolama / stabilizasyon' }, dw: { ad: 'Çamur susuzlaştırma (dekantör binası)' },
     cp: { ad: 'Kimyasal fosfor giderimi' },
@@ -81,6 +81,7 @@
     const kd = K.kademeSec(j, sec), uN = kd.nihai.units || {}, uM = kd.mevcut.units || {};
     const veri = id => (K.NIHAI.has(id) ? uN : uM)[id] || null;
     const N = id => { const d = (veri(id) || {}).dim || {}; return Math.max(1, Math.round(+d.N || 1)); };
+    const NN = id => { const d = (uN[id] || {}).dim || {}; return Math.max(1, Math.round(+d.N || 1)); }; // nihai kademe hat sayısı
     const su = [], camur = [], yard = [], uyari = kd.uyari.slice();
     const ekle = (dizi, id, o) => { const t = K.UNITE[id]; dizi.push(Object.assign({ id, ad: t.ad, tip: t.tip || 'taslak', kademe: K.NIHAI.has(id) ? 'nihai' : 'mevcut', koku: KOKU.has(id) }, o)); };
     const durum = id => (veri(id) ? (K.UNITE[id].tip ? 'kart' : 'taslak') : 'eksik');
@@ -99,10 +100,11 @@
     zorunlu(su, 'gr');
     ekle(su, 'dm', { durum: 'kart', secenek: (sec.debimetre || 'MAN') === 'PAR' ? 'Parshall savağı' : 'Manyetik debimetre' });
     secimli(su, 'pc');
-    if (veri('bio') && N('bio') >= 2) ekle(su, 'dg1', { durum: 'bekliyor', hat: N('bio') });
+    // dağıtma yapısı: mevcut ya da nihai kademede iki ve üzeri hat varsa (tek hatta atlanır; gelecek hat için kör savak)
+    if (veri('bio') && Math.max(N('bio'), NN('bio')) >= 2) ekle(su, 'dg1', { durum: 'kart', hat: N('bio'), hatN: Math.max(N('bio'), NN('bio')), hedef: 'bio' });
     secimli(su, 'an');
     zorunlu(su, 'bio');
-    if (veri('sc') && N('sc') >= 2) ekle(su, 'dg2', { durum: 'bekliyor', hat: N('sc') });
+    if (veri('sc') && Math.max(N('sc'), NN('sc')) >= 2) ekle(su, 'dg2', { durum: 'kart', hat: N('sc'), hatN: Math.max(N('sc'), NN('sc')), hedef: 'sc' });
     zorunlu(su, 'sc');
     if ((sec.cikis || 'DEZ') === 'GK') ekle(su, 'gk', { durum: 'bekliyor' });
     else if (veri('uv')) ekle(su, 'uv', { durum: 'taslak' });
@@ -587,6 +589,71 @@
     };
   };
 
+  /* ---------- DAĞITMA YAPISI KARTI (eşit dağıtım savaklı; biyolojik havuz ve son çökeltme önü) ----------
+     Standartlar Çokal AAT T-107 (son çökeltme dağıtma yapısı, havalandırma havuzu çizimi F-F kesiti ve plan):
+     ortada giriş haznesi 2,50 m, her hat için bir çıkış haznesi 2,00 m; her hatta 1,70 m ayarlanabilir savak kapağı;
+     dış duvar 40, iç duvar 30 cm; savak → çıkış haznesi su yüzü 0,26 m serbest düşü; duvar üstü su + 0,79 (97,25).
+     Savaklar eşit boyda (eşit dağıtım); nihai kademe hat sayısı kadar ağız açılır, mevcut kademede fazlası kör savak.
+     Savak yükü h = (Q_hat / (1,84 · L))^(2/3). Giriş haznesi enerji kontrolü: ρ·g·Q·(v²/2g) / V < 30 W/m³ (Çokal raporu). */
+  K.STD_DG = {
+    Ls: { ad: 'Savak (kapak) genişliği — en az', v: 1.70, birim: 'm' },
+    hmax: { ad: 'Savak su yükü — en çok', v: 0.15, birim: 'm' },
+    bg: { ad: 'Giriş haznesi iç genişliği', v: 2.50, birim: 'm' },
+    bc: { ad: 'Çıkış haznesi iç genişliği (her hat)', v: 2.00, birim: 'm' },
+    Li: { ad: 'Hazne iç boyu', v: 3.35, birim: 'm' },
+    tw: { ad: 'Dış duvar kalınlığı', v: 0.40, birim: 'm' },
+    ti: { ad: 'İç duvar kalınlığı', v: 0.30, birim: 'm' },
+    pd: { ad: 'Savak → çıkış su yüzü serbest düşü', v: 0.26, birim: 'm' },
+    hp: { ad: 'Hava payı (giriş su yüzü → duvar üstü)', v: 0.79, birim: 'm' },
+    hd: { ad: 'Çıkış haznesi su derinliği', v: 4.98, birim: 'm' },
+    ras: { ad: 'Geri devir oranı (son çökeltme dağıtımında)', v: 0.75, birim: '' },
+    vg: { ad: 'Giriş borusu en büyük hızı', v: 1.20, birim: 'm/s' },
+    pw: { ad: 'Giriş haznesi enerji sınırı', v: 30, birim: 'W/m³' },
+  };
+  K.dagitmaKart = (id, x, debiN, debiM, par) => {
+    par = par || {}; debiN = debiN || {}; debiM = debiM || debiN;
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const y = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(y); return y.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    const S = {}; for (const [k, s] of Object.entries(K.STD_DG)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart', 'Çokal AAT T-107');
+    const sc = x.hedef === 'sc', ras = sc ? S.ras : 0;
+    // hesaptan
+    const n = ek('n', 'Hat sayısı (mevcut kademe)', x.hat || 1, 'adet', 'hesap');
+    const nN = ek('nN', 'Ağız sayısı (nihai kademe)', Math.max(x.hatN || 1, n), 'adet', 'hesap');
+    const QN = ek('QN', 'Debi (nihai)' + (sc ? ' — Q maks. + geri devir' : ' — Q maks.'), (+debiN.Qww || 0) / 3600 * (1 + ras), 'm³/s', 'hesap');
+    const QM = ek('QM', 'Debi (mevcut)', (+debiM.Qww || 0) / 3600 * (1 + ras), 'm³/s', 'hesap');
+    ek('kor', 'Kör savak (gelecek kademe ağzı)', Math.max(0, nN - n), 'adet', 'türetilen', { f: 'nihai − mevcut', not: 'Mevcut kademede kapalı; savak kotu aynı' });
+    // savak yükü: savaklar nihai debiye göre; mevcutta yalnız açık olanlar çalışır
+    const Lsv = ek('Lsv', 'Savak boyu (her hat, eşit)', Math.max(S.Ls, QN / nN / (1.84 * Math.pow(S.hmax, 1.5))), 'm', 'türetilen', { f: 'en büyük(en az genişlik ; Q / ağız / (1,84·h_maks^1,5))' });
+    const hN = ek('hN', 'Savak su yükü (nihai)', Math.pow(QN / nN / (1.84 * Lsv), 2 / 3), 'm', 'türetilen', { f: '(Q / ağız / (1,84·L))^(2/3)' });
+    const hM = ek('hM', 'Savak su yükü (mevcut)', Math.pow(QM / n / (1.84 * Lsv), 2 / 3), 'm', 'türetilen', { f: '(Q / hat / (1,84·L))^(2/3)' });
+    // elle
+    const zs = dz('zs', 'Giriş haznesi su yüzü (nihai)', 0, 'm', 'elle', 'Önceki ünitenin çıkışından; 3. parçada hidrolik profilden');
+    // türetilen kotlar
+    const zc = ek('zc', 'Savak kotu', zs - hN, 'm', 'türetilen', { f: 'giriş su yüzü − savak yükü' });
+    ek('zsM', 'Giriş haznesi su yüzü (mevcut)', zc + hM, 'm', 'türetilen', { f: 'savak + mevcut savak yükü' });
+    const zo = ek('zo', 'Çıkış haznesi su yüzü', zc - S.pd, 'm', 'türetilen', { f: 'savak − serbest düşü' });
+    const zt = ek('zt', 'Taban kotu', zo - S.hd, 'm', 'türetilen', { f: 'çıkış su yüzü − hazne su derinliği' });
+    const zu = ek('zu', 'Duvar üstü kotu', zs + S.hp, 'm', 'türetilen', { f: 'giriş su yüzü + hava payı' });
+    ek('dz', 'Toplam kot düşümü', zs - zo, 'm', 'türetilen', { f: 'savak yükü + serbest düşü', not: 'Hidrolik profile işlenir' });
+    // hazne boyu savağa, giriş haznesi genişliği enerji sınırına göre büyür
+    const Lic = ek('Lic', 'Hazne iç boyu', Math.max(S.Li, Lsv + 1.65), 'm', 'türetilen', { f: 'en büyük(standart ; savak + 2·0,825)' });
+    const dg = Math.max(0.1, zs - zt), Pw = 1000 * 9.81 * QN * (S.vg * S.vg / 19.62);
+    const bgc = ek('bgc', 'Giriş haznesi genişliği', Math.max(S.bg, Pw / (S.pw * Lic * dg)), 'm', 'türetilen', { f: 'en büyük(standart ; enerji sınırını sağlayan)' });
+    const Pv = ek('Pv', 'Giriş haznesi enerji yoğunluğu', Pw / (bgc * Lic * dg), 'W/m³', 'türetilen', { f: 'ρ·g·Q·(v²/2g) / hazne hacmi' });
+    const en = ek('en', 'Ayak izi eni', 2 * S.tw + bgc + nN * (S.bc + S.ti), 'm', 'türetilen', { f: '2·dış duvar + giriş haznesi + ağız·(çıkış haznesi + iç duvar)' });
+    const boy = ek('boy', 'Ayak izi boyu', Lic + 2 * S.tw, 'm', 'türetilen', { f: 'hazne boyu + 2·duvar' });
+    if (Pv > S.pw + 0.05) uyari.push(`Giriş haznesinde enerji ${Pv.toFixed(1).replace('.', ',')} W/m³ > ${S.pw}; hazne büyütülmeli.`);
+    if (hM < 0.02) uyari.push('Mevcut kademede savak yükü 2 cm\'nin altında; eşit dağıtım hassaslaşır, savak boyunu azaltmayı düşünün.');
+    if (!QN) uyari.push('Proses verisinde debi yok.');
+    return {
+      id, tip: 'dagitma', params: P, uyari, koku: false,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zo },
+      kot: { su: zs, savak: zc, cikis: zo, taban: zt, ust: zu },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -598,6 +665,9 @@
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'dagitma') {
+        x.kart = K.dagitmaKart(x.id, x, Z.kademe.nihai.debi, Z.kademe.mevcut.debi, par[x.id]);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'sc') {
         x.kart = K.scKart(x.id, veri(x.id).dim, par[x.id], (uN[x.id] || {}).dim);
