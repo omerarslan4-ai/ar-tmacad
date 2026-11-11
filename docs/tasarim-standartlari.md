@@ -50,6 +50,9 @@
   - Duvar üstü = su yüzü + 0,85 m hava payı; zeminden en az 0,65 m yukarıda.
   - Kum oluğu tabandan 0,50 m aşağıda; kum oluğu altındaki taban plağı 0,64 m.
   - Blowerlar tesis büyüklüğüne göre ana blower binasında ya da kum tutucunun yanında küçük binada (Çokal'da ana binada).
+  - Çizim kuralları (KUMTUTUCU komutu, Çokal G-G kesiti; 11 Kasım 2026'da onaylandı): yağ bölmesi dış duvar tarafında, komşu gözler aynalı; kum oluğu 50 cm taban eninde, yanları 10 cm açılır, ayırma kirişinin dibinde; taban oluğun üstünden duvar diplerine 45° yükselen grobeton dolgu, altı düz taban plağı (50 cm).
+  - Ayırma kirişi betonarme (su yüzünün 30 cm üstünden 55 cm aşağı), altında sac yağ lameli. Gözler arası duvar alçak, üstünde 1,00 m yürüme yolu (duvar üstünden 0,85 m aşağıda); gezer köprü rayları dış duvarların üstünde.
+  - Bir dış duvarın üstünde dışa konsol kum oluğu (iç 40 cm): kum pompaları buraya basar, oluk yandaki kum seperatörüne akar. Dağıtma kanalından her göze kum bölmesi ekseninde 60 × 40 kapaklı açıklık; çıkış duvarında göz başına savak.
 - Giriş terfi istasyonu (ıslak hazne, dalgıç pompa; Çokal AAT T-102 örneği):
   - Yapı nihai kademeye göre boyutlanır; mevcut kademede eksik pompalar sonradan aynı yapıya eklenir.
   - Islak hazne hesabı (ATV-DVWK-A 134, onaylandı): faydalı hacim V = 0,9·Qp/Z (tek pompa, Z = 10 kalkış/saat). Seviyeler yukarıdan: en üst (yedek pompa + alarm) = giriş kanalı tabanı − 0,86; son asıl pompa 0,40 aşağıda; her önceki asıl pompa 0,15 aşağıda; durma = 1. asıl pompa − en büyük(0,20 ; V / hazne alanı); taban = durma − 0,35 (ölü yükseklik). Derinlik bu zincirden çıkar. Faydalı yükseklik 1,00 m'yi aşarsa hazne genişler. Çokal T-102 ile doğrulandı (85,89 / 85,50 / 85,35 / 85,15 / 84,80).

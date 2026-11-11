@@ -178,6 +178,71 @@
     on: (q, g) => { const w = m(q.W) / 2, H = m(q.H); g.dik(-w, 0.16, w, H, { lw: 35 }); g.olcu([w, 0], [w, H], 'v', 0.3, `${q.H}`); },
   });
 
+  /* ================= KUM TUTUCU EKİPMANI: GEZER KÖPRÜ ve KUM SEPERATÖRÜ (Çokal AAT T-103) ================= */
+  /* Gezer köprü: orijin = köprü ortası, ray (dış duvar üstü) kotunda; x = köprü açıklığı (havuz eni), y = yürüme yönü (havuz boyu).
+     Üstünde göz başına bir kum pompası (emme borusu kum oluğuna iner), pergel vinç ve yürüme platformu. */
+  const GCOL = { celik: [0.55, 0.60, 0.66], platform: [0.72, 0.74, 0.76], pompa: [0.18, 0.36, 0.62], boru: [0.80, 0.81, 0.83], vinc: [0.90, 0.72, 0.10], tank: [0.62, 0.66, 0.70] };
+  C.aileKaydet({
+    id: 'gezer_kopru', ad: 'Gezer köprü — kum tutucu (kum pompalı, yağ sıyırıcılı)', kisaAd: 'GEZER KÖPRÜ', kat: 'Köprü / sıyırıcı', katman: 'MEK_KOPRU', renk: 4, ifc: 'IfcTransportElement',
+    aciklama: 'Havalandırmalı kum ve yağ tutucunun dış duvarları üstündeki raylarda yürür. Her gözde bir kum pompası kum oluğundan emer ve duvar üstündeki kum oluğuna basar; dönüşte yağ sıyırıcı yüzeydeki yağı sıyırma rampasına iter.',
+    params: [
+      { k: 'Ls', ad: 'Ray açıklığı (dış duvar eksenleri arası)', d: 3900, min: 1500, max: 20000, grup: 'Köprü' },
+      { k: 'Bk', ad: 'Köprü eni (yürüme yönünde)', d: 1500, min: 800, max: 3000, grup: 'Köprü' },
+      { k: 'N', ad: 'Kum pompası (göz) sayısı', d: 2, min: 1, max: 8, grup: 'Pompa' },
+      { k: 'ap', ad: 'Pompa aralığı (göz eksen aralığı)', d: 1900, min: 500, grup: 'Pompa' },
+      { k: 'Hp', ad: 'Emme derinliği (raydan kum oluğu dibine)', d: 3460, min: 500, max: 12000, grup: 'Pompa' },
+      { k: 'kh', ad: 'Korkuluk yüksekliği', d: 1100, grup: 'Köprü' },
+    ],
+    tipler: [{ ad: 'GEZER KÖPRÜ — 2 gözlü', p: { Ls: 3900, Bk: 1500, N: 2, ap: 1900, Hp: 3460, kh: 1100 } }],
+    liste: q => `açıklık ${(q.Ls / 1000).toFixed(2)} m · ${q.N} kum pompası · emme ${(q.Hp / 1000).toFixed(2)} m`,
+    bilgi: q => `Ray açıklığı ${q.Ls} mm, köprü eni ${q.Bk} mm, ${q.N} kum pompası (aralık ${q.ap} mm), emme derinliği ${q.Hp} mm`,
+    plan: (q, g) => {
+      const l2 = m(q.Ls) / 2 + 0.20, b2 = m(q.Bk) / 2, N = Math.max(1, Math.round(q.N)), ap = m(q.ap);
+      g.dik(-l2, -b2, l2, b2, { lw: 35 }); g.cizgi([-l2, -b2], [l2, b2], { lw: 13, lt: 'DASHED' }); g.cizgi([-l2, b2], [l2, -b2], { lw: 13, lt: 'DASHED' });
+      for (let i = 0; i < N; i++) g.daire([(i - (N - 1) / 2) * ap, 0], 0.16);
+      g.yazi([-l2, b2 + 0.12], 'GEZER KÖPRÜ', 0.12);
+    },
+    mesh: (q, g) => {
+      const l2 = m(q.Ls) / 2, b2 = m(q.Bk) / 2, N = Math.max(1, Math.round(q.N)), ap = m(q.ap), Hp = m(q.Hp), kh = m(q.kh), zd = 0.40;
+      for (const sx of [-1, 1]) { g.kutu(sx * l2 - 0.15, sx * l2 + 0.15, -b2 - 0.15, b2 + 0.15, 0.10, 0.36, GCOL.celik); // uç arabaları
+        for (const sy of [-1, 1]) g.silindir([sx * l2 - 0.05, sy * b2, 0.10], [sx * l2 + 0.05, sy * b2, 0.10], 0.10, GCOL.boru, 14); // tekerler
+        g.kutu(sx * l2 - 0.12, sx * l2 + 0.12, -0.20, 0.20, 0.36, 0.62, GCOL.pompa); } // yürüyüş motorları
+      for (const sy of [-1, 1]) g.kutu(-l2, l2, sy * b2 - 0.06, sy * b2 + 0.06, 0.16, zd, GCOL.celik); // ana kirişler
+      g.kutu(-l2, l2, -b2, b2, zd, zd + 0.04, GCOL.platform); // yürüme platformu
+      for (const sy of [-1, 1]) { g.kutu(-l2, l2, sy * b2 - 0.02, sy * b2 + 0.02, zd + kh - 0.04, zd + kh, GCOL.celik); g.kutu(-l2, l2, sy * b2 - 0.015, sy * b2 + 0.015, zd + kh / 2 - 0.015, zd + kh / 2 + 0.015, GCOL.celik);
+        const n = Math.max(2, Math.ceil(2 * l2 / 1.5)); for (let k = 0; k <= n; k++) { const x = -l2 + 2 * l2 * k / n; g.kutu(x - 0.02, x + 0.02, sy * b2 - 0.02, sy * b2 + 0.02, zd + 0.04, zd + kh, GCOL.celik); } }
+      for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * ap; // kum pompaları: motor platformda, emme borusu oluğa iner
+        g.silindir([x, 0, zd + 0.04], [x, 0, zd + 0.60], 0.16, GCOL.pompa, 16); g.silindir([x, 0, zd + 0.04], [x, 0, -Hp + 0.45], 0.05, GCOL.boru, 12);
+        g.silindir([x, 0, -Hp + 0.45], [x, 0, -Hp + 0.10], 0.14, GCOL.pompa, 16);
+        g.silindir([x + 0.20, 0, zd + 0.30], [x + 0.20, -b2 - 0.25, zd + 0.30], 0.04, GCOL.boru, 10); } // basma borusu
+      const vx = l2 - 0.45, vy = b2 - 0.25; g.silindir([vx, vy, zd + 0.04], [vx, vy, zd + 2.20], 0.07, GCOL.vinc, 12); g.kutu(vx - 1.20, vx + 0.07, vy - 0.05, vy + 0.05, zd + 2.10, zd + 2.22, GCOL.vinc); // pergel vinç
+    },
+    on: (q, g) => { const l2 = m(q.Ls) / 2, kh = m(q.kh); g.dik(-l2 - 0.15, 0.10, l2 + 0.15, 0.44, { lw: 35 }); g.dik(-l2, 0.44, l2, 0.44 + kh, { lw: 13 }); const N = Math.max(1, Math.round(q.N)); for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * m(q.ap); g.cizgi([x, 0.44], [x, -m(q.Hp) + 0.10], { lw: 25 }); } g.olcu([-l2, 0.44 + kh + 0.3], [l2, 0.44 + kh + 0.3], 'h', 0.2, `${q.Ls}`); },
+  });
+  /* Kum seperatörü (kum yıkama / sınıflandırıcı): orijin = taban ortası; x = vida ekseni yönü (boşaltma +x ucunda). */
+  C.aileKaydet({
+    id: 'kum_seperatoru', ad: 'Kum seperatörü — vidalı sınıflandırıcı', kisaAd: 'KUM SEPERATÖRÜ', kat: 'Kum ekipmanı', katman: 'MEK_KOPRU', renk: 4, ifc: 'IfcFlowTreatmentDevice',
+    aciklama: 'Kum pompalarının bastığı kum – su karışımı duvar üstündeki oluktan seperatöre akar; kum eğik vidayla yukarı taşınıp konteynere boşalır, su süzüntü hattına döner.',
+    params: [
+      { k: 'L', ad: 'Boy (vida ekseni izdüşümü)', d: 3200, min: 1500, max: 8000, grup: 'Seperatör' },
+      { k: 'W', ad: 'Hazne eni', d: 1300, min: 600, max: 3000, grup: 'Seperatör' },
+      { k: 'H', ad: 'Yükseklik (boşaltma ağzı)', d: 2300, min: 1000, max: 5000, grup: 'Seperatör' },
+    ],
+    tipler: [{ ad: 'KUM SEPERATÖRÜ', p: { L: 3200, W: 1300, H: 2300 } }],
+    liste: q => `${q.L}×${q.W} mm · boşaltma +${(q.H / 1000).toFixed(2)} m`,
+    plan: (q, g) => { const L = m(q.L), w2 = m(q.W) / 2; g.dik(-L / 2, -w2, -L / 2 + 1.5, w2, { lw: 35 }); g.dik(-L / 2 + 1.5, -0.22, L / 2, 0.22, { lw: 25 }); g.yazi([-L / 2, -w2 - 0.18], 'KUM SEPERATÖRÜ', 0.10); },
+    mesh: (q, g) => {
+      const L = m(q.L), w2 = m(q.W) / 2, H = m(q.H), x0 = -L / 2, xh = x0 + 1.5, zh = Math.min(H - 0.5, 1.9);
+      for (const sx of [x0 + 0.08, xh - 0.08]) for (const sy of [-1, 1]) g.kutu(sx - 0.04, sx + 0.04, sy * w2 - (sy > 0 ? 0.08 : 0), sy * w2 + (sy < 0 ? 0.08 : 0), 0, zh - 0.9, GCOL.celik); // ayaklar
+      g.kutu(x0, xh, -w2, w2, zh - 0.9, zh, GCOL.tank); // üst hazne
+      g.kutu(x0 + 0.35, xh - 0.35, -w2 + 0.35, w2 - 0.35, zh - 1.45, zh - 0.9, GCOL.tank); // konik alt (basitleştirilmiş)
+      g.silindir([x0 + 0.75, 0, zh - 1.35], [L / 2 - 0.15, 0, H], 0.18, GCOL.boru, 16); // eğik vida gövdesi
+      g.kutu(L / 2 - 0.35, L / 2 + 0.05, -0.20, 0.20, H - 0.10, H + 0.35, GCOL.pompa); // tahrik
+      g.kutu(L / 2 - 0.45, L / 2 - 0.15, -0.15, 0.15, H - 0.75, H - 0.20, GCOL.celik); // boşaltma ağzı
+    },
+    on: (q, g) => { const w2 = m(q.W) / 2, H = m(q.H); g.dik(-w2, 0.5, w2, Math.min(H - 0.5, 1.9), { lw: 35 }); g.olcu([w2, 0], [w2, H], 'v', 0.3, `${q.H}`); },
+  });
+
   /* ================= MEKANİK KABA IZGARA (izgara.js geometrisi) ================= */
   C.aileKaydet({
     id: 'kaba_izgara', ad: 'Mekanik kaba ızgara — eğimli, zincirli tırmıklı', kisaAd: 'MEKANİK KABA IZGARA', kat: 'Izgara', katman: 'ARI_IZGARA', renk: 4, ifc: 'IfcFlowTreatmentDevice',

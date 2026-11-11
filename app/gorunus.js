@@ -7,7 +7,7 @@
   'use strict';
   const M = C.M, E = C.cmd, { P } = C.prim;
   const SOLID3D = C.SOLID3D = new Set(['kati', 'box', 'cyl', 'poly3', 'grup3', 'sweep', 'face', 'pmesh']);
-  const CONC = new Set(['tretuvar', 'cati', 'yalitim', 'kaplama', 'dolgu', 'perde', 'kolon', 'kiris', 'plak', 'temel', 'tank', 'ctank', 'wall', 'slab', 'kati', 'box', 'poly3', 'grup3', 'sweep', 'cyl', 'pmesh', 'face', 'anaerobik', 'onaritma']); // anaerobik, onaritma: tek beton katı ünite yapıları
+  const CONC = new Set(['tretuvar', 'cati', 'yalitim', 'kaplama', 'dolgu', 'perde', 'kolon', 'kiris', 'plak', 'temel', 'tank', 'ctank', 'wall', 'slab', 'kati', 'box', 'poly3', 'grup3', 'sweep', 'cyl', 'pmesh', 'face', 'anaerobik', 'onaritma', 'kumtutucu']); // anaerobik, onaritma: tek beton katı ünite yapıları
   const GEN_LAYERS = new Set(['KESIT', 'GORUNEN', 'KESIT_TARAMA']);
   if (C.state.show3dInPlan == null) { try { C.state.show3dInPlan = localStorage.getItem('aritmacad.show3dInPlan') === '1'; } catch (e) { C.state.show3dInPlan = false; } }
   C.is3DOnly = e => e.sp === '3d' || SOLID3D.has(e.type);

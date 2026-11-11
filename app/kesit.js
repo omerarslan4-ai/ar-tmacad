@@ -152,7 +152,7 @@
     }
     return p;
   };
-  const CONC = new Set(['tretuvar', 'cati', 'yalitim', 'kaplama', 'dolgu', 'perde', 'kolon', 'kiris', 'plak', 'temel', 'tank', 'ctank', 'wall', 'slab', 'kati', 'box', 'poly3', 'grup3', 'sweep', 'cyl', 'pmesh', 'face', 'anaerobik', 'onaritma']); // anaerobik, onaritma: tek beton katı ünite yapıları
+  const CONC = new Set(['tretuvar', 'cati', 'yalitim', 'kaplama', 'dolgu', 'perde', 'kolon', 'kiris', 'plak', 'temel', 'tank', 'ctank', 'wall', 'slab', 'kati', 'box', 'poly3', 'grup3', 'sweep', 'cyl', 'pmesh', 'face', 'anaerobik', 'onaritma', 'kumtutucu']); // anaerobik, onaritma: tek beton katı ünite yapıları
   /* kesitte malzeme grubu: B = temel+perde (tek gövde), D = döşeme+kiriş+kolon (tek gövde, ters yön tarama), T:x = kâgir duvar, G = grobeton */
   C.secMat = e => { if (e.type === 'cati' || e.type === 'tretuvar') return 'K'; if (e.type === 'yalitim') return e.kind === 'bant' ? 'K' : 'Y'; if (e.type === 'kaplama') return 'K'; if (e.type === 'dolgu') return 'F'; if (e.type === 'perde') return (e.malz || 'beton') === 'beton' ? 'B' : 'T:' + e.malz; if ((e.type === 'plak' && e.kind !== 'radye') || e.type === 'kiris' || e.type === 'kolon' || e.type === 'slab') return 'D'; return 'B'; };
   C.secFnd = e => (e.type === 'yalitim' && e.kind === 'temel') || e.type === 'temel' || (e.type === 'plak' && e.kind === 'radye') || (e.type === 'perde' && e.temel) || e.type === 'tank' || e.type === 'ctank';
