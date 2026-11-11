@@ -231,7 +231,35 @@
     return out;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati, ekipmanYer };
+  /* ================= HİDROLİK: maks. ve min. su kotları =================
+     Akış: ham su giriş kanalından kapaklı ağızla ilk ham su halkasına, RAS sağ kanalın alt bölümünden RAS halkasına;
+     halkalar arası pencereler (RAS → 1 → 2 …), son halkadan sağ ağızla çıkış kanalına. Ağız / pencere / orifis batık orifis:
+     Δh = (Q / (Cd·A))² / 2g. Kotlar mansaptan (çıkış kanalı) yukarı toplanır.
+     Mansap (3. parçada hidrolik profilden gelecek): maks. debide son halka = tasarım su yüzü; min. debide çıkış kanalı,
+     mansap savağının (boy Ls) yük farkı kadar düşer: h = (Q / (1,84·Ls))^(2/3).
+     o: { Qmax, Qmin, QRS (m³/h), Cd (0,61), Ls (m), zRef (son halkada maks. su yüzü; yoksa tasarım su yüzü) } */
+  function hidrolik(G, o) {
+    o = o || {}; const q = G.q, n = G.n, g = 9.81, Cd = o.Cd || 0.61, Ls = o.Ls || 2.0, QRS = n > 1 ? (+o.QRS || 0) : 0;
+    // ıslak alan: açıklık eni × (mansap su yüzü − eşik), en çok açıklık yüksekliği (Çokal'da su 96,64 ağız üstü 96,75'in altında)
+    const dh = (Qh, b, zd, z0, hA) => { const Q = Qh / 3600, A = b * Math.min(hA, Math.max(0.05, zd - z0)); return Math.pow(Q / (Cd * A), 2) / (2 * g); };
+    const hS = Qh => Math.pow(Qh / 3600 / (1.84 * Ls), 2 / 3), h0 = n > 1 ? 1 : 0, ag = (Q, zd) => dh(Q, q.ag, zd, G.zS, q.ah), pen = (Q, zd) => dh(Q, q.ow, zd, G.zS, q.ah);
+    const zRef = o.zRef != null ? +o.zRef : G.zW, Qx = +o.Qmax || 0, Qn = +o.Qmin || 0;
+    const zCmax = zRef - ag(Qx + QRS, zRef - 0.01), zCmin = zCmax - (hS(Qx + QRS) - hS(Qn + QRS));
+    const hal = (Q, zC) => {
+      const z = new Array(n); z[n - 1] = zC + ag(Q + QRS, zC);
+      for (let i = n - 2; i >= 0; i--) z[i] = z[i + 1] + pen((i === 0 && n > 1 ? QRS : QRS + Q), z[i + 1]);
+      const r = { cikis: zC, halka: z, giris: z[h0] + ag(Q, z[h0]) };
+      if (n > 1) r.ras = z[0] + ag(QRS, z[0]); // RAS bölümü; ara duvar orifisi normalde kapalı
+      return r;
+    };
+    const maks = hal(Qx, zCmax), min = hal(Qn, zCmin), uyari = [];
+    const enYuksek = Math.max(maks.giris, ...(maks.ras != null ? [maks.ras] : []), ...maks.halka);
+    if (G.zTop - enYuksek < 0.30) uyari.push(`Maks. su kotu ${enYuksek.toFixed(2)}: duvar üstüne ${(G.zTop - enYuksek).toFixed(2)} m kalıyor (en az 0,30 m olmalı).`);
+    if (min.cikis < G.zS + 0.10) uyari.push(`Min. debide çıkış kanalı su kotu (${min.cikis.toFixed(2)}) ağız eşiğine (${G.zS.toFixed(2)}) çok yakın.`);
+    return { maks, min, uyari, kabul: { Cd, Ls, QRS, zRef } };
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati, ekipmanYer, hidrolik };
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
@@ -391,6 +419,7 @@
       const eski = x.oto; Object.assign(x, o.props); delete x._c; delete x._g; delete x._q; x.oto = imza(x); if (x.oto !== eski) { g++; if (C.touch) C.touch(x); }
     }
     const sil = [...mevcut.values()].filter(x => !yeniK.has(x.anahtar) && x.oto === imza(x)); if (sil.length && C.remove) { C.remove(sil); s = sil.length; }
+    if (!e.suAnahtar) try { C.anaerobikSu(e); } catch (er) { console.error(er); }
     e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot]); delete e._c;
     if (n || g || s) C.changed && C.changed();
     if (!sessiz || n || s) C.log(`✓ ${e.code || ''} ekipman (mikser: ${mxS ? mxS.n + ' / halka, ' + mxS.kaynak : 'yok'}): ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}${s ? `, ${s} kaldırıldı` : ''}.`);
@@ -473,10 +502,53 @@
     e.boruBagli = false; delete e._c; delete e._ag; if (C.touch) C.touch(e); C.changed && C.changed();
     const b2 = geo(e).boru.find(x => x.k === k); C.log(`✓ ${b.duvar.ad}: Ø${Math.round(b2.d * 1000)}, alt kotu ${kot(b2.z0)}`);
   });
+  /* ================= SU: bölmelere maks. / min. su kotlarıyla su ================= */
+  const debiler = e => { // mevcut kademe debileri (proses verisi + ünite kartı ayarı); yoksa havuzdaki elle değerler
+    let o = {};
+    try { const j = C.proses && C.proses(); if (j && C.kart && C.kart.kademeSec) { const A = (C.doc.set.uniteKart || {}), d = C.kart.kademeSec(j, A.sec || {}).mevcut.debi || {}, ras = +(((A.par || {}).an || {}).ras) || 0.75; o = { Qmax: +d.Qww || 0, Qmin: +d.Qmin || (+d.Qd || 0) / 24 * 0.5, QRS: ras * (+d.Qww || 0), kaynak: 'proses verisi' }; } } catch (er) { }
+    for (const k of ['Qmax', 'Qmin', 'QRS']) if (e[k] != null && isFinite(+e[k])) { o[k] = +e[k]; o.kaynak = 'elle'; }
+    return o.Qmax ? o : null;
+  };
+  C.anaerobikHidrolik = e => { const G = geo(e), d = debiler(e); return d ? Object.assign(hidrolik(G, Object.assign({ Ls: e.Lsav || 2.0 }, d)), { debi: d }) : null; };
+  C.anaerobikSu = (e, durum) => {
+    const G = geo(e), H = C.anaerobikHidrolik(e); if (!H) return null;
+    if (durum) e.suDurum = durum; const dm = e.suDurum === 'min' ? 'min' : 'maks', f = C.frame(e.o, e.rot), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; };
+    const D = G.bolge.delik, n = G.n, bol = [];
+    for (let i = 0; i < n; i++) bol.push(['su-halka-' + i, D[i], H.maks.halka[i], H.min.halka[i], i === 0 && n > 1 ? 'RAS halkası' : `${n > 1 ? i : 1}. halka`]);
+    bol.push(['su-giris', D[n], H.maks.giris, H.min.giris, 'Giriş kanalı']);
+    if (n > 1) bol.push(['su-ras', D[n + 1], H.maks.ras, H.min.ras, 'RAS bölümü'], ['su-cikis', D[n + 2], H.maks.cikis, H.min.cikis, 'Çıkış bölümü']);
+    else bol.push(['su-cikis', D[n + 1], H.maks.cikis, H.min.cikis, 'Çıkış kanalı']);
+    const mevcut = new Map(C.doc.ents.filter(x => x.type === 'su' && x.bag === e.id).map(x => [x.anahtar, x])), once = new Set(e.suAnahtar || []);
+    C.ensureLayer && C.ensureLayer('INS_SU', 150, 'CONTINUOUS', 13);
+    for (const [k, pts, zx, zn, ad] of bol) {
+      if (!pts) continue; const zs = +(dm === 'min' ? zn : zx).toFixed(3), props = { pts: pts.map(W2), zb: +G.zB.toFixed(3), zs, zsMaks: +zx.toFixed(3), zsMin: +zn.toFixed(3), tur: 'atiksu', ad, layer: 'INS_SU' };
+      const x = mevcut.get(k);
+      if (!x) { if (once.has(k)) continue; const z = C.add(C.newEnt('su', Object.assign(props, { bag: e.id, anahtar: k }))); delete z.sp; }
+      else if (JSON.stringify([x.pts, x.zs, x.zsMaks, x.zsMin]) !== JSON.stringify([props.pts, props.zs, props.zsMaks, props.zsMin])) { Object.assign(x, props); delete x._c; if (C.touch) C.touch(x); }
+    }
+    e.suAnahtar = bol.map(b => b[0]); e.suDurum = dm; e._suK = JSON.stringify([G.q, e.o, e.rot, H.debi]);
+    return H;
+  };
+  // havuz ya da debi değişince su kotları kendiliğinden güncellenir
+  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.suAnahtar) { const d = debiler(e), k = JSON.stringify([geo(e).q, e.o, e.rot, d]); if (e._suK !== k) C.anaerobikSu(e); } });
+  C.addCommand(['ANASU', 'ANAEROBIKSU'], 'Anaerobik havuzun bölmelerine su: maks. ya da min. debideki su kotlarıyla (hidrolik hesap). ANASU [MAKS|MIN|KALDIR] [QMAX= QMIN= QRS= m³/h] [LSAV= mansap savak boyu m]', async (I) => {
+    const kv = takeKV(); let e = (C.sel || []).find(x => x.type === 'anaerobik') || C.doc.ents.find(x => x.type === 'anaerobik'); if (!e) return C.warn('Çizimde anaerobik havuz yok.');
+    for (const [a, b] of [['QMAX', 'Qmax'], ['QMIN', 'Qmin'], ['QRS', 'QRS'], ['LSAV', 'Lsav']]) if (kv[a] != null && isFinite(C.num(kv[a]))) e[b] = C.num(kv[a]);
+    const s = await I.kw('Su', [['MAKS', 'Maks. debideki su kotları'], ['MIN', 'Min. debideki su kotları'], ['KALDIR', 'Suyu kaldır']], e.suDurum === 'maks' ? 'MIN' : 'MAKS');
+    if (s === 'KALDIR') { const x = C.doc.ents.filter(y => y.type === 'su' && y.bag === e.id); if (x.length && C.remove) C.remove(x); delete e.suAnahtar; C.changed && C.changed(); return C.log('Anaerobik havuz suyu kaldırıldı.'); }
+    const H = C.anaerobikSu(e, s === 'MIN' ? 'min' : 'maks'); if (!H) return C.warn('Debi yok: proses verisi aktarın ya da ANASU QMAX=… QMIN=… QRS=… girin.');
+    C.changed && C.changed();
+    const f3 = v => v.toFixed(2).replace('.', ',');
+    C.log(`✓ Su (${s === 'MIN' ? 'min.' : 'maks.'}) — Q maks. ${Math.round(H.debi.Qmax)}, Q min. ${Math.round(H.debi.Qmin)}, RAS ${Math.round(H.debi.QRS)} m³/h (${H.debi.kaynak}); mansap savağı ${f3(H.kabul.Ls)} m (kabul, 3. parçada hidrolik profilden)`);
+    C.log(`  maks.: giriş ${f3(H.maks.giris)}${H.maks.ras != null ? ' · RAS ' + f3(H.maks.ras) : ''} · halkalar ${H.maks.halka.map(f3).join(' / ')} · çıkış ${f3(H.maks.cikis)}`);
+    C.log(`  min.:  giriş ${f3(H.min.giris)}${H.min.ras != null ? ' · RAS ' + f3(H.min.ras) : ''} · halkalar ${H.min.halka.map(f3).join(' / ')} · çıkış ${f3(H.min.cikis)}`);
+    for (const u of H.uyari) C.warn(u);
+  });
+
   /* şerit: Arıtma › Proses */
   if (C.ribbon && C.ribbon.tabs) {
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
-    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }); try { C.ribbon.render(); } catch (err) { } }
+    if (pr && !pr[1].some(b => b.cmd === 'ANAEROBIK')) { pr[1].push({ cmd: 'ANAEROBIK', t: 'Anaerobik havuz', i: 'ctank' }, { cmd: 'ANAEKIPMAN', t: 'Anaerobik ekipman', i: 'table' }, { cmd: 'ANABORU', t: 'Boru delikleri', i: 'table' }, { cmd: 'ANASU', t: 'Su (maks./min.)', i: 'water' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Anaerobik havuz', 'Anaerobic tank'], ['Servis köprüsü', 'Service bridge'], ['Giriş kanalı', 'Inlet channel'], ['Çıkış kanalı', 'Outlet channel'], ['RAS girişi', 'RAS inlet'], ['Giriş borusu', 'Inlet pipe'], ['RAS borusu', 'RAS pipe'], ['Anaerobik ekipman', 'Anaerobic tank equipment'], ['Dalgıç mikser — kılavuz direkli', 'Submersible mixer — guide mast'], ['Su (maks./min.)', 'Water (max./min.)'], ['Boru delikleri', 'Pipe openings']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));

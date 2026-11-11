@@ -138,4 +138,18 @@ t('sahanlıkta kapak yarığı: kapak çerçevesi geçer, yarık sahanlık için
   });
 });
 
+t('hidrolik: Çokal debileriyle maks. ve min. su kotları', () => {
+  const { hidrolik } = require('../app/anaerobik.js');
+  // Çokal 1. kademe: Q maks. 275,83, Q min. ≈ 0,5 × Q ort. (145,83), RAS %75 × Q maks. = 206,87 m³/h
+  const H = hidrolik(G, { Qmax: 275.83, Qmin: 72.9, QRS: 206.87 });
+  yakin(H.maks.halka[2], 96.64, 'son halka maks. = tasarım su yüzü');
+  const Q = (275.83 + 206.87) / 3600, dag = Math.pow(Q / (0.61 * 0.6 * (96.63 - 95.75)), 2) / 19.62; yakin(H.maks.cikis, 96.64 - dag, 'çıkış kanalı = son halka − ağız kaybı (ıslak alan)');
+  assert.ok(H.maks.halka[0] > H.maks.halka[1] && H.maks.halka[1] > H.maks.halka[2], 'akış yönünde kot düşer');
+  assert.ok(H.maks.giris > H.maks.halka[1] && H.maks.ras > H.maks.halka[0], 'giriş ve RAS kanalı halkadan yüksek');
+  for (const k of ['cikis', 'giris', 'ras']) assert.ok(H.min[k] < H.maks[k], 'min < maks: ' + k);
+  const hS = q => Math.pow(q / 3600 / (1.84 * 2), 2 / 3); yakin(H.maks.cikis - H.min.cikis, hS(275.83 + 206.87) - hS(72.9 + 206.87), 'mansap savağı yük farkı');
+  assert.ok(H.maks.giris - H.min.giris < 0.2 && H.maks.giris - 96.64 < 0.05, 'kayıplar küçük (ağızlar geniş)');
+  assert.deepStrictEqual(H.uyari, []);
+});
+
 console.log(`\n${n} test geçti.`);
