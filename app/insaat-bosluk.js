@@ -114,6 +114,8 @@
     if (x0) D.xf = (e, X) => { if (Array.isArray(e.bosluk3)) e.bosluk3 = e.bosluk3.map(b => { const pts = b.pts.map(q => { const r = X.p([q[0], q[1], q[2] || 0]); return [r[0], r[1], r[2] != null ? r[2] : q[2]]; }); const o = X.p([0, 0, 0]), dd = X.p([b.d[0], b.d[1], b.d[2]]); const tp = q => { const r = X.p([q[0], q[1], q[2] || 0]); return [r[0], r[1], r[2] != null ? r[2] : q[2]]; }; return Object.assign({}, b, { pts, d: [dd[0] - o[0], dd[1] - o[1], (dd[2] != null && o[2] != null ? dd[2] - o[2] : b.d[2])] }, Array.isArray(b.ptsB) ? { ptsB: b.ptsB.map(tp) } : {}); }); return x0(e, X); };
     if (i0) D.info = e => { const n = bosluklar(e).length; return i0(e) + (n ? ` · ${n} boşluk` : ''); };
   }
+  /* başka modüller için: ağ tanımlarından (descs) prizma boşlukları {pts, d} düş; kenar çizgileri düzlem gruplarından yeniden çizilir (birleşme izi kalmaz) */
+  C.boslukAg = (descs, B, renk) => { let ps = agdanPoly(descs.filter(Boolean)); for (const b of (B || [])) ps = farkYerel(ps, prizma(b)); return polydenAg(ps, renk); };
   /* planda sembol: düşey boşluk → kesik çerçeve + çarpı; yatay geçiş → kesik çerçeve */
   const sembol = b => {
     const dz = Math.abs(b.d[2]) > Math.hypot(b.d[0], b.d[1]);

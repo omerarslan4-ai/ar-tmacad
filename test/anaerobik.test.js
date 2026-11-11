@@ -52,4 +52,21 @@ t('hacim karusel formülüyle aynı; duvar parçaları kapalı ve geçerli', () 
   yakin(g1.Wo, 3.8, 'tek halka eni');
 });
 
+t('beton duvarlar tek plan şekli: alan, nokta testleri ve üçgenleme', () => {
+  const { ucgenle, bolgeKati } = require('../app/anaerobik.js');
+  const B = G.bolge, ar = h => { let s = 0; for (let i = 0; i < h.length; i++) { const a = h[i], b = h[(i + 1) % h.length]; s += a[0] * b[1] - b[0] * a[1]; } return s / 2; };
+  assert.ok(ar(B.dis) > 0 && B.delik.every(h => ar(h) < 0), 'yönler'); assert.strictEqual(B.delik.length, 3 + 1 + 1, '3 halka + giriş kanalı + çıkış kanalı');
+  const A = ar(B.dis) + B.delik.reduce((s, h) => s + ar(h), 0), tr = ucgenle([B.dis, ...B.delik]);
+  const At = tr.reduce((s, [a, b, c]) => s + ((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])) / 2, 0);
+  yakin(At, A, 'üçgenler alanı = duvar alanı', 1e-6); assert.ok(A > 33 && A < 42, 'duvar alanı (elle ≈ 37–39) ' + A);
+  const icinde = p => { const k = h => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }; return k(B.dis) && !B.delik.some(k); };
+  for (const [p, v, ad] of [[[8, 3.6], true, 'ortak duvar'], [[8, 2.5], false, 'koridor'], [[0.7, 5], false, 'giriş kanalı suyu'], [[0.15, 5], true, 'kanal dış duvarı'], [[2.0, 3.6], true, 'kama dolgusu (Çokal)'], [[1.7, 3.6], false, 'kanal suyu'], [[15.6, 3.6], true, 'ara duvar (gövde tarafı)'], [[16.8, 3.6], true, 'ara duvar (dış duvar tarafı)'], [[16.4, 3.6], false, 'kapaklı geçiş'], [[16.4, 2.0], false, 'RAS bölümü'], [[16.4, 6.0], false, 'çıkış bölümü'], [[8, 10.4], true, 'üst dış duvar'], [[1.5, 0.5], false, 'köşe dışı']]) assert.strictEqual(icinde(p), v, ad);
+  const K = bolgeKati(B, 93.5, 97.25); assert.ok(K.f.length > 100 && K.e.length > 50);
+});
+
+t('orta duvar ve yuvarlak perdeler halkanın içinde kalır (dışarı taşmaz)', () => {
+  const ic = (p, h) => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  for (const p of G.parca) for (const q of p.pts) assert.ok(G.bolge.delik.slice(0, G.n).some(h => ic(q, h)), p.k + ' noktası halka dışında: ' + q);
+});
+
 console.log(`\n${n} test geçti.`);

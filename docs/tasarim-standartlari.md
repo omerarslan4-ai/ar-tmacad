@@ -61,6 +61,14 @@
   - Temas süresi = V / (Q ort. + geri devir), geri devir = %75 × Q maks.; 0,5–1,5 sa (ATV-DVWK-A 131).
   - Hava payı 0,60 m, taban plağı 0,50 m; duvar üstü zeminden en az 0,65 m yukarıda.
   - Her halkada karıştırıcı (tabanda ≥ 0,3 m/s, mikser programıyla seçilir).
+  - Ekipman yerleşimi (Çokal T-105 mimari paftası + firma varsayılanı; 11.11.2026 onaylandı):
+    - Merdiven havuzun dışında, uzun dış duvar boyunca düz kollu, köprüye çıkar; köprünün dışarı uzanan ucu sahanlıktır. Eni 1,00 m, basamak genişliği 0,25 m, rıht en çok 0,19 m (zeminden köprü üstüne; zemin araziden).
+    - Korkuluk köprünün iki yanında ve merdivenin dış yanında.
+    - Halkalar arası pencerelerin yanında köprüye bitişik 0,70 × 1,50 m kapak işletme sahanlığı; korkuluk çevresinden dolanır.
+    - Havuz çevresinde zemin kotunda 1,00 m tretuvar.
+    - Penstok: kanal tipi, duvar yuvalı penstok ailesi; her halka ağzına (600 × 1000), her pencereye (1500 × 1000) ve sağ kanaldaki bölme geçişine birer adet. Ölçüler açıklıktan gelir. Tahrik varsayılanı el çarkı (elektrikli aktüatör seçilebilir).
+    - Mikser: halka başına mikser programının seçtiği dalgıç mikserler, perdelerin çıkış ucundaki koridorlarda; kaldırma direği duvar üstünde.
+    - Yerleşen ekipman elle taşınabilir; yeniden üretimde elle taşınanlar korunur. Etiketler (SK-…, Z-…) mekanik listeye girer.
 - Dağıtma yapısı (biyolojik havuzlar ve son çökeltme önü; Çokal AAT T-107 örneği):
   - Mevcut ya da nihai kademede iki ve üzeri hat varsa yapılır; tek hatta yok. Nihai kademedeki fazla hatlar için kör savak (hazır ağız).
   - Son çökeltme önünde debi = Q maks. + %75 geri devir; biyolojik havuz önünde Q maks.

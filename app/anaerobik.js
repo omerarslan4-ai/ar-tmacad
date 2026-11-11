@@ -40,6 +40,41 @@
     return ccw(p.map(q => [xc + mx * q[0], yc + s * q[1]]));
   }
 
+  /* delikli plan şeklini üçgenle (yatay şeritlere bölerek; kesişmeyen halkalar için sağlam) → [[a,b,c], …] (saat yönü tersi) */
+  function ucgenle(halkalar) {
+    const K = [];
+    for (const h of halkalar) for (let i = 0; i < h.length; i++) { const a = h[i], b = h[(i + 1) % h.length]; if (Math.abs(a[1] - b[1]) > 1e-12) K.push(a[1] < b[1] ? [a, b] : [b, a]); }
+    const ys = [...new Set(halkalar.flat().map(p => +p[1].toFixed(9)))].sort((a, b) => a - b), out = [];
+    const xAt = (k, y) => k[0][0] + (y - k[0][1]) / (k[1][1] - k[0][1]) * (k[1][0] - k[0][0]);
+    for (let j = 0; j + 1 < ys.length; j++) {
+      const y0 = ys[j], y1 = ys[j + 1]; if (y1 - y0 < 1e-9) continue; const ym = (y0 + y1) / 2;
+      const ks = K.filter(k => k[0][1] < ym && k[1][1] > ym).sort((a, b) => xAt(a, ym) - xAt(b, ym));
+      for (let i = 0; i + 1 < ks.length; i += 2) {
+        const l = ks[i], r = ks[i + 1], a = [xAt(l, y0), y0], b = [xAt(r, y0), y0], c = [xAt(r, y1), y1], d = [xAt(l, y1), y1];
+        if (b[0] - a[0] > 1e-9) out.push([a, b, c]); if (c[0] - d[0] > 1e-9) out.push([a, c, d]);
+      }
+    }
+    return out;
+  }
+  /* plan şeklinden katı (yerel): üst/alt yüzler, yan yüzler, yalnız gerçek kenar çizgileri */
+  function bolgeKati(B, z0, z1) {
+    const v = [], f = [], vn = [], e = [], hs = [B.dis, ...B.delik];
+    const tri = (a, b, c, n) => { const k = v.length; v.push(a, b, c); vn.push(n, n, n); f.push([k, k + 1, k + 2]); };
+    for (const [a, b, c] of ucgenle(hs)) { tri([a[0], a[1], z1], [b[0], b[1], z1], [c[0], c[1], z1], [0, 0, 1]); tri([a[0], a[1], z0], [c[0], c[1], z0], [b[0], b[1], z0], [0, 0, -1]); }
+    for (const h of hs) {
+      const m = h.length;
+      for (let i = 0; i < m; i++) {
+        const a = h[i], b = h[(i + 1) % m], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy); if (L < 1e-12) continue;
+        const n = [dy / L, -dx / L, 0]; // dış yüz saat yönü tersi, delik saat yönü → normal hep betondan dışarı
+        tri([a[0], a[1], z0], [b[0], b[1], z0], [b[0], b[1], z1], n); tri([a[0], a[1], z0], [b[0], b[1], z1], [a[0], a[1], z1], n);
+        e.push([[a[0], a[1], z0], [b[0], b[1], z0]], [[a[0], a[1], z1], [b[0], b[1], z1]]);
+        const p = h[(i + m - 1) % m], u0 = [a[0] - p[0], a[1] - p[1]], l0 = Math.hypot(u0[0], u0[1]);
+        if (l0 > 1e-12 && (u0[0] * dx + u0[1] * dy) / (l0 * L) < 0.94) e.push([[a[0], a[1], z0], [a[0], a[1], z1]]); // keskin köşede düşey kenar
+      }
+    }
+    return { v, f, vn, e };
+  }
+
   function geo(e) {
     const q = Object.assign({}, DEF, e || {});
     const n = Math.max(1, Math.round(q.n)), R2 = q.Ro + q.two;
@@ -47,84 +82,77 @@
     const yc = Array.from({ length: n }, (_, i) => q.two + q.Ro + i * (2 * q.Ro + q.two));
     const Wo = n * 2 * q.Ro + (n + 1) * q.two;
     const zTop = q.zt, zW = zTop - q.fb, zB = zW - q.h, zS = zW - q.dAg, zH = zS + q.ah;
-    const G = { q, n, xc1, xc2, xR, Lo, Wo, yc, zTop, zW, zB, zS, zH, zF: zB - q.tb, b: q.Ro - q.tw / 2, parca: [], acik: [], kapak: [], boru: [], halka: [] };
-    const full = (pts, k) => G.parca.push({ pts: ccw(pts), z0: zB, z1: zTop, k });
-    const kat = (pts, z0, z1, k) => { if (z1 - z0 > 1e-6) G.parca.push({ pts: ccw(pts), z0, z1, k }); };
-    const dA = Math.asin(Math.min(1, (q.ag / 2) / R2)) / RAD; // ağız açısı (dış yüzde ag)
-    const dAi = Math.asin(Math.min(1, (q.ag / 2) / q.Ro)) / RAD;
-    // ---- halkalar ----
+    const G = { q, n, xc1, xc2, xR, Lo, Wo, yc, zTop, zW, zB, zS, zH, zF: zB - q.tb, b: q.Ro - q.tw / 2, parca: [], acik: [], kapak: [], boru: [], halka: [], kes: [] };
+    const ada = (pts, k) => G.parca.push({ pts: ccw(pts), z0: zB, z1: zTop, k }); // bağımsız perdeler (orta duvar, yuvarlak perde)
+    const kes = (pts, z0, z1, k) => G.kes.push({ pts, z0, z1, k }); // betondan çıkarılacak boşluk prizması
+    const e1 = Math.sqrt(R2 * R2 - q.Ro * q.Ro), fi = Math.asin(q.Ro / R2) / RAD;
+    const dl = 0.05; // boşluk prizması duvar yüzlerinden taşma payı
+    // ---- halkalar: ağızlar, orta duvar, yuvarlak perdeler ----
     for (let i = 0; i < n; i++) {
       const y = yc[i], s = i % 2 === 0 ? 1 : -1; // RAS saat yönünde (üst koridor +x), komşu ters
       G.halka.push({ i, yc: y, yon: s, ad: i === 0 && n > 1 ? 'RAS' : String(n > 1 ? i : 1) });
-      // uç duvarları (yarım daire) — uçta ağız: alt ve üst parça
-      for (const [xc, a0, a1, am] of [[xc1, 90, 270, 180], [xc2, -90, 90, 0]]) {
-        full(sector(xc, y, q.Ro, R2, a0, am - dA), 'duvar'); full(sector(xc, y, q.Ro, R2, am + dA, a1), 'duvar');
-        const ag = sector(xc, y, q.Ro, R2, am - dA, am + dA);
-        kat(ag, zB, zS, 'duvar'); kat(ag, zH, zTop, 'duvar');
-        const xd = xc + (am ? -1 : 1) * R2, xi = xc + (am ? -1 : 1) * q.Ro;
-        G.acik.push({ k: 'agiz', pts: rect(Math.min(xd, xi), y - q.ag / 2, Math.max(xd, xi), y + q.ag / 2), z0: zS, z1: zH, halka: i, yan: am ? 'sol' : 'sag' });
-        G.kapak.push({ k: 'agiz', a: [xd, y - q.ag / 2 - 0.1], b: [xd, y + q.ag / 2 + 0.1], halka: i, yan: am ? 'sol' : 'sag', eb: `${(q.ag * 1000).toFixed(0)}×${(q.ah * 1000).toFixed(0)}` });
+      for (const sol of [true, false]) {
+        const xc = sol ? xc1 : xc2, sg = sol ? -1 : 1, xd = xc + sg * R2, xi = xc + sg * q.Ro;
+        const pts = rect(Math.min(xd, xi), y - q.ag / 2, Math.max(xd, xi), y + q.ag / 2);
+        G.acik.push({ k: 'agiz', pts, z0: zS, z1: zH, halka: i, yan: sol ? 'sol' : 'sag' });
+        kes(rect(Math.min(xd, xi) - dl, y - q.ag / 2, Math.max(xd, xi) + dl, y + q.ag / 2), zS, zH, 'agiz');
+        G.kapak.push({ k: 'agiz', a: [xd, y - q.ag / 2 - 0.1], b: [xd, y + q.ag / 2 + 0.1], halka: i, yan: sol ? 'sol' : 'sag', eb: `${(q.ag * 1000).toFixed(0)}×${(q.ah * 1000).toFixed(0)}` });
       }
-      // orta duvar, uçları yuvarlak
       const r = q.tw / 2;
-      full([...arc(xc2, y, r, -90, 90, 8), ...arc(xc1, y, r, 90, 270, 8)], 'orta');
-      // yuvarlak perdeler: sol uçta çıkış s yönünde, sağ uçta −s yönünde
-      full(perde(xc1, y, q.rg, q.rg + q.tg, q.ext, -1, s), 'perde');
-      full(perde(xc2, y, q.rg, q.rg + q.tg, q.ext, 1, -s), 'perde');
+      ada([...arc(xc2, y, r, -90, 90, 8), ...arc(xc1, y, r, 90, 270, 8)], 'orta');
+      ada(perde(xc1, y, q.rg, q.rg + q.tg, q.ext, -1, s), 'perde'); // sol uçta çıkış s yönünde
+      ada(perde(xc2, y, q.rg, q.rg + q.tg, q.ext, 1, -s), 'perde'); // sağ uçta −s yönünde
     }
-    // dış uzun duvarlar (ilk halkanın altı, son halkanın üstü)
-    full(rect(xc1, yc[0] - R2, xc2, yc[0] - q.Ro), 'duvar');
-    full(rect(xc1, yc[n - 1] + q.Ro, xc2, yc[n - 1] + R2), 'duvar');
-    // ---- ortak duvarlar: orifis + kapaklı pencere ----
-    const e1 = Math.sqrt(R2 * R2 - q.Ro * q.Ro);
+    // ---- ortak duvarlarda orifis ve kapaklı pencere; köprü ----
     const xk0 = Math.max(xc1 + 0.5, xc2 - q.kbX - q.kb);
     let xw1 = xk0 - 0.10, xw0 = xw1 - q.ow, xo = xw0 - 0.05 - q.or;
     if (xo < xc1) { const kay = xc1 + 0.3 - xo; xo += kay; xw0 += kay; xw1 += kay; }
     G.kopru = { x0: xk0, x1: xk0 + q.kb, z0: zTop, z1: zTop + q.kbT };
     for (let i = 0; i + 1 < n; i++) {
-      const y0 = yc[i] + q.Ro, y1 = y0 + q.two, xa = xc1 - e1, xb = xc2 + e1;
-      full(rect(xa, y0, xo, y1), 'duvar');
-      kat(rect(xo, y0, xo + q.or, y1), zB + q.or, zTop, 'duvar');
-      full(rect(xo + q.or, y0, xw0, y1), 'duvar');
-      kat(rect(xw0, y0, xw1, y1), zB, zS, 'duvar'); kat(rect(xw0, y0, xw1, y1), zH, zTop, 'duvar');
-      full(rect(xw1, y0, xb, y1), 'duvar');
+      const y0 = yc[i] + q.Ro, y1 = y0 + q.two;
       G.acik.push({ k: 'orifis', pts: rect(xo, y0, xo + q.or, y1), z0: zB, z1: zB + q.or, arasi: [i, i + 1] });
       G.acik.push({ k: 'pencere', pts: rect(xw0, y0, xw1, y1), z0: zS, z1: zH, arasi: [i, i + 1] });
+      kes(rect(xo, y0 - dl, xo + q.or, y1 + dl), zB - 0.01, zB + q.or, 'orifis');
+      kes(rect(xw0, y0 - dl, xw1, y1 + dl), zS, zH, 'pencere');
       G.kapak.push({ k: 'pencere', a: [xw0, y1], b: [xw1, y1], arasi: [i, i + 1], eb: `${(q.ow * 1000).toFixed(0)}×${(q.ah * 1000).toFixed(0)}` });
     }
-    // ---- kanallar ----
+    // ---- beton duvarlar tek plan şekli: dış kabuk (halkalar + kanallar) eksi su hacimleri ----
     const yb = yc[0] - q.ag / 2 - q.kp - q.tK, yt = yc[n - 1] + q.ag / 2 + q.kp + q.tK;
     G.kanal = { yb, yt };
-    const xiL = (y, c) => xc1 - Math.sqrt(Math.max(0, R2 * R2 - (y - c) ** 2)), xiR = (y, c) => xc2 + Math.sqrt(Math.max(0, R2 * R2 - (y - c) ** 2));
-    // sol kanal: dış duvar + uç duvarları (halka yayına kadar), alt uçta giriş borusu
-    full(rect(0, yb, q.tK, yt), 'kanal');
-    const gx = q.tK + q.bG / 2;
-    full(rect(q.tK, yb, gx - q.dG / 2, yb + q.tK), 'kanal');
-    kat(rect(gx - q.dG / 2, yb, gx + q.dG / 2, yb + q.tK), zB + q.dG, zTop, 'kanal');
-    full([[gx + q.dG / 2, yb], [xiL(yb, yc[0]), yb], [xiL(yb + q.tK, yc[0]), yb + q.tK], [gx + q.dG / 2, yb + q.tK]], 'kanal');
-    full([[q.tK, yt - q.tK], [xiL(yt - q.tK, yc[n - 1]), yt - q.tK], [xiL(yt, yc[n - 1]), yt], [q.tK, yt]], 'kanal');
-    G.boru.push({ k: 'giris', p: [gx, yb], yon: [0, -1], d: q.dG, z: zB + q.dG / 2 });
-    G.acik.push({ k: 'boru', pts: rect(gx - q.dG / 2, yb, gx + q.dG / 2, yb + q.tK), z0: zB, z1: zB + q.dG });
-    // sağ kanal: dış duvar (çıkış borusu delikli), uç duvarları, ara duvar
-    const xo1 = xR + q.bC, rx = xR + q.bC / 2;
+    const xo1 = xR + q.bC, rx = xR + q.bC / 2, gx = q.tK + q.bG / 2;
+    // halkaların dış sınırı: sağda alttan üste, solda üstten alta (aralarda ortak duvar ucu düşey)
+    const zR = [], zL = [];
+    for (let i = 0; i < n; i++) zR.push(...arc(xc2, yc[i], R2, i === 0 ? -90 : -fi, i === n - 1 ? 90 : fi));
+    for (let i = n - 1; i >= 0; i--) zL.push(...arc(xc1, yc[i], R2, i === n - 1 ? 90 : 180 - fi, i === 0 ? 270 : 180 + fi));
+    const kirp = (z, ya, yb_) => { // tek yönlü (y'ye göre sıralı) zinciri [ya, yb_] aralığına kırp
+      const lo = Math.min(ya, yb_), hi = Math.max(ya, yb_), o = [], ic = y => y >= lo - 1e-9 && y <= hi + 1e-9;
+      for (let k = 0; k < z.length; k++) {
+        const a = z[k]; if (ic(a[1])) o.push(a);
+        const b = z[k + 1]; if (!b) break;
+        for (const yy of [lo, hi]) if ((a[1] - yy) * (b[1] - yy) < 0) { const t = (yy - a[1]) / (b[1] - a[1]); o.push([a[0] + t * (b[0] - a[0]), yy]); }
+      }
+      return o;
+    };
+    const dis = [...kirp(zR, zR[0][1], yb), [Lo, yb], [Lo, yt], ...kirp(zR, yt, zR[zR.length - 1][1]), ...kirp(zL, zL[0][1], yt), [0, yt], [0, yb], ...kirp(zL, yb, zL[zL.length - 1][1])];
+    const delik = [];
+    for (let i = 0; i < n; i++) delik.push([...arc(xc2, yc[i], q.Ro, -90, 90), ...arc(xc1, yc[i], q.Ro, 90, 270)]);
+    delik.push([[q.tK, yt - q.tK], ...kirp(zL, yt - q.tK, yb + q.tK), [q.tK, yb + q.tK]]); // giriş kanalı suyu
     const ysh = n > 1 ? yc[0] + q.Ro + q.two / 2 : null;
-    const yCk = n > 2 ? yc[n - 2] + q.Ro + q.two / 2 : n > 1 ? (ysh + q.tK / 2 + yt - q.tK) / 2 : yc[0]; // ham su halkaları arasındaki duvar hizası (Çokal 6,80)
-    full(rect(xo1, yb, Lo, yCk - q.dC / 2), 'kanal'); kat(rect(xo1, yCk - q.dC / 2, Lo, yCk + q.dC / 2), zB + q.dC, zTop, 'kanal'); full(rect(xo1, yCk + q.dC / 2, Lo, yt), 'kanal');
-    G.boru.push({ k: 'cikis', p: [Lo, yCk], yon: [1, 0], d: q.dC, z: zB + q.dC / 2 });
-    G.acik.push({ k: 'boru', pts: rect(xo1, yCk - q.dC / 2, Lo, yCk + q.dC / 2), z0: zB, z1: zB + q.dC });
-    full([[xiR(yb + q.tK, yc[0]), yb + q.tK], [xiR(yb, yc[0]), yb], [rx - q.dR / 2, yb], [rx - q.dR / 2, yb + q.tK]], 'kanal');
-    kat(rect(rx - q.dR / 2, yb, rx + q.dR / 2, yb + q.tK), zB + q.dR, zTop, 'kanal');
-    full(rect(rx + q.dR / 2, yb, xo1, yb + q.tK), 'kanal');
-    G.boru.push({ k: 'ras', p: [rx, yb], yon: [0, -1], d: q.dR, z: zB + q.dR / 2 });
-    G.acik.push({ k: 'boru', pts: rect(rx - q.dR / 2, yb, rx + q.dR / 2, yb + q.tK), z0: zB, z1: zB + q.dR });
-    full([[xiR(yt, yc[n - 1]), yt], [xiR(yt - q.tK, yc[n - 1]), yt - q.tK], [xo1, yt - q.tK], [xo1, yt]], 'kanal');
-    if (n > 1) { // ara duvar: RAS bölümü / çıkış bölümü, kapaklı geçiş
+    if (n > 1) { // çıkış kanalı ara duvarla ikiye bölünür: alt RAS bölümü, üst çıkış bölümü
       const ya = ysh - q.tK / 2, yb2 = ysh + q.tK / 2, g0 = xR + 0.20, g1 = g0 + q.ag;
-      full(rect(xc2 + e1, ya, g0, yb2), 'kanal'); full(rect(g1, ya, xo1, yb2), 'kanal');
+      // tek su hacmi: ara duvarın iki parçası (gövdeye ve dış duvara bağlı) arasında kapaklı geçiş boşluğu
+      delik.push([...kirp(zR, yb + q.tK, ya), [g0, ya], [g0, yb2], ...kirp(zR, yb2, yt - q.tK), [xo1, yt - q.tK], [xo1, yb2], [g1, yb2], [g1, ya], [xo1, ya], [xo1, yb + q.tK]]);
       G.acik.push({ k: 'bolme', pts: rect(g0, ya, g1, yb2), z0: zB, z1: zTop });
       G.kapak.push({ k: 'bolme', a: [g0 - 0.1, yb2], b: [g1 + 0.1, yb2], eb: `${(q.ag * 1000).toFixed(0)}×${((zTop - zB) * 1000).toFixed(0)}` });
       G.ara = { y: ysh, g0, g1 };
-    }
+    } else delik.push([...kirp(zR, yb + q.tK, yt - q.tK), [xo1, yt - q.tK], [xo1, yb + q.tK]]);
+    G.bolge = { dis: ccw(dis), delik: delik.map(d => ccw(d).reverse()) }; // dış saat yönü tersi, delikler saat yönü
+    // ---- borular (duvar delikleri) ----
+    const yCk = n > 2 ? yc[n - 2] + q.Ro + q.two / 2 : n > 1 ? (ysh + q.tK / 2 + yt - q.tK) / 2 : yc[0]; // ham su halkaları arasındaki duvar hizası (Çokal 6,80)
+    const boru = (k, p, yon, d, pts) => { G.boru.push({ k, p, yon, d, z: zB + d / 2 }); G.acik.push({ k: 'boru', pts, z0: zB, z1: zB + d }); };
+    boru('giris', [gx, yb], [0, -1], q.dG, rect(gx - q.dG / 2, yb, gx + q.dG / 2, yb + q.tK)); kes(rect(gx - q.dG / 2, yb - dl, gx + q.dG / 2, yb + q.tK + dl), zB - 0.01, zB + q.dG, 'boru');
+    boru('ras', [rx, yb], [0, -1], q.dR, rect(rx - q.dR / 2, yb, rx + q.dR / 2, yb + q.tK)); kes(rect(rx - q.dR / 2, yb - dl, rx + q.dR / 2, yb + q.tK + dl), zB - 0.01, zB + q.dR, 'boru');
+    boru('cikis', [Lo, yCk], [1, 0], q.dC, rect(xo1, yCk - q.dC / 2, Lo, yCk + q.dC / 2)); kes(rect(xo1 - dl, yCk - q.dC / 2, Lo + dl, yCk + q.dC / 2), zB - 0.01, zB + q.dC, 'boru');
     // taban plağı ve köprü
     G.taban = { pts: rect(0, 0, Lo, Wo), z0: G.zF, z1: zB };
     // hacim (halka alanı × h × n) — karusel.js ile aynı formül
@@ -135,7 +163,7 @@
     return G;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati };
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
@@ -163,8 +191,9 @@
       const rd = (() => { let r = ((e.rot || 0) % 360 + 360) % 360; if (r > 90 && r <= 270) r -= 180; return r * RAD; })();
       const PL = (pts, c, o) => P(pts.map(p => f.at(p[0], p[1], z)), c, o);
       const T1 = (x, y, s, o, al) => TX(f.at(x, y, z), o && o.h || h, s, rd, al || 'M', o);
-      // duvarlar: üste kadar çıkan parçalar (planda görünen)
-      for (const p of G.parca) if (p.z1 >= G.zTop - 1e-6) out.push(PL(p.pts, true, { lw: p.k === 'perde' || p.k === 'orta' ? 35 : 50 }));
+      // beton: dış kabuk, su hacimleri (delikler), bağımsız perdeler
+      for (const h of [G.bolge.dis, ...G.bolge.delik]) out.push(PL(h, true, { lw: 50 }));
+      for (const p of G.parca) out.push(PL(p.pts, true, { lw: 35 }));
       // görünmeyen açıklıklar (kesikli): ağız, orifis, pencere, boru
       for (const a of G.acik) if (a.k !== 'bolme') out.push(PL(a.pts, true, { lt: 'DASHED', color: 8, lw: 18 }));
       // köprü
@@ -211,6 +240,17 @@
     },
     mesh: e => {
       const G = geo(e), f = C.frame(e.o, e.rot), out = [];
+      // beton duvarlar: tek katı, ağız / pencere / orifis / boru boşlukları katıdan çıkarılır (birleşme izi kalmaz)
+      const key = JSON.stringify([G.q, e.o, e.rot]);
+      if (!e._ag || e._agK !== key) {
+        const uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
+        const K = bolgeKati(G.bolge, G.zB, G.zTop);
+        const ag = { t: 'tri', v: K.v.map(W), vn: K.vn.map(Wn), f: K.f, edges3: K.e.map(ab => ab.map(W)) };
+        let son = ag;
+        if (C.boslukAg) { try { son = C.boslukAg([ag], G.kes.map(k => ({ pts: k.pts.map(p => f.at(p[0], p[1], k.z0)), d: [0, 0, k.z1 - k.z0] })), [0.74, 0.74, 0.71]); } catch (er) { console.error('anaerobik boşluk', er); son = ag; } }
+        e._ag = son; e._agK = key;
+      }
+      out.push(e._ag);
       for (const p of G.parca) out.push(ext(f.at(0, 0, p.z0), f.ux, [0, 0, 1], p.pts, p.z1 - p.z0));
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
       const k = G.kopru; out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], [[k.x0, 0], [k.x1, 0], [k.x1, G.Wo], [k.x0, G.Wo]], k.z1 - k.z0));
