@@ -4,7 +4,7 @@
    kapak yuvaları A 13,85–13,95, C 10,34–10,44, E 8,76–8,86, G 5,00–5,10. Çalıştır: node test/onaritma.test.js */
 'use strict';
 const assert = require('assert');
-const { geo, ekipmanYer, su } = require('../app/onaritma.js');
+const { geo, ekipmanYer, su, islakHazne } = require('../app/onaritma.js');
 const { ucgenle } = require('../app/anaerobik.js');
 let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
 const yakin = (a, b, msg, tol) => assert.ok(Math.abs(a - b) < (tol || 0.006), `${msg}: ${a} ≠ ${b}`);
@@ -59,7 +59,7 @@ t('ızgara boşaltma kot zinciri: konteyner zeminde, konveyör altı konteynerin
 });
 
 t('varsayılan: ızgara yapısı 4,00 m (platform − kanal tabanı), terfi ve pompa kotları birlikte kayar; konveyör kapaklardan uzak', () => {
-  const G4 = geo(); yakin(G4.q.zPl - G4.q.zTab, 4.00, 'yapı yüksekliği'); yakin(G4.q.zTab - G4.q.zTr, 1.95, 'terfi kanalın 1,95 altında'); yakin(G4.q.zTon - G4.q.zTab, 85.89 - 86.75, 'devreye girme');
+  const G4 = geo(); yakin(G4.q.zPl - G4.q.zTab, 4.00, 'yapı yüksekliği'); yakin(G4.q.zTr, 89.49, 'terfi tabanı hesaptan'); yakin(G4.q.zTon, 90.59, 'en üst seviye');
   const E = ekipmanYer(G4, 94.80); assert.ok(E.filter(x => x.tur === 'penstok').every(x => Math.abs(x.D - 4.00) < 1e-6), 'kapak derinliği 4 m (tam şasi)');
   const kx = G4.kapak.map(k => k.x); for (const c of E.filter(x => x.tur === 'konveyor')) assert.ok(kx.every(x => Math.abs(c.p[0] - x) >= 0.68 - 1e-6), 'konveyör kapaktan uzak');
 });
@@ -75,6 +75,18 @@ t('bölge uzunlukları ızgaradan: yapı derinleşince yapı uzar, konveyör hep
     for (const iz of g.izgara) { const c = g.konveyor.find(k => k.k === iz.k); assert.ok((iz.xa - yb1) - (c.x + (g.q.Bk + 0.16) / 2) >= 0.60 - 1e-6, 'ızgara – konveyör ≥ 0,60'); }
     for (const iz of g.izgara) { const D = g.q.zPl - g.q.zTab, t0 = D / Math.tan(75 * Math.PI / 180); assert.ok(iz.x1 > iz.xa - t0 && iz.x0 < iz.xa - t0 - 0.36, 'ızgara açıklıktan geçer'); yakin(iz.x1 - iz.x0, 0.40 + 0.354 / Math.sin(75 * Math.PI / 180), 'açıklık boyu'); }
   }
+});
+
+t('ıslak hazne hesabı (ATV-A 134): Çokal T-102 kotları — h1 85,89, h2 85,50, hrev 85,35, hölü 85,15, taban 84,80; hazne 3,90 × 2,50', () => {
+  const G0 = geo({ zTab: 86.75 }), I = G0.IH, tol = 0.015;
+  yakin(I.V, 0.9 * 18 / 10, 'faydalı hacim'); yakin(I.L, 3.90, 'uzun kenar (3 pompa)'); yakin(I.B, 2.50, 'kısa kenar');
+  yakin(I.ust, 85.89, 'en üst (yedek + alarm)', tol); yakin(I.pom[1], 85.50, '2. asıl pompa', tol); yakin(I.pom[0], 85.35, '1. asıl pompa', tol);
+  yakin(I.durma, 85.15, 'durma', tol); yakin(I.taban, 84.80, 'taban', tol); assert.ok(I.Zger <= 10 + 1e-9, 'kalkış ≤ Z');
+  yakin(G0.q.zTr, I.taban, 'çizim tabanı hesaptan'); assert.deepStrictEqual(G0.pompa.map(p => +p.y.toFixed(2)), [1.35, 2.35, 3.35], 'aks aralığı 1,00, duvara 0,95');
+  // büyük pompa: faydalı yükseklik büyür, 1 m'yi aşarsa hazne genişler; derinlik artar
+  const I2 = islakHazne(Object.assign({}, G0.q, { Qp: 150, tY: null, tX: 2.5, zTon: null, zToff: null, zTr: null }));
+  assert.ok(I2.hu <= 1.0 + 1e-9 && I2.B >= 2.5 && I2.taban < I.taban, 'büyük debide hazne genişler / derinleşir');
+  const I4 = islakHazne(Object.assign({}, G0.q, { np: 5, tY: null })); yakin(I4.L, 5.90, '5 pompa'); assert.ok(I4.taban < I.taban, '3 asıl pompada bir kademe daha');
 });
 
 t('parametrik: 3 kanal, geniş kanal', () => {

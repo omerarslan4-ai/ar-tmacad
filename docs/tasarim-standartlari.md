@@ -50,7 +50,7 @@
   - Blowerlar tesis büyüklüğüne göre ana blower binasında ya da kum tutucunun yanında küçük binada (Çokal'da ana binada).
 - Giriş terfi istasyonu (ıslak hazne, dalgıç pompa; Çokal AAT T-102 örneği):
   - Yapı nihai kademeye göre boyutlanır; mevcut kademede eksik pompalar sonradan aynı yapıya eklenir.
-  - Kot zinciri: giriş tabanı → 0,86 m altı 1. pompa devreye girme seviyesi → faydalı yükseklik → durma seviyesi → ölü hacim → hazne tabanı.
+  - Islak hazne hesabı (ATV-DVWK-A 134, onaylandı): faydalı hacim V = 0,9·Qp/Z (tek pompa, Z = 10 kalkış/saat). Seviyeler yukarıdan: en üst (yedek pompa + alarm) = giriş kanalı tabanı − 0,86; son asıl pompa 0,40 aşağıda; her önceki asıl pompa 0,15 aşağıda; durma = 1. asıl pompa − en büyük(0,20 ; V / hazne alanı); taban = durma − 0,35 (ölü yükseklik). Derinlik bu zincirden çıkar. Faydalı yükseklik 1,00 m'yi aşarsa hazne genişler. Çokal T-102 ile doğrulandı (85,89 / 85,50 / 85,35 / 85,15 / 84,80).
   - Üst döşeme zeminden en az 0,65 m yukarıda. Duvar 40 cm, taban plağı 40 cm.
   - Monoray vinç kirişi üst döşemeden 2,70 m yukarıda.
   - Pompalar haznenin uzun kenarı boyunca dizilir: aks aralığı 1,00 m, son pompa aksından duvara 0,95 m (katalog, dalgıç pompa).

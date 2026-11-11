@@ -15,12 +15,13 @@
   const DEF = {
     n: 2, b: 0.60, tw: 0.40, ts: 0.60,               // kanal sayısı (1 asıl + 1 yedek), kanal eni, dış duvar, ayırıcı perde
     Lc: 1.60, Li: null, Lg: 0.60, Lk: null, Lgi: 2.00, // toplama haznesi, ince bölge (boşsa ızgaradan), ortak geçiş, kaba bölge (boşsa ızgaradan; Çokal 4,10 / 3,80), giriş odası
-    tX: 2.50, tY: 3.90, tTw: 0.40,                     // terfi ıslak haznesi iç ölçüleri ve duvarı
+    tX: 2.50, tY: null, tTw: 0.40,                     // terfi ıslak haznesi: kısa kenar, uzun kenar (boşsa pompa dizisinden), duvar
     gG: 0.15, gE: 0.19, gC: 0.19, gA: 0.10, yw: 0.10, yd: 0.05, // kapak yerleri (bölge uçlarından) ve duvar yuvası
-    zTab: 91.45, zPl: 95.45, dT: 0.25, zTr: 89.50, tb: 0.60, // kanal tabanı (yapı yüksekliği platform − taban = 4,00 m, firma kararı; Çokal 86,75 / 8,70 m), platform, döşeme, terfi tabanı (kanal tabanının 1,95 altı), taban plağı
+    zTab: 91.45, zPl: 95.45, dT: 0.25, zTr: null, tb: 0.60, // kanal tabanı (yapı yüksekliği platform − taban = 4,00 m, firma kararı; Çokal 86,75 / 8,70 m), platform, döşeme, terfi tabanı (kanal tabanının 1,95 altı), taban plağı
     kpH: 1.00, pH: 1.00,                                // kapak yüksekliği, terfiye geçiş boşluğu yüksekliği
-    hs: 0.60, hsMin: 0.25, zTon: 90.59, zToff: 89.85,   // kanal su derinliği (maks / min), pompa devreye girme / çıkma
+    hs: 0.60, hsMin: 0.25, zTon: null, zToff: null,     // kanal su derinliği (maks / min); terfi en üst seviye / durma (boşsa ıslak hazne hesabından)
     np: 3, Qp: 18, Hp: 14,                              // pompa sayısı (2 asıl + 1 yedek), pompa başına debi l/s, basma m
+    Zk: 10, hOl: 0.35, dP1: 0.20, dP: 0.15, dUst: 0.40, pg: 0.86, ap: 1.00, ak: 0.95, // ıslak hazne: saatlik kalkış, ölü yükseklik, durma→1. pompa (en az), pompalar arası, son asıl→en üst, giriş tabanı→en üst, pompa aks aralığı, son aks→duvar
     bgK: 30, bgI: 6, zg: 94.80, mw: 1.00, mb: 0.25, mh: 0.19,
     hA: 1.00, Lka: null, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından, Çokal C-C 1,00), kaba bölgedeki boyu (A kapaklarına kadar), kısa parça
     hBos: 1.00, pd: 0.15, Hk: 1.37, pk: 0.30, ka: 0.28, Bk: 0.50, gIK: 0.60, // gIK: ızgara ile konveyör arası en az boşluk // ızgara boşaltma ağzı (platformdan), ağız → bant düşüsü, 1100 L konteyner, konveyör altı → konteyner payı, bant → konveyör altı, bant eni
@@ -40,8 +41,26 @@
   /* boşaltma kot zinciri: konteyner zeminde → konveyör altı + pay → bant → ağız; ağız platformdan en az hBos */
   const kotZincir = (q, zg) => { const zZem = zg != null ? zg : q.zg, zBant = Math.max(q.zPl + q.hBos - q.pd, zZem + q.Hk + q.pk + q.ka), hdU = zBant + q.pd - q.zPl; return { zZem, zBant, hdU, zKont: zZem + q.Hk, zAlt: zBant - q.ka }; };
 
+  /* ISLAK HAZNE HESABI (ATV-DVWK-A 134; Çokal T-102 kotlarıyla doğrulandı)
+     faydalı hacim V = 0,9·Qp/Z (Qp L/s, tek pompa); seviyeler yukarıdan: en üst (yedek pompa + alarm) = giriş kanalı tabanı − pg;
+     son asıl pompa devreye = en üst − dUst; her alttaki asıl pompa dP aşağıda; durma = 1. pompa − max(dP1, V/A); taban = durma − ölü yükseklik.
+     Uzun kenar pompa dizisinden ((n−1)·ap + 2·ak); faydalı yükseklik 1,00 m'yi aşarsa kısa kenar genişler. */
+  const y20 = v => Math.ceil(v * 20 - 1e-6) / 20;
+  function islakHazne(q) {
+    const np = Math.max(1, Math.round(q.np)), nd = Math.max(1, np - 1);
+    const L = q.tY != null ? q.tY : (np - 1) * q.ap + 2 * q.ak;
+    const V = 0.9 * q.Qp / q.Zk;
+    let B = q.tX, hu = Math.max(q.dP1, y20(V / (B * L)));
+    if (hu > 1.0 + 1e-9) { B = Math.max(B, y20(V / (1.0 * L))); hu = Math.max(q.dP1, y20(V / (B * L))); }
+    const ust = q.zTab - q.pg, pom = []; for (let k = nd; k >= 1; k--) pom[k - 1] = ust - q.dUst - (nd - k) * q.dP;
+    const durma = pom[0] - hu, taban = durma - q.hOl;
+    return { np, nd, L, B, V, hu, Zger: 0.9 * q.Qp / (hu * B * L), ust, pom, durma, taban };
+  }
+
   function geo(e) {
     const q = {}; e = e || {}; for (const k of PAR) q[k] = e[k] != null ? e[k] : DEF[k];
+    const IH = islakHazne(q); // terfi haznesi: boş bırakılan ölçü ve kotlar hesaptan (eski çizimler kendi değerlerini korur)
+    q.tY = IH.L; q.tX = IH.B; if (q.zTon == null) q.zTon = IH.ust; if (q.zToff == null) q.zToff = IH.durma; if (q.zTr == null) q.zTr = IH.taban;
     const n = Math.max(1, Math.round(q.n)), W = n * q.b + (n - 1) * q.ts, Wc = W + 2 * q.tw;
     const tO = q.tX + 2 * q.tTw, tYo = q.tY + 2 * q.tTw, yc0 = (tYo - Wc) / 2;
     // bölge uzunlukları ızgaradan: kapak – ızgara ayağı – (eğik ızgara izi) – boşaltma ağzı altındaki konveyör – kapak tahrikinden pay
@@ -51,7 +70,7 @@
     const x1 = tO + q.Lc, x2 = x1 + Li, x3 = x2 + q.Lg + q.ts, x4 = x3 + Lk, x5 = x4 + q.Lgi, Lo = x5 + q.tw;
     const yi0 = yc0 + q.tw, yi1 = yi0 + W; // kanal içi
     const zW = q.zPl - q.dT; // duvar üstü (döşeme altı)
-    const G = { q, n, W, Wc, tO, tYo, yc0, x1, x2, x3, x4, x5, Lo, yi0, yi1, zW, Li, Lk, dX, OL, kotZincir: KZ, cK, kanal: [], ayirici: [], kapak: [], kes: [], dosemeBos: [], izgara: [] };
+    const G = { q, IH, n, W, Wc, tO, tYo, yc0, x1, x2, x3, x4, x5, Lo, yi0, yi1, zW, Li, Lk, dX, OL, kotZincir: KZ, cK, kanal: [], ayirici: [], kapak: [], kes: [], dosemeBos: [], izgara: [] };
     for (let i = 0; i < n; i++) { const y0 = yi0 + i * (q.b + q.ts); G.kanal.push({ i, y0, y1: y0 + q.b, ym: y0 + q.b / 2 }); }
     // beton: dış sınır (terfi + kanal), delikler (terfi iç, kanal iç)
     const ya1 = 0, yb1 = tYo, ya2 = yc0, yb2 = yc0 + Wc;
@@ -84,7 +103,7 @@
     G.kes.push({ k: 'gecis', pts: rect(tO - q.tTw - 0.05, yi0, tO + 0.05, yi1), z0: q.zTab - 0.01, z1: q.zTab + q.pH });
     // pompalar ve döşemede pompa kapakları
     G.pompa = [];
-    for (let k = 0; k < q.np; k++) { const y = q.tTw + q.tY * (k + 0.5) / q.np, x = q.tTw + Math.min(0.45, q.tX / 4); G.pompa.push({ k, x, y }); G.dosemeBos.push({ k: 'pompa', pts: rect(x - 0.20, y - 0.45, Math.min(x + 1.00, G.tO - q.tTw - 0.05), y + 0.45) }); } // Çokal: basma borusu dış duvar dibinde, pompa kanala doğru
+    for (let k = 0; k < q.np; k++) { const y = q.tTw + (q.tY - (q.np - 1) * q.ap) / 2 + k * q.ap, x = q.tTw + Math.min(0.45, q.tX / 4); G.pompa.push({ k, x, y }); G.dosemeBos.push({ k: 'pompa', pts: rect(x - 0.20, y - 0.45, Math.min(x + 1.00, G.tO - q.tTw - 0.05), y + 0.45) }); } // Çokal: basma borusu dış duvar dibinde, pompa kanala doğru
     G.doseme = { dis: G.bolge.dis, z0: zW, z1: q.zPl };
     G.tabanK = { pts: rect(tO, yc0, Lo, yc0 + Wc), z0: q.zTab - q.tb, z1: q.zTab };
     G.tabanT = { pts: rect(0, 0, tO, tYo), z0: q.zTr - q.tb, z1: q.zTr };
@@ -140,7 +159,7 @@
     { anahtar: 'su-terfi', ad: 'Terfi ıslak haznesi', pts: rect(q.tTw, q.tTw, G.tO - q.tTw, G.tYo - q.tTw), zb: q.zTr, maks: q.zTon, min: q.zToff },
   ]; }
 
-  if (NODE) module.exports = { geo, DEF, ekipmanYer, su };
+  if (NODE) module.exports = { geo, DEF, ekipmanYer, su, islakHazne };
   if (!C || !C.T || !C.prim || typeof document === 'undefined') return;
 
   /* ================= ÇİZİM ================= */
@@ -166,6 +185,7 @@
       for (const k of G.kapak.filter(k => k.kanal === 0)) out.push(T1(k.x, G.yc0 - 0.45, `SK-${un}/${k.k}`, { color: 6 }));
       out.push(T1((G.x3 + G.x4) / 2, G.yc0 + G.Wc + 0.5, 'Kaba ızgaralar', { color: 4 }), T1((G.x1 + G.x2) / 2, G.yc0 + G.Wc + 0.5, 'İnce ızgaralar', { color: 4 }), T1(G.tO / 2, G.tYo + 0.5, 'Giriş terfisi', { color: 4 }), T1((G.x4 + G.x5) / 2, G.yc0 + G.Wc + 0.5, 'Giriş odası', { color: 4 }));
       out.push(T1(G.Lo / 2, -1.2, `Kanal tabanı ${kot(q.zTab)} · platform ${kot(q.zPl)} · terfi tabanı ${kot(q.zTr)} · kanal ${q.n} × ${f2(q.b)} m`, { color: 3 }));
+      { const I = G.IH; out.push(T1(G.tO / 2, -1.9, `Terfi: en üst (yedek + alarm) ${kot(q.zTon)} · ${I.pom.map((z, i) => `${i + 1}. pompa ${kot(z)}`).join(' · ')} · durma ${kot(q.zToff)} · V = ${f2(I.V)} m³ (Z ${M.fmt(I.Zger, 1)}/sa)`, { color: 3 })); }
       out.push(TX(f.at(G.Lo / 2, G.tYo + h * 7, z), tH(5), `${e.code || ''} ${e.name || 'Izgara yapısı ve giriş terfisi'}`.trim(), rd, 'C', { color: 2 }));
       return out;
     },
