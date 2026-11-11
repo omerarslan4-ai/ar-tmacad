@@ -239,14 +239,15 @@
       if (!kp) continue; let sag = false;
       if (H > 0.3) {
         const nr = Math.max(2, Math.ceil(H / q.mh - 1e-9)), Lk = (nr - 1) * q.mb, ym = G.Wo + q.mw / 2;
-        // iki yürüyüş yolunda merdivenler birbirine bakar: ikinci yolun merdiveni aradaki uzun kısımdan (sağdan) çıkar; yer yetmezse soldan
-        sag = kp === G.kopru2 && G.kopru2.x1 + Lk + 1.0 <= G.kopru.x0 - Lk;
+        // iki yürüyüş yolunda merdivenler sırt sırta: servis köprüsününki sağ uçtan, ikinci yolunki sol uçtan çıkar (yer yetmezse öbür yandan)
+        if (G.kopru2) sag = kp === G.kopru ? kp.x1 + Lk <= G.Lo + q.tre : !(kp.x0 - Lk >= -q.tre);
         const xs = sag ? kp.x1 : kp.x0, d = sag ? 1 : -1;
         out.push({ anahtar: 'merdiven' + sfx, tur: 'merdiven', pts: [[xs + d * Lk, ym], [xs, ym]], z0, z1: zK, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: kp.x1 - kp.x0, t: q.kbT, kork: sag ? 'sag' : 'sol' }); // dış korkuluk havuzun dışında kalan yanda
       }
-      const k0 = kp.x0 + a, k1 = kp.x1 - a, yU = kp.y1 - a, pts = sag ? [[kp.x1, yU], [k0, yU], [k0, a], [k1, a]] : [[kp.x0, yU], [k1, yU], [k1, a], [k0, a]];
-      if (kp === G.kopru) for (const s of G.sahanlik) pts.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]); // sahanlıkların çevresinden
-      pts.push([sag ? k1 : k0, G.Wo]); // merdivenin çıktığı kenar açık
+      // korkuluk: merdivenin çıktığı kenar açık; sol kenar sahanlıkların çevresinden dolanır
+      const k0 = kp.x0 + a, k1 = kp.x1 - a, yU = kp.y1 - a, dol = [];
+      if (kp === G.kopru) for (const s of G.sahanlik) dol.push([k0, s.y0 + a], [s.x0 + a, s.y0 + a], [s.x0 + a, s.y1 - a], [k0, s.y1 - a]);
+      const pts = sag ? [[kp.x1, yU], [k0, yU], ...dol.slice().reverse(), [k0, a], [k1, a], [k1, G.Wo]] : [[kp.x0, yU], [k1, yU], [k1, a], [k0, a], ...dol, [k0, G.Wo]];
       out.push({ anahtar: 'korkuluk-kopru' + sfx, tur: 'korkuluk', pts, z: zK });
     }
     return out;

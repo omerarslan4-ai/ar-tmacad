@@ -124,11 +124,12 @@ t('halka başına 2 mikser: ikinci yürüyüş yolu, mikserler iki yolda da uzun
   }
   assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 2); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 2);
   const m2 = E.find(x => x.anahtar === 'merdiven-2'); assert.ok(m2.pts[0][0] > 0, 'ikinci merdiven havuz boyunda');
-  // büyük havuzda iki merdiven birbirine bakar (ikisi de aradaki uzun kısımdan çıkar)
+  // iki merdiven sırt sırta: servis köprüsününki sağ uçtan sola, ikinci yolunki sol uçtan sağa çıkar
   const { boyutla } = require('../app/anaerobik.js'); const G5 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1 }, boyutla({ Qd: 50000 }).par)), E5 = ekipmanYer(G5, { n: 2, D: 0.6, P: 3, rpm: 700, name: 'K' }, 95);
   const a5 = E5.find(x => x.anahtar === 'merdiven').pts, b5 = E5.find(x => x.anahtar === 'merdiven-2').pts;
-  assert.ok(a5[1][0] > a5[0][0] && b5[1][0] < b5[0][0], 'zıt yönde çıkarlar'); assert.ok(b5[0][0] + 1.0 <= a5[0][0] + 1e-9, 'başlangıçlar arasında boşluk'); yakin(b5[1][0], G5.kopru2.x1, 'ikinci yolun sağ kenarına');
-  const k5 = E5.find(x => x.anahtar === 'korkuluk-kopru-2').pts; yakin(k5[k5.length - 1][0], G5.kopru2.x1 - 0.05, 'merdivenin çıktığı kenar açık');
+  assert.ok(a5[1][0] < a5[0][0] && b5[1][0] > b5[0][0], 'zıt yönde, sırt sırta'); yakin(a5[1][0], G5.kopru.x1, 'servis köprüsünün sağ kenarına'); yakin(b5[1][0], G5.kopru2.x0, 'ikinci yolun sol kenarına');
+  assert.ok(a5[0][0] > G5.kopru.x1 && b5[0][0] < G5.kopru2.x0, 'başlangıçlar dış uçlarda');
+  const k5 = E5.find(x => x.anahtar === 'korkuluk-kopru').pts; yakin(k5[k5.length - 1][0], G5.kopru.x1 - 0.05, 'merdivenin çıktığı kenar açık');
 });
 
 t('sahanlıkta kapak yarığı: kapak çerçevesi geçer, yarık sahanlık içinde', () => {
