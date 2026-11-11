@@ -60,6 +60,8 @@
   - Debimetre odası: iç en az 2,00 (akış yönü) × 1,50 m; duvar 25 cm, taban plağı 30 cm; boru altı tabandan 0,42 m yukarıda; üst döşeme zeminden 0,45 m yukarıda.
   - Parshall savağı seçimli: boğaz genişliği standart tablodan; kot düşümü hidrolik profile işlenir.
 - Anaerobik havuz (Çokal AAT T-105 biçimi):
+  - Statik (3B kabuk, kullanıcı kabulleri): su yükü bölme senaryolarıyla — hepsi dolu; iki yan halka dolu, orta halka boş (orta ve yönlendirme perdelerine tek taraf su verilmez). Tasarım değerleri 1 m şerit ortalaması (köşe / birleşim tepeleri yerine). Çatlak sınırı 0,20 mm.
+  - 50.000 m³/gün örneği (h 4,50 m, zemin 96,95, YAS 93,95): dış duvar / halka yayı / ortak duvar 70 cm, kanal duvarları 65 cm, orta perde 35 cm, yönlendirme perdesi 30 cm, radye 80 cm; zemin gerilmesi 102 kN/m².
   - Karusel halkaları yan yana, ortak duvarlı. Varsayılan 3 halka: 1. halka geri devir (RAS), 2. ve 3. halka ham su; eski projeler için tek halka.
   - Halka iç eni 3,00 m (iç yarıçap 1,50), ortada 30 cm duvar, iki koridor 1,35 m; uçlar yarım daire, dönüşte R0,70–R1,00 kılavuz duvar (yönlendirme perdesi, 30 cm); perdenin çıkış ucundaki düz kısmı (baston) kulvar genişliğinin yarısı (Çokal 0,60 ≈ 0,675). Yürüyüş yolunun yeri açıklığa göre (2,50 m sınırı onaylandı): kulvar en çok 2,50 m ise Çokal gibi bastonun ucundan kulvar / 2 sonra başlar (Çokal köprü 11,00–12,50); daha geniş kulvarda yol bastonun üstüne oturur ve baston en az köprü eni kadar olur (köprü açıklığı yarıya iner). Mikserler yolla birlikte konumlanır; köprü bastonun üstündeyken kılavuz direk baston ucunun önündedir. Dış duvar ve halkalar arası duvar 40 cm.
   - Düz boy gerekli hacimden bulunur (elle değiştirilebilir; Çokal 11,00 m → dış ölçü 17,20 × 10,60 m).
