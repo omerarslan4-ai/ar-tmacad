@@ -159,10 +159,10 @@ Her parça gerçek bir projeyle (örneğin Zeytinli AAT) test edilmeden sonrakin
 
 ## 10. Açık sorular
 
-- [ ] Kum tutucu standartları: tip (havalandırmalı, köprülü sıyırıcı), kum sınıflandırıcının konumu, baypas ve hava payı.
+- [x] Kum tutucu standartları: Çokal AAT T-103'ten alındı, 11 Kasım 2026'da onaylandı (bkz. `tasarim-standartlari.md`).
 - [ ] Terfi istasyonu kartı: hesaptan ve katalogdan gelen ölçüler henüz konuşulmadı.
-- [ ] İnce ızgara kaba ızgarayla aynı kanaldayken iki ekipman arasındaki mesafe.
+- [ ] İnce ızgara kaba ızgarayla aynı kanaldayken iki ekipman arasındaki mesafe. Çokal'da yapının iç boyu 12,70 m; kartta şimdilik kanal boyu + 3 m.
 - [ ] Stabilizasyon tankı ile statik mikserli yoğunlaştırıcı arasındaki seçim neye göre yapılıyor?
 - [ ] Çıkış tarafı: dezenfeksiyon tipi ve geri kazanım üniteleri hangi seçeneklerle gelecek?
 - [ ] Yardımcı binaların (idari bina, atölye, trafo) ayak izi ölçüleri nereden alınacak?
-- [ ] İlk test projesi hangisi olacak?
+- [x] İlk test projesi: Çokal AAT (`test-proje/`, sürüm kaydı dışında).
