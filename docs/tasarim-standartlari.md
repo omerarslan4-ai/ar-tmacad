@@ -37,7 +37,8 @@
   - Izgara boşaltma ağzı platformdan 1,0 m (halatlı tip). Altında enine bant konveyör: bant = ağız − 0,15 m; konveyörün altı (şase ve tambur, bandın ≈0,28 m altı) konteyner üstünden en az 0,30 m yukarıda; konteyner zorlarsa ızgara boşaltma ağzı yükselir. Konveyör yapının dışındaki konteynere boşaltır; korkuluk geçişte açılır.
   - Izgara yapısının yüksekliği (kanal tabanı → platform) 4,00 m alınır (Çokal'da 8,70 m idi); terfi haznesi ve pompa kotları kanal tabanıyla birlikte kayar. Bu derinlikte kapaklar tam şasidir.
   - Kanallar arası orta perde kanal tabanından 1,00 m yüksekliktedir (Çokal C-C) ve bütün kapaklara (çıkıştan girişe, A kapaklarına kadar) uzanır.
-  - Izgara yeri, boşaltma ağzının altındaki konveyör hiçbir kapak tahrikinin üstüne gelmeyecek şekilde seçilir.
+  - Kaba ve ince ızgara bölgelerinin boyu (dolayısıyla yapı boyu) ızgaradan türetilir: mansap kapağı + konveyör payı (kapak ekseninden ≥ 0,68 m) + ızgaranın ayaktan boşaltma ağzına yatay izi + ayak → memba kapağı 0,35 m + memba kapağı. Izgara yüksekliği değişince yapı boyu da değişir; konveyör hiçbir kapak tahrikinin üstüne gelmez.
+  - Döşemedeki ızgara açıklığı: ızgaranın platformu kestiği yer (ön yüz – arka yüz) + her yanda 0,20 m, kanal eninde.
   - Terfi pompaları: basma borusu dış duvar dibinde (iç yüzden ≈0,45 m), pompa gövdesi kanala doğru.
 - Kanal kapakları (penstok): 5 m derinliğe kadar tam şasi (platforma kadar); daha derinde kısa şasi (açıklık + 0,35 m) ve uzatma mili, tahrik platformda zemin ayağı üstünde (Çokal ızgara kanalları).
 - Kum ve yağ tutucu (havalandırmalı, gezer köprülü; Çokal AAT T-103 örneği):
