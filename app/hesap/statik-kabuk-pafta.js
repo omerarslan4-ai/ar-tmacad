@@ -90,11 +90,15 @@
     return P2.map(q => { const L = q.b - q.a, kS = q.sol ? (kap ? 0 : kA) : 0, kB = q.sag ? (kap ? 0 : kBk) : 0; const R = Rbul(q.a, q.b); let yay = null; if (R) { const N = 60, on = []; for (let k = 0; k <= N; k++) on.push(!!Rbul(q.a + L * k / N, q.a + L * k / N)); const i0 = on.indexOf(true), i1 = on.lastIndexOf(true); if (i0 >= 0) { const L1 = r2(L * i0 / N), L2 = r2(L * (N - i1) / N); yay = { L1, La: r2(L - L1 - L2), L2 }; } } return { a: q.a, b: q.b, L: r2(L), boy: r2(L + kS + kB), kS, kB, R, yay, Lf }; }).sort((x, y) => x.a - y.a);
   };
   /* RADYE YAY BÖLGELERİ (örnek paftadaki gibi): dış perdenin ≥ 90°'lik yayının altında radye donatısı ışınsal + halka atılır;
-     dik (X / Y) ağ bu bölgede kesilir ve bindirme boyu kadar içeri uzar. Dönen: [{c, R, a0, aci, Rout, poly}] */
+     dik (X / Y) ağ bu bölgede kesilir ve bindirme boyu kadar içeri uzar. Dönen: [{c, R, a0, aci, Rout, poly}]
+     Radye kenarı yayı izlemiyorsa (ör. anaerobik havuz: yuvarlak uçlu halkalar dikdörtgen radye üzerinde; yay açısı içinde radye kenarı
+     yaydan 3 m'den fazla uzakta) bölge sayılmaz: radyenin tamamına dik X / Y ağ atılır. */
   const sektorler = (walls, RP) => { const out = [];
     for (const w of walls) { if (w.tip !== 'dis') continue; for (const p of parcala(w.pts, w.kapali)) { if (p.tip !== 'yay' || Math.abs(p.aci || 0) < Math.PI / 2 - 0.05) continue;
       const a0 = Math.atan2(p.pts[0][1] - p.c[1], p.pts[0][0] - p.c[0]), aci = p.aci, ic = q => { let d = Math.atan2(q[1] - p.c[1], q[0] - p.c[0]) - a0; d = ((d % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); if (aci < 0) d = 2 * Math.PI - d; return d <= Math.abs(aci) + 0.02 || d >= 2 * Math.PI - 0.02; };
-      let Rout = p.R + w.t / 2; for (const q of RP) if (ic(q)) Rout = Math.max(Rout, Math.hypot(q[0] - p.c[0], q[1] - p.c[1])); for (let i = 0; i < RP.length; i++) { const a = RP[i], b = RP[(i + 1) % RP.length]; for (let k = 1; k < 8; k++) { const q = [a[0] + (b[0] - a[0]) * k / 8, a[1] + (b[1] - a[1]) * k / 8]; if (ic(q)) Rout = Math.max(Rout, Math.min(p.R + w.t / 2 + 3, Math.hypot(q[0] - p.c[0], q[1] - p.c[1]))); } }
+      let Rout = p.R + w.t / 2, uzakR = 0; for (let i = 0; i < RP.length; i++) { const a = RP[i], b = RP[(i + 1) % RP.length]; for (let k = 0; k < 8; k++) { const q = [a[0] + (b[0] - a[0]) * k / 8, a[1] + (b[1] - a[1]) * k / 8]; if (ic(q)) uzakR = Math.max(uzakR, Math.hypot(q[0] - p.c[0], q[1] - p.c[1])); } }
+      if (uzakR > p.R + w.t / 2 + 3 + 1e-6) continue; // radye bu yayı izlemiyor
+      for (const q of RP) if (ic(q)) Rout = Math.max(Rout, Math.hypot(q[0] - p.c[0], q[1] - p.c[1])); for (let i = 0; i < RP.length; i++) { const a = RP[i], b = RP[(i + 1) % RP.length]; for (let k = 1; k < 8; k++) { const q = [a[0] + (b[0] - a[0]) * k / 8, a[1] + (b[1] - a[1]) * k / 8]; if (ic(q)) Rout = Math.max(Rout, Math.min(p.R + w.t / 2 + 3, Math.hypot(q[0] - p.c[0], q[1] - p.c[1]))); } }
       const poly = [p.c]; for (let k = 0; k <= 32; k++) { const a = a0 + aci * k / 32; poly.push([p.c[0] + Math.cos(a) * (Rout + 0.05), p.c[1] + Math.sin(a) * (Rout + 0.05)]); }
       out.push({ c: p.c, R: p.R, a0, aci, Rout: r2(Rout), poly }); } }
     return out; };

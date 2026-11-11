@@ -9,7 +9,9 @@
 - İç ve dış perde donatıları aynı çapta; döşeme/radye alt ve üst donatıları aynı çapta. Gönye boyu = eleman kalınlığı − paspayı. İç/dış düşey donatıların üst gönyeleri birbirine bakar.
 - Döşeme: alt donatı tam boy; üst donatı da tek parça tam boy ve uçları gönyeli (iki ayrı mesnet parçası değil).
 - 12 m'den uzun donatı: önce tam 12 m'lik stok boy, kalanı bindirmeli. Çizimde gönye boyu, gönyeden sonraki düz boy ve altında L=toplam gösterilir.
-- Donatı aralığı mümkün olan her yerde 15 cm (10 cm'den kaçın).
+- Donatı aralığı mümkün olan her yerde 15 cm (10 cm'den kaçın). Yay / oval / anaerobik (kabuk) hesabında da böyle: 15 cm'de yeten en küçük çap seçilir; hiçbir çap yetmezse (çatlak ya da ρ > 0,02) o katmanda daha sık aralığa düşülür.
+- Radyede ışınsal + halka donatı yalnız radye kenarının yayı izlediği yerde (yuvarlak / oval hazne) atılır. Dikdörtgen radye üzerindeki yuvarlak uçlu halkalarda (anaerobik havuz) radyenin tamamına dik X / Y ağ atılır.
+- 3B donatı: modeldeki çubuk parçası 40 bini geçince ince çizgiyle gösterilir (seçilen poz grubu kalın görünür); eğri çubuklar 3 mm sapmayla seyreltilir.
 - Dairesel perde yatay donatısı: 12 m'lik stok boylar derzlerden sürekli geçer, çapa göre bindirilir, yalnız kapatma parçası kısa olur.
 - Perde adlandırma: her perde yüzü ayrı ad alır (kapalı perdeye tek ad verilmez); uzun ve kısa perdeler farklı adlandırılır.
 - Statik hesapta perde kalınlığı artarsa haznenin iç yüzü sabit kalır, perde dışa doğru kalınlaşır; değişiklik 3B modele yansır.

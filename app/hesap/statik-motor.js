@@ -311,7 +311,10 @@
       return { ok: false, msg: 'Uygun donatı bulunamadı — kesit kalınlığını artırın', d, req: P.asGerekli(o.M, d, MAL).As };
     }
     cands.sort((a, b) => a.As - b.As || b.s - a.s);
-    const best = cands[0]; best.ok = true; best.rho = best.As / best.d;
+    /* kabuk (yay / oval / anaerobik) hesabında tercih edilen aralık (S.tas.sTercih, varsayılan 15 cm): o aralıkta yeten en küçük çap;
+       hiçbir çap yetmiyorsa en az çelikli seçim. Dikdörtgen yapıda aynı tercihi P.esitle uygular. */
+    const pref = S.mod === 'kabuk' ? (T.sTercih == null ? 0.15 : +T.sTercih) : 0;
+    const best = (pref > 0 && cands.filter(c => Math.abs(c.s - pref) < 1e-9 && c.As / c.d <= 0.02).sort((x, y) => x.F - y.F)[0]) || cands[0]; best.ok = true; best.rho = best.As / best.d;
     if (best.rho > 0.02) { best.ok = false; best.msg = 'ρ > 0,02 — kesit kalınlığını artırın'; }
     return best;
   };
