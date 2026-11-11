@@ -65,7 +65,7 @@
     cs: { ad: 'Kaba ızgara yapısı', tip: 'izgara' }, ps: { ad: 'Giriş terfi istasyonu', tip: 'terfi' }, fs: { ad: 'İnce ızgara yapısı', tip: 'izgara' },
     izB: { ad: 'Kaba ve ince ızgara yapısı (aynı kanal)', tip: 'izgara' },
     gr: { ad: 'Kum ve yağ tutucu', tip: 'kum' }, dm: { ad: 'Debimetre', tip: 'debimetre' }, pc: { ad: 'Ön çökeltme' },
-    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz' },
+    dg1: { ad: 'Dağıtma yapısı (biyolojik havuzlar)' }, an: { ad: 'Anaerobik havuz', tip: 'anaerobik' }, bio: { ad: 'Biyolojik havuz', tip: 'bio' },
     dg2: { ad: 'Dağıtma yapısı (son çökeltme)' }, sc: { ad: 'Son çökeltme' },
     uv: { ad: 'Dezenfeksiyon ve çıkış yapısı' }, cik: { ad: 'Çıkış yapısı' }, gk: { ad: 'Geri kazanım üniteleri' },
     pt: { ad: 'Çamur yoğunlaştırma' }, et: { ad: 'Çamur depolama / stabilizasyon' }, dw: { ad: 'Çamur susuzlaştırma (dekantör binası)' },
@@ -456,6 +456,72 @@
     };
   };
 
+  /* ---------- BİYOLOJİK HAVUZ KARTI (karusel şablonu — Zeytinli AAT T107, app/karusel.js) ----------
+     Firma kararı (11.11.2026): tüm proses tiplerinde karusel. Bölmeler duvarsız bölgelerdir:
+     anoksik = mikserli bölge, aerobik = difüzörlü bölge; hacim oranları ATV'den.
+     Geometri, düz uzunluk, mikser seçimi ve difüzör sayısı karusel modülünden (yeniden yazılmaz):
+     kar = { DEF, Ls(V, e), geo(e) } → tarayıcıda C.KARUSEL_DEF, C.karuselLs, C.karuselGeo. */
+  const ZAD = { AN: 'Anaerobik', AX: 'Anoksik', OX: 'Aerobik', SIM: 'Simultane DN', INT: 'Kesikli DN', ST: 'Bölme' };
+  K.bioKart = (id, dim, j, par, kar) => {
+    par = par || {}; dim = dim || {}; j = j || {};
+    const P = [], uyari = [];
+    const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
+    const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
+    if (!kar || !kar.geo || !kar.Ls) return { id, tip: 'bio', params: P, uyari: ['Karusel şablonu (karusel.js) yüklenmemiş.'], ayakIzi: null, kot: {} };
+    const D = kar.DEF || {};
+    // hesaptan
+    ek('sis', 'Proses tipi', j.sistemAd || j.sistem || '—', '', 'hesap');
+    const N = ek('N', 'Havuz sayısı', Math.max(1, Math.round(+dim.N || 1)), 'adet', 'hesap');
+    const h = ek('h', 'Su derinliği', +dim.h || D.h || 0, 'm', 'hesap');
+    const V = ek('V', 'Toplam hacim', N * (+dim.L || 0) * (+dim.W || 0) * (+dim.h || 0), 'm³', 'hesap', { f: 'ATV: hat × L × W × h' });
+    const zs0 = (dim.zones || []).filter(z => z.t !== 'AN');
+    const fT = zs0.reduce((s, z) => s + (z.f != null ? z.f : 1 / zs0.length), 0) || 1;
+    const bolge = zs0.map(z => ({ t: z.t, ad: z.n || ZAD[z.t] || z.t, f: (z.f != null ? z.f : 1 / zs0.length) / fT }));
+    ek('sira', 'Bölge sırası', bolge.length ? bolge.map(b => `${ZAD[b.t] || b.ad} %${Math.round(b.f * 100)}`).join(' → ') : 'tek aerobik hacim', '', 'hesap', { not: 'Karuselde duvarsız: anoksik = mikserli, aerobik = difüzörlü bölge' });
+    // şablon (standart)
+    const S = {};
+    const sab = [['Ro', 'Dış duvar iç yarıçapı', 'm'], ['tw', 'Orta duvar kalınlığı', 'm'], ['two', 'Dış duvar kalınlığı', 'm'], ['rg', 'Kılavuz duvar yarıçapı', 'm'], ['tg', 'Kılavuz duvar kalınlığı', 'm'], ['fb', 'Hava payı', 'm'], ['tb', 'Taban plağı kalınlığı', 'm']];
+    for (const [k, ad, b] of sab) S[k] = dz(k, ad, +D[k], b, 'standart', 'Zeytinli T107 şablonu');
+    S.pz = dz('pz', 'Duvar üstü — zeminden en az yükseklik', 0.65, 'm', 'standart');
+    // elle
+    const zs = dz('zs', 'Su yüzü kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
+    const zzVars = zs + S.fb - S.pz;
+    const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
+    const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: '2. parçada araziden okunacak' });
+    // türetilen (karusel modülü)
+    const e = Object.assign({}, D, { N, h, Ro: S.Ro, tw: S.tw, two: S.two, rg: S.rg, tg: S.tg, fb: S.fb, tb: S.tb });
+    const Ls = ek('Ls', 'Düz uzunluk (havuz başına)', kar.Ls(V, e), 'm', 'türetilen', { f: 'hacimden — karusel.js' });
+    e.Ls = Ls;
+    const G = kar.geo(e);
+    ek('b', 'Koridor genişliği', G.b, 'm', 'türetilen', { f: 'Ro − orta duvar / 2' });
+    ek('Vk', 'Şablon hacmi (kontrol)', G.V, 'm³', 'türetilen', { f: 'karusel geometrisinden' });
+    const Lp = 2 * Ls + Math.PI * (S.tw / 2 + S.Ro);
+    ek('Lp', 'Döngü boyu (koridor ekseni)', Lp, 'm', 'türetilen', { f: '2·Ls + π·(orta duvar/2 + Ro)' });
+    for (const b of bolge) ek('bl_' + b.t + '_' + Math.round(b.f * 100), `${ZAD[b.t] || b.ad} bölge boyu`, b.f * Lp, 'm', 'türetilen', { f: `döngü × %${Math.round(b.f * 100)}` });
+    if (G.mix) ek('mix', 'Mikser (havuz başına)', `${G.mix.n} × ${G.mix.name}, ${(G.mix.n * G.mix.P).toFixed(1).replace('.', ',')} kW, hız ${(+G.mix.v).toFixed(2).replace('.', ',')} m/s`, '', 'katalog', { not: 'Mikser programının itki dengesiyle seçildi' });
+    ek('nDif', 'Difüzör (toplam)', G.nDif || 0, 'adet', 'türetilen', { f: 'difüzör ızgarası × havuz' });
+    const adaylar = [[zs + S.fb, 'su yüzü + hava payı'], [zz + S.pz, 'zemin + 0,65']];
+    const [zuV, neden] = adaylar.reduce((a, c) => (c[0] > a[0] + 1e-9 ? c : a));
+    const zu = ek('zu', 'Duvar üstü kotu', zuV, 'm', 'türetilen', { f: 'en büyük(su yüzü + hava payı ; zemin + 0,65)', not: 'Belirleyen: ' + neden });
+    const zt = ek('zt', 'Taban kotu', zs - h, 'm', 'türetilen', { f: 'su yüzü − h' });
+    const zf = ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
+    const en = ek('en', 'Ayak izi eni', G.Wo, 'm', 'türetilen', { f: 'karusel geometrisinden' });
+    const boy = ek('boy', 'Ayak izi boyu', G.Lo, 'm', 'türetilen', { f: 'karusel geometrisinden' });
+    if (D.kapGiris) ek('kap', 'Giriş / çıkış kapakları', `${D.kapGiris} / ${D.kapCikis}`, 'mm', 'katalog', { not: 'Zeytinli T107' });
+
+    if (!V) uyari.push('Biyolojik havuz ölçüleri proses hesabında eksik.');
+    if (G.mix && G.mix.warn) uyari.push('Mikser: ' + G.mix.warn + '.');
+    if (G.mix && G.mix.ok === false) uyari.push('Uygun mikser bulunamadı; koridor dar ya da hız hedefi tutmuyor.');
+    if (Ls <= 10.001) uyari.push('Hacim küçük: düz uzunluk alt sınırda (10 m); havuz sayısını azaltmayı düşünün.');
+    return {
+      id, tip: 'bio', params: P, uyari, koku: false,
+      ayakIzi: { en: r3(en), boy: r3(boy) },
+      giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(en / 2), z: zs },
+      karusel: { N, Ls, h, Ro: S.Ro, tw: S.tw, two: S.two, rg: S.rg, tg: S.tg, fb: S.fb, tb: S.tb, zt: zu }, // 6. adımda KARUSEL varlığına aktarılır
+      kot: { su: zs, ust: zu, taban: zt, temel: zf, zemin: zz },
+    };
+  };
+
   /* ---------- tüm kartlar ---------- */
   /* opts.ayakIzi(u, dim) → { en, boy } : taslak ünitelerin ayak izi (tarayıcıda proses.js yerleşiminden) */
   K.kartlar = (j, ayar, opts) => {
@@ -467,6 +533,10 @@
       if (x.durum === 'kart' && x.tip === 'izgara') {
         const dims = x.id === 'izB' ? x.kaynak.map(u => ({ rol: u === 'cs' ? 'kaba' : 'ince', dim: veri(u).dim })) : [{ rol: x.id === 'cs' ? 'kaba' : 'ince', dim: veri(x.id).dim }];
         x.kart = K.izgaraKart(x.id, dims, par[x.id], kat);
+        x.ayakIzi = x.kart.ayakIzi;
+      } else if (x.durum === 'kart' && x.tip === 'bio') {
+        const kar = opts.karusel || (C && C.karuselGeo ? { DEF: C.KARUSEL_DEF, Ls: C.karuselLs, geo: C.karuselGeo } : null);
+        x.kart = K.bioKart(x.id, veri(x.id).dim, j, par[x.id], kar);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'anaerobik') {
         x.kart = K.anaerobikKart(x.id, veri(x.id).dim, Z.kademe.mevcut.debi, par[x.id], sec);

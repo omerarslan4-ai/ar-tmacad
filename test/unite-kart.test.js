@@ -202,6 +202,38 @@ t('anaerobik: tek göz seçeneği hacmi korur; zincirde mevcut kademe', () => {
   assert.ok(kisa.uyari.some(u => u.includes('Temas süresi')));
 });
 
+/* BİYOLOJİK HAVUZ: karusel şablonu (app/karusel.js, Zeytinli AAT T107). Modül tarayıcı için yazılmış;
+   testte çizim kısımları boş bırakılarak yüklenir, hesap fonksiyonları (hacim, düz uzunluk, mikser) aynen çalışır. */
+const karuselYukle = () => {
+  const once = globalThis.C;
+  globalThis.C = { M: { fmt: (v, n) => (+v).toFixed(n == null ? 2 : n) }, T: {}, prim: {}, meshDef: {}, uniteLayout: () => ({}), on() { }, addCommand() { } };
+  require('../app/karusel.js');
+  const c = globalThis.C; globalThis.C = once;
+  return { DEF: c.KARUSEL_DEF, Ls: c.karuselLs, geo: c.karuselGeo };
+};
+const KAR = karuselYukle();
+
+t('biyolojik havuz: Zeytinli T107 hacmi verilince şablonun düz uzunluğu (135 m) geri bulunur', () => {
+  const Gz = KAR.geo(Object.assign({}, KAR.DEF));
+  const k = K.bioKart('bio', { N: 4, h: 6.45, L: Gz.V / (4 * 6.45), W: 1 }, { sistemAd: 'Simultane DN' }, {}, KAR);
+  yakin(p(k, 'Ls').v, 135, 'düz uzunluk'); yakin(p(k, 'Vk').v, Gz.V, 'şablon hacmi = ATV hacmi');
+  yakin(k.ayakIzi.boy, Gz.Lo, 'boy'); yakin(k.ayakIzi.en, Gz.Wo, 'en');
+  yakin(k.ayakIzi.boy, 0.8 + 9 + 135 + 9 + 0.8, 'boy = dış duvar + Ro + Ls + Ro + dış duvar');
+  assert.ok(p(k, 'mix').v.includes('×'));
+});
+
+t('biyolojik havuz zincirde (WB 2025, A2O): bölge sırası, kotlar, mevcut kademe', () => {
+  const Z = K.kartlar(j, {}, { karusel: KAR });
+  const x = Z.su.find(y => y.id === 'bio');
+  assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
+  const k = x.kart;
+  assert.strictEqual(p(k, 'V').v, 72 * 36 * 6);
+  assert.ok(p(k, 'sira').v.startsWith('Anoksik %22 → Aerobik %78'), p(k, 'sira').v);
+  assert.ok(Math.abs(p(k, 'Vk').v - 72 * 36 * 6) < 0.05, 'şablon hacmi tutar (düz uzunluk mm yuvarlanır)');
+  const q = K.bioKart('bio', j.units.bio.dim, j, { zs: 100, zz: 98 }, KAR);
+  yakin(q.kot.ust, 101.05, 'duvar üstü = su + 1,05'); yakin(q.kot.taban, 94, 'taban'); yakin(q.kot.temel, 93.4, 'temel');
+});
+
 t('yedek kanal yoksa uyarı (baypas zorunlu)', () => {
   const k = K.izgaraKart('cs', [{ rol: 'kaba', dim: { N: 2, Nsb: 0, b: 1, h: 1, L: 5 } }], {});
   assert.ok(k.uyari.some(u => u.includes('baypas')));
