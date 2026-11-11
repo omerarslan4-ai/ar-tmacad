@@ -192,8 +192,9 @@
       { k: 'ap', ad: 'Pompa aralığı (göz eksen aralığı)', d: 1900, min: 500, grup: 'Pompa' },
       { k: 'Hp', ad: 'Emme derinliği (raydan kum oluğu dibine)', d: 3460, min: 500, max: 12000, grup: 'Pompa' },
       { k: 'kh', ad: 'Korkuluk yüksekliği', d: 1100, grup: 'Köprü' },
+      { k: 'hk', ad: 'Köprü yükseltmesi (ray üstü → kiriş altı payı)', d: 350, min: 0, max: 3000, grup: 'Köprü' },
     ],
-    tipler: [{ ad: 'GEZER KÖPRÜ — 2 gözlü', p: { Ls: 3900, Bk: 1500, N: 2, ap: 1900, Hp: 3460, kh: 1100 } }],
+    tipler: [{ ad: 'GEZER KÖPRÜ — 2 gözlü', p: { Ls: 3900, Bk: 1500, N: 2, ap: 1900, Hp: 3460, kh: 1100, hk: 350 } }],
     liste: q => `açıklık ${(q.Ls / 1000).toFixed(2)} m · ${q.N} kum pompası · emme ${(q.Hp / 1000).toFixed(2)} m`,
     bilgi: q => `Ray açıklığı ${q.Ls} mm, köprü eni ${q.Bk} mm, ${q.N} kum pompası (aralık ${q.ap} mm), emme derinliği ${q.Hp} mm`,
     plan: (q, g) => {
@@ -203,11 +204,12 @@
       g.yazi([-l2, b2 + 0.12], 'GEZER KÖPRÜ', 0.12);
     },
     mesh: (q, g) => {
-      const l2 = m(q.Ls) / 2, b2 = m(q.Bk) / 2, N = Math.max(1, Math.round(q.N)), ap = m(q.ap), Hp = m(q.Hp), kh = m(q.kh), zd = 0.40;
+      const l2 = m(q.Ls) / 2, b2 = m(q.Bk) / 2, N = Math.max(1, Math.round(q.N)), ap = m(q.ap), Hp = m(q.Hp), kh = m(q.kh), hk = m(q.hk || 0), zd = 0.40 + hk; // hk: kirişler alttaki yürüme yolu korkuluğunun üstünden geçsin
       for (const sx of [-1, 1]) { g.kutu(sx * l2 - 0.15, sx * l2 + 0.15, -b2 - 0.15, b2 + 0.15, 0.10, 0.36, GCOL.celik); // uç arabaları
+        if (hk > 0.01) for (const sy of [-1, 1]) g.kutu(sx * l2 - 0.06, sx * l2 + 0.06, sy * b2 - 0.06, sy * b2 + 0.06, 0.36, 0.16 + hk, GCOL.celik); // ayaklar
         for (const sy of [-1, 1]) g.silindir([sx * l2 - 0.05, sy * b2, 0.10], [sx * l2 + 0.05, sy * b2, 0.10], 0.10, GCOL.boru, 14); // tekerler
         g.kutu(sx * l2 - 0.12, sx * l2 + 0.12, -0.20, 0.20, 0.36, 0.62, GCOL.pompa); } // yürüyüş motorları
-      for (const sy of [-1, 1]) g.kutu(-l2, l2, sy * b2 - 0.06, sy * b2 + 0.06, 0.16, zd, GCOL.celik); // ana kirişler
+      for (const sy of [-1, 1]) g.kutu(-l2, l2, sy * b2 - 0.06, sy * b2 + 0.06, 0.16 + hk, zd, GCOL.celik); // ana kirişler
       g.kutu(-l2, l2, -b2, b2, zd, zd + 0.04, GCOL.platform); // yürüme platformu
       for (const sy of [-1, 1]) { g.kutu(-l2, l2, sy * b2 - 0.02, sy * b2 + 0.02, zd + kh - 0.04, zd + kh, GCOL.celik); g.kutu(-l2, l2, sy * b2 - 0.015, sy * b2 + 0.015, zd + kh / 2 - 0.015, zd + kh / 2 + 0.015, GCOL.celik);
         const n = Math.max(2, Math.ceil(2 * l2 / 1.5)); for (let k = 0; k <= n; k++) { const x = -l2 + 2 * l2 * k / n; g.kutu(x - 0.02, x + 0.02, sy * b2 - 0.02, sy * b2 + 0.02, zd + 0.04, zd + kh, GCOL.celik); } }
@@ -217,7 +219,7 @@
         g.silindir([x, 0.22, zd + 0.30], [-l2 - 0.30, 0.22, zd + 0.30], 0.04, GCOL.boru, 10); } // basma borusu: köprü boyunca kum oluğu tarafındaki uca (−x)
       const vx = l2 - 0.45, vy = b2 - 0.25; g.silindir([vx, vy, zd + 0.04], [vx, vy, zd + 2.20], 0.07, GCOL.vinc, 12); g.kutu(vx - 1.20, vx + 0.07, vy - 0.05, vy + 0.05, zd + 2.10, zd + 2.22, GCOL.vinc); // pergel vinç
     },
-    on: (q, g) => { const l2 = m(q.Ls) / 2, kh = m(q.kh); g.dik(-l2 - 0.15, 0.10, l2 + 0.15, 0.44, { lw: 35 }); g.dik(-l2, 0.44, l2, 0.44 + kh, { lw: 13 }); const N = Math.max(1, Math.round(q.N)); for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * m(q.ap); g.cizgi([x, 0.44], [x, -m(q.Hp) + 0.10], { lw: 25 }); } g.olcu([-l2, 0.44 + kh + 0.3], [l2, 0.44 + kh + 0.3], 'h', 0.2, `${q.Ls}`); },
+    on: (q, g) => { const l2 = m(q.Ls) / 2, kh = m(q.kh), hk = m(q.hk || 0); g.dik(-l2 - 0.15, 0.10, l2 + 0.15, 0.36, { lw: 35 }); g.dik(-l2, 0.16 + hk, l2, 0.44 + hk, { lw: 35 }); g.dik(-l2, 0.44 + hk, l2, 0.44 + hk + kh, { lw: 13 }); const N = Math.max(1, Math.round(q.N)); for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * m(q.ap); g.cizgi([x, 0.44], [x, -m(q.Hp) + 0.10], { lw: 25 }); } g.olcu([-l2, 0.44 + kh + 0.3], [l2, 0.44 + kh + 0.3], 'h', 0.2, `${q.Ls}`); },
   });
   /* Kum seperatörü (kum yıkama / sınıflandırıcı): orijin = taban ortası; x = vida ekseni yönü (boşaltma +x ucunda). */
   C.aileKaydet({

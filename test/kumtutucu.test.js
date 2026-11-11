@@ -37,7 +37,7 @@ t('Çokal G-G: orta yürüme yolu, ayırma kirişi, üst kum oluğu', () => {
 t('kapak, savak ve ekipman: göz başına bir kapak ve savak; köprü dış duvar eksenleri arasında', () => {
   assert.strictEqual(G.kapak.length, 2); assert.strictEqual(G.savak.length, 2); yakin(G.kapak[0].y, 1.50, 'kapak kum bölmesi ekseninde'); yakin(G.kapak[0].z0, 97.15, 'kapak eşiği');
   const E = ekipmanYer(G), kp = E.find(x => x.tur === 'kopru'); yakin(kp.Ls, 3.90, 'ray açıklığı'); yakin(kp.Hp, 99.15 - 95.69, 'emme derinliği'); yakin(kp.ap, 1.60, 'pompa aralığı = oluk eksenleri arası');
-  assert.strictEqual(E.filter(x => x.tur === 'penstok').length, 2); assert.strictEqual(E.filter(x => x.tur === 'konteyner').length, 3); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 2);
+  assert.strictEqual(E.filter(x => x.tur === 'penstok').length, 2); assert.strictEqual(E.filter(x => x.tur === 'konteyner').length, 3); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 3); assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 1); yakin(kp.hk, 0.35, 'köprü yükseltmesi (korkuluk üstünden 10 cm)');
   assert.strictEqual(su(G).length, 4);
 });
 
@@ -46,3 +46,12 @@ t('üç gözlü: en ve yürüme yolları; eski kayıtlarda eksik parametre varsa
   const J = geo({ N: 2, b: 1.2 }); yakin(J.q.ho, DEF.ho, 'varsayılan oluk derinliği'); yakin(J.ek, 0.50, 'kum tarafı eğim yükselmesi');
 });
 console.log(n + ' test geçti');
+
+t('Çokal H-H: çıkış kanalı derin, savak kum bölmesi ekseninde, sahanlık ve raylar', () => {
+  yakin(G.zcs, 93.45, 'çıkış kanalı taban plağı üstü'); yakin(G.zcf, 93.65, 'dolgu üstü'); yakin(G.tabanC.z0, 92.95, 'çıkış kanalı temel altı');
+  yakin(G.savak[0].B, 0.90, 'savak eni'); yakin(G.savak[0].z, 97.35, 'savak kreti'); yakin(G.savak[0].y, 1.50, 'savak kum bölmesi ekseninde');
+  yakin(G.sahanlik.z1, 98.30, 'sahanlık üstü'); assert.strictEqual(G.ray.length, 2); yakin(G.ray[0].y, 0.20, 'ray dış duvar ekseninde'); yakin(G.ray[1].y, 4.10, 'ray');
+  const c = G.boru.find(b => b.k === 'cikis'); yakin(c.z0, 93.65, 'çıkış borusu alt kotu'); assert.deepStrictEqual(c.yon, [0, -1]);
+  assert.strictEqual(G.boru.filter(b => b.k.startsWith('yag')).length, 2); yakin(G.boru.find(b => b.k === 'yag-0').z0, 97.00, 'yağ borusu alt kotu'); assert.strictEqual(G.rampa.length, 2);
+});
+console.log(n + ' test geçti (toplam)');
