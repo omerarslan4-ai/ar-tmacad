@@ -152,4 +152,16 @@ t('hidrolik: Çokal debileriyle maks. ve min. su kotları', () => {
   assert.deepStrictEqual(H.uyari, []);
 });
 
+t('debiden boyutlandırma: Çokal debileriyle Çokal açıklıkları, 20.000 m³/gün hız ve temas süresi sınırları', () => {
+  const { boyutla } = require('../app/anaerobik.js');
+  const c = boyutla({ Qd: 145.83 * 24, Qmax: 275.83, QRS: 206.87, h: 3.14 }).par;
+  yakin(c.Ro, 1.50, 'halka'); yakin(c.ag, 0.60, 'ağız eni'); yakin(c.ah, 1.00, 'ağız yüksekliği'); yakin(c.dAg, 0.89, 'ağız eşiği'); yakin(c.ow, 1.50, 'pencere eni'); yakin(c.oh, 1.00, 'pencere yüksekliği'); yakin(c.rg, 0.70, 'kılavuz perde');
+  const B = boyutla({ Qd: 20000 }), p = B.par, Q = (B.debi.Qmax + B.debi.QRS) / 3600;
+  assert.ok(B.t >= 0.5 && B.t <= 1.5, 'temas süresi ' + B.t); assert.ok(B.hiz.agiz <= 0.301 && B.hiz.pencere <= 0.301, 'açıklık hızları');
+  assert.ok(Math.abs(p.Ls / (2 * p.Ro) - 11 / 3) < 0.3, 'Çokal oranı');
+  for (const [d, q] of [[p.dG, B.debi.Qmax], [p.dR, B.debi.QRS], [p.dC, B.debi.Qmax + B.debi.QRS]]) assert.ok(q / 3600 / (Math.PI * (d * (1 - 2 / 17)) ** 2 / 4) <= 1.0001, 'boru hızı ≤ 1 m/s');
+  assert.ok(p.ah <= p.h - 0.5 && p.ag <= p.Ro, 'açıklık sınırları');
+  const G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, p)); assert.ok(G2.zS > G2.zB + 0.3, 'ağız eşiği tabandan yukarıda');
+});
+
 console.log(`\n${n} test geçti.`);
