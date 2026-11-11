@@ -240,7 +240,7 @@
   const ORDER = C.PROSES_ORDER || ['cs', 'ps', 'fs', 'gr', 'pc', 'cp', 'an', 'bio', 'sc', 'pt', 'et', 'dw', 'uv'];
   C.uniteNumarala = function (quiet) {
     if (!C.doc) return 0;
-    const list = C.doc.ents.filter(e => (e.type === 'unite' || e.type === 'karusel' || e.type === 'anaerobik'));
+    const list = C.doc.ents.filter(e => (e.type === 'unite' || e.type === 'karusel' || e.type === 'anaerobik' || e.type === 'onaritma'));
     const set = C.doc.set, base = set.uniteBas != null ? set.uniteBas : 101, pre = set.uniteOnek || 'T';
     const sorted = list.slice().sort((a, b) => ((ORDER.indexOf(a.u) + 1 || 99) - (ORDER.indexOf(b.u) + 1 || 99)) || (a.sira || a.id) - (b.sira || b.id));
     let n = 0, used = new Set(list.filter(e => e.kodSabit).map(e => e.code));
@@ -255,11 +255,11 @@
     return n;
   };
   let lastCount = -1;
-  C.on('changeIdle', () => { const c = C.doc ? C.doc.ents.filter(e => e.type === 'unite' || e.type === 'karusel' || e.type === 'anaerobik').map(e => e.id + ':' + e.u).join(',') : ''; if (c !== lastCount) { lastCount = c; C.uniteNumarala(); } });
+  C.on('changeIdle', () => { const c = C.doc ? C.doc.ents.filter(e => e.type === 'unite' || e.type === 'karusel' || e.type === 'anaerobik' || e.type === 'onaritma').map(e => e.id + ':' + e.u).join(',') : ''; if (c !== lastCount) { lastCount = c; C.uniteNumarala(); } });
   C.addCommand(['UNITENUMARA', 'NUMARALA'], 'Üniteleri akış sırasına göre yeniden numaralar: UNITENUMARA [BAS=101 ONEK=T]', async (I) => {
     const kv = {}; C.cmd.queue = C.cmd.queue.filter(t => { const m = t.match(/^([A-Za-z]+)=(.*)$/); if (m) { kv[C.up(m[1])] = m[2]; return false; } return true; });
     if (kv.BAS) C.doc.set.uniteBas = +kv.BAS; if (kv.ONEK) C.doc.set.uniteOnek = kv.ONEK;
-    C.doc.ents.forEach(e => { if (e.type === 'unite' || e.type === 'karusel' || e.type === 'anaerobik') delete e.kodSabit; });
+    C.doc.ents.forEach(e => { if (e.type === 'unite' || e.type === 'karusel' || e.type === 'anaerobik' || e.type === 'onaritma') delete e.kodSabit; });
     const n = C.uniteNumarala(true); C.log(`✓ Numaralandırma: ${n} ünite değişti.`);
   });
 

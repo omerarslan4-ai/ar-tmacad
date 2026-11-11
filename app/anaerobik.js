@@ -346,6 +346,7 @@
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
+  C.bolgeKati = bolgeKati; C.ucgenle = ucgenle; // ortak: delikli plan şeklinden katı (ön arıtma vb. de kullanır)
   if (!C.T || !C.prim || typeof document === 'undefined') return;
 
   /* ================= ÇİZİM ================= */
