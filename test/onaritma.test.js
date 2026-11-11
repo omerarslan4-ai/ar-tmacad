@@ -41,9 +41,11 @@ t('ekipman: 8 penstok kanal eninde, 4 ızgara, 3 pompa, merdiven ve korkuluk', (
   const S = su(G); yakin(S[0].maks, 87.35, 'kanal maks. su'); yakin(S[1].maks, 85.89, 'terfi devreye girme');
 });
 
-t("Çokal C-C: orta perde 1,00 m, kaba bölgede 12,75 m'de biter, A kapağında kısa parça; pompa basma borusu duvar dibinde", () => {
-  assert.strictEqual(G.q.hA, 1.00); assert.strictEqual(G.ayirici.length, 3);
-  yakin(Math.max(...G.ayirici[1].map(p => p[0])), 12.75, 'kaba ayırıcı sonu'); const st = G.ayirici[2].map(p => p[0]); yakin(Math.min(...st), 13.75, 'kısa parça'); yakin(Math.max(...st), 14.00, 'kısa parça');
+t("orta perde 4,00 m ve A kapaklarına kadar; kısaltılırsa A'da kısa parça; pompa basma borusu duvar dibinde", () => {
+  assert.strictEqual(G.q.hA, 4.00); assert.strictEqual(G.ayirici.length, 2);
+  yakin(Math.max(...G.ayirici[1].map(p => p[0])), 14.00, 'kaba ayırıcı A kapaklarına kadar');
+  const Gk = geo({ Lka: 2.55 }); assert.strictEqual(Gk.ayirici.length, 3); yakin(Math.max(...Gk.ayirici[1].map(p => p[0])), 12.75, 'Çokal boyu'); const st = Gk.ayirici[2].map(p => p[0]); yakin(Math.min(...st), 13.75, 'kısa parça');
+  for (const k of G.kapak) assert.ok(G.ayirici.some(a => Math.min(...a.map(p => p[0])) <= k.x - 0.05 && Math.max(...a.map(p => p[0])) >= k.x + 0.05), 'her kapak orta perdeye oturur: ' + k.k);
   const E = ekipmanYer(G, 94.80); for (const p of E.filter(x => x.tur === 'pompa')) { assert.strictEqual(p.aci, 180, 'pompa kanala doğru'); yakin(p.p[0], 0.85, 'basma borusu iç yüzden 0,45'); }
 });
 
@@ -51,11 +53,12 @@ t('ızgara boşaltma kot zinciri: konteyner zeminde, konveyör altı konteynerin
   const E = ekipmanYer(G, 94.80), K = G.kotZincir; yakin(K.zKont, 96.17, 'konteyner üstü'); yakin(K.zAlt, 96.47, 'konveyör altı konteynerin 0,30 üstünde'); yakin(K.zBant, 96.75, 'bant'); yakin(K.hdU, 1.45, 'boşaltma ağzı platformdan');
   const E2 = ekipmanYer(geo({}), 93.20); yakin(E2.find(x => x.tur === 'izgara').hdU, 1.00, 'zemin düşükse standart 1,0 m');
   const kv = E.filter(x => x.tur === 'konveyor'), ko = E.filter(x => x.tur === 'konteyner'); assert.strictEqual(kv.length, 2); assert.strictEqual(ko.length, 2);
+  const kx = G.kapak.map(k => k.x); for (const c of kv) assert.ok(kx.every(x => Math.abs(c.p[0] - x) >= 0.68), 'konveyör kapak tahriklerinin üstünde değil');
   for (const c of kv) { const k = ko.find(o => o.etiket === c.etiket); yakin(k.p[0], c.p[0], 'konteyner bandın ucunda'); assert.ok(c.p[1] - c.L < k.p[1] + 0.54 && c.p[1] - c.L > k.p[1] - 0.54, 'bant ucu konteynerin üstünde'); assert.ok(k.p[1] + 0.535 < G.yc0, 'konteyner yapının dışında'); }
 });
 
 t('parametrik: 3 kanal, geniş kanal', () => {
-  const G3 = geo({ n: 3, b: 1.0 }); yakin(G3.W, 3 * 1.0 + 2 * 0.6, 'iç en'); assert.strictEqual(G3.ayirici.length, 6); assert.strictEqual(G3.kapak.length, 12);
+  const G3 = geo({ n: 3, b: 1.0 }); yakin(G3.W, 3 * 1.0 + 2 * 0.6, 'iç en'); assert.strictEqual(G3.ayirici.length, 4); assert.strictEqual(G3.kapak.length, 12);
   assert.ok(G3.Wc > G3.tYo, 'kanal terfiden geniş'); const ys = G3.bolge.dis.map(p => p[1]); assert.ok(Math.min(...ys) < 0, 'dış sınır terfiyi aşar');
 });
 

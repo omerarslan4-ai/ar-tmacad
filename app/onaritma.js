@@ -22,7 +22,7 @@
     hs: 0.60, hsMin: 0.25, zTon: 85.89, zToff: 85.15,   // kanal su derinliği (maks / min), pompa devreye girme / çıkma
     np: 3, Qp: 18, Hp: 14,                              // pompa sayısı (2 asıl + 1 yedek), pompa başına debi l/s, basma m
     bgK: 30, bgI: 6, zg: 94.80, mw: 1.00, mb: 0.25, mh: 0.19,
-    hA: 1.00, Lka: 2.55, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından), kaba bölgedeki boyu, A kapağındaki kısa parça
+    hA: 4.00, Lka: 3.80, Lsa: 0.25,                     // orta perde: yükseklik (kanal tabanından; Çokal 1,00, firma kararı 4,00), kaba bölgedeki boyu (A kapaklarına kadar), kısa parça
     hBos: 1.00, pd: 0.15, Hk: 1.37, pk: 0.30, ka: 0.28, Bk: 0.50, // ızgara boşaltma ağzı (platformdan), ağız → bant düşüsü, 1100 L konteyner, konveyör altı → konteyner payı, bant → konveyör altı, bant eni
   };
   const PAR = Object.keys(DEF);
@@ -46,7 +46,7 @@
     // ayırıcı perdeler: ince bölgede (sağ ucu yuvarlak) ve kaba bölgede (sol ucu yuvarlak); aradaki boşluk ortak geçiş
     for (let j = 0; j + 1 < n; j++) {
       const ya = yi0 + (j + 1) * q.b + j * q.ts, yb = ya + q.ts, ym = (ya + yb) / 2, r = q.ts / 2;
-      const xk = Math.min(x4, x3 + q.Lka); // Çokal: orta perde kaba ızgaradan sonra biter, A kapaklarında kısa bir parça kalır
+      const xk = Math.min(x4, x3 + q.Lka); // orta perde A kapaklarına kadar uzanır (Lka kısaltılırsa A kapaklarında kısa bir parça kalır)
       G.ayirici.push(ccw([[x1, ya], [x2, ya], ...yay(x2, ym, r, -90, 90).slice(1, -1), [x2, yb], [x1, yb]]), ccw([[x3, yb], ...yay(x3, ym, r, 90, 270).slice(1, -1), [x3, ya], [xk, ya], [xk, yb]]));
       if (x4 - q.Lsa > xk + 0.05) G.ayirici.push(ccw(rect(x4 - q.Lsa, ya, x4, yb)));
     }
@@ -90,10 +90,16 @@
     const zZem = zg != null ? zg : q.zg, zBant = Math.max(q.zPl + q.hBos - q.pd, zZem + q.Hk + q.pk + q.ka), hdU = zBant + q.pd - q.zPl;
     G.kotZincir = { zZem, zBant, hdU, zKont: zZem + q.Hk, zAlt: zBant - q.ka };
     const IA = 75, ID = 0.354, dusus = hd => (hd + 0.25) / Math.tan(IA * Math.PI / 180) + ID / Math.sin(IA * Math.PI / 180) + 0.625; // ayak → boşaltma ağzı ortası (akış yönünde)
-    const grup = {};
+    // ızgara ayağı: boşaltma ağzının altındaki konveyör hiçbir kapak tahrikinin (platformda kapak ekseni ± 0,30) üstüne gelmesin
+    const dX = dusus(D + hdU), kx = [...new Set(G.kapak.map(k => +k.x.toFixed(3)))], yarim = (q.Bk + 0.16) / 2 + 0.05;
+    const serbest = xd => kx.every(x => Math.abs(xd - x) >= 0.30 + yarim);
+    const ayak = iz => { const a0 = iz.x0 + 0.30, a1 = iz.x1 - 0.20; if (serbest(a1 - dX)) return a1; for (let s = 0.05; a1 - s >= a0; s += 0.05) if (serbest(a1 - s - dX)) return a1 - s; return a1; };
+    const grup = {}, ayakX = {};
+    for (const iz of G.izgara) { if (ayakX[iz.k] == null) ayakX[iz.k] = ayak(iz); }
     for (const iz of G.izgara) {
-      out.push({ anahtar: `izg-${iz.k}-${iz.kanal}`, tur: 'izgara', ince: iz.k === 'ince', etiket: `${iz.k === 'kaba' ? 'ME1' : 'ME2'}/${iz.kanal + 1}`, p: [iz.x1 - 0.2, iz.y], aci: 180, z: q.zTab, B: q.b, D, bg: iz.k === 'kaba' ? q.bgK : q.bgI, hdU });
-      grup[iz.k] = iz.x1 - 0.2 - dusus(D + hdU); // akış −x: boşaltma ağzı ayaktan mansaba doğru
+      const xa = ayakX[iz.k];
+      out.push({ anahtar: `izg-${iz.k}-${iz.kanal}`, tur: 'izgara', ince: iz.k === 'ince', etiket: `${iz.k === 'kaba' ? 'ME1' : 'ME2'}/${iz.kanal + 1}`, p: [xa, iz.y], aci: 180, z: q.zTab, B: q.b, D, bg: iz.k === 'kaba' ? q.bgK : q.bgI, hdU });
+      grup[iz.k] = xa - dX; // akış −x: boşaltma ağzı ayaktan mansaba doğru
     }
     // bant konveyör: her ızgara grubunun boşaltma ağızlarının altından enine geçer, alt dış duvarın dışındaki konteynere boşaltır
     const kD = 1.07, yK = G.yc0 - 0.35 - kD / 2, y0 = G.yi1 + 0.15, yE = yK + 0.15;
