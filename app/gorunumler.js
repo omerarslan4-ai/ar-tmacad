@@ -7,7 +7,8 @@
    Üretilen kesitler Tasarım planında gizlidir (GORUNUSGOSTER ile modelin sağındaki "görünüşler bölgesi"nde gösterilir);
    plandaki kesit işareti (A—A) Tasarım'da kalır.
    Komutlar: KESITPAFTA (kesit al + disiplin paftalarına dağıt), GORUNUMPAFTA (var olan bir görünüşü dağıt),
-             GORUNUMGUNCELLE (modelden yeniden üret), GORUNUMLER (liste / sil), GORUNUSGOSTER (Tasarım'da göster/gizle) */
+             GORUNUMGUNCELLE (modelden yeniden üret), GORUNUMLER (liste / sil), GORUNUSGOSTER (Tasarım'da göster/gizle),
+             MEKTABLO (ünite ekipmanından mekanik tablolar → Mekanik paftası) */
 (function (C) {
   'use strict';
   const M = C.M, E = C.cmd;
@@ -166,6 +167,57 @@
     C.log(`${v.ad} üretildi (${n} nesne) ve ${yer.length} disiplin paftasına yerleştirildi — ${yer.join(' · ')}. Alt sekmelerden ilgili disipline geçin. Tasarım'da görmek: GORUNUSGOSTER.`);
   });
 
+  /* ================= MEKANİK TABLOLAR (ünite ekipmanından) =================
+     Ünitenin bağlı ekipmanı (aile örnekleri: kapak, mikser, ızgara, pompa …; merdiven, korkuluk) → MEKANİK EKİPMAN LİSTESİ,
+     KAPAK ÇİZELGESİ, MİKSER ÇİZELGESİ. Tablolar model uzayında (görünüşler bölgesinde) pafta mm ölçüsüyle çizilir ve
+     Mekanik paftasına kesitlerle aynı ölçekte pencere olarak yapışır. */
+  const mekSatirlar = u => {
+    const FAM = C.AILELER || {}, ch = C.doc.ents.filter(e => e.bag === u.id), ek = [], kap = [], mik = [];
+    const grp = new Map(), add = (key, o, tag) => { const g = grp.get(key) || Object.assign({ tags: [], n: 0 }, o); g.n += o.adet || 1; if (tag) g.tags.push(tag); grp.set(key, g); };
+    const kisa = s => String(s || '').replace(/\s*\(yedek\)/, '');
+    const kot = z => (C.fmtKot ? C.fmtKot(+z || 0) : (+z || 0).toFixed(2));
+    for (const e of ch) {
+      if (e.type === 'aile' && FAM[e.fam]) {
+        const d = FAM[e.fam], q = C.aileDegerE ? C.aileDegerE(e) : e.par, oz = d.liste ? d.liste(q) : '';
+        add(e.fam + '|' + oz, { tanim: d.kisaAd || d.ad, oz, birim: 'adet' }, kisa(e.ad));
+        if (e.fam === 'penstock_kanal') kap.push([kisa(e.ad), `${q.B} × ${q.H}`, `${Math.round(q.D)}`, q.Hf < q.D ? `kısa (${q.Hf}) + uzatma mili` : `tam (${q.Hf})`, q.tahrik === 'AKT' ? 'elektrikli aktüatör' : 'el çarkı', kot(e.z)]);
+        if (e.fam === 'dalgic_mikser') mik.push([kisa(e.ad), `Ø${q.D}`, `${q.P} kW`, `${q.rpm} d/dk`, kot(e.z)]);
+      } else if (e.type === 'merdiven') { const H = Math.abs((+e.z1 || 0) - (+e.z0 || 0)); add('merdiven|' + e.tip, { tanim: e.tip === 'beton' ? 'BETONARME MERDİVEN' : 'MERDİVEN', oz: `en ${(+e.w || 1).toFixed(2)} m, H = ${H.toFixed(2)} m, ${e.kork === 'iki' ? 'iki yanı' : 'tek yanı'} korkuluklu`, birim: 'adet' }); }
+      else if (e.type === 'korkuluk') { const P = e.pts || []; let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); add('korkuluk', { tanim: 'KORKULUK', oz: `${e.km || 'galvaniz'}, h = ${((+e.kh || 110) / 100).toFixed(2)} m`, birim: 'm', adet: L }); }
+    }
+    let poz = 0; for (const g of grp.values()) ek.push([String(++poz), g.tags.length ? (g.tags.length > 3 ? `${g.tags[0]} … ${g.tags[g.tags.length - 1]}` : g.tags.join(', ')) : '', g.tanim, g.oz, g.birim === 'm' ? g.n.toFixed(1) : String(g.n), g.birim]);
+    return { ek, kap, mik };
+  };
+  /* tablo çiz (model uzayı, metre): pafta mm × k; döner: yükseklik (mm) */
+  const tabloCiz = (o, x0, yTop, k, baslik, cols, rows, gv) => {
+    const ly = 'MEK_TABLO', h = 2.0, X = [x0]; cols.forEach(c => X.push(X[X.length - 1] + c.w)); const xE = X[X.length - 1];
+    const ln = (a, b, lw) => { const e = C.add(C.newEnt('line', { a: [a[0] * k + o[0], a[1] * k + o[1], 0], b: [b[0] * k + o[0], b[1] * k + o[1], 0], layer: ly, lw: lw || 18 })); e.gv = gv; delete e.sp; };
+    const tx = (p, s, hh, al) => { const e = C.add(C.newEnt('text', { p: [p[0] * k + o[0], p[1] * k + o[1], 0], h: hh * k, s: String(s), rot: 0, al, layer: 'YAZI' })); e.gv = gv; delete e.sp; };
+    let y = yTop; ln([x0, y], [xE, y], 35); tx([(x0 + xE) / 2, y - 5.2], baslik, 3.0, 'C'); y -= 7.5; ln([x0, y], [xE, y], 35);
+    cols.forEach((c, i) => tx([(X[i] + X[i + 1]) / 2, y - 4.6], c.t, h, 'C')); y -= 7; ln([x0, y], [xE, y], 35);
+    for (const r of rows) { r.forEach((v, i) => tx([cols[i].al === 'L' ? X[i] + 1.2 : (X[i] + X[i + 1]) / 2, y - 4.4], v, h, cols[i].al || 'C')); y -= 6.5; ln([x0, y], [xE, y]); }
+    for (const x of X) ln([x, yTop - 7.5], [x, y], x === x0 || x === xE ? 35 : 18); ln([x0, yTop], [x0, yTop - 7.5], 35); ln([xE, yTop], [xE, yTop - 7.5], 35);
+    return yTop - y;
+  };
+  C.addCommand(['MEKTABLO', 'MEKANIKTABLO', 'EKIPMANTABLO'], 'Seçilen ünitenin (anaerobik, ön arıtma …) mekanik ekipman listesi, kapak ve mikser çizelgelerini Mekanik paftasına yapıştırır. Ekipman değişince yeniden çalıştırın.', async (I) => {
+    let u = (C.sel || []).find(e => C.doc.ents.some(x => x.bag === e.id));
+    if (!u) { const adaylar = C.doc.ents.filter(e => C.doc.ents.some(x => x.bag === e.id && x.type === 'aile')); u = adaylar.length === 1 ? adaylar[0] : null; }
+    if (!u) { const s = await I.sel('Ekipmanı yerleşmiş üniteyi seçin'); u = (s || [])[0]; } if (!u) return;
+    const R = mekSatirlar(u); if (!R.ek.length) { C.warn('Bu ünitede yerleşmiş ekipman yok (önce ekipman komutu).'); return; }
+    const ol = +(C.doc.set.sonKesitOlcek || 100), k = ol / 1000, ad = `${u.code || ''} ${u.name || ''}`.trim();
+    // aynı ünitenin eski tabloları silinir, yenileri aynı yere yazılır
+    const eski = VL().find(v => v.tip === 'tablo' && v.unite === u.id);
+    const gv = (eski && eski.gv) || ('T' + Date.now().toString(36)); C.doc.ents = C.doc.ents.filter(e => e.gv !== gv);
+    const o = eski && eski.o ? eski.o : bolgeYeri(); let y = 0;
+    y -= tabloCiz(o, 0, y, k, `${ad} — MEKANİK EKİPMAN LİSTESİ`, [{ t: 'POZ', w: 12 }, { t: 'ETİKET', w: 46 }, { t: 'TANIM', w: 44, al: 'L' }, { t: 'ÖZELLİKLER', w: 110, al: 'L' }, { t: 'MİKTAR', w: 18 }, { t: 'BİRİM', w: 14 }], R.ek, gv) + 10;
+    if (R.kap.length) y -= tabloCiz(o, 0, y, k, `${ad} — KAPAK ÇİZELGESİ`, [{ t: 'ETİKET', w: 30 }, { t: 'AÇIKLIK B × H (mm)', w: 36 }, { t: 'KANAL DERİNLİĞİ (mm)', w: 36 }, { t: 'ŞASİ (mm)', w: 50 }, { t: 'TAHRİK', w: 40 }, { t: 'TABAN KOTU', w: 28 }], R.kap, gv) + 10;
+    if (R.mik.length) y -= tabloCiz(o, 0, y, k, `${ad} — MİKSER ÇİZELGESİ`, [{ t: 'ETİKET', w: 30 }, { t: 'PERVANE ÇAPI (mm)', w: 36 }, { t: 'MOTOR GÜCÜ', w: 30 }, { t: 'DEVİR', w: 30 }, { t: 'TABAN KOTU', w: 28 }], R.mik, gv) + 10;
+    let v = eski; if (!v) { v = { id: 'G' + Date.now().toString(36), tip: 'tablo', unite: u.id, ad: `${ad} MEKANİK TABLOLAR`, gv, o, olcek: ol, gruplar: ['Mekanik'] }; VL().push(v); } else v.olcek = ol;
+    const L = paftayaKoy(v, 'Mekanik'); C.changed(); C.emit('layouts');
+    C.log(`${ad}: ${R.ek.length} poz ekipman, ${R.kap.length} kapak, ${R.mik.length} mikser tablosu → ${L ? L.name : 'pafta bulunamadı'} (1/${ol}).`);
+  });
+
+  if (window.DIL) window.DIL.ekle('en', 'English', [['MEKANİK EKİPMAN LİSTESİ', 'MECHANICAL EQUIPMENT LIST'], ['KAPAK ÇİZELGESİ', 'GATE SCHEDULE'], ['MİKSER ÇİZELGESİ', 'MIXER SCHEDULE'], ['POZ', 'ITEM'], ['ETİKET', 'TAG'], ['TANIM', 'DESCRIPTION'], ['ÖZELLİKLER', 'SPECIFICATIONS'], ['MİKTAR', 'QTY'], ['BİRİM', 'UNIT'], ['AÇIKLIK B × H (mm)', 'OPENING B × H (mm)'], ['KANAL DERİNLİĞİ (mm)', 'CHANNEL DEPTH (mm)'], ['ŞASİ (mm)', 'FRAME (mm)'], ['TAHRİK', 'DRIVE'], ['TABAN KOTU', 'BASE LEVEL'], ['PERVANE ÇAPI (mm)', 'PROPELLER DIA. (mm)'], ['MOTOR GÜCÜ', 'MOTOR POWER'], ['DEVİR', 'SPEED'], ['MEKANİK TABLOLAR', 'MECHANICAL SCHEDULES'], ['BETONARME MERDİVEN', 'RC STAIR'], ['KORKULUK', 'HANDRAIL'], ['elektrikli aktüatör', 'electric actuator'], ['el çarkı', 'handwheel'], ['uzatma mili', 'extension spindle']]);
   C.addCommand(['GORUNUMPAFTA', 'GORUNUSDAGIT'], 'Daha önce üretilmiş bir kesit / görünüş / kot planını (KESITAL, KOTPLANI, GORUNUS) seçilen disiplin paftalarına şablonuyla yerleştirir', async (I) => {
     const s = await I.sel('Üretilmiş görünüşten bir nesne seçin'); const e = (s || []).find(q => q.gv); if (!e) { C.warn('Üretilmiş bir görünüş seçilmedi.'); return; }
     let v = VL().find(x => x.gv === e.gv);

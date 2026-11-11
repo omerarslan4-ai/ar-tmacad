@@ -152,7 +152,7 @@
     }
     return p;
   };
-  const CONC = new Set(['tretuvar', 'cati', 'yalitim', 'kaplama', 'dolgu', 'perde', 'kolon', 'kiris', 'plak', 'temel', 'tank', 'ctank', 'wall', 'slab', 'kati', 'box', 'poly3', 'grup3', 'sweep', 'cyl', 'pmesh', 'face']);
+  const CONC = new Set(['tretuvar', 'cati', 'yalitim', 'kaplama', 'dolgu', 'perde', 'kolon', 'kiris', 'plak', 'temel', 'tank', 'ctank', 'wall', 'slab', 'kati', 'box', 'poly3', 'grup3', 'sweep', 'cyl', 'pmesh', 'face', 'anaerobik', 'onaritma']); // anaerobik, onaritma: tek beton katı ünite yapıları
   /* kesitte malzeme grubu: B = temel+perde (tek gövde), D = döşeme+kiriş+kolon (tek gövde, ters yön tarama), T:x = kâgir duvar, G = grobeton */
   C.secMat = e => { if (e.type === 'cati' || e.type === 'tretuvar') return 'K'; if (e.type === 'yalitim') return e.kind === 'bant' ? 'K' : 'Y'; if (e.type === 'kaplama') return 'K'; if (e.type === 'dolgu') return 'F'; if (e.type === 'perde') return (e.malz || 'beton') === 'beton' ? 'B' : 'T:' + e.malz; if ((e.type === 'plak' && e.kind !== 'radye') || e.type === 'kiris' || e.type === 'kolon' || e.type === 'slab') return 'D'; return 'B'; };
   C.secFnd = e => (e.type === 'yalitim' && e.kind === 'temel') || e.type === 'temel' || (e.type === 'plak' && e.kind === 'radye') || (e.type === 'perde' && e.temel) || e.type === 'tank' || e.type === 'ctank';
@@ -341,7 +341,7 @@
     let nA = 0; if (C.aksOnLine && kv.AKS !== 'H') { const ap = C.aksOnLine(a, u, ub[0] - 0.5, ub[2] + 0.5); if (C.aksAddSection(ap, ub[1], ub[3], W)) nA = ap.length; }
     for (const pl of chain(axes, 1e-4)) C.add(C.newEnt('pline', { pts: pl.map(W), closed: false, layer: 'EKSEN', lt: 'CENTER' }));
     for (const en of ends) C.add(C.newEnt('circle', { c: W(en.c), r: en.r, layer: LV(en.lk) }));
-    if (!(C.seviyeKesit && C.seviyeKesit(W, ub))) { // kat seviyeleri varsa seviye çizgileri + toprak çizgisi
+    if (!(C.seviyeKesit && C.seviyeKesit(W, ub)) && ub[1] < 5 && ub[3] > -5) { // kat seviyeleri varsa seviye çizgileri + toprak çizgisi; mutlak kotlu yapıda (0,00 uzaksa) 0 çizgisi çizilmez
       C.add(C.newEnt('line', { a: W([ub[0] - 1, 0]), b: W([ub[2] + 1, 0]), layer: 'ZEMIN', lt: 'DASHED' }));
       C.add(C.newEnt('kot', { p: W([ub[2] + 0.5, 0]), v: 0, txt: '', layer: 'KOT' }));
     }
