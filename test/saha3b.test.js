@@ -51,12 +51,21 @@ t('deniz hattı: bacadan başlar, 3 boru (2×DN1400 + DN900), kıyıdan sonra de
   const sh = H.borular.find(b => b.tek); assert.strictEqual(sh.dn, 2000); assert.ok(S.boy(sh.pts) > 30 && S.boy(sh.pts) < 45); // saha içi basma hattı
   const b0 = doc.ents.find(e => e.type === 'perde' && /yükleme bacası/.test(e.ad || '')).pts, e = H.eksenler[0];
   assert.ok(Math.min(...b0.map(p => Math.hypot(p[0] - e[0][0], p[1] - e[0][1]))) < 4);
-  assert.ok(ozet.hatBoyu > 900 && ozet.hatBoyu < 2000); assert.ok(doc.set.denizHat.kiyiIndex === e.length - 2);
+  assert.ok(ozet.hatBoyu > 600 && ozet.hatBoyu < 800); assert.ok(doc.set.denizHat.kiyiIndex === e.length - 2);
+  yak(Math.hypot(e[e.length - 1][0] - e[e.length - 2][0], e[e.length - 1][1] - e[e.length - 2][1]), 5, 0.01);                  // hat kıyıdan 5 m içeride biter
 });
-t('sunum verisi: 3 bina etiketi, hat bilgileri eksen boyunca sıralı; süre çizelgesi', () => {
-  const su = doc.set.sunum; assert.strictEqual(su.binalar.length, 3); assert.ok(su.binalar.every(b => b.p.length === 2 && b.satirlar.length >= 2));
+t('sunum verisi: bilgi kutuları sırası (güvenlik → pompa istasyonu → baca), hat bilgileri sıralı; süre çizelgesi', () => {
+  const su = doc.set.sunum; assert.strictEqual(su.binalar.length, 3); assert.ok(su.binalar.every(b => b.p.length === 2 && b.satirlar.length >= 1));
+  assert.deepStrictEqual(su.binalar.map(b => b.satirlar[0]), ['GÜVENLİK BİNASI', 'SW2 POMPA İSTASYONU', 'T-102 YÜKLEME BACASI']); assert.strictEqual(su.binalar[0].satirlar.length, 1);
   const ss = su.hat.map(h => h.s); assert.deepStrictEqual(ss, ss.slice().sort((x, y) => x - y)); yak(ss[ss.length - 1], ozet.hatBoyu, 1);
-  assert.deepStrictEqual(S.sunumSure({ tur: 2, turSure: 24, hatSure: 75 }), { tur: 48, gecis: 53, hat: 128, toplam: 135 });
+  assert.deepStrictEqual(S.sunumSure({ tur: 2, turSure: 26, hatSure: 60, yuruSure: 30, yuruyus: su.yuruyus }), { kapi: 4, yuru: 34, yuksel: 39, tur1: 65, tur2: 91, gecis: 96, hat: 156, toplam: 163 });
+  assert.deepStrictEqual(S.sunumSure({ tur: 1, turSure: 20, hatSure: 50 }), { kapi: 0, yuru: 0, yuksel: 0, tur1: 20, tur2: 20, gecis: 25, hat: 75, toplam: 82 }); // yürüyüş yolu yoksa doğrudan tur
+});
+t('sürgülü kapı ağı ve yol yuvarlatma', () => {
+  const K = S.kapiAg([0, 0], [8, 0], 2.1, 0.4, [0, 1]); yak(K.L, 8, 1e-9); assert.deepStrictEqual(K.u, [1, 0]); assert.ok(K.hareketli.pos.length / 9 > 400 && K.sabit.pos.length / 9 === 72);
+  const zs = []; for (let i = 2; i < K.hareketli.pos.length; i += 3) zs.push(K.hareketli.pos[i]); yak(Math.max(...zs), 2.5, 1e-9); yak(Math.min(...zs), 0.41, 1e-9);
+  const y = S.yumusat([[0, 0], [10, 0], [10, 10]], 2); assert.deepStrictEqual(y[0], [0, 0]); assert.deepStrictEqual(y[y.length - 1], [10, 10]); assert.ok(!y.some(p => p[0] === 10 && p[1] === 0)); // köşe kesildi
+  const yr = doc.set.sunum.yuruyus, kp = doc.ents.find(e => /Sürgülü/.test(e.ad || '')).pts, orta = [(kp[0][0] + kp[1][0]) / 2, (kp[0][1] + kp[1][1]) / 2]; yak(Math.hypot(yr[1][0] - orta[0], yr[1][1] - orta[1]), 0, 0.1); // yürüyüş kapının ortasından geçer
 });
 t('bordür ve kapalı öteleme', () => {
   assert.deepStrictEqual(S.oteleKapali([[0, 0], [4, 0], [4, 4], [0, 4]], 1), [[-1, -1], [5, -1], [5, 5], [-1, 5]]);

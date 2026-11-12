@@ -154,12 +154,13 @@ function hat(B, cevre, cikis) {
   B.doc.set.cevre = { kaynak: cevre.kaynak, not: cevre.not, binalar: cevre.binalar || [] };
   // sunum: hat bilgileri (eksen boyunca metre)
   const L = uzunluk(g), kara = cevre.kiyiIndex != null ? uzunluk(g.slice(0, cevre.kiyiIndex + 1)) : L, tr = v => String(v).replace('.', ',');
-  B.doc.set.sunum = Object.assign(B.doc.set.sunum || {}, { tur: 2, turSure: 24, hat: [
+  const deniz = L - kara;
+  B.doc.set.sunum = Object.assign(B.doc.set.sunum || {}, { hat: [
     { s: 25, satirlar: ['DENİZ DEŞARJ HATTI', '2 × DN1400 + 1 × DN900'] },
-    { s: +(kara * 0.33).toFixed(0), satirlar: ['Borular toprak altında', 'Boru üstü örtü 1,20 m · hendek ≈ 6,5 × 2,9 m'] },
-    { s: +(kara * 0.66).toFixed(0), satirlar: ['Kara kısmı ≈ ' + Math.round(kara / 10) * 10 + ' m'] },
-    { s: +kara.toFixed(0), satirlar: ['KIYI', 'Deniz kısmı ≈ ' + Math.round((L - kara) / 10) * 10 + ' m'] },
-    { s: +L.toFixed(0), satirlar: ['DENİZ DEŞARJI', 'Toplam hat boyu ≈ ' + Math.round(L / 10) * 10 + ' m'] },
+    { s: +(kara * 0.38).toFixed(0), satirlar: ['Borular toprak altında', 'Boru üstü örtü 1,20 m · hendek ≈ 6,5 × 2,9 m'] },
+    { s: +(kara * 0.72).toFixed(0), satirlar: ['Hat boyu ≈ ' + Math.round(L / 10) * 10 + ' m'] },
+    ...(deniz > 20 ? [{ s: +kara.toFixed(0), satirlar: ['KIYI', 'Deniz kısmı ≈ ' + Math.round(deniz / 10) * 10 + ' m'] }] : []),
+    { s: +L.toFixed(0), satirlar: deniz > 20 ? ['DENİZ DEŞARJI', 'Toplam hat boyu ≈ ' + Math.round(L / 10) * 10 + ' m'] : ['DENİZ DEŞARJI', 'Hat kıyıdan ' + Math.round(deniz) + ' m içeride biter'] },
   ] });
   return L;
 }
@@ -169,11 +170,17 @@ function uret(terfiDosya, cevre) {
   saha(B); const nT = terfi(B, terfiDosya); const bc = baca(B); bekci(B);
   // sunum: bina bilgi etiketleri (yer, etiket alt kotu, satırlar)
   const fT = cerceve(SAHA.terfi.o, SAHA.terfi.ux), fG = cerceve(SAHA.bekci.p, birim(SAHA.bekci.p, SAHA.bekci.k2));
-  B.doc.set.sunum = { binalar: [
-    { p: fT(14.7, 3.8), z: 9.1, satirlar: ['T-101 SW2 TERFİ MERKEZİ', 'Yağmur suyu pompa istasyonu', '25,80 × 10,60 m · taban −8,00 · çatı +8,10'] },
-    { p: bc.f(3.6, 2.6), z: 7.8, satirlar: ['T-102 YÜKLEME BACASI', '7,20 × 5,20 m · taban −2,40 · üst +6,70', 'Giriş DN2000 · çıkış 2 × DN1400 + DN900'] },
-    { p: fG(3.5, 3.5), z: 4.1, satirlar: ['GÜVENLİK BİNASI', '4,70 × 4,70 m · döşeme +0,75 · parapet +4,10'] },
-  ] };
+  B.doc.set.sunum = {
+    // bilgi kutuları: ilk turda bu sırayla, teker teker açılır
+    binalar: [
+      { p: fG(3.5, 3.5), z: 4.1, satirlar: ['GÜVENLİK BİNASI'] },
+      { p: fT(14.7, 3.8), z: 9.1, satirlar: ['SW2 POMPA İSTASYONU', '5 yağmur suyu pompası (4 asıl + 1 yedek) · 3 kuru hava pompası', 'Toplam kapasite 5,40 m³/s (4 × 1.350 L/s)'] }, // pompa sayıları genel yerleşimden; kapasite "SW2 Comprehensive Report" değerleri — onay bekliyor
+      { p: bc.f(3.6, 2.6), z: 7.8, satirlar: ['T-102 YÜKLEME BACASI', '7,20 × 5,20 m · taban −2,40 · üst +6,70', 'Giriş DN2000 · çıkış 2 × DN1400 + DN900'] },
+    ],
+    // kamera yürüyüşü: sürgülü kapının dışından girer, saha yolundan terfinin yanından geçer, sağa dönüp kolektörün (vana odası) önünden bacaya ilerler
+    yuruyus: [[116.43, 43.38], [105.09, 51.60], [87.09, 64.80], [103.90, 87.90]].map(p => W(p[0], p[1])),   // bacanın ≈ 9 m önünde durur (daha yakında duvar ekranı kaplıyor)
+    gozKot: SAHA.kotYol, yuruSure: 30, tur: 2, turSure: 26,
+  };
   const L = hat(B, cevre, bc.cikis);
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, terfiNesne: nT, hatBoyu: L, bina: (cevre.binalar || []).length } };
 }
