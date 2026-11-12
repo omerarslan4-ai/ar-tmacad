@@ -155,13 +155,18 @@
   };
   /* Google modelinde tesis alanını kes (gömülü havuzlar görünsün) */
   const applyClip = () => {
-    const Cs = window.Cesium, ts = g3.tileset; if (!Cs || !ts || !g3.bb) return;
+    const Cs = window.Cesium, ts = g3.tileset, v = g3.viewer; if (!Cs || !v) return;
     try {
-      if (!g3.clip || !Cs.ClippingPolygonCollection) { ts.clippingPolygons = undefined; g3.viewer.scene.requestRender(); return; }
-      const m = 1, b = g3.bb, ring = [[b[0] - m, b[1] - m], [b[2] + m, b[1] - m], [b[2] + m, b[3] + m], [b[0] - m, b[3] + m]];
-      const positions = ring.map(p => { const q = G.toLL(p); return Cs.Cartesian3.fromDegrees(q[1], q[0]); });
-      ts.clippingPolygons = new Cs.ClippingPolygonCollection({ polygons: [new Cs.ClippingPolygon({ positions })] });
-      g3.viewer.scene.requestRender();
+      if (!Cs.ClippingPolygonCollection) return;
+      const hal = (g3.ekKesim || []).filter(r => r && r.length > 2); // saha3b.js: hat hendekleri (çizim koordinatı halkalar)
+      const poly = ring => new Cs.ClippingPolygon({ positions: ring.map(p => { const q = G.toLL(p); return Cs.Cartesian3.fromDegrees(q[1], q[0]); }) });
+      if (ts) {
+        const ps = hal.map(poly);
+        if (g3.clip && g3.bb) { const m = 1, b = g3.bb; ps.push(poly([[b[0] - m, b[1] - m], [b[2] + m, b[1] - m], [b[2] + m, b[3] + m], [b[0] - m, b[3] + m]])); }
+        ts.clippingPolygons = ps.length ? new Cs.ClippingPolygonCollection({ polygons: ps }) : undefined;
+      }
+      const gl = v.scene.globe; if (gl) gl.clippingPolygons = hal.length ? new Cs.ClippingPolygonCollection({ polygons: hal.map(poly) }) : undefined;
+      v.scene.requestRender();
     } catch (err) { console.warn(err); }
   };
   const sampleGround = async () => {

@@ -4,12 +4,14 @@
    - Deniz hattı: DENIZ_HATTI ile başlayan katmandaki her çoklu çizgi bir güzergâh eksenidir (planda/haritada tutamaçlarla düzeltilir).
      C.doc.set.denizHat.borular = [{ ad, dn (mm), ofs (m, eksenden yana) }] kadar boru bu eksene paralel çizilir.
      Çizginin kendi "dn" özelliği varsa o çizgi tek boru olarak çizilir (saha içi basma hattı).
+     Borular toprak altındadır (örtü set.denizHat.ortu, varsayılan 1,2 m): karada harita hat boyunca açık hendek olarak kesilir,
+     denizde boru deniz tabanında görünür. Google 3B arazisi varsa hendek ve boru arazi kotunu izler.
      "Akışı oynat": su, istasyondan denize doğru ilerler; "Hat boyunca uç": kamera su cephesini izler.
    Geometri saf fonksiyonlardır (C.saha3b.*), Node ile test/saha3b.test.js içinde denenir. */
 (function (C) {
   'use strict';
   const S = C.saha3b = {};
-  const VARSAYILAN = { borular: [{ ad: 'DN1400-1', dn: 1400, ofs: -2.2 }, { ad: 'DN1400-2', dn: 1400, ofs: 0 }, { ad: 'DN900', dn: 900, ofs: 2.0 }], hiz: 2.0, kot: 1.0 };
+  const VARSAYILAN = { borular: [{ ad: 'DN1400-1', dn: 1400, ofs: -2.2 }, { ad: 'DN1400-2', dn: 1400, ofs: 0 }, { ad: 'DN900', dn: 900, ofs: 2.0 }], hiz: 2.0, kot: 1.0, ortu: 1.2, zemin: 0.3 }; // ortu: boru üstü toprak örtüsü (m); zemin: hat boyunca zemin kotu (arazi okunamazsa)
 
   /* ---------- saf geometri ---------- */
   const hyp = Math.hypot;
@@ -36,9 +38,9 @@
     return { p: pts[0], u: [1, 0] };
   };
   /* yatay boru (tüp) ağı: pts [[x,y]…], z eksen kotu, r yarıçap, k dilim → { pos, nrm, st (s: eksen boyu metre, t: çevre), idx } */
-  S.tup = (pts, z, r, k) => {
-    const p = S.temiz(pts), n = p.length; k = k || 12; if (n < 2) return null;
-    const pos = [], nrm = [], st = [], idx = []; let acc = 0;
+  S.tup = (pts, z, r, k, s0) => {
+    const p = S.temiz(pts), n = p.length, zAt = i => Array.isArray(z) ? (z[i] != null ? z[i] : z[z.length - 1]) : z; k = k || 12; if (n < 2) return null;
+    const pos = [], nrm = [], st = [], idx = []; let acc = +s0 || 0; const ilk = acc;
     for (let i = 0; i < n; i++) {
       const u0 = i > 0 ? [p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]] : null, u1 = i < n - 1 ? [p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]] : null;
       const nu = v => { const l = hyp(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
@@ -47,11 +49,38 @@
       if (i > 0) acc += hyp(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
       for (let j = 0; j <= k; j++) {
         const th = j / k * 2 * Math.PI, c = Math.cos(th), s = Math.sin(th);
-        pos.push(p[i][0] + side[0] * c * r * kk, p[i][1] + side[1] * c * r * kk, z + s * r); nrm.push(side[0] * c, side[1] * c, s); st.push(acc, j / k);
+        pos.push(p[i][0] + side[0] * c * r * kk, p[i][1] + side[1] * c * r * kk, zAt(i) + s * r); nrm.push(side[0] * c, side[1] * c, s); st.push(acc, j / k);
       }
     }
     for (let i = 0; i < n - 1; i++) for (let j = 0; j < k; j++) { const a = i * (k + 1) + j, b = a + k + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
-    return { pos, nrm, st, idx, boy: acc };
+    return { pos, nrm, st, idx, boy: acc, uzunluk: acc - ilk };
+  };
+  /* ekseni en çok "adim" metrede bir noktayla sıklaştırır (arazi kotu okumak ve zemini izlemek için) */
+  S.sik = (pts, adim) => { const p = S.temiz(pts), o = [p[0]]; for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], l = hyp(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(l / adim)); for (let j = 1; j <= n; j++) o.push([a[0] + (b[0] - a[0]) * j / n, a[1] + (b[1] - a[1]) * j / n]); } return o; };
+  /* açık hendek: eksen, genişlik w, üst kot zU (sayı / dizi), taban kotu zT (sayı / dizi) → { yan: duvarlar, taban } üçgen çorbaları + kesme halkası */
+  S.hendek = (pts, w, zU, zT) => {
+    const p = S.temiz(pts), n = p.length; if (n < 2) return null;
+    const Lp = S.otele(p, w / 2), Rp = S.otele(p, -w / 2), at = (z, i) => Array.isArray(z) ? (z[i] != null ? z[i] : z[z.length - 1]) : z;
+    const yan = { pos: [], nrm: [] }, taban = { pos: [], nrm: [] };
+    const dort = (o, a, b, c, d, nn) => { o.pos.push(...a, ...b, ...c, ...a, ...c, ...d); for (let i = 0; i < 6; i++) o.nrm.push(...nn); };
+    const P = (q, z) => [q[0], q[1], z];
+    for (let i = 0; i < n - 1; i++) {
+      const u = [p[i + 1][0] - p[i][0], p[i + 1][1] - p[i][1]], l = hyp(u[0], u[1]) || 1, sol = [-u[1] / l, u[0] / l];
+      const t0 = at(zT, i), t1 = at(zT, i + 1), u0 = at(zU, i), u1 = at(zU, i + 1);
+      dort(taban, P(Lp[i], t0), P(Rp[i], t0), P(Rp[i + 1], t1), P(Lp[i + 1], t1), [0, 0, 1]);
+      dort(yan, P(Lp[i], t0), P(Lp[i + 1], t1), P(Lp[i + 1], u1), P(Lp[i], u0), [-sol[0], -sol[1], 0]);   // sol duvar: içe (sağa) bakar
+      dort(yan, P(Rp[i + 1], t1), P(Rp[i], t0), P(Rp[i], u0), P(Rp[i + 1], u1), [sol[0], sol[1], 0]);     // sağ duvar: içe (sola) bakar
+    }
+    const ua = [p[1][0] - p[0][0], p[1][1] - p[0][1]], la = hyp(ua[0], ua[1]) || 1, ub = [p[n - 1][0] - p[n - 2][0], p[n - 1][1] - p[n - 2][1]], lb = hyp(ub[0], ub[1]) || 1;
+    dort(yan, P(Rp[0], at(zT, 0)), P(Lp[0], at(zT, 0)), P(Lp[0], at(zU, 0)), P(Rp[0], at(zU, 0)), [ua[0] / la, ua[1] / la, 0]);
+    dort(yan, P(Lp[n - 1], at(zT, n - 1)), P(Rp[n - 1], at(zT, n - 1)), P(Rp[n - 1], at(zU, n - 1)), P(Lp[n - 1], at(zU, n - 1)), [-ub[0] / lb, -ub[1] / lb, 0]);
+    return { yan, taban, halka: Lp.concat(Rp.slice().reverse()) };
+  };
+  /* gömme düzeni: borular = [{ dn, ofs }] → hendek genişliği, derinliği ve her borunun eksen derinliği (zeminden aşağı, m) */
+  S.gomme = (borular, ortu) => {
+    const rs = borular.map(b => Math.max(0.25, (+b.dn || 1000) / 2000)), of = borular.map(b => +b.ofs || 0), rMax = Math.max(...rs);
+    const derin = ortu + 2 * rMax + 0.3, sol = Math.max(...of.map((o, i) => o + rs[i])), sag = Math.min(...of.map((o, i) => o - rs[i]));
+    return { w: +(sol - sag + 1.2).toFixed(3), kay: +((sol + sag) / 2).toFixed(3), derin: +derin.toFixed(3), eksen: rs.map(r => +(derin - 0.3 - r).toFixed(3)) }; // borular hendek tabanındaki 30 cm yatağa oturur
   };
   /* dik prizma (bina kutusu): taban çokgeni, z0..z1 → üçgen çorbası { pos, nrm } + kenar çizgileri */
   S.prizma = (poly, z0, z1) => {
@@ -91,9 +120,10 @@
     const set = Object.assign({}, VARSAYILAN, doc.set.denizHat || {});
     const cizgi = doc.ents.filter(e => (e.type === 'pline' || e.type === 'line') && /^DENIZ_HATTI/i.test(e.layer || '') && !e.gv).map(e => ({ dn: +e.dn || 0, pts: S.temiz(e.type === 'line' ? [e.a, e.b] : e.pts) })).filter(c => c.pts.length > 1);
     const eks = cizgi.filter(c => !c.dn).map(c => c.pts), out = [];
-    for (const ek of eks) for (const b of set.borular || []) out.push({ ad: b.ad, dn: +b.dn || 1000, eksen: ek, pts: S.otele(ek, +b.ofs || 0) });
-    for (const c of cizgi) if (c.dn) out.push({ ad: 'DN' + c.dn, dn: c.dn, eksen: c.pts, pts: c.pts, tek: true }); // dn özelliği olan çizgi: tek boru (ör. saha içi basma hattı)
-    return { set, eksenler: eks, borular: out };
+    const gruplar = [];
+    for (const ek of eks) { const g = { eksen: ek, borular: (set.borular || []).map(b => ({ ad: b.ad, dn: +b.dn || 1000, ofs: +b.ofs || 0 })), ana: true }; gruplar.push(g); for (const b of g.borular) out.push({ ad: b.ad, dn: b.dn, eksen: ek, pts: S.otele(ek, b.ofs) }); }
+    for (const c of cizgi) if (c.dn) { gruplar.push({ eksen: c.pts, borular: [{ ad: 'DN' + c.dn, dn: c.dn, ofs: 0 }] }); out.push({ ad: 'DN' + c.dn, dn: c.dn, eksen: c.pts, pts: c.pts, tek: true }); } // dn özelliği olan çizgi: tek boru (ör. saha içi basma hattı)
+    return { set, eksenler: eks, borular: out, gruplar };
   };
 
   if (typeof document === 'undefined') return; // Node testleri buraya kadar
@@ -103,7 +133,7 @@
   const durum = S.durum = { cevre: true, hat: true, oynuyor: false, izle: false, t0: 0, on: 0, mats: [], boy: 0, eksen: null, raf: 0 };
   try { Object.assign(durum, JSON.parse(localStorage.getItem('aritmacad.saha3b') || '{}')); } catch (e) { }
   durum.oynuyor = false; durum.izle = false; durum.mats = [];
-  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat })); } catch (e) { } };
+  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek })); } catch (e) { } };
   const msg = (t, uyari) => { const el = $('#g3Msg'); if (el) { el.textContent = t || ''; el.style.color = uyari ? '#ffb347' : ''; } };
 
   const AKIS = 'AritmaAkis';
@@ -111,7 +141,7 @@
     if (Cs.Material._materialCache.getMaterial(AKIS)) return;
     Cs.Material._materialCache.addMaterial(AKIS, {
       fabric: {
-        type: AKIS, uniforms: { color: new Cs.Color(0.1, 0.45, 0.95, 1), time: 0, on: 1e9, len: 14, speed: 2 },
+        type: AKIS, uniforms: { color: new Cs.Color(0.1, 0.45, 0.95, 1), time: 0, on: 1e9, len: 14, speed: 2, opak: 0 },
         source: `czm_material czm_getMaterial(czm_materialInput materialInput){
           czm_material m = czm_getDefaultMaterial(materialInput);
           float s = materialInput.st.s;
@@ -119,10 +149,10 @@
           float f = fract((s - time * speed) / len);
           float p = smoothstep(0.0, 0.18, f) * (1.0 - smoothstep(0.5, 0.68, f));
           vec3 su = mix(color.rgb * 0.75, vec3(0.80, 0.96, 1.0), p * 0.85);
-          vec3 bos = vec3(0.55, 0.57, 0.60);
+          vec3 bos = mix(vec3(0.55, 0.57, 0.60), vec3(0.13, 0.13, 0.14), opak); // gömülü: boş boru siyah HDPE
           m.diffuse = mix(bos, su, dolu);
           m.emission = mix(vec3(0.0), su * 0.45, dolu);
-          m.alpha = mix(0.45, 0.92, dolu);
+          m.alpha = mix(mix(0.45, 0.92, dolu), 1.0, opak);
           return m; }`,
       },
       translucent: () => true,
@@ -138,9 +168,37 @@
   const enuDizi = (a) => { const o = new Array(a.length); for (let i = 0; i < a.length; i += 3) { const q = g3.toENU(a[i], a[i + 1], a[i + 2]); o[i] = q[0]; o[i + 1] = q[1]; o[i + 2] = q[2]; } return o; };
   const enuYon = (a) => { const o = new Array(a.length), z = g3.toENU(g3.origin[0], g3.origin[1], 0); for (let i = 0; i < a.length; i += 3) { const q = g3.toENU(g3.origin[0] + a[i], g3.origin[1] + a[i + 1], a[i + 2]); const v = [q[0] - z[0], q[1] - z[1], a[i + 2]], l = hyp(v[0], v[1], v[2]) || 1; o[i] = v[0] / l; o[i + 1] = v[1] / l; o[i + 2] = v[2] / l; } return o; };
 
+  /* hat boyunca zemin kotu (kot 0'a göre): Google arazisinden okunan profil varsa o, yoksa sabit; kıyıdan sonra deniz tabanı 1:40 alçalır (en çok −6 m) */
+  const eksenAnahtar = (ek, gi) => gi + ':' + ek.length + ':' + ek[0].map(v => v.toFixed(1)).join(',') + ':' + ek[ek.length - 1].map(v => v.toFixed(1)).join(',') + ':' + ((g3.h0 || 0) + (g3.dh || 0)).toFixed(2);
+  const zeminDizi = (ek, gi, set, ik) => {
+    const z0 = set.zemin != null ? +set.zemin : 0.3, pr = durum.profil && durum.profil[eksenAnahtar(ek, gi)], out = ek.map((p, i) => pr && pr[i] != null ? pr[i] : z0);
+    let acc = 0; const zk = out[Math.min(ik, out.length - 1)]; for (let i = ik + 1; i < ek.length; i++) { acc += hyp(ek[i][0] - ek[i - 1][0], ek[i][1] - ek[i - 1][1]); out[i] = Math.min(zk, 0) - Math.min(6, 0.6 + acc / 40); }
+    return out;
+  };
+  /* Google 3B arazisi varsa hat boyunca zemin yüksekliğini okur (boru ve hendek araziyi izlesin); bir kez, sonra model yeniden kurulur */
+  const profilOku = async (H) => {
+    const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.tileset || !v.scene.sampleHeightSupported || g3.h0 == null || durum.profilBekliyor) return;
+    const is = []; H.gruplar.forEach((g, gi) => { const ek = S.sik(g.eksen, 15), k = eksenAnahtar(ek, gi); if (!(durum.profil && durum.profil[k]) && !(durum.profilDenendi && durum.profilDenendi[k])) is.push({ ek, k }); });
+    if (!is.length) return; durum.profilBekliyor = true; durum.profilDenendi = durum.profilDenendi || {};
+    try {
+      const kesim = g3.tileset.clippingPolygons; g3.tileset.clippingPolygons = undefined;
+      for (const { ek, k } of is) {
+        durum.profilDenendi[k] = true;
+        const r = await v.scene.sampleHeightMostDetailed(ek.map(p => { const ll = G.toLL(p); return Cs.Cartographic.fromDegrees(ll[1], ll[0]); }), g3.model ? [g3.model] : []);
+        const taban = (g3.h0 || 0) + (g3.dh || 0), ham = r.map(c => c && isFinite(c.height) ? c.height - taban : null); if (ham.filter(x => x != null).length < ham.length * 0.8) continue;
+        const ilkDolu = ham.find(y => y != null), dolu = []; ham.forEach((x, i) => dolu.push(x != null ? x : (i ? dolu[i - 1] : ilkDolu)));
+        const orta = dolu.map((_, i) => { const w = dolu.slice(Math.max(0, i - 2), i + 3).sort((a, b) => a - b); return w[Math.floor((w.length - 1) / 2)]; }); // araç / ağaç / bina sıçramaları: 5'li alt ortanca
+        (durum.profil = durum.profil || {})[k] = orta.map(x => +x.toFixed(2));
+      }
+      g3.tileset.clippingPolygons = kesim;
+    } catch (err) { console.warn(err); }
+    durum.profilBekliyor = false;
+    if (durum.profil && is.some(x => durum.profil[x.k])) { const b = $('#g3Re'); if (b) b.click(); }
+  };
+
   /* model her kurulduğunda: çevre binalar ve hatlar aynı koleksiyona eklenir (yerleşim / yükseklik modelle birlikte) */
   const kur = () => {
-    const Cs = window.Cesium, coll = g3.model; durum.mats = []; durum.eksen = null; durum.boy = 0;
+    const Cs = window.Cesium, coll = g3.model; durum.mats = []; durum.eksen = null; durum.boy = 0; g3.ekKesim = [];
     if (!Cs || !coll || !g3.toENU || !C.doc) return;
     let nb = 0, nh = 0;
     // --- çevre binalar ---
@@ -164,22 +222,47 @@
     if (durum.hat && H.borular.length) {
       malzemeKaydet(Cs);
       const renk = dn => dn >= 1200 ? new Cs.Color(0.05, 0.42, 0.95, 1) : new Cs.Color(0.0, 0.70, 0.78, 1);
-      for (const b of H.borular) {
-        const r = Math.max(0.25, b.dn / 2000), t = S.tup(b.pts, (+H.set.kot || 1) + (r - 0.7), r, 14); if (!t) continue; nh++;
-        const mat = new Cs.Material({ fabric: { type: AKIS, uniforms: { color: renk(b.dn), time: 0, on: durum.oynuyor ? durum.on : 1e9, len: 14, speed: +H.set.hiz || 2 } } });
+      // gömülü borular: zemin kotundan "örtü" kadar aşağıda; karada açık hendek kesiti (harita hendek boyunca kesilir), denizde deniz tabanında
+      const hendekli = durum.hendek !== false, ortu = +H.set.ortu || 1.2, yan = [], tab = []; g3.ekKesim = [];
+      const boruEkle = (pts, zs, r, s0, dn, gomulu) => {
+        const t = S.tup(pts, zs, r, 14, s0); if (!t) return 0;
+        const mat = new Cs.Material({ fabric: { type: AKIS, uniforms: { color: renk(dn), time: 0, on: durum.oynuyor ? durum.on : 1e9, len: 14, speed: +H.set.hiz || 2, opak: gomulu ? 1 : 0 } } });
         durum.mats.push(mat);
         coll.add(new Cs.Primitive({
           geometryInstances: new Cs.GeometryInstance({ geometry: geomUcgen(Cs, enuDizi(t.pos), enuYon(t.nrm), t.st, t.idx) }),
-          appearance: new Cs.MaterialAppearance({ material: mat, translucent: true, closed: true, faceForward: false, renderState: { depthTest: { enabled: false }, depthMask: false, cull: { enabled: true }, blending: Cs.BlendingState.ALPHA_BLEND } }),
+          appearance: new Cs.MaterialAppearance({ material: mat, translucent: !gomulu, closed: true, faceForward: false, renderState: gomulu ? { depthTest: { enabled: true }, depthMask: true, cull: { enabled: true } } : { depthTest: { enabled: false }, depthMask: false, cull: { enabled: true }, blending: Cs.BlendingState.ALPHA_BLEND } }),
           asynchronous: false,
         }));
+        return t.boy;
+      };
+      H.gruplar.forEach((g, gi) => {
+        const ek = S.sik(g.eksen, 15), gm = S.gomme(g.borular, ortu);
+        // kıyı noktası (yalnız ana hatta): sonrası deniz
+        let ik = ek.length - 1; if (g.ana && H.set.kiyiIndex != null && g.eksen[H.set.kiyiIndex]) { const kp = g.eksen[H.set.kiyiIndex]; let en = 1e9; ek.forEach((p, i) => { const d = hyp(p[0] - kp[0], p[1] - kp[1]); if (d < en) { en = d; ik = i; } }); }
+        const zU = zeminDizi(ek, gi, H.set, ik);
+        if (hendekli && ik > 0) { const h = S.hendek(S.otele(ek, gm.kay).slice(0, ik + 1), gm.w, zU.slice(0, ik + 1), zU.slice(0, ik + 1).map(z => z - gm.derin)); if (h) { yan.push(h.yan); tab.push(h.taban); g3.ekKesim.push(h.halka); } }
+        g.borular.forEach((b, bi) => {
+          const r = Math.max(0.25, b.dn / 2000), pts = S.otele(ek, b.ofs), zs = zU.map(z => z - gm.eksen[bi]); nh++;
+          if (!hendekli) { boruEkle(pts, zs, r, 0, b.dn, false); return; }
+          const kara = ik > 0 ? boruEkle(pts.slice(0, ik + 1), zs.slice(0, ik + 1), r, 0, b.dn, true) : 0;
+          if (ik < ek.length - 1) boruEkle(pts.slice(ik), zs.slice(ik), r, kara, b.dn, false);                 // deniz: su altında, yüzeyden seçilir
+        });
+      });
+      if (yan.length) {
+        const birles = a => ({ pos: [].concat(...a.map(x => x.pos)), nrm: [].concat(...a.map(x => x.nrm)) }), Y = birles(yan), T = birles(tab);
+        coll.add(new Cs.Primitive({ geometryInstances: [
+          new Cs.GeometryInstance({ geometry: geomUcgen(Cs, enuDizi(Y.pos), enuYon(Y.nrm)), attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(0.50, 0.38, 0.26, 1)) } }),
+          new Cs.GeometryInstance({ geometry: geomUcgen(Cs, enuDizi(T.pos), enuYon(T.nrm)), attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(0.66, 0.58, 0.44, 1)) } }),
+        ], appearance: new Cs.PerInstanceColorAppearance({ flat: false, translucent: false, closed: false }), asynchronous: false }));
       }
-      // uzaktan da seçilsin: boru eksenleri ekran kalınlığında (3 px) çizgi olarak
-      try {
-        const pc = new Cs.PolylineCollection(), z = (+H.set.kot || 1) + 0.9;
-        for (const b of H.borular) pc.add({ positions: b.pts.map(p => { const q = g3.toENU(p[0], p[1], z); return new Cs.Cartesian3(q[0], q[1], q[2]); }), width: b.dn >= 1200 ? 3 : 2, material: Cs.Material.fromType('Color', { color: renk(b.dn).withAlpha(0.85) }) });
-        coll.add(pc);
-      } catch (err) { console.warn(err); }
+      if (!hendekli) { // röntgen görünümü: uzaktan da seçilsin diye eksenler ekran kalınlığında çizgi
+        try {
+          const pc = new Cs.PolylineCollection(), z = (+H.set.zemin || 0.3) + 0.6;
+          for (const b of H.borular) pc.add({ positions: b.pts.map(p => { const q = g3.toENU(p[0], p[1], z); return new Cs.Cartesian3(q[0], q[1], q[2]); }), width: b.dn >= 1200 ? 3 : 2, material: Cs.Material.fromType('Color', { color: renk(b.dn).withAlpha(0.85) }) });
+          coll.add(pc);
+        } catch (err) { console.warn(err); }
+      }
+      setTimeout(() => profilOku(H), 3500);
       durum.eksen = H.eksenler[0]; durum.boy = S.boy(durum.eksen);
       // etiketler
       try {
@@ -256,12 +339,13 @@
     const ctl = $('#g3Ctl'); if (!ctl || $('#shOyna')) return;
     const d = document.createElement('div'); d.innerHTML = `
       <div class="row" style="border-top:1px solid #ffffff22;padding-top:5px"><label><input type="checkbox" id="shCevre"> Çevre binalar (şeffaf kutu)</label><button id="shIndir" title="Tesis ve hat çevresindeki bina izlerini OpenStreetMap'ten indirir">Çevre binaları indir</button></div>
-      <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>`;
+      <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>`;
     const m = $('#g3Msg'); while (d.firstElementChild) ctl.insertBefore(d.firstElementChild, m);
     const yenile = () => { const b = $('#g3Re'); if (b) b.click(); };
     $('#shCevre').checked = !!durum.cevre; $('#shHat').checked = !!durum.hat;
     $('#shCevre').onchange = e => { durum.cevre = e.target.checked; sakla(); yenile(); };
     $('#shHat').onchange = e => { durum.hat = e.target.checked; sakla(); if (!durum.hat) S.durdur(); yenile(); };
+    $('#shHendek').checked = durum.hendek !== false; $('#shHendek').onchange = e => { durum.hendek = e.target.checked; sakla(); yenile(); };
     $('#shIndir').onclick = () => S.cevreIndir();
     $('#shOyna').onclick = () => durum.oynuyor ? S.durdur() : S.oynat(true);
     $('#shUc').onclick = () => S.uc();
@@ -271,5 +355,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kurArayuz, 0)); else setTimeout(kurArayuz, 0);
   C.addCommand && C.addCommand(['DENIZHATTI', 'AKISANIM'], 'Google 3B sekmesinde deniz hattı akış animasyonunu oynatır (DENIZ_HATTI katmanındaki güzergâh ekseni boyunca)', () => { C.setView('g3d'); setTimeout(() => S.oynat(true), 1500); }, { noUndo: true });
   C.addCommand && C.addCommand(['CEVREBINA', 'CEVREBINALAR'], 'Tesis ve hat çevresindeki binaları OpenStreetMap\'ten indirir; Google 3B sekmesinde şeffaf kutu olarak gösterir', () => S.cevreIndir(), { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);
