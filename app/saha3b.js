@@ -508,11 +508,11 @@
       const c = pc.add({ positions: [new Cs.Cartesian3(q0[0], q0[1], q0[2]), new Cs.Cartesian3(q[0], q[1], q[2])], width: 2, material: Cs.Material.fromType('Color', { color: Cs.Color.WHITE.withAlpha(0.9) }), show: false });
       return { l, c };
     };
-    for (const b of V.binalar || []) if (b.p && b.satirlar) bina.push(ekle(b.p, +b.z || 5, (+b.z || 5) + 6, b.satirlar, 'rgba(10,56,97,0.88)')); // ardışık etiketler farklı yükseklikte: üst üste binmesin
-    if (ek) for (const h of V.hat || []) { const k = S.noktaAt(ek, Math.max(0, Math.min(durum.boy, +h.s || 0))); hat.push(Object.assign(ekle(k.p, 0.5, (h.z != null ? +h.z : 14), h.satirlar, 'rgba(5,76,107,0.88)'), { s: +h.s || 0 })); }
+    for (const b of V.binalar || []) if (b.p && b.satirlar) bina.push(ekle(b.p, +b.z || 5, (+b.z || 5) + 3, b.satirlar, 'rgba(10,56,97,0.88)')); // ardışık etiketler farklı yükseklikte: üst üste binmesin
+    if (ek) for (const h of V.hat || []) { const k = S.noktaAt(ek, Math.max(0, Math.min(durum.boy, +h.s || 0))); hat.push(Object.assign(ekle(k.p, 0.5, (h.z != null ? +h.z : 9), h.satirlar, 'rgba(5,76,107,0.88)'), { s: +h.s || 0 })); }
     coll.add(lc); coll.add(pc); durum.sunumEt = { bina, hat, veri: V }; if (durum.sunum && durum.sunum.olcek) etiketOlcek(durum.sunum.olcek);
   };
-  const sunumGoster = (liste, ac) => { for (const x of liste || []) { x.l.show = ac; x.c.show = ac; } };
+  const sunumGoster = (liste, ac) => { for (const x of liste || []) { x.l.show = ac; x.c.show = false /* bilgi kutusunun altında kılavuz çizgi gösterilmez (kullanıcı isteği) */; } };
   /* kamera yardımcıları: tüm pozlar tesisin yerel doğu-kuzey-yukarı (ENU) çerçevesinde göz + hedef olarak verilir */
   const enuMat = () => { const Cs = window.Cesium, h = (g3.h0 == null ? 0 : g3.h0) + (g3.dh || 0); return Cs.Transforms.eastNorthUpToFixedFrame(Cs.Cartesian3.fromDegrees(g3.ll[1], g3.ll[0], h)); };
   const bak = (mm, goz, hedef) => {
@@ -552,7 +552,7 @@
       asama = 'Yükseliş'; sahaBoru(true); const k = S.yumusak((t - Z.yuru) / (Z.yuksel - Z.yuru)), a = yurPoz(su.yolBoy), z = turPoz(0); poz = { goz: kar(a.goz, z.goz, k), hedef: kar(a.hedef, z.hedef, k) }; kapiAyar(mm, 1 - k); sahaAkis(0);
     } else if (t < Z.tur2) { // 3) turlar: ilk turda bilgi kutuları sırayla, her seferinde yalnız biri
       const tt = t - Z.yuksel; poz = turPoz(tt); kapiAyar(mm, 0); sahaAkis(0); sunumGoster(E.hat, false);
-      if (t < Z.tur1) { asama = 'Tesis çevresinde tur — bilgiler'; const n = E.bina.length, f = tt / (Z.tur1 - Z.yuksel) * n; E.bina.forEach((x, i) => { const ac = f >= i + 0.06 && f <= i + 0.94; x.l.show = ac; x.c.show = ac; }); }
+      if (t < Z.tur1) { asama = 'Tesis çevresinde tur — bilgiler'; const n = E.bina.length, f = tt / (Z.tur1 - Z.yuksel) * n; E.bina.forEach((x, i) => { const ac = f >= i + 0.06 && f <= i + 0.94; x.l.show = ac; x.c.show = false /* bilgi kutusunun altında kılavuz çizgi gösterilmez (kullanıcı isteği) */; }); }
       else { asama = 'Tesis çevresinde tur'; sunumGoster(E.bina, false); }
     } else if (!ek || !durum.mats.length) { return false;
     } else if (t < Z.gecis) { // 4) hatta geçiş
@@ -563,7 +563,7 @@
       for (const m of durum.mats) { m.uniforms.time = t; m.uniforms.on = m._saha ? 1e9 : durum.on; }
       const k = S.noktaAt(ek, Math.min(durum.on, durum.boy)), bs = yonu(k.u) - 0.45, yum = 1 - Math.exp(-Math.max(0, dt) / 1.1); su.bas = su.bas == null ? bs : su.bas + Math.atan2(Math.sin(bs - su.bas), Math.cos(bs - su.bas)) * yum; // kare hızından bağımsız yumuşak dönüş
       const h = enu(k.p, 2); poz = { goz: yorunge(h, su.bas, Cs.Math.toRadians(-32), 240), hedef: h }; sunumGoster(E.bina, false);
-      for (const x of E.hat) { const ac = durum.on >= x.s - 15; x.l.show = ac; x.c.show = ac; }
+      for (const x of E.hat) { const ac = durum.on >= x.s - 15; x.l.show = ac; x.c.show = false /* bilgi kutusunun altında kılavuz çizgi gösterilmez (kullanıcı isteği) */; }
     } else if (t < Z.toplam) { // 6) kapanış: hattın tamamı kuşbakışı
       asama = 'Genel görünüş'; for (const m of durum.mats) { m.uniforms.time = t; m.uniforms.on = 1e9; }
       const k = S.yumusak((t - Z.hat) / 3), a = (() => { const q = S.noktaAt(ek, durum.boy), h = enu(q.p, 2); return { goz: yorunge(h, su.bas == null ? 0 : su.bas, Cs.Math.toRadians(-32), 240), hedef: h }; })();
