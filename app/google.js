@@ -125,12 +125,13 @@
     const tr = (x, y, z) => { const dx = x - o[0], dy = y - o[1]; return [ex[0] * dx + ey[0] * dy, ex[1] * dx + ey[1] * dy, z]; };
     g3.ll = ll; g3.toENU = tr;
     const colOf = (e) => { const oz = g3.renk && g3.renk(e); if (oz) return new Cs.Color(oz[0], oz[1], oz[2], g3.opacity); /* saha3b.js: gerçekçi cephe renkleri */ const aci = C.entColor(e), conc = ['tank', 'ctank', 'wall', 'slab'].includes(e.type); const c = conc ? [184, 184, 178] : C.aciRgb(aci === 7 ? 9 : aci); return new Cs.Color(c[0] / 255, c[1] / 255, c[2] / 255, g3.opacity); };
-    const insts = [], lines = [], boya = {};
+    const insts = [], lines = [], boya = {}; g3.disMesh = [];
     for (const { e, t } of meshes) {
       const n = t.pos.length / 3, pos = new Float64Array(n * 3), nrm = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) { const q = tr(t.pos[i * 3], t.pos[i * 3 + 1], t.pos[i * 3 + 2]); pos[i * 3] = q[0]; pos[i * 3 + 1] = q[1]; pos[i * 3 + 2] = q[2]; const nq = tr(o[0] + t.nrm[i * 3], o[1] + t.nrm[i * 3 + 1], t.nrm[i * 3 + 2]); const l = Math.hypot(nq[0], nq[1], nq[2]) || 1; nrm[i * 3] = nq[0] / l; nrm[i * 3 + 1] = nq[1] / l; nrm[i * 3 + 2] = nq[2] / l; }
       const idx = n > 65535 ? new Uint32Array(n) : new Uint16Array(n); for (let i = 0; i < n; i++) idx[i] = i;
       const stv = new Float32Array(n * 2); for (let i = 0; i < n; i++) { const nx = nrm[i * 3], ny = nrm[i * 3 + 1], nz = nrm[i * 3 + 2], x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2]; if (Math.abs(nz) > 0.7) { stv[i * 2] = x; stv[i * 2 + 1] = y; } else { stv[i * 2] = x * -ny + y * nx; stv[i * 2 + 1] = z; } } // boya dokusu için: duvar boyunca / yükseklik (m)
+      if (g3.disCiz && g3.disCiz(e)) { g3.disMesh.push({ e, pos, nrm, st: stv }); continue; } // saha3b.js render kipi: bu nesneyi PBR malzemeyle o çizer
       const geom = new Cs.Geometry({ attributes: { position: new Cs.GeometryAttribute({ componentDatatype: Cs.ComponentDatatype.DOUBLE, componentsPerAttribute: 3, values: pos }), normal: new Cs.GeometryAttribute({ componentDatatype: Cs.ComponentDatatype.FLOAT, componentsPerAttribute: 3, values: nrm }), st: new Cs.GeometryAttribute({ componentDatatype: Cs.ComponentDatatype.FLOAT, componentsPerAttribute: 2, values: stv }) }, indices: idx, primitiveType: Cs.PrimitiveType.TRIANGLES, boundingSphere: Cs.BoundingSphere.fromVertices(pos) });
       const cc = colOf(e), gi = new Cs.GeometryInstance({ geometry: geom, id: 'e' + e.id, attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(cc) } });
       if (g3.golge && g3.opacity >= 1) { const k = cc.toRgba(); (boya[k] = boya[k] || { c: cc, i: [] }).i.push(gi); } else insts.push(gi);
