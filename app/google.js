@@ -142,6 +142,7 @@
       coll.add(new Cs.Primitive({ geometryInstances: new Cs.GeometryInstance({ geometry: lg, attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(0.1, 0.1, 0.12, 1)) } }), appearance: new Cs.PerInstanceColorAppearance({ flat: true, translucent: false }), asynchronous: false }));
     }
     g3.model = v.scene.primitives.add(coll);
+    C.emit('g3dmodel', g3); // saha3b.js: çevre binalar ve deniz hatları aynı koleksiyona eklenir
     placeModel(); applyClip(); v.scene.requestRender();
     status(`Model yerleştirildi: ${meshes.length} nesne · ${ll[0].toFixed(6)}, ${ll[1].toFixed(6)} · kot 0 = ${g3.h0 == null ? '?' : (g3.h0 + g3.dh).toFixed(2)} m (elipsoit)`);
   };
@@ -194,12 +195,16 @@
     status('3B harita kütüphanesi yükleniyor…');
     let Cs; try { Cs = await loadCesium(); } catch (err) { status(err.message, true); return; }
     try {
-      const v = g3.viewer = new Cs.Viewer($('#g3Canvas'), { globe: false, baseLayer: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, requestRenderMode: true, maximumRenderTimeChange: Infinity });
+      // Google anahtarı yoksa: düz küre üzerinde Esri uydu görüntüsü (model, çevre binalar ve hatlar yine gerçek konumunda)
+      const k0 = C.googleKey(), alt = !k0 && C.TILES && C.TILES.uydu ? new Cs.ImageryLayer(new Cs.UrlTemplateImageryProvider({ url: C.TILES.uydu.url, maximumLevel: C.TILES.uydu.max || 19, credit: C.TILES.uydu.attr })) : false;
+      if (alt && g3.h0 == null) g3.h0 = 0;
+      const v = g3.viewer = new Cs.Viewer($('#g3Canvas'), { ...(alt ? {} : { globe: false }), baseLayer: alt, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, requestRenderMode: true, maximumRenderTimeChange: Infinity });
       v.scene.skyAtmosphere.show = true; v.scene.backgroundColor = Cs.Color.fromCssColorString('#9fb8d0');
       try { v.scene.screenSpaceCameraController.enableCollisionDetection = false; } catch (e) { }
+      if (alt) { try { v.scene.globe.depthTestAgainstTerrain = true; } catch (e) { } } // düz kürede zemin altı (temel, hazne) görünmesin
     } catch (err) { status('3B görünüm açılamadı (WebGL?): ' + (err.message || err), true); return; }
     const k = C.googleKey();
-    if (!k) status('Google anahtarı girilmedi; yalnız tesis modeli gösteriliyor. "Google anahtarı" düğmesiyle girin.', true);
+    if (!k) status('Google anahtarı girilmedi; Esri uydu görüntüsü üzerinde gösteriliyor. Google haritası için "Google anahtarı" düğmesiyle girin.', true);
     else {
       try {
         if (Cs.GoogleMaps) Cs.GoogleMaps.defaultApiKey = k;
