@@ -149,7 +149,7 @@ function hat(B, cevre, cikis) {
   const g = (cevre.guzergah || []).map(p => [p[0], p[1], 0]); if (g.length) g[0] = [cikis[0], cikis[1], 0];
   if (g.length > 1) B.ekle('pline', 'DENIZ_HATTI', { pts: g, closed: false });
   // saha içi basma hattı: terfi vana odası kolektörü → yükleme bacası girişi (SW-2_GY_R1.DWG, Boru_Eksen)
-  B.ekle('pline', 'DENIZ_HATTI_SAHA', { pts: [W(94.86, 69.69), W(106.19, 85.29), W(106.60, 86.04), W(106.76, 87.53), W(106.14, 88.90), W(105.52, 89.48), W(97.56, 95.26)].map(p => [p[0], p[1], 0]), closed: false, dn: 2000 });
+  B.ekle('pline', 'DENIZ_HATTI_SAHA', { pts: [W(94.86, 69.69), W(106.19, 85.29), W(106.60, 86.04), W(106.76, 87.53), W(106.14, 88.90), W(105.52, 89.48), W(97.56, 95.26), W(97.07, 95.61)].map(p => [p[0], p[1], 0]), closed: false, dn: 2000, kot: -1.10 }); // SW2_TOWER: giriş borusu akar kotu −2,10 → DN2000 ekseni −1,10; boru bacanın GD yüzünden 0,60 m içeri girer
   B.doc.set.denizHat = { ad: 'SW2 deniz deşarj hattı (güzergâh 12.11.2026 onaylı)', borular: [{ ad: 'DN1400-1', dn: 1400, ofs: -2.2 }, { ad: 'DN1400-2', dn: 1400, ofs: 0 }, { ad: 'DN900', dn: 900, ofs: 2.0 }], kiyiIndex: cevre.kiyiIndex, hiz: 2.0, kot: 1.0 };
   B.doc.set.cevre = { kaynak: cevre.kaynak, not: cevre.not, binalar: cevre.binalar || [] };
   // sunum: hat bilgileri (eksen boyunca metre)
