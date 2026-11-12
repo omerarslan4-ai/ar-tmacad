@@ -427,7 +427,13 @@
       const ao = sc.postProcessStages && sc.postProcessStages.ambientOcclusion; if (ao) { ao.enabled = r && set.ao !== false; if (ao.enabled) { const u = ao.uniforms; u.intensity = 2.6; u.bias = 0.12; u.lengthCap = 0.28; u.stepSize = 1.6; u.blurStepSize = 0.9; } }
       const bl = sc.postProcessStages && sc.postProcessStages.bloom; if (bl) { bl.enabled = r && !!set.parlama; if (bl.enabled) { const u = bl.uniforms; u.contrast = 110; u.brightness = -0.25; u.delta = 1.2; u.sigma = 2.4; u.stepSize = 1.2; } }
       if (!durum.sunum || !durum.sunum.eski) { try { sc.msaaSamples = r ? 4 : 1; } catch (e) { } }
-      try { sc.light = new Cs.SunLight({ intensity: r ? 3.2 : 2.0 }); } catch (e) { } // PBR yüzeyler uydu görüntüsünün yanında sönük kalmasın: render kipinde güneş daha güçlü
+      // ambiyans: güneş rengi / gücü, gölge açıklığı ve gökyüzü tonu (render kipi kapalıyken varsayılan gün ışığı)
+      try {
+        const am = r && RM ? RM.ambiyans(set.ambiyans) : null;
+        sc.light = new Cs.SunLight({ color: am ? new Cs.Color(am.isik[0], am.isik[1], am.isik[2], 1) : Cs.Color.WHITE, intensity: am ? am.siddet : 2.0 });
+        if (am && v.shadowMap) v.shadowMap.darkness = am.golge;
+        const sa = sc.skyAtmosphere; if (sa) { sa.hueShift = am ? am.ton : 0; sa.saturationShift = am ? am.doygunluk : 0; sa.brightnessShift = am ? am.parlaklik : 0; }
+      } catch (e) { }
     } catch (err) { console.warn(err); }
     sc.requestRender();
   };
@@ -449,22 +455,61 @@
     b.querySelector('#rmTamam').onclick = () => C.closeModal();
   };
   /* yüksek çözünürlüklü tek kare (PNG): 16:9, seçili kalitede (1920 / 3840 px) */
-  S.goruntuAl = async () => {
-    const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || durum.sunum) { msg('Sunum / kayıt sürerken görüntü alınamaz.', true); return; }
-    const tuval = v.scene.canvas, hedef = +durum.kalite >= 2160 ? 3840 : 1920, dpr = window.devicePixelRatio || 1, kutu = $('#g3Canvas'), ana = $('#cvG3d'), eski = { ubr: v.useBrowserRecommendedResolution, rs: v.resolutionScale, stil: kutu ? kutu.style.cssText : null, dongu: v.useDefaultRenderLoop, istek: v.scene.requestRenderMode };
-    const bekle = ms => new Promise(r => setTimeout(r, ms));
+  /* ---------- FON: gökyüzünün yerine kullanıcının seçtiği resim (çıktılarda: görüntü, video, yapay zekâ render) ----------
+     Resim projede saklanır (set.render.fon, küçültülmüş JPEG). Çıktı alınırken sahne bir kez de gökyüzü kapalı ve macenta zeminle çizilir;
+     macenta kalan pikseller (gökyüzü) fon resmiyle değiştirilir. */
+  const fonYukle = () => { const d = C.doc && C.doc.set.render && C.doc.set.render.fon; durum.fonImg = null; durum.fonAnahtar = null; if (!d) return; const im = new Image(); im.onload = () => { durum.fonImg = im; durum.fonAnahtar = null; }; im.src = d; };
+  S.fonSec = dosya => new Promise((coz, red) => { const fr = new FileReader(); fr.onerror = () => red(new Error('dosya okunamadı')); fr.onload = () => { const im = new Image(); im.onerror = () => red(new Error('resim açılamadı')); im.onload = () => { const o = Math.min(1, 2560 / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * o); c.height = Math.round(im.naturalHeight * o); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); rset().fon = c.toDataURL('image/jpeg', 0.86); C.changed && C.changed(); fonYukle(); coz({ w: c.width, h: c.height }); }; im.src = fr.result; }; fr.readAsDataURL(dosya); });
+  S.fonKaldir = () => { if (C.doc && C.doc.set.render) delete C.doc.set.render.fon; durum.fonImg = null; durum.fonAnahtar = null; C.changed && C.changed(); };
+  /* fon resmi yokken ambiyansın kendi gökyüzü (gün batımı, bulutlu): yukarıdan aşağı renk geçişi; yoksa null → doğal mavi gökyüzü */
+  const gokDegrade = () => (durum.render && RM && C.doc && RM.ambiyans(rset().ambiyans).gok) || null;
+  const fonVar = () => !!durum.fonImg || !!gokDegrade();
+  /* tuvaldeki (w×h, normal çizim) karenin gökyüzünü fon resmiyle değiştirir. ciz(ctx): GL tuvalini verilen 2B bağlama aynı yerleşimle çizer */
+  const fonUygula = (ctx, w, h, ciz) => {
+    const Cs = window.Cesium, v = g3.viewer, sc = v.scene, im = durum.fonImg, gok = !im && RM ? gokDegrade() : null; if (!RM || (!im && !gok)) return false;
+    const es = { a: sc.skyAtmosphere && sc.skyAtmosphere.show, b: sc.skyBox && sc.skyBox.show, s: sc.sun && sc.sun.show, m: sc.moon && sc.moon.show, bg: sc.backgroundColor.clone(), ao: sc.postProcessStages.ambientOcclusion.enabled, bl: sc.postProcessStages.bloom.enabled, fog: sc.fog && sc.fog.enabled };
     try {
-      msg('Görüntü hazırlanıyor…'); let cw = tuval.clientWidth || 1280;
+      if (sc.skyAtmosphere) sc.skyAtmosphere.show = false; if (sc.skyBox) sc.skyBox.show = false; if (sc.sun) sc.sun.show = false; if (sc.moon) sc.moon.show = false; if (sc.fog) sc.fog.enabled = false;
+      sc.backgroundColor = new Cs.Color(1, 0, 1, 1); sc.postProcessStages.ambientOcclusion.enabled = false; sc.postProcessStages.bloom.enabled = false;
+      v.render();
+      const mk = durum.maskeTuval && durum.maskeTuval.width === w && durum.maskeTuval.height === h ? durum.maskeTuval : (durum.maskeTuval = Object.assign(document.createElement('canvas'), { width: w, height: h })), mx = mk.getContext('2d', { willReadFrequently: true }); ciz(mx);
+      const m = mx.getImageData(0, 0, w, h).data;
+      // renk geçişi ufka kadar yayılır: gökyüzü görünen en alt satır bulunur (%2 adımla; küçük oynamada yeniden üretilmez)
+      let ufuk = 1; if (!im) { let y = h - 1; bul: for (; y > 0; y -= 2) for (let x = 0; x < w; x += 16) { const i = (y * w + x) * 4; if (RM.fonAgirlik(m[i], m[i + 1], m[i + 2]) > 0.5) break bul; } ufuk = Math.max(0.1, Math.round((y + 1) / h * 50) / 50); }
+      const anahtar = (im ? 'resim' : 'gok:' + gok.map(d => d.join()).join(';') + '@' + ufuk) + '|' + w + 'x' + h;
+      if (durum.fonAnahtar !== anahtar) { const f = Object.assign(document.createElement('canvas'), { width: w, height: h }), fx = f.getContext('2d', { willReadFrequently: true });
+        if (im) { const o = Math.max(w / im.naturalWidth, h / im.naturalHeight), dw = im.naturalWidth * o, dh = im.naturalHeight * o; fx.drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh); }
+        else { const gr = fx.createLinearGradient(0, 0, 0, h * ufuk); for (const d of gok) gr.addColorStop(d[0], d[1]); fx.fillStyle = gr; fx.fillRect(0, 0, w, h); }
+        durum.fonVeri = fx.getImageData(0, 0, w, h).data; durum.fonAnahtar = anahtar; }
+      const A = ctx.getImageData(0, 0, w, h), a = A.data, f = durum.fonVeri;
+      for (let i = 0; i < a.length; i += 4) { const k = RM.fonAgirlik(m[i], m[i + 1], m[i + 2]); if (k > 0) { a[i] += (f[i] - a[i]) * k; a[i + 1] += (f[i + 1] - a[i + 1]) * k; a[i + 2] += (f[i + 2] - a[i + 2]) * k; } }
+      ctx.putImageData(A, 0, 0);
+    } finally { if (sc.skyAtmosphere) sc.skyAtmosphere.show = es.a; if (sc.skyBox) sc.skyBox.show = es.b; if (sc.sun) sc.sun.show = es.s; if (sc.moon) sc.moon.show = es.m; if (sc.fog) sc.fog.enabled = es.fog; sc.backgroundColor = es.bg; sc.postProcessStages.ambientOcclusion.enabled = es.ao; sc.postProcessStages.bloom.enabled = es.bl; }
+    return true;
+  };
+  /* o anki görünümü 16:9, hedefW genişliğinde (ör. 1920 / 3840 / 1344) bir 2B tuvale çizer; fon varsa uygular. Görüntü, video ve yapay zekâ render bunu kullanır */
+  S.kareYakala = async (hedefW) => {
+    const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v) throw new Error('3B görünüm açık değil'); if (durum.sunum) throw new Error('sunum / kayıt sürerken görüntü alınamaz');
+    const tuval = v.scene.canvas, hedef = Math.round(hedefW || 1920), w = hedef & ~1, h = Math.round(hedef * 9 / 16) & ~1, dpr = window.devicePixelRatio || 1, kutu = $('#g3Canvas'), ana = $('#cvG3d'), eski = { ubr: v.useBrowserRecommendedResolution, rs: v.resolutionScale, stil: kutu ? kutu.style.cssText : null, dongu: v.useDefaultRenderLoop, istek: v.scene.requestRenderMode };
+    const bekle = ms => new Promise(r => setTimeout(r, ms)), cikti = Object.assign(document.createElement('canvas'), { width: w, height: h }), cx = cikti.getContext('2d', { willReadFrequently: true });
+    const ciz = c2 => { const tw = tuval.width, th = tuval.height, o = Math.max(w / tw, h / th), dw = tw * o, dh = th * o; c2.drawImage(tuval, (w - dw) / 2, (h - dh) / 2, dw, dh); };
+    try {
+      let cw = tuval.clientWidth || 1280;
       if (kutu && ana) { const W = ana.clientWidth || cw, Hh = ana.clientHeight || cw * 9 / 16, bw = Math.floor(Math.min(W, Hh * 16 / 9)), bh = Math.floor(bw * 9 / 16); kutu.style.cssText = 'position:absolute;left:' + Math.floor((W - bw) / 2) + 'px;top:' + Math.floor((Hh - bh) / 2) + 'px;width:' + bw + 'px;height:' + bh + 'px'; cw = bw; }
       v.useBrowserRecommendedResolution = false; v.resolutionScale = Math.max(1 / dpr, Math.min(4, hedef / (cw * dpr))); v.useDefaultRenderLoop = false; v.scene.requestRenderMode = false; v.resize();
       const hazir = () => (g3.tileset ? g3.tileset.tilesLoaded : true) && (v.scene.globe ? v.scene.globe.tilesLoaded : true);
       for (let i = 0; i < 80; i++) { v.render(); if (i > 8 && hazir()) break; await bekle(40); }
-      v.render(); const blob = await new Promise(r => { v.render(); tuval.toBlob(r, 'image/png'); });
-      if (!blob) throw new Error('görüntü üretilemedi');
+      v.render(); ciz(cx); fonUygula(cx, w, h, ciz);
+    } finally { try { v.useBrowserRecommendedResolution = eski.ubr; v.resolutionScale = eski.rs; if (kutu && eski.stil != null) kutu.style.cssText = eski.stil; v.scene.requestRenderMode = eski.istek; v.useDefaultRenderLoop = eski.dongu; v.resize(); v.scene.requestRender(); } catch (e) { } }
+    return cikti;
+  };
+  /* yüksek çözünürlüklü tek kare (PNG): 16:9, seçili kalitede (1920 / 3840 px) */
+  S.goruntuAl = async () => {
+    try {
+      msg('Görüntü hazırlanıyor…'); const c = await S.kareYakala(+durum.kalite >= 2160 ? 3840 : 1920), blob = await new Promise(r => c.toBlob(r, 'image/png')); if (!blob) throw new Error('görüntü üretilemedi');
       const ad = ((C.doc.set.name || 'gorunum') + '-render.png').replace(/[\\/:*?"<>|]+/g, '_'), a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 6000);
-      msg('Görüntü indirildi: ' + ad + ' · ' + tuval.width + '×' + tuval.height + ' · ' + (blob.size / 1048576).toFixed(1) + ' MB'); C.log && C.log('🖼 Render görüntüsü indirildi: ' + ad);
+      msg('Görüntü indirildi: ' + ad + ' · ' + c.width + '×' + c.height + ' · ' + (blob.size / 1048576).toFixed(1) + ' MB'); C.log && C.log('🖼 Render görüntüsü indirildi: ' + ad);
     } catch (err) { console.warn(err); msg('Görüntü alınamadı: ' + (err.message || err), true); }
-    finally { try { v.useBrowserRecommendedResolution = eski.ubr; v.resolutionScale = eski.rs; if (kutu && eski.stil != null) kutu.style.cssText = eski.stil; v.scene.requestRenderMode = eski.istek; v.useDefaultRenderLoop = eski.dongu; v.resize(); v.scene.requestRender(); } catch (e) { } }
   };
 
   /* model her kurulduğunda: çevre binalar ve hatlar aynı koleksiyona eklenir (yerleşim / yükseklik modelle birlikte) */
@@ -713,7 +758,7 @@
      Video bilgisayarın hızından bağımsız olarak saniyede "fps" kareyle akıcı olur; kayıt gerçek süreden uzun sürebilir. */
   const kareKaydet = async (su) => {
     const Cs = window.Cesium, v = g3.viewer, tuval = v.scene.canvas, fps = +durum.fps === 60 ? 60 : 30, V = durum.sunumEt.veri, Z = S.sunumSure(V), hiz = su.hiz || 1, N = Math.ceil(Z.toplam / hiz * fps);
-    const w = (su.hedefW || tuval.width) & ~1, h = (su.hedefH || tuval.height) & ~1, buyuk = w > 1920 || h > 1088, ara = document.createElement('canvas'); ara.width = w; ara.height = h; const actx = ara.getContext('2d', { alpha: false });
+    const w = (su.hedefW || tuval.width) & ~1, h = (su.hedefH || tuval.height) & ~1, buyuk = w > 1920 || h > 1088, ara = document.createElement('canvas'); ara.width = w; ara.height = h; const actx = ara.getContext('2d', { alpha: false, willReadFrequently: fonVar() });
     const cizAra = () => { const tw = tuval.width, th = tuval.height, o = Math.max(w / tw, h / th), dw = tw * o, dh = th * o; actx.drawImage(tuval, (w - dw) / 2, (h - dh) / 2, dw, dh); }; // tuval boyutu / oranı değişirse ortalayarak doldurur
     // veri hızı: dosya boyutu ≈ hız × süre / 8 (Full HD, 30 kare, 154 sn: yüksek ≈ 340 MB · orta ≈ 115 MB · küçük ≈ 50 MB)
     const temel = durum.boyut === 'kucuk' ? 2.6e6 : durum.boyut === 'orta' ? 6e6 : 18e6, bit = temel * (buyuk ? 2.5 : 1) * (fps / 30) ** 0.5;
@@ -729,7 +774,7 @@
       for (let i = 0; i < N && durum.sunum === su && !hata; i++) {
         const t = i / fps * hiz; if (!sunumAdim(su, t, hiz / fps)) break;
         v.render(); let dene = 0; while (!hazir() && dene++ < 60) { await bekle(25); v.render(); }   // karolar gelene kadar (en çok ≈ 1,5 sn) bekle, sonra son hâli çiz
-        cizAra(); const kare = new VideoFrame(ara, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+        cizAra(); if (fonVar()) fonUygula(actx, w, h, c2 => { const tw = tuval.width, th = tuval.height, o = Math.max(w / tw, h / th), dw = tw * o, dh = th * o; c2.drawImage(tuval, (w - dw) / 2, (h - dh) / 2, dw, dh); }); const kare = new VideoFrame(ara, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
         kod.encode(kare, { keyFrame: i % (fps * 2) === 0 }); kare.close();
         while (kod.encodeQueueSize > 6) await bekle(5);
         if (i % 15 === 0) { msg('Video kaydediliyor: kare ' + (i + 1) + ' / ' + N + ' (%' + Math.round((i + 1) / N * 100) + ') · ' + su.asama + ' — pencereyi açık tutun'); await bekle(0); }
@@ -812,6 +857,7 @@
       <div class="row"><label title="Bitmiş hâl: asfalt yol ve bordür, kilit parke kaldırım, çim ada, boyalı cepheler, ağaçlar ve güneş gölgesi"><input type="checkbox" id="shGercek"> Gerçekçi görünüm (malzeme + gölge)</label></div>
       <div class="row"><label title="Fiziksel tabanlı malzemeler (beton, boya, metal, cam…), güneş ve gökyüzü ışığı, gölge ve köşe kararmasıyla çizim"><input type="checkbox" id="shRender"> <b>Render kipi</b></label><button id="shMalz" title="Katmanlara / seçili nesnelere malzeme ata">Malzemeler…</button><button id="shPng" title="Bu görünümü yüksek çözünürlüklü PNG olarak indir (Kalite seçimine göre 1920 ya da 3840 px)">🖼 Görüntü al</button></div>
       <div class="row" id="shIsik"><label title="Güneşin yerel saati">Saat <input type="range" id="shSaat" min="6" max="19" step="0.25" style="width:92px"><span id="shSaatY" style="min-width:36px;display:inline-block"></span></label><label>Ay <select id="shAy"><option value="1">Oca</option><option value="2">Şub</option><option value="3">Mar</option><option value="4">Nis</option><option value="5">May</option><option value="6">Haz</option><option value="7">Tem</option><option value="8">Ağu</option><option value="9">Eyl</option><option value="10">Eki</option><option value="11">Kas</option><option value="12">Ara</option></select></label><label title="Köşe ve diplerde doğal kararma"><input type="checkbox" id="shAo"> Köşe kararması</label><label title="Parlak yüzeylerde hafif ışıma"><input type="checkbox" id="shParla"> Parlama</label></div>
+      <div class="row" id="shAmbRow"><label title="Gün ışığının havası: güneşin rengi, gölgeler ve gökyüzü">Ambiyans <select id="shAmb"></select></label><button id="shFon" title="Gökyüzünün yerine kendi resminizi koyun (çıktılarda: görüntü, video, yapay zekâ render)">Fon ekle…</button><button id="shFonSil" title="Fon resmini kaldır; seçili ambiyansın gökyüzü kullanılır">Fonu kaldır</button><input type="file" id="shFonDosya" accept="image/*" style="display:none"><span class="hint" id="shFonAd"></span></div>
       <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>
       <div class="row"><button id="shSunum" title="Tesis çevresinde tur ve bina bilgileri, sonra hat boyunca yavaş ilerleyiş ve hat bilgileri">▶ Sunumu oynat</button><button id="shVideo" title="Aynı sunumu oynatır ve 3B görüntüyü video dosyası olarak kaydeder (bitince İndirilenler klasörüne iner)">🎬 Video kaydet</button><label title="Sunumun (ve kaydedilen videonun) hızı; yavaş seçilirse süre uzar">Hız <select id="shHiz"><option value="0.35">Çok yavaş</option><option value="0.6">Yavaş</option><option value="1">Normal</option><option value="1.6">Hızlı</option></select></label><label title="Kaydedilen videonun çözünürlüğü (pencere boyutundan bağımsız)">Kalite <select id="shKalite"><option value="1080">Full HD (1920)</option><option value="2160">4K (3840)</option></select></label><label title="Video dosyasının boyutu: Küçük ≈ 50 MB (WhatsApp / e-posta), Orta ≈ 115 MB, Büyük ≈ 340 MB (en net) — 2,5 dakikalık Full HD video için">Boyut <select id="shBoyut"><option value="kucuk">Küçük</option><option value="orta">Orta</option><option value="buyuk">Büyük</option></select></label><label title="Videonun saniyedeki kare sayısı; 60 daha akıcıdır, kayıt iki kat uzun sürer">Kare <select id="shFps"><option value="30">30</option><option value="60">60</option></select></label></div>`;
     const m = $('#g3Msg'); while (d.firstElementChild) ctl.insertBefore(d.firstElementChild, m);
@@ -826,13 +872,21 @@
       const isikDoldur = () => { const r = C.doc ? rset() : {}; $('#shSaat').value = r.saat != null ? r.saat : 10; saatYaz(+$('#shSaat').value); $('#shAy').value = String(+r.ay || 6); $('#shAo').checked = r.ao !== false; $('#shParla').checked = !!r.parlama; $('#shIsik').style.display = durum.render ? '' : 'none'; };
       const projedenAl = () => { const r = C.doc && C.doc.set.render; if (r && r.acik != null) { durum.render = !!r.acik; if (durum.render) { durum.gercek = true; g3.golge = true; const gk = $('#shGercek'); if (gk) gk.checked = true; } } $('#shRender').checked = !!durum.render; isikDoldur(); }; // proje "render.acik" taşıyorsa açılışta o geçerli
       projedenAl(); C.on('doc', () => setTimeout(projedenAl, 0));
-      $('#shRender').onchange = e => { durum.render = e.target.checked; if (C.doc) { rset().acik = durum.render; C.changed && C.changed(); } if (durum.render) { durum.gercek = true; g3.golge = true; const gk = $('#shGercek'); if (gk) gk.checked = true; } sakla(); isikDoldur(); yenile(); };
+      $('#shRender').onchange = e => { durum.render = e.target.checked; if (C.doc) { rset().acik = durum.render; C.changed && C.changed(); } if (durum.render) { durum.gercek = true; g3.golge = true; const gk = $('#shGercek'); if (gk) gk.checked = true; } sakla(); isikDoldur(); if (S._fonDurum) S._fonDurum(); yenile(); };
       $('#shSaat').oninput = e => { rset().saat = +e.target.value; saatYaz(+e.target.value); sahneAyar(); };
       $('#shSaat').onchange = () => { C.changed && C.changed(); };
       $('#shAy').onchange = e => { rset().ay = +e.target.value; sahneAyar(); C.changed && C.changed(); };
       $('#shAo').onchange = e => { rset().ao = e.target.checked; sahneAyar(); };
       $('#shParla').onchange = e => { rset().parlama = e.target.checked; sahneAyar(); };
-      $('#shMalz').onclick = () => S.malzemePencere(); $('#shPng').onclick = () => S.goruntuAl(); }
+      $('#shMalz').onclick = () => S.malzemePencere(); $('#shPng').onclick = () => S.goruntuAl();
+      // ambiyans ve fon
+      $('#shAmb').innerHTML = Object.entries(RM ? RM.AMBIYANS : {}).map(([id, a]) => '<option value="' + id + '">' + a.ad + '</option>').join('');
+      const fonDurum = () => { const var_ = !!(C.doc && C.doc.set.render && C.doc.set.render.fon); $('#shFonAd').textContent = var_ ? 'fon var (çıktılarda görünür)' : ''; $('#shFonSil').style.display = var_ ? '' : 'none'; $('#shAmb').value = (C.doc && rset().ambiyans) || 'gunduz'; $('#shAmbRow').style.display = durum.render ? '' : 'none'; };
+      fonDurum(); C.on('doc', () => setTimeout(() => { fonYukle(); fonDurum(); }, 0)); S._fonDurum = fonDurum;
+      $('#shAmb').onchange = e => { const r = rset(), am = RM.ambiyans(e.target.value); r.ambiyans = e.target.value; r.saat = am.saat; r.ay = am.ay; isikDoldur(); sahneAyar(); C.changed && C.changed(); };
+      $('#shFon').onclick = () => $('#shFonDosya').click();
+      $('#shFonDosya').onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; try { const b = await S.fonSec(f); fonDurum(); msg('Fon eklendi (' + b.w + '×' + b.h + '). Görüntü, video ve yapay zekâ çıktısında gökyüzünün yerine kullanılır; canlı görünümde gösterilmez.'); } catch (err) { msg('Fon eklenemedi: ' + (err.message || err), true); } };
+      $('#shFonSil').onclick = () => { S.fonKaldir(); fonDurum(); msg('Fon kaldırıldı; seçili ambiyansın gökyüzü kullanılır.'); }; }
     $('#shOyna').onclick = () => durum.oynuyor ? S.durdur() : S.oynat(true);
     $('#shUc').onclick = () => S.uc();
     $('#shTum').onclick = () => tumHat();
@@ -848,5 +902,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kurArayuz, 0)); else setTimeout(kurArayuz, 0);
   C.addCommand && C.addCommand(['DENIZHATTI', 'AKISANIM'], 'Google 3B sekmesinde deniz hattı akış animasyonunu oynatır (DENIZ_HATTI katmanındaki güzergâh ekseni boyunca)', () => { C.setView('g3d'); setTimeout(() => S.oynat(true), 1500); }, { noUndo: true });
   C.addCommand && C.addCommand(['CEVREBINA', 'CEVREBINALAR'], 'Tesis ve hat çevresindeki binaları OpenStreetMap\'ten indirir; Google 3B sekmesinde şeffaf kutu olarak gösterir', () => S.cevreIndir(), { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['Hız', 'Speed'], ['Kalite', 'Quality'], ['Boyut', 'Size'], ['Küçük', 'Small'], ['Orta', 'Medium'], ['Büyük', 'Large'], ['Render kipi', 'Render mode'], ['Malzemeler…', 'Materials…'], ['🖼 Görüntü al', '🖼 Save image'], ['Saat', 'Hour'], ['Ay', 'Month'], ['Köşe kararması', 'Ambient occlusion'], ['Parlama', 'Bloom'], ['Render malzemeleri', 'Render materials'], ['Kare', 'Frames'], ['Çok yavaş', 'Very slow'], ['Yavaş', 'Slow'], ['Normal', 'Normal'], ['Hızlı', 'Fast'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['Hız', 'Speed'], ['Kalite', 'Quality'], ['Boyut', 'Size'], ['Küçük', 'Small'], ['Orta', 'Medium'], ['Büyük', 'Large'], ['Render kipi', 'Render mode'], ['Malzemeler…', 'Materials…'], ['🖼 Görüntü al', '🖼 Save image'], ['Saat', 'Hour'], ['Ambiyans', 'Ambience'], ['Açık gün — mavi gökyüzü', 'Clear day — blue sky'], ['Sabah — yumuşak ılık ışık', 'Morning — soft warm light'], ['Gün batımı — turuncu gökyüzü', 'Sunset — orange sky'], ['Bulutlu — dağınık ışık', 'Overcast — diffuse light'], ['Fon ekle…', 'Add backdrop…'], ['Fonu kaldır', 'Remove backdrop'], ['Ay', 'Month'], ['Köşe kararması', 'Ambient occlusion'], ['Parlama', 'Bloom'], ['Render malzemeleri', 'Render materials'], ['Kare', 'Frames'], ['Çok yavaş', 'Very slow'], ['Yavaş', 'Slow'], ['Normal', 'Normal'], ['Hızlı', 'Fast'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);

@@ -72,6 +72,17 @@
     let k = 20 + jb.length; dv.setUint32(k, boy, true); dv.setUint32(k + 4, 0x004E4942, true); k += 8; for (const p of par) { out.set(p, k); k += p.length; }
     return out;
   };
+  /* AMBİYANS: gün ışığının havası. saat / ay: güneşin konumu · isik: güneş rengi · siddet: güneş gücü · golge: gölge açıklığı (1 = gölge yok)
+     ton / doygunluk / parlaklik: gökyüzü ayarı · tarif: yapay zekâ render'a verilen İngilizce betim */
+  R.AMBIYANS = {
+    gunduz: { ad: 'Açık gün — mavi gökyüzü', saat: 10.5, ay: 6, isik: [1, 0.98, 0.94], siddet: 3.2, golge: 0.62, ton: 0, doygunluk: 0.05, parlaklik: 0.02, tarif: 'clear blue sky, bright midday sunlight, crisp shadows' },
+    sabah: { ad: 'Sabah — yumuşak ılık ışık', saat: 7.0, ay: 6, isik: [1, 0.86, 0.68], siddet: 2.6, golge: 0.70, ton: -0.03, doygunluk: -0.05, parlaklik: 0.05, tarif: 'early morning golden light, long soft shadows, light haze, pale blue sky' },
+    gunbatimi: { ad: 'Gün batımı — turuncu gökyüzü', saat: 17.9, ay: 6, isik: [1, 0.78, 0.58], siddet: 3.6, golge: 0.66, ton: 0, doygunluk: 0.1, parlaklik: -0.05, gok: [[0, '#33457a'], [0.4, '#8a6396'], [0.7, '#ee8f5e'], [0.9, '#ffc27a'], [1, '#ffe0a8']], tarif: 'sunset, warm orange and pink sky, golden hour light, long shadows' },
+    bulutlu: { ad: 'Bulutlu — dağınık ışık', saat: 12.5, ay: 4, isik: [0.93, 0.95, 1], siddet: 1.9, golge: 0.86, ton: 0, doygunluk: -0.6, parlaklik: -0.12, gok: [[0, '#8a949f'], [0.45, '#b4bcc4'], [1, '#dde1e5']], tarif: 'overcast sky, soft diffuse daylight, grey clouds, very soft shadows' },
+  };
+  R.ambiyans = id => R.AMBIYANS[id] || R.AMBIYANS.gunduz;
+  /* fon maskesi: "anahtar renk" (macenta) ile çizilmiş karede gökyüzü pikselinin ağırlığı (0–1). r, g, b: 0–255 */
+  R.fonAgirlik = (r, g, b) => { const k = (Math.min(r, b) - g) / 255; return k <= 0.35 ? 0 : k >= 0.85 ? 1 : (k - 0.35) / 0.5; };
   /* güneşin yerel saatine karşılık gelen UTC anı (ISO): boylamdan ortalama güneş saati farkı kullanılır */
   R.gunesAni = (ay, saat, boylam) => { const utc = (+saat) - (+boylam || 0) / 15, gun = new Date(Date.UTC(2026, Math.max(0, Math.min(11, (+ay || 6) - 1)), 21, 0, 0, 0)); gun.setTime(gun.getTime() + utc * 3600e3); return gun.toISOString(); };
 })(typeof window !== 'undefined' ? window.C : globalThis.C);
