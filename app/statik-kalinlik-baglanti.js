@@ -100,7 +100,8 @@
     const xs = [], ys = []; (kapali.length ? kapali : D).forEach(e => e.pts.forEach(p => { xs.push(p[0]); ys.push(p[1]); }));
     const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const ust = e => e.type === 'slab' ? (+e.z || 0) + (+e.t || 0.15) : (+e.zt || 0);
-    const ara = C.doc.ents.filter(e => ((e.type === 'plak' && e.kind !== 'radye' && !e.cati && e.kind !== 'cati') || e.type === 'slab') && e.pts && e.pts.length >= 3 && canli(e)).filter(e => {
+    // e.tSabit: kalınlığı bilerek farklı tutulan döşemeler (ör. pompa kaidesi, şap, galeri döşemesi) eşitlenmez
+    const ara = C.doc.ents.filter(e => ((e.type === 'plak' && e.kind !== 'radye' && !e.cati && e.kind !== 'cati') || e.type === 'slab') && !e.tSabit && e.pts && e.pts.length >= 3 && canli(e)).filter(e => {
       const z = ust(e); if (!(z < zUst - 0.3 && z > zRad + 0.3)) return false;
       const c = e.pts.reduce((a, p) => [a[0] + p[0] / e.pts.length, a[1] + p[1] / e.pts.length], [0, 0]); return c[0] > x0 && c[0] < x1 && c[1] > y0 && c[1] < y1; });
     if (ara.length < 2) return { n: 0, log };
