@@ -2,10 +2,11 @@
    KMZOUT çıktısına tesisin gerçek 3B modelini ekler: model COLLADA (.dae) olarak KMZ'nin içine gömülür ve
    sahanın gerçek koordinatına (koordinat sistemi + datum) oturtulur. Yanında:
    - deniz hattı (DENIZ_HATTI katmanındaki eksen) yüzeyde çizgi olarak,
-   - çevre binalar (C.doc.set.cevre.binalar) yarı şeffaf kutu olarak,
+   - çevre binalar (C.doc.set.cevre.binalar) yerde düz taban izi olarak (kullanıcı 3B kutu istemedi),
    - bina adları (C.doc.set.sunum.binalar) etiket olarak yazılır.
    Renkler Render kipindeki malzeme atamalarından (app/render-malzeme.js) alınır.
-   3B model Google Earth Pro'da (masaüstü) görünür; tarayıcı / telefon sürümü KMZ içindeki modeli göstermez.
+   Model varsayılan olarak KML yüzeyleri (üçgen çokgenler) ile yazılır: Google Earth'ün her sürümünde görünür.
+   COLLADA (.dae) gömme seçeneği durur (K.yaz({ dae: true })) ama onu yalnız Google Earth Pro gösterir.
    Saf kısım (dae, parcalar, kml) test/kmz3b.test.js ile Node'da denenir. */
 (function (C) {
   'use strict';
@@ -65,14 +66,42 @@
     return { parcalar, ll, ucgen: Math.round(ucgen), nesneler: ag.map(a => a.e) };
   };
 
+  /* ---------- model → KML yüzeyleri ----------
+     Google Earth'ün tarayıcı / telefon sürümü KMZ içindeki COLLADA modelini göstermez; bu yüzden model üçgen üçgen
+     KML çokgeni olarak yazılır (her sürümde görünür). Renk + gölge tonu başına bir stil ve bir çoklu geometri.
+     Kot: arazi üstü yükseklik = z − toprak (zemin altında kalan üçgenler yazılmaz). Dönen: { stil, govde, ucgen } */
+  K.yuzeyler = function (model, toprak) {
+    const R = 6378137, D = 180 / Math.PI, cl = Math.cos(model.ll[0] / D), isik = [0.42, -0.55], iL = Math.hypot(isik[0], isik[1]), grup = {}; let ucgen = 0;
+    const h2 = v => Math.max(0, Math.min(255, Math.round(v * 255))).toString(16).padStart(2, '0');
+    for (const p of model.parcalar) {
+      const r = p.renk || [0.7, 0.7, 0.7, 1], a = r[3] == null ? 1 : +r[3], q = p.pos;
+      for (let i = 0; i + 8 < q.length; i += 9) {
+        if (Math.max(q[i + 2], q[i + 5], q[i + 8]) - toprak <= 0.01) continue; // zemin altı
+        const ux = q[i + 3] - q[i], uy = q[i + 4] - q[i + 1], uz = q[i + 5] - q[i + 2], wx = q[i + 6] - q[i], wy = q[i + 7] - q[i + 1], wz = q[i + 8] - q[i + 2];
+        let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx; const L = Math.hypot(nx, ny, nz); if (!(L > 1e-10)) continue; nx /= L; ny /= L; nz /= L;
+        // Google Earth çokgenleri ışıksız çizer; yüzeyler ayırt edilsin diye yöne göre 4 kademe ton verilir (yatay yüzeyler en açık)
+        const ton = Math.abs(nz) > 0.9 ? 3 : Math.min(2, Math.floor(Math.abs(nx * isik[0] + ny * isik[1]) / iL * 3)), k = 0.70 + 0.10 * ton;
+        const renk = h2(a) + h2(r[2] * k) + h2(r[1] * k) + h2(r[0] * k), g = grup[renk] = grup[renk] || [];
+        let s = ''; for (const j of [0, 3, 6, 0]) s += (s ? ' ' : '') + (model.ll[1] + q[i + j] / (R * cl) * D).toFixed(8) + ',' + (model.ll[0] + q[i + j + 1] / R * D).toFixed(8) + ',' + (Math.max(0, q[i + j + 2] - toprak) + 0.05).toFixed(2);
+        g.push('<Polygon><altitudeMode>relativeToGround</altitudeMode><outerBoundaryIs><LinearRing><coordinates>' + s + '</coordinates></LinearRing></outerBoundaryIs></Polygon>'); ucgen++;
+      }
+    }
+    const adlar = Object.keys(grup);
+    return { ucgen, stil: adlar.map(c => '<Style id="k3y' + c + '"><LineStyle><width>0</width><color>00000000</color></LineStyle><PolyStyle><color>' + c + '</color><fill>1</fill><outline>0</outline></PolyStyle></Style>').join('\n'), govde: adlar.map(c => '<Placemark><styleUrl>#k3y' + c + '</styleUrl><MultiGeometry>' + grup[c].join('') + '</MultiGeometry></Placemark>').join('\n') };
+  };
+
   /* ---------- KML ekleri: model yerleşimi, deniz hattı, çevre binalar, bina adları ----------
-     model: K.parcalar sonucu (ya da null) · Dönen: <Document> içine eklenecek metin */
-  K.kml = function (doc, model) {
+     model: K.parcalar sonucu (ya da null) · o.dae: model COLLADA dosyası olarak bağlanır (yalnız Google Earth Pro); yoksa KML yüzeyleri
+     o.cevre3b: çevre binalar yükseltilmiş kutu olur (varsayılan: yerde düz taban izi) · Dönen: <Document> içine eklenecek metin */
+  K.kml = function (doc, model, o) {
+    o = o || {};
     const G = C.geo, set = doc.set || {}, out = [], ll6 = p => { const q = G.toLL(p); return q[1].toFixed(8) + ',' + q[0].toFixed(8); };
     out.push('<Style id="k3hat"><LineStyle><color>ffff9a1e</color><width>5</width></LineStyle></Style>');
     out.push('<Style id="k3bina"><LineStyle><color>b3805433</color><width>1.2</width></LineStyle><PolyStyle><color>4dd9b38c</color></PolyStyle></Style>');
     out.push('<Style id="k3ad"><IconStyle><scale>0</scale></IconStyle><LabelStyle><scale>0.9</scale></LabelStyle></Style>');
-    if (model) {
+    const toprak0 = set.seviye && isFinite(+set.seviye.toprak) ? +set.seviye.toprak : 0;
+    if (model && !o.dae) { const y = K.yuzeyler(model, toprak0); out.push(y.stil); out.push(`<Folder><name>${xml(set.name || 'Tesis')} — 3B model</name><description>${y.ucgen} yüzey</description>\n${y.govde}\n</Folder>`); }
+    else if (model) {
       // model kot 0 = proje ±0,00; projede toprak kotu tanımlıysa arazi o kota oturur
       const toprak = set.seviye && isFinite(+set.seviye.toprak) ? +set.seviye.toprak : 0;
       out.push(`<Placemark><name>${xml(set.name || 'Tesis')} — 3B model</name><description>${model.ucgen} üçgen · yalnız Google Earth Pro'da görünür</description><Model><altitudeMode>relativeToGround</altitudeMode><Location><longitude>${model.ll[1].toFixed(8)}</longitude><latitude>${model.ll[0].toFixed(8)}</latitude><altitude>${(-toprak).toFixed(2)}</altitude></Location><Orientation><heading>0</heading><tilt>0</tilt><roll>0</roll></Orientation><Scale><x>1</x><y>1</y><z>1</z></Scale><Link><href>models/tesis.dae</href></Link></Model></Placemark>`);
@@ -86,16 +115,16 @@
       out.push('<Folder><name>Deniz hattı</name>\n' + H.gruplar.map(g => `<Placemark><name>${xml((g.ana && H.set.ad ? H.set.ad + ' — ' : '') + ad(g))}</name><description>${xml('Uzunluk ' + Math.round(boy(g.eksen)) + ' m · boru toprak altındadır, çizgi güzergâhı gösterir')}</description><styleUrl>#k3hat</styleUrl><LineString><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><coordinates>${g.eksen.map(p => ll6(p) + ',0').join(' ')}</coordinates></LineString></Placemark>`).join('\n') + '\n</Folder>');
     }
     const cv = set.cevre && set.cevre.binalar;
-    if (cv && cv.length) out.push('<Folder><name>Çevre binalar</name>' + (set.cevre.kaynak ? `<description>${xml(set.cevre.kaynak)}</description>` : '') + '\n' + cv.filter(b => b && b.p && b.p.length > 2).map(b => { const h = (+b.h || 7).toFixed(1); return `<Placemark><styleUrl>#k3bina</styleUrl><Polygon><extrude>1</extrude><altitudeMode>relativeToGround</altitudeMode><outerBoundaryIs><LinearRing><coordinates>${[...b.p, b.p[0]].map(p => ll6(p) + ',' + h).join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`; }).join('\n') + '\n</Folder>');
+    if (cv && cv.length) out.push('<Folder><name>Çevre binalar</name>' + (set.cevre.kaynak ? `<description>${xml(set.cevre.kaynak)}</description>` : '') + '\n' + cv.filter(b => b && b.p && b.p.length > 2).map(b => { const h = (+b.h || 7).toFixed(1); return `<Placemark><styleUrl>#k3bina</styleUrl><Polygon>${o.cevre3b ? '<extrude>1</extrude><altitudeMode>relativeToGround</altitudeMode>' : '<tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode>'}<outerBoundaryIs><LinearRing><coordinates>${[...b.p, b.p[0]].map(p => ll6(p) + ',' + (o.cevre3b ? h : '0')).join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`; }).join('\n') + '\n</Folder>');
     return out.join('\n');
   };
 
   /* ---------- KMZ ---------- Dönen: { veri: Uint8Array, ucgen, model: true/false } */
   K.yaz = function (opts) {
-    const doc = C.doc, model = K.parcalar(doc, opts), dae = model ? K.dae(model.parcalar) : null, mod = dae ? model : null;
+    opts = opts || {}; const doc = C.doc, model = K.parcalar(doc, opts), dae = model && opts.dae ? K.dae(model.parcalar) : null, mod = model && (dae || !opts.dae) ? model : null;
     const girdi = mod ? new Set(mod.nesneler) : null, hat = e => /^DENIZ_HATTI/i.test(e.layer || '');
     // 3B modele giren nesneler ve deniz hattı ekseni ayrıca düz çizgi olarak yazılmaz
-    const kml = C.kmlWrite(Object.assign({}, opts, { ents: doc.ents.filter(e => !(girdi && girdi.has(e)) && !hat(e)), ek: K.kml(doc, mod) }));
+    const kml = C.kmlWrite(Object.assign({}, opts, { ents: doc.ents.filter(e => !(girdi && girdi.has(e)) && !hat(e)), ek: K.kml(doc, mod, opts) }));
     const dosyalar = [{ name: 'doc.kml', data: kml }]; if (dae) dosyalar.push({ name: 'models/tesis.dae', data: dae });
     return { veri: C.zip(dosyalar), ucgen: mod ? mod.ucgen : 0, model: !!mod };
   };

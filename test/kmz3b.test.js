@@ -37,10 +37,17 @@ t('SW2 projesi: KML eki — model toprak kotuna oturur, hat ve çevre binalar ya
   const tr = e => e.type === 'perde' || e.type === 'plak' ? kutu(112990, 3556660, 0, 10) : null, m = K.parcalar(doc, { tris: tr });
   yak(m.ll[0], 32.13175, 0.0006); yak(m.ll[1], 20.07757, 0.0006);
   for (const p of m.parcalar) assert.ok(p.renk.length >= 3 && p.renk.every(v => v >= 0 && v <= 1));
+  const kd = K.kml(doc, m, { dae: true, cevre3b: true });
+  assert.ok(/<altitude>-0\.38<\/altitude>/.test(kd) && /<href>models\/tesis\.dae<\/href>/.test(kd) && /<heading>0<\/heading>/.test(kd));
+  assert.strictEqual((kd.match(/<extrude>1<\/extrude>/g) || []).length, doc.set.cevre.binalar.length);
   const k = K.kml(doc, m);
-  assert.ok(/<altitude>-0\.38<\/altitude>/.test(k) && /<href>models\/tesis\.dae<\/href>/.test(k) && /<heading>0<\/heading>/.test(k));
+  assert.ok(!/<Model>/.test(k) && !/<extrude>/.test(k), 'varsayılan: yüzeyli model, çevre binalar düz');
+  // 10 m'lik kutu, toprak 0,38: taban yüzü zemin altında → yazılmaz; üst yüz 9,62 + 0,05 m
+  const yuk = [...k.matchAll(/relativeToGround<\/altitudeMode><outerBoundaryIs><LinearRing><coordinates>([^<]*)</g)].flatMap(x => x[1].split(' ').map(c => +c.split(',')[2]));
+  assert.ok(yuk.length > 0 && Math.min(...yuk) >= 0.05 - 1e-9); yak(Math.max(...yuk), 9.67, 0.011);
+  const ilk = /relativeToGround<\/altitudeMode><outerBoundaryIs><LinearRing><coordinates>([^ ]*)/.exec(k)[1].split(',').map(Number); yak(ilk[0], 20.0776, 0.002); yak(ilk[1], 32.1317, 0.002);
   assert.ok(/2×DN1400 \+ 1×DN900/.test(k), 'ana hat adı'); assert.ok(/Uzunluk 66\d m/.test(k), 'hat uzunluğu ≈ 661 m');
-  assert.strictEqual((k.match(/<extrude>1<\/extrude>/g) || []).length, doc.set.cevre.binalar.length);
+  assert.strictEqual((k.match(/clampToGround<\/altitudeMode><outerBoundaryIs>/g) || []).length, doc.set.cevre.binalar.length);
   assert.ok(/<name>GÜVENLİK BİNASI<\/name>/.test(k) && /Toplam yağmur suyu kapasitesi/.test(k));
   const hat = /<LineString>.*?<coordinates>([^<]*)</.exec(k)[1].split(' ')[0].split(',').map(Number); yak(hat[0], 20.0776, 0.002); yak(hat[1], 32.1317, 0.002);
   assert.ok(!/<Model>/.test(K.kml(doc, null))); // model yoksa yalnız ekler
