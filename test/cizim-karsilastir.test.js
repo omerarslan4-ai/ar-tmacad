@@ -14,7 +14,7 @@ const dogru = () => { const P = bos();
   P.yazilar = { Mim_Yazi25: { 'YZ | 10': 3, 'YZ | 12.5': 1, 'YZ | 6': 2 } };
   P.olcuStilleri = { '50': { DIMTAD: 1, DIMTIH: 0, DIMTOH: 0, DIMDEC: 2, yaziStili: 'OL', ok: '_ArchTick' } };
   P.olculer = { '50': { adet: 4, katman: { 'ÖL': 4 }, tur: {}, uzaklik: {}, elleYazi: 0 } };
-  P.bloklar = { CK_TR1: { adet: 2, katman: { Kot: 2 } } }; P.taramalar = { Tarama: { 'AR-SAND': 1 } }; P.uzay.model = 8; return P; };
+  P.bloklar = { CK_TR1: { adet: 2, katman: { Kot: 2 } } }; P.taramalar = { Tarama: { DASH: 1 } }; P.uzay.model = 8; return P; };
 const konular = R => R.bulgular.map(b => b.duzey + ':' + b.konu + ':' + b.yer);
 
 t('örnek paftalara uyan çizim UYGUN çıkar; mekanik katmanlar ve "0" katmanı denetime girmez', () => {
@@ -48,7 +48,7 @@ t('ölçü: katman, eğik tik, yazı üstte ve hizalı, yazı stili, ondalık', 
   const k = konular(denetle(P, K)); assert.deepStrictEqual(k, ['HATA:ölçü katmanı:50', 'HATA:ölçü ucu:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü ondalığı:50', 'HATA:ölçü yazısı:50']);
 });
 t('kot bloğu ve tarama deseni', () => {
-  const P = dogru(); P.bloklar.KOT101 = { adet: 3, katman: { Kot: 3 } }; P.bloklar.CK_TR1.katman = { Kot: 1, Beton: 1 }; P.taramalar.Tarama = { 'AR-SAND': 2, DASH: 5, SOLID: 1, ANSI36: 4 }; P.taramalar.Beton = { SOLID: 1 };
+  const P = dogru(); P.bloklar.KOT101 = { adet: 3, katman: { Kot: 3 } }; P.bloklar.CK_TR1.katman = { Kot: 1, Beton: 1 }; P.taramalar.Tarama = { DASH: 5, SOLID: 1, 'AR-SAND': 2 }; P.taramalar.Beton = { SOLID: 1 };
   assert.deepStrictEqual(konular(denetle(P, K)), ['HATA:kot işareti:KOT101', 'HATA:kot işareti:CK_TR1', 'HATA:tarama deseni:Tarama', 'UYARI:tarama:Beton']);
 });
 console.log(`\n${n} test geçti.`);

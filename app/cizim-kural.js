@@ -79,8 +79,8 @@
       },
     },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
-    /* katman → izin verilen tarama desenleri (karar 8: kesit taraması AR-SAND, DASH ya da SOLID; ANSI36 / ANSI31 kullanılmaz) */
-    tarama: { 'Tarama': ['AR-SAND', 'DASH', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
+    /* katman → izin verilen tarama desenleri (karar 8: kesit taraması DASH ya da SOLID; AR-SAND / ANSI36 / ANSI31 kullanılmaz) */
+    tarama: { 'Tarama': ['DASH', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
   };
   K.disiplin = ad => K[String(ad || '').toLocaleUpperCase('en').replace('İ', 'I')] || null;
   /* katmanın kuralı; yoksa null. es: eski ad verildiyse standart adı da döner */
