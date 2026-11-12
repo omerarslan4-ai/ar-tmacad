@@ -204,18 +204,18 @@
     const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.tileset || !v.scene.sampleHeightSupported || g3.h0 == null || durum.profilBekliyor) return;
     const is = []; H.gruplar.forEach((g, gi) => { const ek = S.sik(g.eksen, 15), k = eksenAnahtar(ek, gi); if (!(durum.profil && durum.profil[k]) && !(durum.profilDenendi && durum.profilDenendi[k])) is.push({ ek, k }); });
     if (!is.length) return; durum.profilBekliyor = true; durum.profilDenendi = durum.profilDenendi || {};
+    g3.ornekBasla && g3.ornekBasla();
     try {
-      g3.tileset.clippingPolygons = undefined; // kesilen hendeğin içini değil zemini oku (geri kurma: aşağıda kesimYenile — çıkarılan koleksiyon yok edildiği için eskisi geri takılmaz)
       for (const { ek, k } of is) {
         durum.profilDenendi[k] = true;
-        const golge = v.shadows; v.shadows = false; let r; try { r = await v.scene.sampleHeightMostDetailed(ek.map(p => { const ll = G.toLL(p); return Cs.Cartographic.fromDegrees(ll[1], ll[0]); }), g3.model ? [g3.model] : []); } finally { v.shadows = golge; }
+        const r = await v.scene.sampleHeightMostDetailed(ek.map(p => { const ll = G.toLL(p); return Cs.Cartographic.fromDegrees(ll[1], ll[0]); }), g3.model ? [g3.model] : []);
         const taban = (g3.h0 || 0) + (g3.dh || 0), ham = r.map(c => c && isFinite(c.height) ? c.height - taban : null); if (ham.filter(x => x != null).length < ham.length * 0.8) continue;
         const ilkDolu = ham.find(y => y != null), dolu = []; ham.forEach((x, i) => dolu.push(x != null ? x : (i ? dolu[i - 1] : ilkDolu)));
         const orta = dolu.map((_, i) => { const w = dolu.slice(Math.max(0, i - 2), i + 3).sort((a, b) => a - b); return w[Math.floor((w.length - 1) / 2)]; }); // araç / ağaç / bina sıçramaları: 5'li alt ortanca
         (durum.profil = durum.profil || {})[k] = orta.map(x => +x.toFixed(2));
       }
     } catch (err) { console.warn(err); }
-    try { if (g3.kesimYenile) g3.kesimYenile(); } catch (err) { console.warn(err); }
+    try { g3.ornekBitir && g3.ornekBitir(); } catch (err) { console.warn(err); }
     durum.profilBekliyor = false;
     if (durum.profil && is.some(x => durum.profil[x.k])) { const b = $('#g3Re'); if (b) b.click(); }
   };
@@ -315,6 +315,10 @@
     const Cs = window.Cesium, coll = g3.model; durum.mats = []; durum.eksen = null; durum.boy = 0; g3.ekKesim = [];
     if (!Cs || !coll || !g3.toENU || !C.doc) return;
     let nb = 0, nh = 0;
+    { const zem = C.doc.ents.filter(e => e.type === 'plak' && e.layer === 'SAHA_ZEMIN' && e.pts && e.pts.length > 2 && C.layer(e.layer).on);
+      g3.sahaHalka = zem.map(e => S.oteleKapali(e.pts, 0.25));
+      if (zem.length) { const pos = [], nrm = []; for (const e of zem) { const b = S.bordur(e.pts, 0.25, -4, (+e.zt || 0) - 0.02, false); if (b) { pos.push(...b.pos); nrm.push(...b.nrm); } }
+        if (pos.length) coll.add(new Cs.Primitive({ geometryInstances: new Cs.GeometryInstance({ geometry: geomUcgen(Cs, enuDizi(pos), enuYon(nrm)), attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(0.47, 0.41, 0.33, 1)) } }), appearance: new Cs.PerInstanceColorAppearance({ flat: true, translucent: false, closed: false }), asynchronous: false })); } }
     try { kurGercek(Cs, coll); } catch (err) { console.warn(err); }
     // --- çevre binalar ---
     const cv = C.doc.set.cevre;
@@ -393,6 +397,7 @@
     S.son = { bina: nb, boru: nh };
   };
   C.on('g3dmodel', kur);
+  C.on('g3dzemin', () => { const b = $('#g3Re'); if (b) setTimeout(() => b.click(), 50); }); // kot 0 değişti: hendek ve borular yeni zemine göre yeniden kurulur
 
   /* ---------- animasyon ---------- */
   const dunya = (p, z) => { const Cs = window.Cesium, q = g3.toENU(p[0], p[1], z || 0), h = (g3.h0 == null ? 0 : g3.h0) + (g3.dh || 0); return Cs.Matrix4.multiplyByPoint(Cs.Transforms.eastNorthUpToFixedFrame(Cs.Cartesian3.fromDegrees(g3.ll[1], g3.ll[0], h)), new Cs.Cartesian3(q[0], q[1], q[2]), new Cs.Cartesian3()); };

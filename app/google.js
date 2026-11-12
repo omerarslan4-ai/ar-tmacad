@@ -162,32 +162,45 @@
   /* Google modelinde tesis alanını kes (gömülü havuzlar görünsün) */
   const applyClip = () => {
     const Cs = window.Cesium, ts = g3.tileset, v = g3.viewer; if (!Cs || !v) return;
+    if (g3.ornek > 0) { g3.kesimBekliyor = true; return; } // zemin okunurken kesim kurulmaz: ekran dışı okuma geçişinde yeni kesimin dokusu hazırlanamaz, çizim çöker
     try {
       if (!Cs.ClippingPolygonCollection) return;
       const hal = (g3.ekKesim || []).filter(r => r && r.length > 2); // saha3b.js: hat hendekleri (çizim koordinatı halkalar)
       const poly = ring => new Cs.ClippingPolygon({ positions: ring.map(p => { const q = G.toLL(p); return Cs.Cartesian3.fromDegrees(q[1], q[0]); }) });
       if (ts) {
         const ps = hal.map(poly);
-        if (g3.clip && g3.bb) { const m = 1, b = g3.bb; ps.push(poly([[b[0] - m, b[1] - m], [b[2] + m, b[1] - m], [b[2] + m, b[3] + m], [b[0] - m, b[3] + m]])); }
+        if (g3.clip && g3.bb) { // tesis alanı: saha sınırı biliniyorsa onunla (saha3b.js), yoksa modelin sınır kutusuyla
+          const sh = (g3.sahaHalka || []).filter(r => r && r.length > 2), m = 1, b = g3.bb;
+          if (sh.length) for (const r of sh) ps.push(poly(r)); else ps.push(poly([[b[0] - m, b[1] - m], [b[2] + m, b[1] - m], [b[2] + m, b[3] + m], [b[0] - m, b[3] + m]]));
+        }
         ts.clippingPolygons = ps.length ? new Cs.ClippingPolygonCollection({ polygons: ps }) : undefined;
       }
       const gl = v.scene.globe; if (gl) gl.clippingPolygons = hal.length ? new Cs.ClippingPolygonCollection({ polygons: hal.map(poly) }) : undefined;
       v.scene.requestRender();
     } catch (err) { console.warn(err); }
   };
-  g3.kesimYenile = applyClip; // saha3b.js: kesim kaldırıldıktan sonra YENİ koleksiyonla geri kurulur (Cesium çıkarılan koleksiyonu yok eder; eskisi geri takılamaz)
+  g3.kesimYenile = applyClip;
+  /* zemin okuma (sampleHeight) kapısı: okuma sürerken harita kesimi ve gölge kapalı tutulur; son okuma bitince geri kurulur */
+  g3.ornek = 0;
+  g3.ornekBasla = () => { const v = g3.viewer; g3.ornek++; if (g3.ornek === 1 && v) { g3._golge = v.shadows; v.shadows = false; } if (g3.tileset) g3.tileset.clippingPolygons = undefined; };
+  g3.ornekBitir = () => { const v = g3.viewer; g3.ornek = Math.max(0, g3.ornek - 1); if (g3.ornek) return; if (v) v.shadows = !!g3._golge && !(C.saha3b && C.saha3b.durum && C.saha3b.durum.golgeYok); g3.kesimBekliyor = false; applyClip(); };
   const sampleGround = async () => {
     const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.ll) return;
     if (!v.scene.sampleHeightSupported) { status('Bu ekran kartında zemin yüksekliği okunamıyor; "Kot 0 yüksekliği"ni elle girin.', true); return; }
     status('Zemin yüksekliği okunuyor…');
     try {
-      const pts = [Cs.Cartographic.fromDegrees(g3.ll[1], g3.ll[0])];
+      // merkez + model çevresinde 8 nokta: mevcut bina / araç üstüne denk gelen okumalar ayıklansın diye alt yarının ortancası alınır
+      const b = g3.bb, xy = [g3.origin || [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]]; if (b) { const mx = (b[0] + b[2]) / 2, my = (b[1] + b[3]) / 2, e = 3; xy.push([b[0] - e, b[1] - e], [mx, b[1] - e], [b[2] + e, b[1] - e], [b[2] + e, my], [b[2] + e, b[3] + e], [mx, b[3] + e], [b[0] - e, b[3] + e], [b[0] - e, my]); }
+      const pts = xy.map(p => { const q = G.toLL(p); return Cs.Cartographic.fromDegrees(q[1], q[0]); });
       const ex = g3.model ? [g3.model] : [];
-      const clip = g3.tileset && g3.tileset.clippingPolygons; if (g3.tileset) g3.tileset.clippingPolygons = undefined; // kesilen alanın içini değil zemini oku
-      const golge = v.shadows; v.shadows = false; let r; try { r = await v.scene.sampleHeightMostDetailed(pts, ex); } finally { v.shadows = golge; } // gölge açıkken yükseklik okuması çizimi çökertebiliyor
-      if (g3.tileset && clip) applyClip();
-      if (r && r[0] && r[0].height != null && isFinite(r[0].height)) { g3.h0 = r[0].height; placeModel(); updUi(); status(`Zemin (elipsoit) yüksekliği ${g3.h0.toFixed(2)} m okundu; tesisin kot 0'ı buraya oturtuldu. Gerekirse "Yükseklik düzeltme" ile ayarlayın.`); }
-      else status('Zemin yüksekliği okunamadı (Google modeli bu noktada henüz yüklenmemiş olabilir). Biraz yaklaşıp tekrar deneyin.', true);
+      g3.ornekBasla(); let r; try { r = await v.scene.sampleHeightMostDetailed(pts, ex); } finally { g3.ornekBitir(); }
+      const hs = (r || []).map(c => c && c.height).filter(h => h != null && isFinite(h)).sort((a, c) => a - c);
+      if (hs.length) {
+        const alt = hs.slice(0, Math.max(1, Math.ceil(hs.length / 2))), zemin = alt[Math.floor((alt.length - 1) / 2)];
+        const toprak = C.doc && C.doc.set.seviye && isFinite(+C.doc.set.seviye.toprak) ? +C.doc.set.seviye.toprak : 0; // projede toprak kotu tanımlıysa kot 0 ona göre oturur
+        g3.h0 = zemin - toprak; placeModel(); updUi(); status('Zemin (elipsoit) yüksekliği ' + zemin.toFixed(2) + ' m okundu (' + hs.length + ' nokta); tesisin toprak kotu (' + toprak.toFixed(2) + ') buraya oturtuldu. Gerekirse "±" ile ayarlayın.');
+        C.emit('g3dzemin', g3);
+      } else status('Zemin yüksekliği okunamadı (Google modeli bu noktada henüz yüklenmemiş olabilir). Biraz yaklaşıp tekrar deneyin.', true);
     } catch (err) { status('Zemin okunamadı: ' + (err.message || err), true); }
   };
   const flyToModel = () => {
