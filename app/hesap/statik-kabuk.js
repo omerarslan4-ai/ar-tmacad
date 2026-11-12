@@ -77,6 +77,34 @@
     return out;
   };
 
+  /* ---------- 3B ÇUBUK (kolon / kiriş) — Euler–Bernoulli, 12 serbestlik ----------
+     Yerel eksenler: 1 = çubuk ekseni, 2 = güçlü eğilmede yer değiştirme yönü (perde normali / düşey), 3 = 1×2.
+     Kesit: A, I3 (2 yönünde yer değiştirmeye karşı, M3), I2 (3 yönünde, M2), J. Perdeye / döşemeye gömülü elemanlarda
+     yalnız perde / döşeme dışına taşan kısım (kaburga) alınır, eğilme rijitliği orta düzleme göre (paralel eksen). */
+  const cubukEksen = (A, B, ref) => { const e1 = nrm(sub(B, A)); let r = sub(ref, mul(e1, dot(ref, e1))); if (Math.hypot(...r) < 1e-6) r = Math.abs(e1[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]; const e2 = nrm(sub(r, mul(e1, dot(r, e1)))); return [e1, e2, cross(e1, e2)]; };
+  const cubukKl = (L, E, G, s) => { // yerel 12×12 (u1 u2 u3 θ1 θ2 θ3 | j ucu)
+    const K = new Float64Array(144), k = (i, j, v) => { K[i * 12 + j] += v; if (i !== j) K[j * 12 + i] += v; };
+    const a = E * s.A / L, t = G * s.J / L; k(0, 0, a); k(6, 6, a); k(0, 6, -a); k(3, 3, t); k(9, 9, t); k(3, 9, -t);
+    const b3 = E * s.I3, L2 = L * L, L3 = L2 * L; // 1–2 düzlemi (u2, θ3)
+    k(1, 1, 12 * b3 / L3); k(7, 7, 12 * b3 / L3); k(1, 7, -12 * b3 / L3); k(1, 5, 6 * b3 / L2); k(1, 11, 6 * b3 / L2); k(7, 5, -6 * b3 / L2); k(7, 11, -6 * b3 / L2); k(5, 5, 4 * b3 / L); k(11, 11, 4 * b3 / L); k(5, 11, 2 * b3 / L);
+    const b2 = E * s.I2; // 1–3 düzlemi (u3, θ2)
+    k(2, 2, 12 * b2 / L3); k(8, 8, 12 * b2 / L3); k(2, 8, -12 * b2 / L3); k(2, 4, -6 * b2 / L2); k(2, 10, -6 * b2 / L2); k(8, 4, 6 * b2 / L2); k(8, 10, 6 * b2 / L2); k(4, 4, 4 * b2 / L); k(10, 10, 4 * b2 / L); k(4, 10, 2 * b2 / L);
+    return K; };
+  const cubukKg = (X, E, nu, s, ref) => { const L = Math.hypot(...sub(X[1], X[0])), R = cubukEksen(X[0], X[1], ref), Kl = cubukKl(L, E, E / 2 / (1 + nu), s), Kg = new Float64Array(144), tmp = new Float64Array(144);
+    for (let a = 0; a < 12; a++) for (let B2 = 0; B2 < 4; B2++) for (let q = 0; q < 3; q++) { let v = 0; for (let k = 0; k < 3; k++) v += Kl[a * 12 + B2 * 3 + k] * R[k][q]; tmp[a * 12 + B2 * 3 + q] = v; }
+    for (let A2 = 0; A2 < 4; A2++) for (let p = 0; p < 3; p++) for (let b = 0; b < 12; b++) { let v = 0; for (let k = 0; k < 3; k++) v += R[k][p] * tmp[(A2 * 3 + k) * 12 + b]; Kg[(A2 * 3 + p) * 12 + b] = v; }
+    return { Kg, Kl, R, L }; };
+  // düzgün yayılı yük ql (yerel, kN/m) için eşdeğer düğüm yükleri (yerel 12)
+  const cubukFeq = (L, q) => [q[0] * L / 2, q[1] * L / 2, q[2] * L / 2, 0, -q[2] * L * L / 12, q[1] * L * L / 12, q[0] * L / 2, q[1] * L / 2, q[2] * L / 2, 0, q[2] * L * L / 12, -q[1] * L * L / 12];
+  /* kaburga kesiti: genişlik w (levhaya paralel), levha orta düzlemine dik yönde [y0, y1] aralığı; levha [−t/2, t/2] içindeki kısım düşülür */
+  P.kaburgaKesit = (w, y0, y1, t) => {
+    const pr = []; if (y0 < -t / 2) pr.push([y0, Math.min(y1, -t / 2)]); if (y1 > t / 2) pr.push([Math.max(y0, t / 2), y1]);
+    const hD = pr.reduce((s, [a, b]) => s + (b - a), 0); if (!(hD > 1e-4)) return null;
+    const I3 = w * pr.reduce((s, [a, b]) => s + (b ** 3 - a ** 3) / 3, 0), hm = Math.max(...pr.map(([a, b]) => b - a)), mn = Math.min(w, hm), mx = Math.max(w, hm);
+    return { A: w * hD, I3, I2: hD * w ** 3 / 12, J: mn ** 3 * mx * (1 / 3 - 0.21 * mn / mx * (1 - mn ** 4 / 12 / mx ** 4)), hD };
+  };
+  P.dikdortgenKesit = (b, h) => { const mn = Math.min(b, h), mx = Math.max(b, h); return { A: b * h, I3: b * h ** 3 / 12, I2: h * b ** 3 / 12, J: mn ** 3 * mx * (1 / 3 - 0.21 * mn / mx * (1 - mn ** 4 / 12 / mx ** 4)) }; };
+
   /* ---------- seyrek (skyline) LDLᵀ — Bathe COLSOL ---------- */
   function Skyline(n, colMin) { // colMin[j]: j sütununda ilk sıfırdan farklı satır (üst üçgen)
     const ptr = new Float64Array(n + 1); for (let j = 0; j < n; j++) ptr[j + 1] = ptr[j] + (j - colMin[j] + 1);
@@ -126,10 +154,31 @@
         for (const v of W) { if (v === w) continue; const n = v.kapali ? v.P.length : v.P.length - 1; for (let i = 0; i < n; i++) { const a = v.P[i], b = v.P[(i + 1) % v.P.length], pr = projSeg(q, a, b); if (pr.d < (v.t + w.t) / 2 + 0.15 && (!best || pr.d < best.d)) best = { v, i, r: pr.r, d: pr.d }; } }
         if (best) { let r = best.r; const a = best.v.P[best.i], b = best.v.P[(best.i + 1) % best.v.P.length]; if (Math.hypot(r[0] - a[0], r[1] - a[1]) < 0.02) r = a.slice(); else if (Math.hypot(r[0] - b[0], r[1] - b[1]) < 0.02) r = b.slice(); else best.v.kir.push({ i: best.i, r });
           if (uc) w.P[w.P.length - 1] = r; else w.P[0] = r; } } }
+    /* kolonlar (M.kolonlar: x, y merkez, bx / by ya da D, z0, zt): perde ekseninden (t + kolon derinliği)/2 içinde olan kolon
+       o perdeye gömülüdür — perde ağına o noktada düşey düğüm sırası açılır, perde dışına taşan kısmı kaburga çubuk olur
+       (perdeyi düşeyde taşır). Perdeye değmeyen kolon tam kesitli serbest düşey çubuktur (radyeye, varsa üstteki döşemeye bağlı). */
+    const KOL = [];
+    for (const c of (M.kolonlar || [])) {
+      const bx = c.D ? c.D : +c.bx || 0.4, by = c.D ? c.D : +c.by || 0.4, q = [c.x, c.y]; let best = null;
+      for (const w of W) { const n = w.kapali ? w.P.length : w.P.length - 1;
+        for (let i = 0; i < n; i++) { const a = w.P[i], b = w.P[(i + 1) % w.P.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1e-6) continue;
+          const u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], nv = [-u[1], u[0]], s = (q[0] - a[0]) * u[0] + (q[1] - a[1]) * u[1], off = (q[0] - a[0]) * nv[0] + (q[1] - a[1]) * nv[1];
+          const boy = Math.abs(u[0]) * bx + Math.abs(u[1]) * by, dik = Math.abs(nv[0]) * bx + Math.abs(nv[1]) * by;
+          if (s < -boy / 2 || s > L + boy / 2 || Math.abs(off) > (w.t + dik) / 2 - 0.01) continue;
+          if (!best || Math.abs(off) < Math.abs(best.off)) best = { w, i, s: Math.max(0, Math.min(L, s)), L, a, u, nv, off, boy, dik }; } }
+      if (best) { const { w, i, s, L, a, u } = best; let r = [a[0] + u[0] * s, a[1] + u[1] * s];
+        if (s < 0.05) r = a.slice(); else if (s > L - 0.05) r = w.P[(i + 1) % w.P.length].slice(); else w.kir.push({ i, r });
+        best.r = r; }
+      KOL.push({ c, bx, by, g: best });
+    }
     // döşemeler altındaki perdelerin üst kotu = döşeme orta düzlemi
     const pip = (q, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
     const dos = (M.dosemeler || []).map(d => ({ ...d, zm: d.zt - d.t / 2 }));
-    for (const w of W) { const m = w.P[Math.floor(w.P.length / 2)]; const d = dos.find(d0 => Math.abs(d0.zt - w.zt) < d0.t + 0.05 && w.P.some(p => pip(p, d0.pts) || pip([p[0] + 0.01, p[1] + 0.01], d0.pts))); w.ztm = d ? d.zm : w.zt; w.dos = d || null; void m; }
+    // döşeme kenarı çoğunlukla perde iç yüzündedir: perde ekseni döşeme poligonunun dışında kalır — perde yarı kalınlığı (+10 cm) kadar yakınlık yeterli
+    const polyUz = (q, poly) => { let m = Infinity; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; m = Math.min(m, projSeg(q, a, b).d); } return m; };
+    const dosta = (q, d0, w) => pip(q, d0.pts) || polyUz(q, d0.pts) <= w.t / 2 + 0.1;
+    const segOrnek = w => { const out = []; const n = w.kapali ? w.P.length : w.P.length - 1; for (let i = 0; i < n; i++) { const a = w.P[i], b = w.P[(i + 1) % w.P.length]; for (let k = 0; k <= 10; k++) out.push([a[0] + (b[0] - a[0]) * k / 10, a[1] + (b[1] - a[1]) * k / 10]); } return out; };
+    for (const w of W) { const d = dos.find(d0 => Math.abs(d0.zt - w.zt) < d0.t + 0.05 && segOrnek(w).some(p => dosta(p, d0, w))); w.ztm = d ? d.zm : w.zt; w.dos = d || null; }
     // kot seviyeleri
     const lv = new Set([zr]); for (const w of W) lv.add(+w.ztm.toFixed(4)); for (const z of (o.kotlar || [])) if (z > zr && z < Math.max(...W.map(w => w.ztm))) lv.add(+z.toFixed(4));
     const L0 = [...lv].sort((a, b) => a - b), duvarUst = new Set(W.map(w => +w.ztm.toFixed(4))), L1 = [L0[0]];
@@ -167,14 +216,39 @@
       for (let k = 0; k < 4; k++) if (e.n[k] === s) return; // zaten ortak düğüm
       ties.push({ s, m: e.n, N }); };
     const tabanD = new Set(), ustD = new Map();
-    for (const w of W) { for (const q of w.S) tabanD.add(nod(q[0], q[1], zr)); if (w.dos) { const k = dos.indexOf(w.dos); for (const q of w.S) ustD.set(nod(q[0], q[1], w.ztm), k); } }
+    for (const w of W) { for (const q of w.S) tabanD.add(nod(q[0], q[1], zr)); if (w.dos) { const k = dos.indexOf(w.dos); for (const q of w.S) if (dosta(q, w.dos, w)) ustD.set(nod(q[0], q[1], w.ztm), k); } } // döşemenin olmadığı perde üstü (ör. boşluk kenarı) serbest kalır
     for (const s of tabanD) bagla(s, RG);
     for (const [s, k] of ustD) bagla(s, DG[k]);
-    /* döşeme altındaki kirişler: döşeme ağında kiriş eksenine en yakın düğüm sırası düşey mesnet (kiriş + kolon rijit mesnet kabulü — dikdörtgen hesaptaki gibi) */
-    const mes = new Set(); for (const kb of (M.kirisler || [])) DG.forEach((g, k) => { const d = dos[k]; if (!(kb.zt <= d.zt + 0.15 && kb.zt >= d.zt - d.t - 0.15)) return; const a = kb.a, b = kb.b, dd = [b[0] - a[0], b[1] - a[1]], L2 = dd[0] * dd[0] + dd[1] * dd[1] || 1, tol = Math.max(g.dx, g.dy) * 0.51;
-      for (const e of g.list) for (const n of e.n) { const p = nodes[n], u = ((p[0] - a[0]) * dd[0] + (p[1] - a[1]) * dd[1]) / L2; if (u < -0.02 || u > 1.02) continue; if (Math.hypot(a[0] + dd[0] * u - p[0], a[1] + dd[1] * u - p[1]) <= tol) mes.add(n); } });
+    /* çubuklar: { n:[i,j], s: kesit, ref: güçlü eğilme yönü, ad, tur:'kolon'|'kiris', id } */
+    const bars = [], uyarC = [];
+    const cubuk = (i, j, s, ref, ad, tur, id) => { if (i !== j) bars.push({ n: [i, j], s, ref, ad, tur, id }); };
+    // kolonlar
+    const zUst = Math.max(...W.map(w => w.ztm));
+    for (const K of KOL) { const c = K.c, ad = c.no || ('S' + (KOL.indexOf(K) + 1));
+      if (K.g) { const { w, r, nv, off, boy, dik } = K.g, s = P.kaburgaKesit(boy, off - dik / 2, off + dik / 2, w.t); if (!s) continue; // perde içinde kalan kolon: perde zaten taşır
+        const zs = w.zs.filter(z => z >= Math.max(zr, (+c.z0 || zr) - 0.3) - 1e-6 && z <= Math.min(w.ztm, c.zt != null ? +c.zt : w.ztm) + 1e-6);
+        for (let k = 0; k + 1 < zs.length; k++) cubuk(nod(r[0], r[1], zs[k]), nod(r[0], r[1], zs[k + 1]), s, [nv[0], nv[1], 0], ad, 'kolon', c.id);
+        K.gomulu = w.ad || true; continue; }
+      const z1 = Math.min(zUst, c.zt != null ? +c.zt : zUst), zs = Z.filter(z => z <= z1 + 1e-6); if (zs.length < 2) continue; const s = c.D ? (() => { const r2 = c.D / 2, I = Math.PI * r2 ** 4 / 4; return { A: Math.PI * r2 * r2, I3: I, I2: I, J: 2 * I }; })() : P.dikdortgenKesit(K.bx, K.by);
+      const ids = zs.map(z => nod(c.x, c.y, z)); for (let k = 0; k + 1 < ids.length; k++) cubuk(ids[k], ids[k + 1], s, [1, 0, 0], ad, 'kolon', c.id);
+      K.bagT = ids[0]; K.bagU = ids[ids.length - 1]; K.zU = zs[zs.length - 1]; }
+    /* döşeme altındaki kirişler: o.kirisRijit → eski kabul (eksen düğümleri rijit düşey mesnet); aksi halde kiriş, döşeme altına sarkan gövdesiyle
+       döşemeye bağlı çubuk (kaburga): kiriş + kolon esnekliği hesaba girer */
+    const mes = new Set(), kirisDug = [];
+    for (const kb of (M.kirisler || [])) { let bulundu = false; DG.forEach((g, k) => { const d = dos[k]; if (bulundu || !(kb.zt <= d.zt + 0.15 && kb.zt >= d.zt - d.t - 0.15)) return; const a = kb.a, b = kb.b, dd = [b[0] - a[0], b[1] - a[1]], L2 = dd[0] * dd[0] + dd[1] * dd[1] || 1, tol = Math.max(g.dx, g.dy) * 0.51;
+      if (o.kirisRijit) { for (const e of g.list) for (const n of e.n) { const p = nodes[n], u = ((p[0] - a[0]) * dd[0] + (p[1] - a[1]) * dd[1]) / L2; if (u < -0.02 || u > 1.02) continue; if (Math.hypot(a[0] + dd[0] * u - p[0], a[1] + dd[1] * u - p[1]) <= tol) mes.add(n); } bulundu = true; return; }
+      const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; if (!pip(m, d.pts) && !g.list.some(e => e.n.some(n => Math.hypot(nodes[n][0] - m[0], nodes[n][1] - m[1]) < tol * 1.5))) return;
+      const hb = +kb.hb || 0.5, bw = +kb.bw || 0.3, s = P.kaburgaKesit(bw, -(d.zm - (kb.zt - hb)), kb.zt - d.zm, d.t); bulundu = true; if (!s) return; // döşeme kalınlığında kiriş: döşeme taşır
+      const L = Math.sqrt(L2), nb = Math.max(1, Math.round(L / h)), ids = []; for (let j = 0; j <= nb; j++) ids.push(nod(a[0] + dd[0] * j / nb, a[1] + dd[1] * j / nb, d.zm));
+      for (let j = 0; j < nb; j++) cubuk(ids[j], ids[j + 1], s, [0, 0, 1], kb.no || ('K' + ((M.kirisler || []).indexOf(kb) + 1)), 'kiris', kb.id);
+      ids.forEach(n => kirisDug.push([n, k])); });
+      if (!bulundu) uyarC.push(`${kb.no || 'Kiriş'} (üst ${kb.zt}) kabuk modelinde bir döşemenin altında değil — kabuk hesabına alınmadı.`); }
+    for (const [n, k] of kirisDug) bagla(n, DG[k]);
+    // serbest kolonların taban / üst bağları
+    for (const K of KOL) { if (K.bagT == null) continue; bagla(K.bagT, RG); const k = dos.findIndex(d => Math.abs(d.zm - K.zU) < 0.05 && pip([K.c.x, K.c.y], d.pts)); if (k >= 0) bagla(K.bagU, DG[k]); }
+    const gomulu = KOL.filter(K => K.gomulu).length; if (KOL.length) uyarC.push(`Kabuk modeli: ${KOL.length} kolon (${gomulu} perde içinde kaburga, ${KOL.length - gomulu - KOL.filter(K => K.g && !K.gomulu).length} serbest), ${new Set(bars.filter(b => b.tur === 'kiris').map(b => b.ad)).size} kiriş çubuk eleman olarak alındı.`);
     for (const e of els) e.F = cerceve(e.n.map(i => nodes[i]));
-    return { nodes, els, ties, W, RG, DG, Z, zr, h, mes };
+    return { nodes, els, ties, W, RG, DG, Z, zr, h, mes, bars, uyarC };
   };
 
   /* ================= ÇÖZÜM ================= */
@@ -183,13 +257,17 @@
     const { nodes, els, ties } = AG, nn = nodes.length, E = o.E, nu = o.nu;
     // komşuluk (eleman + bağ)
     const adj = Array.from({ length: nn }, () => new Set()); const bagl = (arr) => { for (const a of arr) for (const b of arr) if (a !== b) adj[a].add(b); };
-    for (const e of els) bagl(e.n); for (const t of ties) bagl([t.s, ...t.m]);
+    const bars = AG.bars || [];
+    for (const e of els) bagl(e.n); for (const t of ties) bagl([t.s, ...t.m]); for (const b of bars) bagl(b.n);
     const inv = rcm(nn, adj), N = nn * 6, colMin = new Int32Array(N);
     for (let i = 0; i < nn; i++) { let mn = inv[i]; for (const v of adj[i]) mn = Math.min(mn, inv[v]); for (let d = 0; d < 6; d++) colMin[inv[i] * 6 + d] = mn * 6; }
     const K = new Skyline(N, colMin), dof = (n, d) => inv[n] * 6 + d;
     let kmax = 0;
     for (const e of els) { const X = e.n.map(i => nodes[i]), r = elemK(X, e.t, E, nu); e.F = r.F; e.A = r.A;
       for (let a = 0; a < 24; a++) { const ga = dof(e.n[a / 6 | 0], a % 6); for (let b = a; b < 24; b++) { const v = r.Kg[a * 24 + b]; if (v) K.add(ga, dof(e.n[b / 6 | 0], b % 6), v); } kmax = Math.max(kmax, Math.abs(r.Kg[a * 25])); } }
+    // çubuklar (kolon / kiriş kaburgaları)
+    for (const br of bars) { const X = br.n.map(i => nodes[i]), r = cubukKg(X, E, nu, br.s, br.ref); br.R = r.R; br.L = r.L; br.Kl = r.Kl;
+      for (let a = 0; a < 12; a++) { const ga = dof(br.n[a / 6 | 0], a % 6); for (let b = a; b < 12; b++) { const v = r.Kg[a * 12 + b]; if (v) K.add(ga, dof(br.n[b / 6 | 0], b % 6), v); } } }
     // Winkler yayları (radye) + küçük yatay yay
     const kz = o.kw; const trib = new Float64Array(nn); for (const e of els) if (e.tur === 'radye') for (const n of e.n) trib[n] += e.A / 4;
     for (let i = 0; i < nn; i++) if (trib[i] > 0) { K.add(dof(i, 2), dof(i, 2), kz * trib[i]); K.add(dof(i, 0), dof(i, 0), 1e-3 * kz * trib[i]); K.add(dof(i, 1), dof(i, 1), 1e-3 * kz * trib[i]); }
@@ -209,6 +287,9 @@
       for (const e of els) { const tr = fn(e); if (!tr) continue; const X = e.n.map(i => nodes[i]), F = e.F;
         for (const x of GP) for (const y of GP) { const Nn = shp(x, y), j = jac(F.xl, x, y), p = [0, 0, 0]; for (let k = 0; k < 4; k++) for (let q = 0; q < 3; q++) p[q] += Nn[k] * X[k][q]; const f = tr(p); if (!f) continue;
           for (let k = 0; k < 4; k++) for (let q = 0; q < 3; q++) b[dof(e.n[k], q)] += Nn[k] * f[q] * j.det; } }
+      // çubuk yükleri: o.cubukYuk(durum, çubuk) → düzgün yayılı [qx, qy, qz] kN/m (global); eşdeğer düğüm yükü (kuvvet + moment)
+      if (o.cubukYuk) for (const br of bars) { const qg = o.cubukYuk(ad, br); if (!qg) continue; const ql = br.R.map(r => dot(r, qg)), fe = cubukFeq(br.L, ql); br.q = br.q || {}; br.q[ad] = ql;
+        for (let u = 0; u < 2; u++) for (let t = 0; t < 2; t++) for (let p = 0; p < 3; p++) { let v = 0; for (let k = 0; k < 3; k++) v += br.R[k][p] * fe[u * 6 + t * 3 + k]; b[dof(br.n[u], t * 3 + p)] += v; } }
       const u = K.solve(b), U = new Float64Array(N); for (let i = 0; i < nn; i++) for (let d = 0; d < 6; d++) U[i * 6 + d] = u[dof(i, d)];
       sonuc[ad] = U;
     }
@@ -217,5 +298,11 @@
 
   /* eleman düğüm kuvvetleri (bir yer değiştirme vektörü için) */
   P.kabukKuvvet = (AG, o, U) => AG.els.map(e => { const X = e.n.map(i => AG.nodes[i]), ug = new Float64Array(24); for (let k = 0; k < 4; k++) for (let d = 0; d < 6; d++) ug[k * 6 + d] = U[e.n[k] * 6 + d]; return elemKuvvet(X, e.t, o.E, o.nu, ug); });
-  P._kabukIc = { elemK, elemKuvvet, cerceve, Skyline, rcm, shp };
+  /* çubuk uç kuvvetleri (yerel): [N, V2, V3, T, M2, M3] i ucu ve j ucu — uç kuvveti = Kl·u − eşdeğer yük (i ucunda işaret ters: iç kuvvet) */
+  P.kabukCubukKuvvet = (AG, U, durum) => (AG.bars || []).map(br => { const ul = new Float64Array(12);
+    for (let u = 0; u < 2; u++) for (let t = 0; t < 2; t++) for (let p = 0; p < 3; p++) { let v = 0; for (let k = 0; k < 3; k++) v += br.R[p][k] * U[br.n[u] * 6 + t * 3 + k]; ul[u * 6 + t * 3 + p] = v; }
+    const fe = br.q && br.q[durum] ? cubukFeq(br.L, br.q[durum]) : null, f = new Float64Array(12); for (let a = 0; a < 12; a++) { let v = 0; for (let b = 0; b < 12; b++) v += br.Kl[a * 12 + b] * ul[b]; f[a] = v - (fe ? fe[a] : 0); }
+    // iç kuvvet işareti: i ucunda −f, j ucunda +f (çekme +, M pozitif yerel eksen etrafında)
+    return [-f[0], -f[1], -f[2], -f[3], -f[4], -f[5], f[6], f[7], f[8], f[9], f[10], f[11]]; });
+  P._kabukIc = { cubukKl, cubukKg, cubukFeq, elemK, elemKuvvet, cerceve, Skyline, rcm, shp };
 })(typeof window !== 'undefined' ? window : globalThis);

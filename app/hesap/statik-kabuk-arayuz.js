@@ -93,13 +93,17 @@
     const t0 = Date.now(), M = S.kabuk, MAL = P.malzeme(S.mal), g = S.geo;
     const Atop = M.walls.reduce((s, w) => { let L = 0; const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); } return s + L * (w.zt - M.radye.kAlt); }, 0) + area(M.radye.pts) + (M.dosemeler || []).reduce((s, d) => s + area(d.pts), 0);
     const h = +(S.tas.kmesh > 0 ? S.tas.kmesh : Math.min(1.0, Math.max(0.25, Math.round(Math.sqrt(Atop / 5000) * 20) / 20)));
-    const AG = P.kabukAg(M, { h, kotlar: [g.kSu, g.kZemin, g.kYAS].filter(v => v != null && isFinite(v)) });
-    const o = { E: MAL.Ec * 1000, nu: 0.2, kw: S.zemin.kw };
+    const AG = P.kabukAg(M, { h, kotlar: [g.kSu, g.kZemin, g.kYAS].filter(v => v != null && isFinite(v)), kirisRijit: S.tas.kirisKabuk === 'rijit' });
+    const gcB = S.mal.gc || 25;
+    // çubuk (kolon / kiriş kaburgası) yükleri: zati ağırlık ve deprem ataleti (kh, perdeyle aynı)
+    const o = { E: MAL.Ec * 1000, nu: 0.2, kw: S.zemin.kw, cubukYuk: (c, br) => { const w = gcB * br.s.A; if (c === 'G') return [0, 0, -w]; const kh = YT.IT && YT.IT.kh || 0; if (c === 'ESX') return [-kh * w, 0, 0]; if (c === 'ESY') return [0, -kh * w, 0]; return null; } };
     const YT = yukTanim(S, AG, MAL);
     const coz = P.kabukCoz(AG, o, YT.L, ilerle);
     // durum kuvvetleri
     const ne = AG.els.length, Q = {};
     for (const [c, U] of Object.entries(coz.sonuc)) { const F = P.kabukKuvvet(AG, o, U), a = new Float32Array(ne * 4 * NQ); F.forEach((f4, e) => f4.forEach((q, k) => { const b = (e * 4 + k) * NQ; a[b] = q.M11; a[b + 1] = q.M22; a[b + 2] = q.M12; a[b + 3] = q.N11; a[b + 4] = q.N22; a[b + 5] = q.N12; a[b + 6] = q.V13; a[b + 7] = q.V23; })); Q[c] = a; }
+    // çubuk iç kuvvetleri (durum başına) ve TSM zarfı: eleman adına göre N min/maks, |M3| (güçlü), |M2|, |V|
+    const QB = {}; if (AG.bars && AG.bars.length) for (const [c, U] of Object.entries(coz.sonuc)) QB[c] = P.kabukCubukKuvvet(AG, U, c);
     // zarf (Wood–Armer: M11 ± |M12|)
     /* 'cat': çatlak kontrolünde kullanılan zarf — emniyet kombinasyonları. Varsayılan: deprem dahil (kullanıcı kararı);
        S.tas.catDep kapatılırsa yalnız işletme yükleri */
@@ -135,6 +139,13 @@
           for (const i of ids) { const L = N.get(i); let s = 0, w = 0; for (const [j, wj] of L) { s += em.get(j) * wj; w += wj; } if (w > 0) { const v = s / w; for (let k = 0; k < 4; k++) arr[i * 4 + k] = v; } } }
       }
     }
+    const cubuk = []; if (AG.bars && AG.bars.length) { const by = new Map(); AG.bars.forEach((br, i) => { const k = br.tur + '|' + br.ad; if (!by.has(k)) by.set(k, { ad: br.ad, tur: br.tur, id: br.id, s: br.s, ids: [] }); by.get(k).ids.push(i); });
+      const t12 = new Float64Array(12);
+      for (const gb of by.values()) { let Nmn = 0, Nmx = 0, M3 = 0, M2 = 0, V = 0;
+        for (const k of KV.filter(k => k.tip === 'tsm')) { const ent = Object.entries(k.f).filter(([c, f]) => f && QB[c]);
+          for (const i of gb.ids) { t12.fill(0); for (const [c, f] of ent) { const a = QB[c][i]; for (let q = 0; q < 12; q++) t12[q] += f * a[q]; }
+            for (const u of [0, 6]) { Nmn = Math.min(Nmn, t12[u]); Nmx = Math.max(Nmx, t12[u]); M3 = Math.max(M3, Math.abs(t12[u + 5])); M2 = Math.max(M2, Math.abs(t12[u + 4])); V = Math.max(V, Math.hypot(t12[u + 1], t12[u + 2])); } } }
+        cubuk.push({ ad: gb.ad, tur: gb.tur, id: gb.id, s: gb.s, N: [Nmn, Nmx], M3, M2, V }); } }
     // zemin gerilmesi (emniyet kombinasyonları zarfı): q = kw·(−w)
     const nn = AG.nodes.length, qz = new Float32Array(nn); let qmax = 0;
     for (const k of KV.filter(k => k.tip === 'emn')) for (let i = 0; i < nn; i++) { let w = 0; for (const [c, f] of Object.entries(k.f)) if (f && coz.sonuc[c]) w += f * coz.sonuc[c][i * 6 + 2]; const q = -S.zemin.kw * w; if (q > qz[i]) qz[i] = q; }
@@ -168,7 +179,7 @@
     }
     YT.nanUyar.forEach(u => uyar.push(u));
     if (qmax > S.zemin.sig) uyar.push(`Zemin gerilmesi ${f2(qmax, 1)} > ${S.zemin.sig} kN/m²`);
-    KR = { AG, o, Q, Z, KV, YT, U: coz.sonuc, gruplar, tasarim, uyar, qz, qmax, h, sure: Date.now() - t0, dof: coz.N, prof: coz.prof, MAL, ok: !uyar.length };
+    KR = { AG, o, Q, Z, KV, YT, U: coz.sonuc, gruplar, tasarim, uyar, cubuk, QB, bilgi: AG.uyarC || [], qz, qmax, h, sure: Date.now() - t0, dof: coz.N, prof: coz.prof, MAL, ok: !uyar.length };
     return KR;
   };
 
@@ -318,7 +329,7 @@
   function kabukGoster(r) {
     const durum = ok => `<span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'UYGUN' : 'YETERSİZ'}</span>`, cm = v => String(Math.round(v * 1000) / 10).replace('.', ',');
     let h = `<h3>Sonuçlar — 3B kabuk modeli ${durum(r.ok)} <span class="hint">(${r.AG.nodes.length} düğüm, ${r.AG.els.length} eleman, ${r.dof} serbestlik, ağ ${f2(r.h)} m · ${f2(r.sure / 1000, 1)} s)</span></h3>`;
-    r.uyar.forEach(u => h += `<div class="msg">${esc(u)}</div>`);
+    r.uyar.forEach(u => h += `<div class="msg">${esc(u)}</div>`); (r.bilgi || []).forEach(u => h += `<div class="msg info">${esc(u)}</div>`);
     h += `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0"><label>Durum <select id="kbD">${Object.keys(r.Q).map(c => `<option value="${c}">${esc(DURUMAD[c] || c)}</option>`).join('')}<option value="ZARF:tsm:m11p">Zarf TSM M11 max</option><option value="ZARF:tsm:m11n">Zarf TSM M11 min</option><option value="ZARF:tsm:m22p" selected>Zarf TSM M22 max</option><option value="ZARF:tsm:m22n">Zarf TSM M22 min</option><option value="ZARF:tsm:n11">Zarf TSM F11 (halka çekmesi) max</option></select></label>
       <label>Büyüklük <select id="kbB"><option>M11</option><option selected>M22</option><option>M12</option><option>N11</option><option>N22</option><option>V13</option><option>V23</option></select></label>
       <label>Eleman <select id="kbF"><option value="*">Tümü</option><option value="perde">Perdeler</option><option value="radye">Radye</option>${r.gruplar.filter(g => g.tur === 'dis' || g.tur === 'ic').map((g, i) => `<option value="g${r.gruplar.indexOf(g)}">${esc(g.ad)}</option>`).join('')}</select></label>
@@ -327,6 +338,10 @@
     for (const t of r.tasarim) { t.katman.forEach((k, i) => { const s = k.sec; h += `<tr>${i === 0 ? `<td class="l" rowspan="${t.katman.length + 1}"><b>${esc(t.eleman)}</b><br><span class="hint">t = ${cm(t.grup.t)} cm</span></td>` : ''}<td class="l">${k.yon} — ${k.yuz}</td><td>${f2(k.M, 1)}</td><td>${f2(k.N, 1)}</td><td>${f2(k.Ms, 1)}</td><td>${f2((s.req || 0) * 1e4)}</td><td>${s.ok ? `Ø${s.F}/${cm(s.s)}` : '<span class="bad">—</span>'}</td><td>${s.ok ? f2(s.As * 1e4) : '—'}</td><td>${s.ok ? f2(s.ss, 0) : '—'}</td><td>${s.ok ? f2(s.w, 3) : '—'}</td></tr>`; });
       h += `<tr><td class="l">Kesme</td><td colspan="8">Vd = ${f2(t.kesme.Vd, 1)} kN/m ≤ Vcr = ${f2(t.kesme.Vcr, 1)} kN/m ${t.kesme.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr>`; }
     h += `</table><table class="t" style="margin-top:10px"><tr><th class="l">Kontrol</th><th>Değer</th><th>Sınır</th></tr><tr><td class="l">Zemin gerilmesi (yay basıncı maks., emniyet kombinasyonları)</td><td>${f2(r.qmax, 1)} kN/m²</td><td>${S.zemin.sig} kN/m² ${r.qmax <= S.zemin.sig ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr></table>`;
+    if (r.cubuk && r.cubuk.length) { // kabuk modelindeki kolon / kiriş kaburgaları: perde / döşemeyle birlikte taşıdıkları iç kuvvetler (TSM zarfı)
+      h += `<h4 style="margin:12px 0 4px">Kabuk modelindeki kolon ve kirişler — iç kuvvet zarfı (TSM)</h4><p class="hint">Perde içindeki kolonların perde dışına taşan kısmı ve döşeme altına sarkan kiriş gövdeleri kaburga çubuk olarak hesaba girdi. Bu kuvvetler su yapısı yüklerinden (toprak, su, YAS, deprem itkisi) gelir; kolon / kiriş donatısında çerçeve hesabıyla birlikte kontrol edilmelidir.</p><table class="t"><tr><th class="l">Eleman</th><th>Kaburga A (cm²)</th><th>N min / maks (kN)</th><th>M güçlü (kNm)</th><th>M zayıf (kNm)</th><th>V (kN)</th></tr>`;
+      for (const c of r.cubuk) h += `<tr><td class="l">${c.tur === 'kolon' ? 'Kolon' : 'Kiriş'} ${esc(c.ad)}</td><td>${f2(c.s.A * 1e4, 0)}</td><td>${f2(c.N[0], 1)} / ${f2(c.N[1], 1)}</td><td>${f2(c.M3, 1)}</td><td>${f2(c.M2, 1)}</td><td>${f2(c.V, 1)}</td></tr>`;
+      h += '</table>'; }
     $('#sonuc').innerHTML = h;
     const ciz = () => { const d = $('#kbD').value, b = $('#kbB').value, f = $('#kbF').value, gi = f[0] === 'g' ? r.gruplar[+f.slice(1)] : null, set = gi ? new Set(gi.ids) : null;
       const filt = f === '*' ? null : f === 'perde' ? (e => e.tur === 'perde') : f === 'radye' ? (e => e.tur === 'radye') : ((e, i) => set.has(i));

@@ -340,12 +340,14 @@
       return { id: x.e.id, kati: !!x.kati, ...(delikler(x.e).length ? { delik: delikler(x.e) } : {}), ad: x.e.no || (x.kati ? 'K' : 'P') + (i + 1), pts: x.pts.map(q => [r3(q[0]), r3(q[1])]), kapali: !!x.kapali, t: r3(x.t), ...(x.tt != null ? { tt: r3(x.tt), solUst: r3(x.solUst), sagUst: r3(x.sagUst) } : {}), zt: r3(x.zt), tip: Ld / Lt > 0.5 ? 'dis' : 'ic', bolme: ps.some(p => p.bolme) }; });
     const rad = G.rad ? { id: G.rad.id != null ? G.rad.id : null, pts: (G.rad.pts || []).map(q => [r3(q[0]), r3(q[1])]), t: r3(G.hr), kAlt: r3(G.zR - G.hr) } : null;
     if (!rad || rad.pts.length < 3) throw new Error('radye bulunamadı (plak radye ya da katı taban gerekli)');
-    const dos = C.doc.ents.filter(vis).filter(e => e.type === 'plak' && e.kind !== 'radye' && Array.isArray(e.pts) && e.pts.length >= 3).map((e, k) => ({ id: e.id, ad: e.no || 'D' + (k + 1), pts: e.pts.map(q => [r3(q[0]), r3(q[1])]), t: r3(+e.t || 0.2), zt: r3(+e.zt || 0), g: +e.g || 1.5, q: +e.q || 5 }));
+    const dosDisi = [];
+    const dos = C.doc.ents.filter(vis).filter(e => e.type === 'plak' && e.kind !== 'radye' && Array.isArray(e.pts) && e.pts.length >= 3).map((e, k) => ({ id: e.id, ad: e.no || 'D' + (k + 1), pts: e.pts.map(q => [r3(q[0]), r3(q[1])]), t: r3(+e.t || 0.2), zt: r3(+e.zt || 0), g: +e.g || 1.5, q: +e.q || 5 })).filter(d => { // yalnız perde üstüne oturan döşemeler kabuk modeline girer; çatı / ara / zemine oturan döşemeler çerçeve hesabındadır
+      const ok = walls.some(w => Math.abs(d.zt - w.zt) < d.t + 0.05); if (!ok) dosDisi.push(`${d.ad} (üst ${d.zt})`); return ok; });
     const xs = walls.flatMap(w => w.pts.map(q => q[0])), ys = walls.flatMap(w => w.pts.map(q => q[1])), kUst = Math.max(...walls.map(w => w.zt));
     const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t), 0.3), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t), tw);
     const geo = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: rad.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: rad.kAlt, kUst: r3(kUst), ust: dos.length ? 'M' : 'S' };
     const ny = G.parca.filter(p => p.tip === 'yay').length;
-    return { t: Date.now(), kabuk: { walls, radye: rad, dosemeler: dos }, geo, koken: [Math.min(...xs), Math.min(...ys)], ozet: `${walls.length} perde (${walls.filter(w => w.tip === 'dis').length} dış, ${ny} yay parçası), radye ${Math.round(rad.t * 100)} cm, ${dos.length} döşeme · kot ${r3(rad.kAlt)} → ${r3(kUst)}`, uyar: G.uyar };
+    return { t: Date.now(), kabuk: { walls, radye: rad, dosemeler: dos }, geo, koken: [Math.min(...xs), Math.min(...ys)], ozet: `${walls.length} perde (${walls.filter(w => w.tip === 'dis').length} dış, ${ny} yay parçası), radye ${Math.round(rad.t * 100)} cm, ${dos.length} döşeme · kot ${r3(rad.kAlt)} → ${r3(kUst)}`, uyar: (G.uyar || []).concat(dosDisi.length ? [`Perde üstünde olmayan döşemeler kabuk (su yapısı) hesabına alınmadı, kiriş · kolon · döşeme hesabında tasarlanır: ${dosDisi.join(', ')}`] : []) };
   };
   const sar = () => {
     const k = C.cmds && C.cmds.STATIKMODEL; if (!k || k._oval) return !!k;
@@ -367,8 +369,8 @@
       const eski = C.doc.ents.filter(e => e.type === 'donati3' || e.layer === 'STA_DONATI_3B'); if (eski.length) { C.remove(eski); C.warn(`Önceki 3B donatı silindi (yeniden hesaplanacak): ${eski.length} grup.`); }
       katmanTemizle(LY_U);
       let d; try { d = C.statikKabukModel(); } catch (er) { d = { t: Date.now(), hata: er.message }; C.warn('Kabuk modeli: ' + er.message); }
-      // kolon / kiriş (çerçeve): ayrı çerçeve hesabı için modele eklenir; kirişler döşeme altında mesnet çizgisi olarak kabuk modelinde de kullanılır
-      if (d && !d.hata && C._cerceveOku) { try { const cer = C._cerceveOku(); if (cer) { d.cerceve = cer; d.kabuk.kirisler = (cer.kirisler || []).map(k => ({ a: k.a, b: k.b, zt: k.zt, bw: k.bw })); d.ozet += ' · çerçeve: ' + cer.ozet; d.uyar = (d.uyar || []).concat(cer.uyar || []); } } catch (er) { console.error(er); } }
+      // kolon / kiriş (çerçeve): ayrı çerçeve hesabı için modele eklenir; kabuk modelinde de çubuk eleman olurlar (perdeye gömülü kolon = düşey kaburga, döşeme altındaki kiriş = döşemeye bağlı kaburga)
+      if (d && !d.hata && C._cerceveOku) { try { const cer = C._cerceveOku(); if (cer) { d.cerceve = cer; d.kabuk.kirisler = (cer.kirisler || []).map(k => ({ id: k.id, no: k.no, a: k.a, b: k.b, zt: k.zt, bw: k.bw, hb: k.hb })); d.kabuk.kolonlar = (cer.kolonlar || []).map(c => ({ id: c.id, no: c.no, x: c.x, y: c.y, bx: c.bx, by: c.by, D: c.D, z0: c.z0, zt: c.zt })); d.ozet += ' · çerçeve: ' + cer.ozet; d.uyar = (d.uyar || []).concat(cer.uyar || []); } } catch (er) { console.error(er); } }
       C._statikSonModel = d; // pencere doğrudan buradan da okur (localStorage dolu / yazılamazsa eski model kalmasın)
       try { localStorage.setItem('aritmacad.statik.model', JSON.stringify(d)); } catch (er) { try { ['aritmacad.statik.cizim', 'aritmacad.statik.donati', 'aritmacad.statik.model'].forEach(x => localStorage.removeItem(x)); localStorage.setItem('aritmacad.statik.model', JSON.stringify(d)); } catch (er2) { C.warn('Model aktarılamadı: ' + er2.message); } }
       if (!d.hata) { C.log(`${L >= 0.3 ? `Yay / oval planlı hazne (${r3(L)} m yay / eğik perde)` : 'Dikdörtgen yapı'}: statik penceresine 3B KABUK modeli (SAP2000 tipi) gönderildi — ${d.ozet}. Statik penceresinde Hesapla'ya basın.`); C.changed();

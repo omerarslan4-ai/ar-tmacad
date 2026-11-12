@@ -83,8 +83,8 @@ const GALERI = [[40, 30], [1930, 30], [1930, 645], [1481, 645], [1481, 770], [13
    boşluk kenarı hizasında boyuna kirişler y 520…560 (aks 4 → 5 aksı perdesi) ve y 200…240 (merdiven tarafı tam döşeme, x 1730 → 1930);
    B şeridinde aks 2, 3, 4 kolonlarından perdeye enine kirişler, A şeridinde aks 4 kolonuna enine kiriş. B şeridi kenarında kiriş yok (B-B kesiti) */
 const GALERI_KIRIS = [
-  [1730, 220, 1930, 220, 40], [1350, 540, 1930, 540, 40],
-  [475, 30, 475, 200, 50], [925, 30, 925, 200, 50], [1375, 30, 1375, 200, 50], [1375, 560, 1375, 750, 50],
+  [1730, 220, 1950, 220, 40], [1375, 540, 1950, 540, 40],                                          // uçlar perde / kolon eksenine (statik modelde mesnet)
+  [475, 25, 475, 200, 50], [925, 25, 925, 200, 50], [1375, 25, 1375, 200, 50], [1375, 540, 1375, 775, 50],
 ];
 
 /* cephe pencereleri: alt sıra 70/150 (denizlik +206,41), üst sıra 300/60 (denizlik +209,81) — aks 2…5 açıklıklarında üçer + birer */
