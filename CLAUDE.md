@@ -52,14 +52,17 @@ Kurulum: ajan dosyalarının asılları `docs/ajanlar/` altındadır. `.claude/a
 | `pafta-cizim` | Paftalama, disiplin görünümleri, kesit, çizim stili, antet, dil |
 | `saha-3b` | Saha 3B modeli, 3B görünüm, dışa aktarım, render |
 | `denetci` | Her değişiklikten sonra kontrol; kod değiştirmez |
+| `cizim-denetci-mimari` | Mimari çizim ve paftaların çizim kurallarına (katman, renk, kalınlık, yazı, ölçü, tarama) birebir uyumunu denetler; dosya değiştirmez |
 | `proje-denetci` | Bir projenin (.aritma) mimari ve mekanik çizim ve paftalarını firma standartlarına göre denetler; proje dosyasını değiştirmez |
 
 - Tek disiplini ilgilendiren, birkaç dosyaya yayılan işi ilgili ajana ver. Birkaç satırlık küçük düzeltme için ajan açma, doğrudan yap.
 - Birden çok disiplini ilgilendiren işi parçalara böl ve ajanları sırayla çalıştır. Aynı anda iki ajan çalıştırıyorsan ortak dosyalara (`index.html`, `ui.js`, `ribbon.js`, `core.js`, `entities.js`, `commands.js`, `dil-en.js`) yalnız biri yazsın.
 - Her işin sonunda `denetci` ajanını çalıştır. Sonuç KALDI ise düzeltip yeniden denetlemeden kullanıcıya işin bittiğini söyleme.
 - Kullanıcı yeni bir firma kuralı söylediğinde önce `docs/tasarim-standartlari.md` belgesine yaz, sonra kodu değiştir.
+- **Çizim kuralları:** katman adı, rengi, çizgi tipi, kalınlığı, yazı stili ve yüksekliği, ölçü biçimi ve tarama kullanıcının örnek çizimlerinden ölçülerek çıkarılır ve `docs/cizim-kurallari/<disiplin>.md` + `app/cizim-kural.js` içinde tutulur. Pafta çizen kodda bu değerleri elle yazma; kural tablosundan al. Mimari pafta üreten kodda yapılan her değişiklikten sonra `cizim-denetci-mimari` ajanını (ya da `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --kagit`) çalıştır; sonuç UYGUN DEĞİL ise iş bitmemiştir. Örnek çizimlerde birbirini tutmayan bir şey görürsen tahmin etme, kullanıcıya sor.
 
 ## Okunacak belgeler
 - `docs/tasarim-uctan-uca.md` — uçtan uca tesis tasarımı planı (ünite kartı, akış zinciri, kademe mantığı, yerleşim kuralları, üç parçalı kodlama planı). **Şu anki iş bu belgeye göre yürür.**
+- `docs/cizim-kurallari/` — disiplin disiplin çizim kuralları (şimdilik `mimari.md`); sayıları `app/cizim-kural.js` içindedir.
 - `docs/tasarim-standartlari.md` — kullanıcının firma standartları (donatı, pafta, boru etiketleri, statik kabuller). Çizim ya da hesap üreten her işte uy.
 - `KILAVUZ.html` — programın kullanım kılavuzu.
