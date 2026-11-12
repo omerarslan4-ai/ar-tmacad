@@ -91,6 +91,13 @@
     const seviyeler = kume([...kirisler.map(k => k.zt), ...dosemeler0.map(d => d.zt)], 0.15);
     const svOf = z => seviyeler.reduce((b, v) => (Math.abs(v - z) < Math.abs(b - z) ? v : b), seviyeler[0]);
     const tSv = z => Math.max(0, ...dosemeler0.filter(d => Math.abs(d.zt - z) < 0.15).map(d => d.t));
+    /* kiriş altında biten kolon (model: kolon boyu kiriş altına kadar): kolon–kiriş düğümü kiriş üst kotundadır — kolon üstü üzerindeki
+       kirişin üst kotuna uzatılır (aksi halde kiriş kolonu mesnet olarak görmez, 3B çerçevede de düğüm kopuk kalır). */
+    const uzatilan = new Map();
+    kolonlar.forEach(c => { const r = Math.max(c.bx, c.by) / 2 + 0.05;
+      const ust = kirisler.filter(k => { if (!(c.zt < k.zt - tSv(k.zt) - 0.15 + 1e-9 && c.zt >= k.zt - (+k.hb || 0.5) - 0.05)) return false; const d = sub(k.b, k.a), L = len(d) || 1, u = [d[0] / L, d[1] / L], s = projS([c.x, c.y], k.a, u); return s > -r && s < L + r && lineDist([c.x, c.y], k.a, u) <= r; });
+      if (!ust.length) return; const z = Math.max(...ust.map(k => k.zt)), k0 = `${Math.round(c.zt * 100) / 100} → ${Math.round(z * 100) / 100}`; if (!uzatilan.has(k0)) uzatilan.set(k0, []); uzatilan.get(k0).push(c.no || 'Kolon'); c.zt = z; });
+    for (const [k0, ad] of uzatilan) uyar.push(`${ad.join(', ')}: kiriş altında bitiyor; kolon–kiriş düğümü kiriş üst kotunda alındı (${k0}).`);
 
     /* ---- kiriş zincirleri ---- */
     kirisler.forEach(k => { const d = sub(k.b, k.a), L = len(d); k.L = L; k.u = [d[0] / L, d[1] / L]; if (k.u[0] < -0.02 || (Math.abs(k.u[0]) <= 0.02 && k.u[1] < 0)) { const t = k.a; k.a = k.b; k.b = t; k.u = [-k.u[0], -k.u[1]]; } k.sv = svOf(k.zt); });
@@ -251,6 +258,10 @@
     const coz = (ch) => {
       const dik = ch.sup.filter(q => q.tip);
       if (!dik.length) { ch.hata = 'Mesnet yok'; uyar.push(`${ch.ad}: kolon / perde / taşıyıcı kiriş mesnedi bulunamadı, hesaplanmadı.`); return false; }
+      /* tek mesnedi perde olan kiriş (perdeye dik giren konsol, ör. yürüme yolu kirişi): perdeyle monolitik birleşim — dönme yayı:
+         perde şeridinin (genişlik bw + 2t) perde yüksekliğince konsol rijitliği 3·E·I/H (yarı ankastre). Yalnız aksi halde dengesiz kalan kirişte. */
+      if (dik.length === 1 && dik[0].tip === 'perde' && !(dik[0].kth > 0)) { const w = dik[0].w, H = Math.max(0.5, ch.z - (+w.z0 || 0)), bw = Math.max(...ch.segs.map(q => q.bw)), be = bw + 2 * w.t;
+        dik[0].kth = 3 * E * (be * w.t ** 3 / 12) / H; uyar.push(`${ch.ad}: tek mesnedi perde — perdeye monolitik konsol (yarı ankastre, dönme yayı ${Math.round(dik[0].kth)} kNm/rad) olarak hesaplandı.`); }
       if (dik.length === 1 && !(dik[0].kth > 0)) { ch.hata = 'Tek mafsallı mesnet (dengesiz)'; uyar.push(`${ch.ad}: tek mesnetli, dengesiz; hesaplanmadı.`); return false; }
       const pts = new Set([0, ch.L, ...ch.sup.map(q => q.s), ...ch.segs.flatMap(q => [Math.max(0, q.s0), Math.min(ch.L, q.s1)]), ...ch.yG.map(q => q[0]), ...ch.tasiG.map(q => q[0])].map(v => Math.round(Math.max(0, Math.min(ch.L, v)) * 1000) / 1000));
       for (let s = 0; s < ch.L; s += 0.25) pts.add(Math.round(s * 1000) / 1000);
