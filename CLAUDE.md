@@ -11,6 +11,7 @@ Atıksu arıtma tesisi ve terfi istasyonu tasarımı için tarayıcıda çalış
 - Saf JavaScript, çerçeve yok. Her modül `app/*.js` içinde `(function (C) { ... })(...)` biçiminde bir IIFE'dir ve ortak `C` nesnesine eklenir (`C.M` matematik, `C.cmd` komutlar, `C.doc` belge, `C.prim`, `C.meshDef` ...).
 - Modüller `index.html` içindeki `<script src>` sırasıyla yüklenir. **Yeni dosya eklersen index.html'e doğru sıraya eklemeyi unutma** (bağımlı olduğu modülden sonra).
 - `file://` altında çalıştığı için ES module `import`, `fetch` ile yerel dosya okuma ve sunucu gerektiren hiçbir şey kullanma.
+  - İstisna (12.11.2026): isteğe bağlı bir özellik, kullanıcının kendi bilgisayarında çalışan bir yardımcı programa bağlanabilir (DWG yardımcısı, yapay zekâ render için ComfyUI). Program o yardımcı olmadan da açılmalı ve çalışmalı; bağlanamayınca ne yapılacağını anlatan bir ileti göstermeli.
 - Arayüz metinleri Türkçedir; İngilizce karşılıklar `app/dil-en.js` içindedir. Yeni arayüz metni eklerken çeviri tablosunu da güncelle.
 - Hesap pencereleri `app/hesap/` altındadır (ATV-A 131, blower, mikser, pompa hidroliği, statik).
 
@@ -35,7 +36,28 @@ Atıksu arıtma tesisi ve terfi istasyonu tasarımı için tarayıcıda çalış
 ## Doğrulama
 - Hesap ve geometri mantığını arayüzden ayrı, saf fonksiyonlar olarak yaz ki Node ile denenebilsin.
 - Yeni saf mantık için `test/` altına Node ile çalışan küçük testler ekle (`node test/<ad>.test.js`); gerçek bir projenin sayılarıyla karşılaştır.
+- Bütün testleri tek komutla çalıştır: `node araclar/tum-testler.js` (adında bir kelime geçenler için: `node araclar/tum-testler.js statik`).
 - Arayüz değişikliğinde programı tarayıcıda açıp konsol hatası olmadığını kontrol et, sonra kullanıcıya neyi denemesi gerektiğini tek cümleyle söyle.
+
+## Ajanlar
+`.claude/agents/` altında disiplin ajanları tanımlıdır. Her biri yalnız kendi alanındaki dosyalarda çalışır; alan listeleri ajan dosyalarının içindedir.
+
+Kurulum: ajan dosyalarının asılları `docs/ajanlar/` altındadır. `.claude/agents/` klasörü yoksa ya da eksikse bu dosyaları oraya kopyala; ajan tanımını değiştirirken ikisini birlikte güncelle.
+
+| Ajan | Ne zaman |
+| --- | --- |
+| `proses-unite` | Proses hesabı, ünite kartları ve şablonları, akış zinciri, saha borusu, hidrolik profil |
+| `statik` | Kabuk ve çerçeve çözücü, donatı, statik rapor ve statik pafta içeriği |
+| `mekanik-tesisat` | Bina mekanik tesisat modülü (`mt-*.js`) |
+| `pafta-cizim` | Paftalama, disiplin görünümleri, kesit, çizim stili, antet, dil |
+| `saha-3b` | Saha 3B modeli, 3B görünüm, dışa aktarım, render |
+| `denetci` | Her değişiklikten sonra kontrol; kod değiştirmez |
+| `proje-denetci` | Bir projenin (.aritma) mimari ve mekanik çizim ve paftalarını firma standartlarına göre denetler; proje dosyasını değiştirmez |
+
+- Tek disiplini ilgilendiren, birkaç dosyaya yayılan işi ilgili ajana ver. Birkaç satırlık küçük düzeltme için ajan açma, doğrudan yap.
+- Birden çok disiplini ilgilendiren işi parçalara böl ve ajanları sırayla çalıştır. Aynı anda iki ajan çalıştırıyorsan ortak dosyalara (`index.html`, `ui.js`, `ribbon.js`, `core.js`, `entities.js`, `commands.js`, `dil-en.js`) yalnız biri yazsın.
+- Her işin sonunda `denetci` ajanını çalıştır. Sonuç KALDI ise düzeltip yeniden denetlemeden kullanıcıya işin bittiğini söyleme.
+- Kullanıcı yeni bir firma kuralı söylediğinde önce `docs/tasarim-standartlari.md` belgesine yaz, sonra kodu değiştir.
 
 ## Okunacak belgeler
 - `docs/tasarim-uctan-uca.md` — uçtan uca tesis tasarımı planı (ünite kartı, akış zinciri, kademe mantığı, yerleşim kuralları, üç parçalı kodlama planı). **Şu anki iş bu belgeye göre yürür.**
