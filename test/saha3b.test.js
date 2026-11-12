@@ -53,4 +53,19 @@ t('deniz hattı: bacadan başlar, 3 boru (2×DN1400 + DN900), kıyıdan sonra de
   assert.ok(Math.min(...b0.map(p => Math.hypot(p[0] - e[0][0], p[1] - e[0][1]))) < 4);
   assert.ok(ozet.hatBoyu > 900 && ozet.hatBoyu < 2000); assert.ok(doc.set.denizHat.kiyiIndex === e.length - 2);
 });
+t('sunum verisi: 3 bina etiketi, hat bilgileri eksen boyunca sıralı; süre çizelgesi', () => {
+  const su = doc.set.sunum; assert.strictEqual(su.binalar.length, 3); assert.ok(su.binalar.every(b => b.p.length === 2 && b.satirlar.length >= 2));
+  const ss = su.hat.map(h => h.s); assert.deepStrictEqual(ss, ss.slice().sort((x, y) => x - y)); yak(ss[ss.length - 1], ozet.hatBoyu, 1);
+  assert.deepStrictEqual(S.sunumSure({ tur: 2, turSure: 24, hatSure: 75 }), { tur: 48, gecis: 53, hat: 128, toplam: 135 });
+});
+t('bordür ve kapalı öteleme', () => {
+  assert.deepStrictEqual(S.oteleKapali([[0, 0], [4, 0], [4, 4], [0, 4]], 1), [[-1, -1], [5, -1], [5, 5], [-1, 5]]);
+  assert.deepStrictEqual(S.oteleKapali([[0, 4], [4, 4], [4, 0], [0, 0]], -1), [[1, 3], [3, 3], [3, 1], [1, 1]]);   // yön fark etmez: − içe
+  assert.strictEqual(S.bordur([[0, 0], [4, 0], [4, 4], [0, 4]], 0.15, 0, 0.15, true).pos.length / 9, 4 * 6);
+});
+t('yol ve ada genel yerleşim taramasından: ada ≈ 250 m², yol adayı dolanır', () => {
+  const alan = p => Math.abs(p.reduce((s, a, i) => { const b = p[(i + 1) % p.length]; return s + a[0] * b[1] - b[0] * a[1]; }, 0) / 2);
+  const ada = doc.ents.find(e => e.layer === 'SAHA_YESIL'), yol = doc.ents.filter(e => e.layer === 'SAHA_YOL');
+  yak(alan(ada.pts), 250, 15); assert.strictEqual(yol.length, 2); assert.ok(alan(yol[0].pts) > 500);
+});
 console.log(`\n${n} test geçti.`);
