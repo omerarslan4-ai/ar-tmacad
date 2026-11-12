@@ -464,6 +464,11 @@
         K0.push({ ad: `G+Q${sg > 0 ? '+' : '−'}E${d}`, N: c.NG + c.NQ + sg * NE, Mx: MgX.G + MgX.Q + mx, My: MgY.G + MgY.Q + my, dep: true });
         K0.push({ ad: `0.9G${sg > 0 ? '+' : '−'}E${d}`, N: 0.9 * c.NG + sg * NE, Mx: 0.9 * MgX.G + mx, My: 0.9 * MgY.G + my, dep: true });
       }
+      /* su yapısı (3B kabuk) yükleri: perdeye gömülü kolonun toprak / su / YAS / deprem itkisinden aldığı moment (TSM zarfı, P.kabukKolonYuk).
+         Kabuk "güçlü" moment perde normali doğrultusunda yer değiştirmedir: perde X boyunca → yer değiştirme Y → My; zayıf → Mx.
+         Çerçeve momentleriyle aynı noktada oluşmasalar da güvenli tarafta mutlak değerce toplanır (depremli kombinasyonlara depremli zarf). */
+      const KB = (P.kabukKolonYuk || []).find(q => q.id != null && q.id === c.id);
+      if (KB) { c.kabuk = KB; K0.forEach(k => { const z = k.dep ? KB.Md : KB.Mn, gu = z.M3, za = z.M2; if (KB.yon === 'Y') { k.My = Math.abs(k.My) + gu; k.Mx = Math.abs(k.Mx) + za; } else { k.Mx = Math.abs(k.Mx) + gu; k.My = Math.abs(k.My) + za; } k.kabuk = true; }); }
       K0.forEach(k => { k.Mx = Math.max(Math.abs(k.Mx), Math.abs(k.N) * em('X')); k.My = Math.max(Math.abs(k.My), Math.abs(k.N) * em('Y')); });
       c.komb = K0;
       c.Nmax = Math.max(...K0.map(k => k.N)); c.NdmD = Math.max(...K0.filter(k => k.dep).map(k => k.N), 0);
@@ -500,6 +505,7 @@
       c.Mrk = Mrk; c.ok = c.donOk && c.eksenOk && c.dimOk && c.Vok;
       if (best && best.n > 0) { c.etr.ok = Math.max(e.nx, e.ny) <= 6; c.ok = c.ok && c.etr.ok; }
     }
+    { const kk = kolonlar.filter(c => c.kabuk); if (kk.length) uyar.push(`Su yapısı (3B kabuk) modelinden perdeye gömülü kolonlara gelen momentler kolon kombinasyonlarına eklendi (depremsiz / depremli, kNm): ${kk.map(c => `${c.no || 'Kolon'} ${Math.round(c.kabuk.Mn.M3)} / ${Math.round(c.kabuk.Md.M3)}`).join(', ')}.`); }
     // güçlü kolon (TBDY 7.3.6): (Mra + Mrü) ≥ 1.2 (Mri + Mrj)
     const gk = [];
     for (const c of kolonlar) {

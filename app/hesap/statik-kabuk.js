@@ -221,13 +221,13 @@
     for (const [s, k] of ustD) bagla(s, DG[k]);
     /* çubuklar: { n:[i,j], s: kesit, ref: güçlü eğilme yönü, ad, tur:'kolon'|'kiris', id } */
     const bars = [], uyarC = [];
-    const cubuk = (i, j, s, ref, ad, tur, id) => { if (i !== j) bars.push({ n: [i, j], s, ref, ad, tur, id }); };
+    const cubuk = (i, j, s, ref, ad, tur, id, ek) => { if (i !== j) bars.push({ n: [i, j], s, ref, ad, tur, id, ek: ek || null }); }; // ek: gömülü kolonda perde şeridi { b, t } (kesit momenti = M3·(1 + b·t³/12 / I3))
     // kolonlar
     const zUst = Math.max(...W.map(w => w.ztm));
     for (const K of KOL) { const c = K.c, ad = c.no || ('S' + (KOL.indexOf(K) + 1));
       if (K.g) { const { w, r, nv, off, boy, dik } = K.g, s = P.kaburgaKesit(boy, off - dik / 2, off + dik / 2, w.t); if (!s) continue; // perde içinde kalan kolon: perde zaten taşır
         const zs = w.zs.filter(z => z >= Math.max(zr, (+c.z0 || zr) - 0.3) - 1e-6 && z <= Math.min(w.ztm, c.zt != null ? +c.zt : w.ztm) + 1e-6);
-        for (let k = 0; k + 1 < zs.length; k++) cubuk(nod(r[0], r[1], zs[k]), nod(r[0], r[1], zs[k + 1]), s, [nv[0], nv[1], 0], ad, 'kolon', c.id);
+        for (let k = 0; k + 1 < zs.length; k++) cubuk(nod(r[0], r[1], zs[k]), nod(r[0], r[1], zs[k + 1]), s, [nv[0], nv[1], 0], ad, 'kolon', c.id, { b: boy, t: w.t });
         K.gomulu = w.ad || true; continue; }
       const z1 = Math.min(zUst, c.zt != null ? +c.zt : zUst), zs = Z.filter(z => z <= z1 + 1e-6); if (zs.length < 2) continue; const s = c.D ? (() => { const r2 = c.D / 2, I = Math.PI * r2 ** 4 / 4; return { A: Math.PI * r2 * r2, I3: I, I2: I, J: 2 * I }; })() : P.dikdortgenKesit(K.bx, K.by);
       const ids = zs.map(z => nod(c.x, c.y, z)); for (let k = 0; k + 1 < ids.length; k++) cubuk(ids[k], ids[k + 1], s, [1, 0, 0], ad, 'kolon', c.id);

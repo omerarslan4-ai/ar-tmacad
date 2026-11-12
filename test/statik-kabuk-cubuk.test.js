@@ -54,7 +54,7 @@ const nokta = (AG, U, x, y, z, d) => { let bi = 0, bd = 1e9; AG.nodes.forEach((p
 t('kabuk kutu: perde içine gömülü kolonlar kaburga çubuk olur ve perdenin yatay sehimini azaltır', () => {
   const a = coz3(kutu(false, false)), b = coz3(kutu(true, false));
   assert.strictEqual(a.AG.bars.length, 0); assert.ok(b.AG.bars.length >= 3 * 12, 'her kolon perde boyunca çubuklara bölünmeli');
-  assert.ok(b.AG.bars.every(br => br.tur === 'kolon' && Math.abs(br.s.A - 0.5 * 0.2) < 1e-9));
+  assert.ok(b.AG.bars.every(br => br.tur === 'kolon' && Math.abs(br.s.A - 0.5 * 0.2) < 1e-9 && br.ek && br.ek.b === 0.5 && br.ek.t === 0.3));
   const rel = (G, U) => Math.abs(nokta(G, U, 4.5, 0, -3, 1) - nokta(G, U, 0, 0, -3, 1)), ua = rel(a.AG, a.r.sonuc.H), ub = rel(b.AG, b.r.sonuc.H);
   assert.ok(ub < 0.9 * ua, `kolonlu sehim ${ub} kolonsuzun (${ua}) %90'ından küçük olmalı`);
   const kf = P.kabukCubukKuvvet(b.AG, b.r.sonuc.H, 'H'); assert.strictEqual(kf.length, b.AG.bars.length);

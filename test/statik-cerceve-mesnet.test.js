@@ -37,4 +37,17 @@ t('perdeye dik giren konsol kiriş: yarı ankastre, konsol momenti ≈ q·L²/2'
   assert.ok(M > 0.9 * w * L * L / 2 && M < 1.1 * w * L * L / 2, `konsol momenti ${M} ≈ ${w * L * L / 2}`);
 });
 
+t('kabuk (su yapısı) kolon momenti kolon kombinasyonlarına eklenir: perde X boyunca → My, daha fazla donatı', () => {
+  const yap = () => temel({
+    kolonlar: [{ id: 1, no: 'S1', x: 0.25, y: 0.25, bx: 0.5, by: 0.5, z0: 0, zt: 4.0 }, { id: 2, no: 'S2', x: 0.25, y: 7.75, bx: 0.5, by: 0.5, z0: 0, zt: 4.0 }],
+    kirisler: [{ id: 3, no: 'K1', a: [0.25, 0], b: [0.25, 8], bw: 0.5, hb: 0.8, zt: 4.0, gd: 10 }] });
+  const R0 = P.cerceveHesap(yap());
+  P.kabukKolonYuk = [{ id: 1, yon: 'Y', Mn: { M3: 300, M2: 5 }, Md: { M3: 400, M2: 5 } }];
+  let R1; try { R1 = P.cerceveHesap(yap()); } finally { P.kabukKolonYuk = null; }
+  const a = R0.kolonlar.find(c => c.id === 1), b = R1.kolonlar.find(c => c.id === 1), b2 = R1.kolonlar.find(c => c.id === 2);
+  assert.ok(b.kabuk && !b2.kabuk); assert.ok(b.komb[0].My >= 300 && b.komb[0].My > a.komb[0].My && b.komb.filter(k => k.dep).every(k => k.My >= 400));
+  assert.ok(!b.don || b.don.As > a.don.As, 'kabuk momentiyle donatı artmalı (ya da sığmamalı)');
+  assert.ok(R1.uyar.some(u => /kabuk\) modelinden/.test(u)));
+});
+
 console.log(`\n${n} test geçti.`);

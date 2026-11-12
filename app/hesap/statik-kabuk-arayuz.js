@@ -141,11 +141,13 @@
     }
     const cubuk = []; if (AG.bars && AG.bars.length) { const by = new Map(); AG.bars.forEach((br, i) => { const k = br.tur + '|' + br.ad; if (!by.has(k)) by.set(k, { ad: br.ad, tur: br.tur, id: br.id, s: br.s, ids: [] }); by.get(k).ids.push(i); });
       const t12 = new Float64Array(12);
-      for (const gb of by.values()) { let Nmn = 0, Nmx = 0, M3 = 0, M2 = 0, V = 0;
-        for (const k of KV.filter(k => k.tip === 'tsm')) { const ent = Object.entries(k.f).filter(([c, f]) => f && QB[c]);
+      for (const gb of by.values()) { let Nmn = 0, Nmx = 0, M3 = 0, M2 = 0, V = 0; const Md = { M3: 0, M2: 0 }, Mn = { M3: 0, M2: 0 }; // Md: deprem dahil kombinasyonlar, Mn: deprem hariç
+        for (const k of KV.filter(k => k.tip === 'tsm')) { const ent = Object.entries(k.f).filter(([c, f]) => f && QB[c]), Z2 = k.dep ? Md : Mn;
           for (const i of gb.ids) { t12.fill(0); for (const [c, f] of ent) { const a = QB[c][i]; for (let q = 0; q < 12; q++) t12[q] += f * a[q]; }
-            for (const u of [0, 6]) { Nmn = Math.min(Nmn, t12[u]); Nmx = Math.max(Nmx, t12[u]); M3 = Math.max(M3, Math.abs(t12[u + 5])); M2 = Math.max(M2, Math.abs(t12[u + 4])); V = Math.max(V, Math.hypot(t12[u + 1], t12[u + 2])); } } }
-        cubuk.push({ ad: gb.ad, tur: gb.tur, id: gb.id, s: gb.s, N: [Nmn, Nmx], M3, M2, V }); } }
+            for (const u of [0, 6]) { Nmn = Math.min(Nmn, t12[u]); Nmx = Math.max(Nmx, t12[u]); M3 = Math.max(M3, Math.abs(t12[u + 5])); M2 = Math.max(M2, Math.abs(t12[u + 4])); V = Math.max(V, Math.hypot(t12[u + 1], t12[u + 2])); Z2.M3 = Math.max(Z2.M3, Math.abs(t12[u + 5])); Z2.M2 = Math.max(Z2.M2, Math.abs(t12[u + 4])); } } }
+        // gömülü kolon: kaburga ile perde şeridi aynı eğriliği paylaşır → kolon kesit momenti = M3·(1 + b·t³/12 / I3)
+        const br0 = AG.bars[gb.ids[0]], ek = br0.ek, kat = ek ? 1 + ek.b * ek.t ** 3 / 12 / gb.s.I3 : 1, ref = br0.ref || [1, 0, 0];
+        cubuk.push({ ad: gb.ad, tur: gb.tur, id: gb.id, s: gb.s, N: [Nmn, Nmx], M3, M2, V, kat, Md: { M3: Md.M3 * kat, M2: Md.M2 }, Mn: { M3: Mn.M3 * kat, M2: Mn.M2 }, yon: Math.abs(ref[0]) >= Math.abs(ref[1]) ? 'X' : 'Y', gomulu: !!ek }); } }
     // zemin gerilmesi (emniyet kombinasyonları zarfı): q = kw·(−w)
     const nn = AG.nodes.length, qz = new Float32Array(nn); let qmax = 0;
     for (const k of KV.filter(k => k.tip === 'emn')) for (let i = 0; i < nn; i++) { let w = 0; for (const [c, f] of Object.entries(k.f)) if (f && coz.sonuc[c]) w += f * coz.sonuc[c][i * 6 + 2]; const q = -S.zemin.kw * w; if (q > qz[i]) qz[i] = q; }
@@ -280,7 +282,7 @@
     if (kabukMu() && !tazeleniyor && !atlaTazele && !o) { const ok = modelTazele(); if (ok === 'eski') return; if (ok && !kabukMu()) return hepsi0.apply(this, arguments); if (!ok) { const m = $('#pMsg'); if (m && !m.querySelector('.eskiModel')) m.insertAdjacentHTML('afterbegin', `<div class="msg eskiModel">Bu hesap statik penceresine en son alınan modele göre yapılıyor; ArıtmaCAD'deki çizim değiştiyse önce <b>Modelden al</b>'a basın.</div>`); } }
     if (!kabukMu()) return hepsi0.apply(this, arguments);
     const r = P.kabukHesap(S);
-    RC = null; window._KR = r; try { if (typeof cerVar === 'function' && cerVar() && P.cerceveHesap) RC = P.cerceveHesap(S); } catch (er) { console.error('çerçeve', er); } // kolon / kiriş: ayrı çerçeve hesabı (döşeme yükü kirişlere aktarılır)
+    RC = null; window._KR = r; P.kabukKolonYuk = (r.cubuk || []).filter(c => c.tur === 'kolon'); try { if (typeof cerVar === 'function' && cerVar() && P.cerceveHesap) RC = P.cerceveHesap(S); } catch (er) { console.error('çerçeve', er); } finally { P.kabukKolonYuk = null; } // kolon / kiriş: ayrı çerçeve hesabı (döşeme yükü kirişlere aktarılır)
     kabukGoster(r);
     ['#bCiz', '#bDxf', '#bDon3'].forEach(s => { const b = $(s); if (b) b.disabled = true; }); const by = $('#bYaz'); if (by) by.disabled = false;
     try { R = P.kabukAdaptor ? P.kabukAdaptor(r, S) : null; if (R && typeof rapor === 'function') rapor(); if (RC && P.cerceveRapor) { try { if (typeof cerGoster === 'function') cerGoster(); } catch (e2) { } $('#rapor').insertAdjacentHTML('beforeend', P.cerceveRapor(RC, f2)); $('#raporKutu').style.display = 'block'; } } catch (er) { console.error(er); $('#rapor').innerHTML = `<div class="msg">Rapor hatası: ${esc(er.message)}</div>`; $('#raporKutu').style.display = 'block'; }
@@ -339,8 +341,8 @@
       h += `<tr><td class="l">Kesme</td><td colspan="8">Vd = ${f2(t.kesme.Vd, 1)} kN/m ≤ Vcr = ${f2(t.kesme.Vcr, 1)} kN/m ${t.kesme.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr>`; }
     h += `</table><table class="t" style="margin-top:10px"><tr><th class="l">Kontrol</th><th>Değer</th><th>Sınır</th></tr><tr><td class="l">Zemin gerilmesi (yay basıncı maks., emniyet kombinasyonları)</td><td>${f2(r.qmax, 1)} kN/m²</td><td>${S.zemin.sig} kN/m² ${r.qmax <= S.zemin.sig ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr></table>`;
     if (r.cubuk && r.cubuk.length) { // kabuk modelindeki kolon / kiriş kaburgaları: perde / döşemeyle birlikte taşıdıkları iç kuvvetler (TSM zarfı)
-      h += `<h4 style="margin:12px 0 4px">Kabuk modelindeki kolon ve kirişler — iç kuvvet zarfı (TSM)</h4><p class="hint">Perde içindeki kolonların perde dışına taşan kısmı ve döşeme altına sarkan kiriş gövdeleri kaburga çubuk olarak hesaba girdi. Bu kuvvetler su yapısı yüklerinden (toprak, su, YAS, deprem itkisi) gelir; kolon / kiriş donatısında çerçeve hesabıyla birlikte kontrol edilmelidir.</p><table class="t"><tr><th class="l">Eleman</th><th>Kaburga A (cm²)</th><th>N min / maks (kN)</th><th>M güçlü (kNm)</th><th>M zayıf (kNm)</th><th>V (kN)</th></tr>`;
-      for (const c of r.cubuk) h += `<tr><td class="l">${c.tur === 'kolon' ? 'Kolon' : 'Kiriş'} ${esc(c.ad)}</td><td>${f2(c.s.A * 1e4, 0)}</td><td>${f2(c.N[0], 1)} / ${f2(c.N[1], 1)}</td><td>${f2(c.M3, 1)}</td><td>${f2(c.M2, 1)}</td><td>${f2(c.V, 1)}</td></tr>`;
+      h += `<h4 style="margin:12px 0 4px">Kabuk modelindeki kolon ve kirişler — iç kuvvet zarfı (TSM)</h4><p class="hint">Perde içindeki kolonların perde dışına taşan kısmı ve döşeme altına sarkan kiriş gövdeleri kaburga çubuk olarak hesaba girdi. Bu kuvvetler su yapısı yüklerinden (toprak, su, YAS, deprem itkisi) gelir; kolon donatısı hesabında çerçeve kuvvetlerine eklenir (son sütun: kaburga + perde şeridi = kolon kesitinin taşıdığı moment); kiriş kuvvetleri bilgi içindir.</p><table class="t"><tr><th class="l">Eleman</th><th>Kaburga A (cm²)</th><th>N min / maks (kN)</th><th>M güçlü (kNm)</th><th>M zayıf (kNm)</th><th>V (kN)</th><th>Kolon kesit momenti, depremsiz / depremli (kNm)</th></tr>`;
+      for (const c of r.cubuk) h += `<tr><td class="l">${c.tur === 'kolon' ? 'Kolon' : 'Kiriş'} ${esc(c.ad)}</td><td>${f2(c.s.A * 1e4, 0)}</td><td>${f2(c.N[0], 1)} / ${f2(c.N[1], 1)}</td><td>${f2(c.M3, 1)}</td><td>${f2(c.M2, 1)}</td><td>${f2(c.V, 1)}</td><td>${c.tur === 'kolon' ? `${f2(c.Mn.M3, 1)} / ${f2(c.Md.M3, 1)}${c.gomulu ? ` <span class="hint">(×${f2(c.kat, 2)} perde şeridi)</span>` : ''}` : ''}</td></tr>`;
       h += '</table>'; }
     $('#sonuc').innerHTML = h;
     const ciz = () => { const d = $('#kbD').value, b = $('#kbB').value, f = $('#kbF').value, gi = f[0] === 'g' ? r.gruplar[+f.slice(1)] : null, set = gi ? new Set(gi.ids) : null;
