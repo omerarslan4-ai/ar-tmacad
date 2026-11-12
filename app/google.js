@@ -173,16 +173,18 @@
           const sh = (g3.sahaHalka || []).filter(r => r && r.length > 2), m = 1, b = g3.bb;
           if (sh.length) for (const r of sh) ps.push(poly(r)); else ps.push(poly([[b[0] - m, b[1] - m], [b[2] + m, b[1] - m], [b[2] + m, b[3] + m], [b[0] - m, b[3] + m]]));
         }
-        ts.clippingPolygons = ps.length ? new Cs.ClippingPolygonCollection({ polygons: ps }) : undefined;
+        // DİKKAT: Cesium 1.122'de 3B karo setinin kesimi "undefined" yapılırsa çizim çöker (karolar yok edilmiş koleksiyonu kullanmayı sürdürür:
+        // "Cannot read properties of undefined (reading '_target')"). Kesim kaldırılmaz; boş ya da devre dışı koleksiyonla değiştirilir.
+        if (ps.length || ts.clippingPolygons) ts.clippingPolygons = new Cs.ClippingPolygonCollection({ polygons: ps });
       }
-      const gl = v.scene.globe; if (gl) gl.clippingPolygons = hal.length ? new Cs.ClippingPolygonCollection({ polygons: hal.map(poly) }) : undefined;
+      const gl = v.scene.globe; if (gl && (hal.length || gl.clippingPolygons)) gl.clippingPolygons = new Cs.ClippingPolygonCollection({ polygons: hal.map(poly) });
       v.scene.requestRender();
     } catch (err) { console.warn(err); }
   };
   g3.kesimYenile = applyClip;
   /* zemin okuma (sampleHeight) kapısı: okuma sürerken harita kesimi ve gölge kapalı tutulur; son okuma bitince geri kurulur */
   g3.ornek = 0;
-  g3.ornekBasla = () => { const v = g3.viewer; g3.ornek++; if (g3.ornek === 1 && v) { g3._golge = v.shadows; v.shadows = false; } if (g3.tileset) g3.tileset.clippingPolygons = undefined; };
+  g3.ornekBasla = () => { const v = g3.viewer; g3.ornek++; if (g3.ornek === 1 && v) { g3._golge = v.shadows; v.shadows = false; } if (g3.tileset && g3.tileset.clippingPolygons) g3.tileset.clippingPolygons.enabled = false; }; // kaldırma değil devre dışı bırakma (yukarıdaki nota bakın)
   g3.ornekBitir = () => { const v = g3.viewer; g3.ornek = Math.max(0, g3.ornek - 1); if (g3.ornek) return; if (v) v.shadows = !!g3._golge && !(C.saha3b && C.saha3b.durum && C.saha3b.durum.golgeYok); g3.kesimBekliyor = false; applyClip(); };
   const sampleGround = async () => {
     const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.ll) return;
