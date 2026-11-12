@@ -823,8 +823,9 @@
     $('#shIndir').onclick = () => S.cevreIndir();
     { const saatYaz = v2 => { const h = Math.floor(v2), d = Math.round((v2 - h) * 60); $('#shSaatY').textContent = String(h).padStart(2, '0') + ':' + String(d).padStart(2, '0'); };
       const isikDoldur = () => { const r = C.doc ? rset() : {}; $('#shSaat').value = r.saat != null ? r.saat : 10; saatYaz(+$('#shSaat').value); $('#shAy').value = String(+r.ay || 6); $('#shAo').checked = r.ao !== false; $('#shParla').checked = !!r.parlama; $('#shIsik').style.display = durum.render ? '' : 'none'; };
-      $('#shRender').checked = !!durum.render; isikDoldur(); C.on('doc', () => setTimeout(isikDoldur, 0));
-      $('#shRender').onchange = e => { durum.render = e.target.checked; if (durum.render) { durum.gercek = true; g3.golge = true; const gk = $('#shGercek'); if (gk) gk.checked = true; } sakla(); isikDoldur(); yenile(); };
+      const projedenAl = () => { const r = C.doc && C.doc.set.render; if (r && r.acik != null) { durum.render = !!r.acik; if (durum.render) { durum.gercek = true; g3.golge = true; const gk = $('#shGercek'); if (gk) gk.checked = true; } } $('#shRender').checked = !!durum.render; isikDoldur(); }; // proje "render.acik" taşıyorsa açılışta o geçerli
+      projedenAl(); C.on('doc', () => setTimeout(projedenAl, 0));
+      $('#shRender').onchange = e => { durum.render = e.target.checked; if (C.doc) { rset().acik = durum.render; C.changed && C.changed(); } if (durum.render) { durum.gercek = true; g3.golge = true; const gk = $('#shGercek'); if (gk) gk.checked = true; } sakla(); isikDoldur(); yenile(); };
       $('#shSaat').oninput = e => { rset().saat = +e.target.value; saatYaz(+e.target.value); sahneAyar(); };
       $('#shSaat').onchange = () => { C.changed && C.changed(); };
       $('#shAy').onchange = e => { rset().ay = +e.target.value; sahneAyar(); C.changed && C.changed(); };

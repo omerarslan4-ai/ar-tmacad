@@ -179,6 +179,8 @@ function uret(terfiDosya, cevre) {
     yuruyus: [[116.43, 43.38], [105.09, 51.60], [87.09, 64.80], [103.90, 87.90]].map(p => W(p[0], p[1])),   // bacanın ≈ 9 m önünde durur (daha yakında duvar ekranı kaplıyor)
     gozKot: SAHA.kotYol, yuruSure: 30, tur: 2, turSure: 26,
   };
+  // render ayarları: proje Render kipi açık gelir (yaz sabahı 10:00, köşe kararması açık); malzemeler katman önerilerinden
+  B.doc.set.render = { acik: true, ay: 6, saat: 10, ao: true, parlama: false, katman: {} };
   const L = hat(B, cevre, bc.cikis);
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, terfiNesne: nT, hatBoyu: L, bina: (cevre.binalar || []).length } };
 }
