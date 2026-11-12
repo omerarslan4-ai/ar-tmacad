@@ -100,7 +100,7 @@ function uret() {
   const P1 = { w: 0.7, hh: 1.5, par: +(206.41 - K.galeriUst).toFixed(2) };            // 70/150 pencere, denizlik +206,41
 
   // 1) grobeton ve radye (radye dış yüzden 50 cm taşar, grobeton 60 cm)
-  plak('INS_TEMEL_RADYE', dik(-60, -60, 2030, 860), K.radyeAlt, K.radyeAlt - K.grobetonAlt, { kind: 'radye', grobeton: true, beton: 'C16/20', ad: 'Grobeton' });
+  // 10 cm grobeton (+198,41 → +198,51) ayrı nesne değildir: programın kesitleri radye altına otomatik çizer, statik paftası notunda yazar
   plak('INS_TEMEL_RADYE', dik(-50, -50, 2020, 850), K.radyeUst, K.radyeUst - K.radyeAlt, { kind: 'radye' });
 
   // 2) pompa holü betonarme perdeleri: uzun kenarlar 30 cm, kısa kenarlar 40 cm, radye üstünden +205,41'e
@@ -134,7 +134,8 @@ function uret() {
   for (const k of GALERI_KIRIS) ekle('kiris', 'INS_KIRIS', { a: [cm(k[0]), cm(k[1]), 0], b: [cm(k[2]), cm(k[3]), 0], bw: cm(k[4]), hb: 0.5, zt: z(K.galeriUst), hiza: 'O', beton: 'C25/30', ad: 'Yürüme yolu kirişi' });
   // şap tuğla duvarların iç yüzüne kadar (betonarme perde yüzünden 10 cm dışarı) — program da açılışta kenarları bu yüzlere bağlıyor
   const SAP = GALERI.map(([x, y]) => [x === 0.4 ? 0.2 : x === 19.3 ? 19.5 : x, y === 0.3 ? 0.2 : y === 7.7 ? 7.8 : y]);
-  plak('INS_DOSEME', SAP, K.mimariZemin, K.mimariZemin - K.galeriUst, { beton: 'C16/20', ad: 'Tesviye betonu / şap', bosluk3: [kutu3(dik(1770, 100, 1870, 200), z(K.galeriUst) - 0.01, z(K.mimariZemin) + 0.01)] });
+  // taşıyıcı olmayan döşeme katmanları zemin kaplaması nesnesidir (statik hesaba döşeme olarak girmez): 20 cm tesviye betonu + 3,5 cm harç + 2,5 cm karo mozaik (mimari: KARO MOZAİK)
+  ekle('kaplama', 'INS_KAPLAMA', { kind: 'zemin', pts: SAP, z0: z(K.galeriUst), zbt: 20, xps: 0, sap: 3.5, kap: 'karo', kt: 2.5, sup: 10 });
 
   // 6) çatı: enine kirişler 50×80 (her aksta), boyuna kirişler 30×50 (A ve B aksında), 15 cm çatı döşemesi (dış yüzden 50 cm saçak)
   for (const x of OLCU.kolonX) ekle('kiris', 'INS_KIRIS', { a: [cm(x + 25), 0, 0], b: [cm(x + 25), 8, 0], bw: 0.5, hb: +(K.catiDoseme - K.kirisAltEnine).toFixed(2), zt: z(K.catiDoseme), hiza: 'O', beton: 'C25/30' });

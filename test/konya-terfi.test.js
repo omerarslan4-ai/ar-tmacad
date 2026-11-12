@@ -14,10 +14,11 @@ t('kotlar: ±0.00 = +205,67, toprak −0,20', () => {
   assert.strictEqual(doc.set.seviye.abs0, 205.67); yak(doc.set.seviye.toprak, -0.20, 1e-9);
   yak(U.z(199.77), -5.90, 1e-9); yak(U.z(210.91), 5.24, 1e-9);
 });
-t('radye 40 cm, 50 cm taşar; grobeton 10 cm C16/20', () => {
-  const [g, r] = tip('plak').filter(e => e.kind === 'radye');
-  assert.ok(g.grobeton); assert.strictEqual(g.beton, 'C16/20'); yak(g.t, 0.10, 1e-9); yak(g.zt, U.z(198.51), 1e-9);
-  yak(r.t, 0.40, 1e-9); yak(r.zt, U.z(198.91), 1e-9); yak(alan(r.pts), 20.7 * 9.0, 1e-6);
+t('radye 40 cm, 50 cm taşar; grobeton ayrı nesne değil (kesit otomatik çizer); şap zemin kaplaması', () => {
+  const r = tip('plak').filter(e => e.kind === 'radye'); assert.strictEqual(r.length, 1);
+  yak(r[0].t, 0.40, 1e-9); yak(r[0].zt, U.z(198.91), 1e-9); yak(alan(r[0].pts), 20.7 * 9.0, 1e-6);
+  const k = tip('kaplama'); assert.strictEqual(k.length, 1); yak(k[0].z0 + (k[0].zbt + k[0].sap + k[0].kt) / 100, U.z(205.67), 1e-9);
+  assert.ok(!tip('plak').some(e => /şap|grobeton/i.test(e.ad || '')));
 });
 t('perdeler: uzun kenar 30, kısa kenar 40 cm, radye üstünden +205,41', () => {
   const p = tip('perde').filter(e => e.malz === 'beton');
