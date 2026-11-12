@@ -3,6 +3,7 @@
      (Overpass) tesis ve hat çevresindeki bina izlerini alır; projeyle birlikte saklanır. Haritada şeffaf kutu olarak görünür.
    - Deniz hattı: DENIZ_HATTI ile başlayan katmandaki her çoklu çizgi bir güzergâh eksenidir (planda/haritada tutamaçlarla düzeltilir).
      C.doc.set.denizHat.borular = [{ ad, dn (mm), ofs (m, eksenden yana) }] kadar boru bu eksene paralel çizilir.
+     Çizginin kendi "dn" özelliği varsa o çizgi tek boru olarak çizilir (saha içi basma hattı).
      "Akışı oynat": su, istasyondan denize doğru ilerler; "Hat boyunca uç": kamera su cephesini izler.
    Geometri saf fonksiyonlardır (C.saha3b.*), Node ile test/saha3b.test.js içinde denenir. */
 (function (C) {
@@ -88,8 +89,10 @@
   /* belgeden hat tanımı: eksenler + borular */
   S.hatlar = doc => {
     const set = Object.assign({}, VARSAYILAN, doc.set.denizHat || {});
-    const eks = doc.ents.filter(e => (e.type === 'pline' || e.type === 'line') && /^DENIZ_HATTI/i.test(e.layer || '') && !e.gv).map(e => S.temiz(e.type === 'line' ? [e.a, e.b] : e.pts)).filter(p => p.length > 1);
-    const out = []; for (const ek of eks) for (const b of set.borular || []) out.push({ ad: b.ad, dn: +b.dn || 1000, eksen: ek, pts: S.otele(ek, +b.ofs || 0) });
+    const cizgi = doc.ents.filter(e => (e.type === 'pline' || e.type === 'line') && /^DENIZ_HATTI/i.test(e.layer || '') && !e.gv).map(e => ({ dn: +e.dn || 0, pts: S.temiz(e.type === 'line' ? [e.a, e.b] : e.pts) })).filter(c => c.pts.length > 1);
+    const eks = cizgi.filter(c => !c.dn).map(c => c.pts), out = [];
+    for (const ek of eks) for (const b of set.borular || []) out.push({ ad: b.ad, dn: +b.dn || 1000, eksen: ek, pts: S.otele(ek, +b.ofs || 0) });
+    for (const c of cizgi) if (c.dn) out.push({ ad: 'DN' + c.dn, dn: c.dn, eksen: c.pts, pts: c.pts, tek: true }); // dn özelliği olan çizgi: tek boru (ör. saha içi basma hattı)
     return { set, eksenler: eks, borular: out };
   };
 

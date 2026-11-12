@@ -46,8 +46,9 @@ t('koordinat sistemi: saha Bingazi\'de (32,13 K · 20,08 D)', () => {
   globalThis.C.doc = doc; const ll = G.toLL([112992, 3556670]); yak(ll[0], 32.1319, 0.001); yak(ll[1], 20.0779, 0.001);
 });
 t('deniz hattı: bacadan başlar, 3 boru (2×DN1400 + DN900), kıyıdan sonra denize uzanır', () => {
-  const H = S.hatlar(doc); assert.strictEqual(H.eksenler.length, 1); assert.strictEqual(H.borular.length, 3);
-  assert.deepStrictEqual(H.borular.map(b => b.dn).sort(), [1400, 1400, 900].sort());
+  const H = S.hatlar(doc); assert.strictEqual(H.eksenler.length, 1); assert.strictEqual(H.borular.length, 4);
+  assert.deepStrictEqual(H.borular.filter(b => !b.tek).map(b => b.dn).sort(), [1400, 1400, 900].sort());
+  const sh = H.borular.find(b => b.tek); assert.strictEqual(sh.dn, 2000); assert.ok(S.boy(sh.pts) > 30 && S.boy(sh.pts) < 45); // saha içi basma hattı
   const b0 = doc.ents.find(e => e.type === 'perde' && /yükleme bacası/.test(e.ad || '')).pts, e = H.eksenler[0];
   assert.ok(Math.min(...b0.map(p => Math.hypot(p[0] - e[0][0], p[1] - e[0][1]))) < 4);
   assert.ok(ozet.hatBoyu > 900 && ozet.hatBoyu < 2000); assert.ok(doc.set.denizHat.kiyiIndex === e.length - 2);
