@@ -54,10 +54,9 @@ function yeniBelge() {
 }
 
 /* ---------- yardımcılar (m) ---------- */
-/* kolon gusesi: x0 kolonun sol kenarı, y kolon iç yüzü, s içeri yön (+1 / −1), zu üst kot; kesit (çıkma, yükseklik) y–z düzleminde, 50 cm (kolon eni) x boyunca uzatılır */
+/* vinç yolu gusesi (B-B kesiti): kolonun kendi guse seçeneğiyle — çıkma 40 cm, kolon yüzünde 50 cm, uçta 30 cm, en = kolon eni */
 const GUSE = { c: 0.40, hOn: 0.30, hKok: 0.50 };
-const guse = (x0, y, s, zu) => ({ o: [s > 0 ? x0 : +(x0 + 0.5).toFixed(3), y, 0], ux: [0, s, 0], uz: [s, 0, 0], h: 0.5, beton: 'C25/30', ad: 'Vinç yolu gusesi',
-  prof: [[0, zu - GUSE.hKok], [GUSE.c, zu - GUSE.hOn], [GUSE.c, zu], [0, zu]].map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]) });
+const guse = (yon, zu) => ({ guse: 'E', gYon: yon, gRef: 'KOT', gZ: +zu.toFixed(3), gL: GUSE.c, gHf: GUSE.hKok, gHu: GUSE.hOn, gW: 0 });
 const dik = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(p => p.map(v => +cm(v).toFixed(3)));     // cm dikdörtgen → m köşeler (CCW)
 const kutu3 = (pts, za, zb) => ({ pts: pts.map(p => [p[0], p[1], za]), d: [0, 0, +(zb - za).toFixed(3)] });               // düşey boşluk prizması
 
@@ -79,6 +78,14 @@ const KANAL = [
 
 /* montaj holü galeri döşemesi (+205,41): kumanda odası + B duvarı boyunca yürüme şeridi + merdiven çevresi; ortası vinç boşluğu */
 const GALERI = [[40, 30], [1930, 30], [1930, 645], [1481, 645], [1481, 770], [1300, 770], [1300, 520], [1730, 520], [1730, 200], [390, 200], [390, 770], [40, 770]].map(p => [cm(p[0]), cm(p[1])]);
+
+/* yürüme yolu kirişleri [x0, y0, x1, y1, en] cm (eksen), 40/50 ve 50/50, üst +205,41 (A-A ve B-B kesitleri):
+   boşluk kenarı hizasında boyuna kirişler y 520…560 (aks 4 → 5 aksı perdesi) ve y 200…240 (merdiven tarafı tam döşeme, x 1730 → 1930);
+   B şeridinde aks 2, 3, 4 kolonlarından perdeye enine kirişler, A şeridinde aks 4 kolonuna enine kiriş. B şeridi kenarında kiriş yok (B-B kesiti) */
+const GALERI_KIRIS = [
+  [1730, 220, 1930, 220, 40], [1350, 540, 1930, 540, 40],
+  [475, 30, 475, 200, 50], [925, 30, 925, 200, 50], [1375, 30, 1375, 200, 50], [1375, 560, 1375, 750, 50],
+];
 
 /* cephe pencereleri: alt sıra 70/150 (denizlik +206,41), üst sıra 300/60 (denizlik +209,81) — aks 2…5 açıklıklarında üçer + birer */
 const ALT_PENCERE = [580, 700, 820, 1030, 1150, 1270, 1540, 1660, 1780];
@@ -110,8 +117,9 @@ function uret() {
   // 3) kolonlar 50×50: radye üstünden enine kiriş altına (+210,11); aks 2…5 kolonlarında vinç yolu gusesi (B-B kesiti):
   //    kolon yüzünden 40 cm çıkma, üst +208,81 (vinç rayı altı), ön yüz 30 cm, alt yüz eğimli — kolon yüzünde 50 cm yükseklik
   const hK = +(K.kirisAltEnine - K.radyeUst).toFixed(3);
-  for (const x of OLCU.kolonX) for (const y of [0, 750]) ekle('kolon', 'INS_KOLON', { sek: 'R', b: 0.5, d: 0.5, D: 0.5, h: hK, z0: zP, rot: 0, beton: 'C30/37', p: [cm(x + 25), cm(y + 25), 0] });
-  for (const x of OLCU.kolonX.slice(1)) for (const y of [0.5, 7.5]) ekle('kati', 'INS_KOLON', guse(cm(x), y, y < 4 ? 1 : -1, z(K.guseUst)));
+  // guse yönü içeri: B aksı kolonlarında +y (F), A aksı kolonlarında −y (A); 1 aksı kolonlarında guse yok
+  for (const x of OLCU.kolonX) for (const y of [0, 750]) ekle('kolon', 'INS_KOLON', Object.assign({ sek: 'R', b: 0.5, d: 0.5, D: 0.5, h: hK, z0: zP, rot: 0, beton: 'C30/37', p: [cm(x + 25), cm(y + 25), 0] },
+    x > 0 ? guse(y === 0 ? 'F' : 'A', z(K.guseUst)) : {}));
 
   // 4) pompa holü tabanı: sıkıştırılmış dolgu + taban betonu (kanallar ve kaideler boşluk), pompa-motor kaideleri
   ekle('dolgu', 'INS_DOLGU', { pts: dik(40, 30, 1930, 770), za: zP, zb: z(K.dolguUst), malz: 'kum' });
@@ -122,6 +130,8 @@ function uret() {
   // 5) montaj holü galeri döşemesi (15 cm, üst +205,41), saç kapak boşluğu 100×100; kumanda odası bölme duvarı altında 40×60 kiriş; 26 cm tesviye/şap
   plak('INS_DOSEME', GALERI, K.galeriUst, 0.15, { beton: 'C25/30', ad: 'Galeri döşemesi', bosluk3: [kutu3(dik(1770, 100, 1870, 200), z(K.galeriUst) - 0.16, z(K.galeriUst) + 0.01)] });
   ekle('kiris', 'INS_KIRIS', { a: [3.7, 0.3, 0], b: [3.7, 7.7, 0], bw: 0.4, hb: 0.6, zt: z(K.galeriUst), hiza: 'O', beton: 'C25/30' });
+  // yürüme yolu kirişleri 40×50 (A-A ve B-B kesitleri, alt +204,91): vinç boşluğu kenarlarında boyuna kenar kirişi, aks 2…4'te kolona bağlanan enine kirişler
+  for (const k of GALERI_KIRIS) ekle('kiris', 'INS_KIRIS', { a: [cm(k[0]), cm(k[1]), 0], b: [cm(k[2]), cm(k[3]), 0], bw: cm(k[4]), hb: 0.5, zt: z(K.galeriUst), hiza: 'O', beton: 'C25/30', ad: 'Yürüme yolu kirişi' });
   // şap tuğla duvarların iç yüzüne kadar (betonarme perde yüzünden 10 cm dışarı) — program da açılışta kenarları bu yüzlere bağlıyor
   const SAP = GALERI.map(([x, y]) => [x === 0.4 ? 0.2 : x === 19.3 ? 19.5 : x, y === 0.3 ? 0.2 : y === 7.7 ? 7.8 : y]);
   plak('INS_DOSEME', SAP, K.mimariZemin, K.mimariZemin - K.galeriUst, { beton: 'C16/20', ad: 'Tesviye betonu / şap', bosluk3: [kutu3(dik(1770, 100, 1870, 200), z(K.galeriUst) - 0.01, z(K.mimariZemin) + 0.01)] });
@@ -172,7 +182,7 @@ function uret() {
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, say } };
 }
 
-module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GUSE, guse, uret };
+module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, GUSE, guse, uret };
 
 if (require.main === module) {
   const cikti = process.argv[2] || path.join(__dirname, '..', 'test-proje', 'konya', 'Konya-terfi-insaat.aritma');

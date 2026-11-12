@@ -28,16 +28,19 @@ t('kolonlar: 10 × 50/50 kiriş altına (+210,11)', () => {
   const k = tip('kolon'); assert.strictEqual(k.length, 10);
   for (const e of k) { assert.strictEqual(e.d, 0.5); yak(e.z0 + e.h, U.z(210.11), 1e-6); }
 });
-t('vinç yolu guseleri: 8 adet, kolon iç yüzünde, 40 cm çıkma, üst +208,81, ön 30 / kök 50 cm', () => {
-  const g = tip('kati').filter(e => e.ad === 'Vinç yolu gusesi'); assert.strictEqual(g.length, 8);
-  const W = (e, u, v, w) => { const uy = [e.uz[1] * e.ux[2] - e.uz[2] * e.ux[1], e.uz[2] * e.ux[0] - e.uz[0] * e.ux[2], e.uz[0] * e.ux[1] - e.uz[1] * e.ux[0]]; return [0, 1, 2].map(i => (e.o[i] || 0) + e.ux[i] * u + uy[i] * v + e.uz[i] * w); };
+t('vinç yolu guseleri: aks 2…5 kolonlarının kendi guse seçeneği, içeri bakar, 40 cm çıkma, üst +208,81, kök 50 / uç 30 cm', () => {
+  const k = tip('kolon'), g = k.filter(e => e.guse === 'E'); assert.strictEqual(g.length, 8);
+  assert.ok(!tip('kati').some(e => /guse/i.test(e.ad || '')));                                            // ayrı guse parçası yok
   for (const e of g) {
-    const P = e.prof.flatMap(([u, v]) => [W(e, u, v, 0), W(e, u, v, e.h)]), xs = P.map(p => p[0]), ys = P.map(p => p[1]), zs = P.map(p => p[2]);
-    yak(Math.max(...zs), U.z(208.81), 1e-6); yak(Math.max(...zs) - Math.min(...zs), 0.5, 1e-6); yak(Math.max(...xs) - Math.min(...xs), 0.5, 1e-6);
-    yak(Math.max(...ys) - Math.min(...ys), 0.4, 1e-6);
-    const ic = Math.min(...ys) < 4 ? Math.min(...ys) : Math.max(...ys); yak(ic, Math.min(...ys) < 4 ? 0.5 : 7.5, 1e-6);   // kolon iç yüzüne yapışık
-    assert.ok(U.OLCU.kolonX.slice(1).some(x => Math.abs(Math.min(...xs) - x / 100) < 1e-6));                            // kolonla aynı hizada
+    assert.ok(e.p[0] > 1); assert.strictEqual(e.gYon, e.p[1] < 4 ? 'F' : 'A'); assert.strictEqual(e.gRef, 'KOT');
+    yak(e.gZ, U.z(208.81), 1e-6); yak(e.gL, 0.40, 1e-9); yak(e.gHf, 0.50, 1e-9); yak(e.gHu, 0.30, 1e-9);
   }
+});
+t('yürüme yolu kirişleri: 40×50 kenar kirişleri ve enine kirişler, üst +205,41 (alt +204,91)', () => {
+  const k = tip('kiris').filter(e => e.ad === 'Yürüme yolu kirişi'); assert.strictEqual(k.length, 6);
+  for (const e of k) { yak(e.zt, U.z(205.41), 1e-9); yak(e.zt - e.hb, U.z(204.91), 1e-9); }
+  const g = tip('plak').find(e => e.ad === 'Galeri döşemesi'), ic = (p, q) => { let c = false; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > p[1]) !== (q[j][1] > p[1]) && p[0] < (q[j][0] - q[i][0]) * (p[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) c = !c; return c; };
+  for (const e of k) for (const t2 of [0.1, 0.5, 0.9]) assert.ok(ic([e.a[0] + (e.b[0] - e.a[0]) * t2, e.a[1] + (e.b[1] - e.a[1]) * t2], g.pts), 'kiriş döşeme altında');
 });
 t('galeri döşemesi: vinç boşluğu ve merdiven boşluğu dışarıda, kalınlığı sabit', () => {
   const g = tip('plak').find(e => e.ad === 'Galeri döşemesi');
