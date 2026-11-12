@@ -157,7 +157,7 @@
   const durum = S.durum = { cevre: true, hat: true, oynuyor: false, izle: false, t0: 0, on: 0, mats: [], boy: 0, eksen: null, raf: 0 };
   try { Object.assign(durum, JSON.parse(localStorage.getItem('aritmacad.saha3b') || '{}')); } catch (e) { }
   durum.oynuyor = false; durum.izle = false; durum.mats = []; g3.golge = durum.gercek !== false;
-  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek, gercek: durum.gercek })); } catch (e) { } };
+  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek, gercek: durum.gercek, sunumHiz: durum.sunumHiz })); } catch (e) { } };
   const msg = (t, uyari) => { const el = $('#g3Msg'); if (el) { el.textContent = t || ''; el.style.color = uyari ? '#ffb347' : ''; } };
 
   const AKIS = 'AritmaAkis';
@@ -448,7 +448,8 @@
   const kamera = (hedef, bas, egim, uzak) => { const Cs = window.Cesium, v = g3.viewer; v.camera.lookAt(hedef, new Cs.HeadingPitchRange(bas, egim, uzak)); };
   const sunumKare = () => {
     const Cs = window.Cesium, v = g3.viewer, su = durum.sunum; if (!su || !Cs || !v || !g3.ll || !durum.sunumEt) return;
-    const t = (performance.now() - su.t0) / 1000, V = durum.sunumEt.veri, T1 = V.tur * V.turSure, TG = 5, T2 = V.hatSure, TS = 7, E = durum.sunumEt;
+    const t = (performance.now() - su.t0) / 1000 * (su.hiz || 1), V = durum.sunumEt.veri, // hız: 0,5 = yarı hız (süre iki katı)
+          T1 = V.tur * V.turSure, TG = 5, T2 = V.hatSure, TS = 7, E = durum.sunumEt;
     const b = g3.bb, mer = [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], R = Math.max(70, hyp(b[2] - b[0], b[3] - b[1]) * 1.05), ek = durum.eksen, yonu = u => { const e = g3.toENU(g3.origin[0] + u[0], g3.origin[1] + u[1], 0), z = g3.toENU(g3.origin[0], g3.origin[1], 0); return Math.atan2(e[0] - z[0], e[1] - z[1]); };
     const bas0 = Cs.Math.toRadians(200), egim1 = Cs.Math.toRadians(-27);
     let asama;
@@ -481,7 +482,7 @@
   S.sunumBaslat = (kayit) => {
     const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.ll || !durum.sunumEt) { msg('Sunum için önce Google 3B sekmesinde model kurulmalı.', true); return; }
     S.durdur(); if (durum.sunum) S.sunumDur(false);
-    const su = durum.sunum = { t0: performance.now(), kayit: !!kayit };
+    const su = durum.sunum = { t0: performance.now(), kayit: !!kayit, hiz: +durum.sunumHiz > 0 ? +durum.sunumHiz : 1 };
     if (durum.etiket) durum.etiket.show = false;
     if (kayit) {
       try {
@@ -539,7 +540,7 @@
       <div class="row" style="border-top:1px solid #ffffff22;padding-top:5px"><label><input type="checkbox" id="shCevre"> Çevre binalar (şeffaf kutu)</label><button id="shIndir" title="Tesis ve hat çevresindeki bina izlerini OpenStreetMap'ten indirir">Çevre binaları indir</button></div>
       <div class="row"><label title="Bitmiş hâl: asfalt yol ve bordür, kilit parke kaldırım, çim ada, boyalı cepheler, ağaçlar ve güneş gölgesi"><input type="checkbox" id="shGercek"> Gerçekçi görünüm (malzeme + gölge)</label></div>
       <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>
-      <div class="row"><button id="shSunum" title="Tesis çevresinde tur ve bina bilgileri, sonra hat boyunca yavaş ilerleyiş ve hat bilgileri">▶ Sunumu oynat</button><button id="shVideo" title="Aynı sunumu oynatır ve 3B görüntüyü video dosyası olarak kaydeder (bitince İndirilenler klasörüne iner)">🎬 Video kaydet</button></div>`;
+      <div class="row"><button id="shSunum" title="Tesis çevresinde tur ve bina bilgileri, sonra hat boyunca yavaş ilerleyiş ve hat bilgileri">▶ Sunumu oynat</button><button id="shVideo" title="Aynı sunumu oynatır ve 3B görüntüyü video dosyası olarak kaydeder (bitince İndirilenler klasörüne iner)">🎬 Video kaydet</button><label title="Sunumun (ve kaydedilen videonun) hızı; yavaş seçilirse süre uzar">Hız <select id="shHiz"><option value="0.35">Çok yavaş</option><option value="0.6">Yavaş</option><option value="1">Normal</option><option value="1.6">Hızlı</option></select></label></div>`;
     const m = $('#g3Msg'); while (d.firstElementChild) ctl.insertBefore(d.firstElementChild, m);
     const yenile = () => { const b = $('#g3Re'); if (b) b.click(); };
     $('#shCevre').checked = !!durum.cevre; $('#shHat').checked = !!durum.hat;
@@ -551,6 +552,8 @@
     $('#shOyna').onclick = () => durum.oynuyor ? S.durdur() : S.oynat(true);
     $('#shUc').onclick = () => S.uc();
     $('#shTum').onclick = () => tumHat();
+    $('#shHiz').value = String(durum.sunumHiz || 1); if (!$('#shHiz').value) $('#shHiz').value = '1';
+    $('#shHiz').onchange = e => { durum.sunumHiz = +e.target.value || 1; sakla(); if (durum.sunum) durum.sunum.hiz = durum.sunumHiz; const V = durum.sunumEt && durum.sunumEt.veri; if (V) msg('Sunum süresi ≈ ' + Math.round(S.sunumSure(V).toplam / durum.sunumHiz) + ' sn'); };
     $('#shSunum').onclick = () => durum.sunum ? S.sunumDur(false) : S.sunumBaslat(false);
     $('#shVideo').onclick = () => durum.sunum ? S.sunumDur(false) : S.sunumBaslat(true);
     dugme();
@@ -558,5 +561,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kurArayuz, 0)); else setTimeout(kurArayuz, 0);
   C.addCommand && C.addCommand(['DENIZHATTI', 'AKISANIM'], 'Google 3B sekmesinde deniz hattı akış animasyonunu oynatır (DENIZ_HATTI katmanındaki güzergâh ekseni boyunca)', () => { C.setView('g3d'); setTimeout(() => S.oynat(true), 1500); }, { noUndo: true });
   C.addCommand && C.addCommand(['CEVREBINA', 'CEVREBINALAR'], 'Tesis ve hat çevresindeki binaları OpenStreetMap\'ten indirir; Google 3B sekmesinde şeffaf kutu olarak gösterir', () => S.cevreIndir(), { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['Hız', 'Speed'], ['Çok yavaş', 'Very slow'], ['Yavaş', 'Slow'], ['Normal', 'Normal'], ['Hızlı', 'Fast'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);
