@@ -19,7 +19,7 @@ const OLCU = {
   kot: {
     grobetonAlt: 198.41, radyeAlt: 198.51, radyeUst: 198.91, dolguUst: 199.36, pompaHolu: 199.77,
     galeriUst: 205.41, mimariZemin: 205.67, toprak: 205.47, tretuvar: 205.57, sah1: 201.56, sah2: 203.35,
-    kirisAltEnine: 210.11, kirisAltBoyuna: 210.41, catiDoseme: 210.91, konsolUst: 208.85,
+    kirisAltEnine: 210.11, kirisAltBoyuna: 210.41, catiDoseme: 210.91, guseUst: 208.81,
   },
 };
 
@@ -54,6 +54,10 @@ function yeniBelge() {
 }
 
 /* ---------- yardımcılar (m) ---------- */
+/* kolon gusesi: x0 kolonun sol kenarı, y kolon iç yüzü, s içeri yön (+1 / −1), zu üst kot; kesit (çıkma, yükseklik) y–z düzleminde, 50 cm (kolon eni) x boyunca uzatılır */
+const GUSE = { c: 0.40, hOn: 0.30, hKok: 0.50 };
+const guse = (x0, y, s, zu) => ({ o: [s > 0 ? x0 : +(x0 + 0.5).toFixed(3), y, 0], ux: [0, s, 0], uz: [s, 0, 0], h: 0.5, beton: 'C25/30', ad: 'Vinç yolu gusesi',
+  prof: [[0, zu - GUSE.hKok], [GUSE.c, zu - GUSE.hOn], [GUSE.c, zu], [0, zu]].map(([u, v]) => [+u.toFixed(3), +v.toFixed(3)]) });
 const dik = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(p => p.map(v => +cm(v).toFixed(3)));     // cm dikdörtgen → m köşeler (CCW)
 const kutu3 = (pts, za, zb) => ({ pts: pts.map(p => [p[0], p[1], za]), d: [0, 0, +(zb - za).toFixed(3)] });               // düşey boşluk prizması
 
@@ -103,10 +107,11 @@ function uret() {
   // radye–perde birleşiminde PVC su tutucu bant (perde eksenlerinde)
   ekle('yalitim', 'INS_SU_TUTUCU_BANT', { kind: 'bant', dz: 0, pts: [[0.2, 0.15], [19.5, 0.15], [19.5, 7.85], [0.2, 7.85]], closed: true, z: zP, tip: 'pvc_i25', w: 20, t: 5 });
 
-  // 3) kolonlar 50×50: radye üstünden enine kiriş altına (+210,11); uzun kenar kolonlarına vinç konsolu 50×40 (+205,41 → +208,85)
+  // 3) kolonlar 50×50: radye üstünden enine kiriş altına (+210,11); aks 2…5 kolonlarında vinç yolu gusesi (B-B kesiti):
+  //    kolon yüzünden 40 cm çıkma, üst +208,81 (vinç rayı altı), ön yüz 30 cm, alt yüz eğimli — kolon yüzünde 50 cm yükseklik
   const hK = +(K.kirisAltEnine - K.radyeUst).toFixed(3);
   for (const x of OLCU.kolonX) for (const y of [0, 750]) ekle('kolon', 'INS_KOLON', { sek: 'R', b: 0.5, d: 0.5, D: 0.5, h: hK, z0: zP, rot: 0, beton: 'C30/37', p: [cm(x + 25), cm(y + 25), 0] });
-  for (const x of OLCU.kolonX.slice(1)) for (const y of [70, 730]) ekle('kolon', 'INS_KOLON', { sek: 'R', b: 0.5, d: 0.4, D: 0.5, h: +(K.konsolUst - K.galeriUst).toFixed(3), z0: z(K.galeriUst), rot: 0, beton: 'C25/30', p: [cm(x + 25), cm(y), 0], ad: 'Vinç yolu konsolu' });
+  for (const x of OLCU.kolonX.slice(1)) for (const y of [0.5, 7.5]) ekle('kati', 'INS_KOLON', guse(cm(x), y, y < 4 ? 1 : -1, z(K.guseUst)));
 
   // 4) pompa holü tabanı: sıkıştırılmış dolgu + taban betonu (kanallar ve kaideler boşluk), pompa-motor kaideleri
   ekle('dolgu', 'INS_DOLGU', { pts: dik(40, 30, 1930, 770), za: zP, zb: z(K.dolguUst), malz: 'kum' });
@@ -167,7 +172,7 @@ function uret() {
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, say } };
 }
 
-module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, uret };
+module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GUSE, guse, uret };
 
 if (require.main === module) {
   const cikti = process.argv[2] || path.join(__dirname, '..', 'test-proje', 'konya', 'Konya-terfi-insaat.aritma');

@@ -24,10 +24,20 @@ t('perdeler: uzun kenar 30, kısa kenar 40 cm, radye üstünden +205,41', () => 
   assert.strictEqual(p.length, 4); assert.deepStrictEqual(p.map(e => e.tb), [0.3, 0.3, 0.4, 0.4]);
   for (const e of p) { yak(e.z0, U.z(198.91), 1e-9); yak(e.z0 + e.h, U.z(205.41), 1e-6); }
 });
-t('kolonlar: 10 × 50/50 kiriş altına (+210,11) + 8 vinç konsolu', () => {
-  const k = tip('kolon'), ana = k.filter(e => e.d === 0.5);
-  assert.strictEqual(ana.length, 10); assert.strictEqual(k.length - ana.length, 8);
-  for (const e of ana) yak(e.z0 + e.h, U.z(210.11), 1e-6);
+t('kolonlar: 10 × 50/50 kiriş altına (+210,11)', () => {
+  const k = tip('kolon'); assert.strictEqual(k.length, 10);
+  for (const e of k) { assert.strictEqual(e.d, 0.5); yak(e.z0 + e.h, U.z(210.11), 1e-6); }
+});
+t('vinç yolu guseleri: 8 adet, kolon iç yüzünde, 40 cm çıkma, üst +208,81, ön 30 / kök 50 cm', () => {
+  const g = tip('kati').filter(e => e.ad === 'Vinç yolu gusesi'); assert.strictEqual(g.length, 8);
+  const W = (e, u, v, w) => { const uy = [e.uz[1] * e.ux[2] - e.uz[2] * e.ux[1], e.uz[2] * e.ux[0] - e.uz[0] * e.ux[2], e.uz[0] * e.ux[1] - e.uz[1] * e.ux[0]]; return [0, 1, 2].map(i => (e.o[i] || 0) + e.ux[i] * u + uy[i] * v + e.uz[i] * w); };
+  for (const e of g) {
+    const P = e.prof.flatMap(([u, v]) => [W(e, u, v, 0), W(e, u, v, e.h)]), xs = P.map(p => p[0]), ys = P.map(p => p[1]), zs = P.map(p => p[2]);
+    yak(Math.max(...zs), U.z(208.81), 1e-6); yak(Math.max(...zs) - Math.min(...zs), 0.5, 1e-6); yak(Math.max(...xs) - Math.min(...xs), 0.5, 1e-6);
+    yak(Math.max(...ys) - Math.min(...ys), 0.4, 1e-6);
+    const ic = Math.min(...ys) < 4 ? Math.min(...ys) : Math.max(...ys); yak(ic, Math.min(...ys) < 4 ? 0.5 : 7.5, 1e-6);   // kolon iç yüzüne yapışık
+    assert.ok(U.OLCU.kolonX.slice(1).some(x => Math.abs(Math.min(...xs) - x / 100) < 1e-6));                            // kolonla aynı hizada
+  }
 });
 t('galeri döşemesi: vinç boşluğu ve merdiven boşluğu dışarıda, kalınlığı sabit', () => {
   const g = tip('plak').find(e => e.ad === 'Galeri döşemesi');
