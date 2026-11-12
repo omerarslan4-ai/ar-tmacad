@@ -7,7 +7,9 @@
      Borular toprak altındadır (örtü set.denizHat.ortu, varsayılan 1,2 m): karada harita hat boyunca açık hendek olarak kesilir,
      denizde boru deniz tabanında görünür. Google 3B arazisi varsa hendek ve boru arazi kotunu izler.
      "Akışı oynat": su, istasyondan denize doğru ilerler; "Hat boyunca uç": kamera su cephesini izler.
-   Geometri saf fonksiyonlardır (C.saha3b.*), Node ile test/saha3b.test.js içinde denenir. */
+   - Gerçekçi görünüm: SAHA_ZEMIN / SAHA_YOL / SAHA_YESIL / SAHA_KAPLAMA plakları dokulu çizilir (asfalt, bordür, kilit parke, çim),
+     bina katmanları boyalı cephe rengini alır, C.doc.set.peyzaj.agac = [[x, y, boy]…] ağaçları ve güneş gölgesi eklenir.
+     Geometri saf fonksiyonlardır (C.saha3b.*), Node ile test/saha3b.test.js içinde denenir. */
 (function (C) {
   'use strict';
   const S = C.saha3b = {};
@@ -76,6 +78,23 @@
     dort(yan, P(Lp[n - 1], at(zT, n - 1)), P(Rp[n - 1], at(zT, n - 1)), P(Rp[n - 1], at(zU, n - 1)), P(Lp[n - 1], at(zU, n - 1)), [-ub[0] / lb, -ub[1] / lb, 0]);
     return { yan, taban, halka: Lp.concat(Rp.slice().reverse()) };
   };
+  /* kapalı çokgeni d kadar öteler (+ dışa, − içe; çokgen yönünden bağımsız) */
+  S.oteleKapali = (poly, d) => {
+    let p = S.temiz(poly); if (p.length > 2 && hyp(p[0][0] - p[p.length - 1][0], p[0][1] - p[p.length - 1][1]) < 1e-6) p.pop(); const n = p.length; if (n < 3) return p;
+    let A = 0; for (let i = 0; i < n; i++) { const a = p[i], b = p[(i + 1) % n]; A += a[0] * b[1] - b[0] * a[1]; } const sg = A > 0 ? 1 : -1; // saat yönünün tersinde dış normal = sağ
+    const nor = i => { const a = p[i], b = p[(i + 1) % n], l = hyp(b[0] - a[0], b[1] - a[1]) || 1; return [(b[1] - a[1]) / l * sg, -(b[0] - a[0]) / l * sg]; };
+    return p.map((q, i) => { const a = nor((i + n - 1) % n), b = nor(i); let m = [a[0] + b[0], a[1] + b[1]]; const ml = hyp(m[0], m[1]); if (ml < 1e-6) return [q[0] + a[0] * d, q[1] + a[1] * d]; m = [m[0] / ml, m[1] / ml]; const k = Math.min(3, 1 / Math.max(0.05, m[0] * a[0] + m[1] * a[1])); return [q[0] + m[0] * d * k, q[1] + m[1] * d * k]; });
+  };
+  /* bordür: kapalı çokgen sınırı boyunca w genişliğinde, z0..z1 arası şerit (icte: şerit çokgenin içinde) → { pos, nrm } */
+  S.bordur = (poly, w, z0, z1, icte) => {
+    const a = S.oteleKapali(poly, 0), b = S.oteleKapali(poly, icte ? -w : w), n = a.length; if (n < 3 || b.length !== n) return null;
+    const pos = [], nrm = [], dort = (p, q, r, s, nn) => { pos.push(...p, ...q, ...r, ...p, ...r, ...s); for (let i = 0; i < 6; i++) nrm.push(...nn); };
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n, u = [a[j][0] - a[i][0], a[j][1] - a[i][1]], l = hyp(u[0], u[1]) || 1, nn = [u[1] / l, -u[0] / l, 0];
+      dort([a[i][0], a[i][1], z1], [a[j][0], a[j][1], z1], [b[j][0], b[j][1], z1], [b[i][0], b[i][1], z1], [0, 0, 1]);       // üst
+      dort([a[i][0], a[i][1], z0], [a[j][0], a[j][1], z0], [a[j][0], a[j][1], z1], [a[i][0], a[i][1], z1], nn);               // bir yan
+      dort([b[j][0], b[j][1], z0], [b[i][0], b[i][1], z0], [b[i][0], b[i][1], z1], [b[j][0], b[j][1], z1], [-nn[0], -nn[1], 0]); } // öbür yan
+    return { pos, nrm };
+  };
   /* gömme düzeni: borular = [{ dn, ofs }] → hendek genişliği, derinliği ve her borunun eksen derinliği (zeminden aşağı, m) */
   S.gomme = (borular, ortu) => {
     const rs = borular.map(b => Math.max(0.25, (+b.dn || 1000) / 2000)), of = borular.map(b => +b.ofs || 0), rMax = Math.max(...rs);
@@ -132,8 +151,8 @@
   const g3 = C.g3d, G = C.geo, $ = s => document.querySelector(s); if (!g3) return;
   const durum = S.durum = { cevre: true, hat: true, oynuyor: false, izle: false, t0: 0, on: 0, mats: [], boy: 0, eksen: null, raf: 0 };
   try { Object.assign(durum, JSON.parse(localStorage.getItem('aritmacad.saha3b') || '{}')); } catch (e) { }
-  durum.oynuyor = false; durum.izle = false; durum.mats = [];
-  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek })); } catch (e) { } };
+  durum.oynuyor = false; durum.izle = false; durum.mats = []; g3.golge = durum.gercek !== false;
+  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek, gercek: durum.gercek })); } catch (e) { } };
   const msg = (t, uyari) => { const el = $('#g3Msg'); if (el) { el.textContent = t || ''; el.style.color = uyari ? '#ffb347' : ''; } };
 
   const AKIS = 'AritmaAkis';
@@ -196,11 +215,87 @@
     if (durum.profil && is.some(x => durum.profil[x.k])) { const b = $('#g3Re'); if (b) b.click(); }
   };
 
+
+  /* ---------- gerçekçi görünüm: bitmiş hâl (asfalt yol + bordür, kilit parke kaldırım, çim ada, boyalı cepheler, ağaç, güneş gölgesi) ---------- */
+  const ZEMIN = 'AritmaZemin', DOKULU = ['SAHA_ZEMIN', 'SAHA_YOL', 'SAHA_YESIL', 'SAHA_KAPLAMA'];
+  const RENK = { // katman → boyalı / kaplamalı bitmiş yüzey rengi (0–1)
+    // SW2_MIM_MEK_R3 görünüşleri: taşıyıcı çerçeve (kolon, kiriş, parapet) #105689 mavi, dolgu duvar açık gri (ACI 9), cam #ACDFDD
+    INS_PERDE: [0.74, 0.74, 0.72], INS_TEMEL_RADYE: [0.70, 0.70, 0.68], INS_DOSEME: [0.76, 0.76, 0.74], INS_KOLON: [0.063, 0.337, 0.537], INS_KIRIS: [0.063, 0.337, 0.537],
+    INS_DUVAR: [0.753, 0.753, 0.753], INS_DUVAR_TUGLA: [0.753, 0.753, 0.753], INS_PARAPET: [0.063, 0.337, 0.537], INS_CATI_DOSEMESI: [0.60, 0.61, 0.63],
+    INS_KAPI: [0.063, 0.337, 0.537], INS_PENCERE: [0.675, 0.875, 0.867], SAHA_DUVAR: [0.89, 0.87, 0.81], SAHA_KAPI: [0.16, 0.20, 0.27], SAHA_KORKULUK: [0.93, 0.76, 0.10],
+  };
+  g3.atla = e => durum.gercek !== false && e.type === 'plak' && DOKULU.includes(e.layer);
+  g3.renk = e => durum.gercek !== false ? RENK[e.layer] || (/^INS_DUVAR/.test(e.layer || '') ? RENK.INS_DUVAR : null) : null; // duvar katmanı malzemeye göre ad alır (INS_DUVAR_BRIKET…)
+  g3.golge = durum.gercek !== false;
+  const zeminMalzemeKaydet = Cs => {
+    if (Cs.Material._materialCache.getMaterial(ZEMIN)) return;
+    Cs.Material._materialCache.addMaterial(ZEMIN, { fabric: { type: ZEMIN, uniforms: { tur: 0 }, source: `
+          float shH(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          float shN(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(shH(i), shH(i + vec2(1.0, 0.0)), f.x), mix(shH(i + vec2(0.0, 1.0)), shH(i + vec2(1.0, 1.0)), f.x), f.y); }
+          czm_material czm_getMaterial(czm_materialInput materialInput){
+            czm_material m = czm_getDefaultMaterial(materialInput);
+            vec2 p = materialInput.st; float px = max(fwidth(p.x), fwidth(p.y)), uzak = clamp(px / 0.05, 0.0, 1.0); vec3 col;
+            if (tur < 0.5) { // kilit parke (20×10 cm, şaşırtmalı)
+              vec2 g = p / vec2(0.2, 0.1); g.x += 0.5 * mod(floor(g.y), 2.0); vec2 c = floor(g), f = fract(g);
+              float derz = smoothstep(0.0, 0.10, min(min(f.x, 1.0 - f.x) * 2.0, min(f.y, 1.0 - f.y)));
+              col = mix(vec3(0.63, 0.61, 0.58), vec3(0.71, 0.63, 0.57), shH(c)) * mix(0.90, 1.0, shH(c + 7.0));
+              col = mix(col * mix(0.70, 1.0, derz), vec3(0.635, 0.595, 0.555), uzak) * (0.93 + 0.14 * shN(p * 0.35));
+            } else if (tur < 1.5) { // asfalt
+              col = vec3(0.215, 0.215, 0.225) + (shN(p * 9.0) - 0.5) * 0.06 * (1.0 - uzak) + (shN(p * 0.4) - 0.5) * 0.04;
+            } else if (tur < 2.5) { // çim
+              col = mix(vec3(0.17, 0.38, 0.12), vec3(0.33, 0.55, 0.19), shN(p * 1.3)) * (0.82 + 0.36 * shN(p * 11.0) * (1.0 - uzak) + 0.18 * uzak);
+            } else { // beton bordür
+              col = vec3(0.80, 0.79, 0.76) * (0.95 + 0.05 * shN(p * 3.0));
+            }
+            m.diffuse = col * 0.62; m.emission = col * 0.42; m.specular = 0.02; m.shininess = 2.0; m.alpha = 1.0; return m; }` }, translucent: () => false });
+  };
+  /* küre benzeri taç + gövde: düşük çokgenli ağaç → { pos, nrm } üçgen çorbası (yerel, taban z=0) */
+  S.agac = (h, r) => {
+    const pos = [], nrm = [], ekle = (a, b, c) => { const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]], n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], l = hyp(n[0], n[1], n[2]) || 1; pos.push(...a, ...b, ...c); for (let i = 0; i < 3; i++) nrm.push(n[0] / l, n[1] / l, n[2] / l); };
+    const govde = { pos: [], nrm: [] }, tac = { pos, nrm }, K = 8, gz = h * 0.42, gr = Math.max(0.10, r * 0.09);
+    for (let j = 0; j < K; j++) { const a0 = j / K * 2 * Math.PI, a1 = (j + 1) / K * 2 * Math.PI, A = [Math.cos(a0) * gr, Math.sin(a0) * gr], B = [Math.cos(a1) * gr, Math.sin(a1) * gr], nn = [Math.cos((a0 + a1) / 2), Math.sin((a0 + a1) / 2), 0]; govde.pos.push(A[0], A[1], 0, B[0], B[1], 0, B[0], B[1], gz, A[0], A[1], 0, B[0], B[1], gz, A[0], A[1], gz); for (let i = 0; i < 6; i++) govde.nrm.push(...nn); }
+    const M = 6, cz = h - r * 0.8, P = (i, j) => { const th = i / M * Math.PI, ph = j / K * 2 * Math.PI, k = 1 + 0.12 * Math.sin(3 * ph + i); return [Math.sin(th) * Math.cos(ph) * r * k, Math.sin(th) * Math.sin(ph) * r * k, cz + Math.cos(th) * r * 0.8]; };
+    for (let i = 0; i < M; i++) for (let j = 0; j < K; j++) { const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1); if (i > 0) ekle(a, b, d); if (i < M - 1) ekle(b, c, d); }
+    return { govde, tac };
+  };
+  const gunes = () => { // sabit gün ışığı (yaz, sabah 10 suları) + yumuşak gölge
+    const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v) return; const ac = durum.gercek !== false;
+    try {
+      v.clock.shouldAnimate = false; v.clock.currentTime = Cs.JulianDate.fromIso8601('2026-06-21T07:45:00Z');
+      v.shadows = ac; if (v.shadowMap) { v.shadowMap.softShadows = true; v.shadowMap.size = 4096; v.shadowMap.maximumDistance = 450; v.shadowMap.darkness = 0.62; }
+      v.terrainShadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED; if (g3.tileset) g3.tileset.shadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED;
+    } catch (err) { console.warn(err); }
+  };
+  const kurGercek = (Cs, coll) => {
+    gunes(); if (durum.gercek === false) return;
+    zeminMalzemeKaydet(Cs);
+    const pl = C.doc.ents.filter(e => e.type === 'plak' && DOKULU.includes(e.layer) && C.layer(e.layer).on && e.pts && e.pts.length > 2);
+    const yuzey = (pos, nrm, tur) => {
+      if (!pos.length) return; const P = enuDizi(pos), st = new Array(P.length / 3 * 2); for (let i = 0, j = 0; i < P.length; i += 3, j += 2) { st[j] = P[i]; st[j + 1] = P[i + 1]; }
+      coll.add(new Cs.Primitive({ geometryInstances: new Cs.GeometryInstance({ geometry: geomUcgen(Cs, P, enuYon(nrm), st) }), appearance: new Cs.MaterialAppearance({ material: new Cs.Material({ fabric: { type: ZEMIN, uniforms: { tur } } }), translucent: false, closed: false, faceForward: false }), asynchronous: false, shadows: Cs.ShadowMode.ENABLED }));
+    };
+    const ciz = (katman, tur) => { const pos = [], nrm = []; for (const e of pl.filter(x => x.layer === katman)) { const zt = +e.zt || 0, m = S.prizma(e.pts, zt - (+e.t || 0.2), zt); if (m) { pos.push(...m.pos); nrm.push(...m.nrm); } } yuzey(pos, nrm, tur); };
+    ciz('SAHA_ZEMIN', 0); ciz('SAHA_KAPLAMA', 0); ciz('SAHA_YOL', 1); ciz('SAHA_YESIL', 2);   // parke kaldırım · asfalt yol · çim ada
+    // bordür: yol ve ada sınırları boyunca 15 × 15 cm beton şerit (yol kotundan 15 cm yüksek)
+    { const pos = [], nrm = [];
+      for (const e of pl.filter(x => x.layer === 'SAHA_YOL' || x.layer === 'SAHA_YESIL')) { const b = S.bordur(e.pts, 0.15, (+e.zt || 0) - 0.05, (e.layer === 'SAHA_YESIL' ? (+e.zt || 0) + 0.03 : (+e.zt || 0) + 0.15), e.layer === 'SAHA_YESIL'); if (b) { pos.push(...b.pos); nrm.push(...b.nrm); } }
+      yuzey(pos, nrm, 3); }
+    // ağaçlar
+    const ag = (C.doc.set.peyzaj && C.doc.set.peyzaj.agac) || []; if (ag.length) {
+      const gv = [], tc = [];
+      ag.forEach((a, i) => { const h = +a[2] || 5, m = S.agac(h, h * 0.36), z0 = a[3] != null ? +a[3] : 0.4, tasi = o => { const q = []; for (let k = 0; k < o.pos.length; k += 3) q.push(o.pos[k] + a[0], o.pos[k + 1] + a[1], o.pos[k + 2] + z0); return q; };
+        gv.push(new Cs.GeometryInstance({ geometry: geomUcgen(Cs, enuDizi(tasi(m.govde)), enuYon(m.govde.nrm)), attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(0.36, 0.26, 0.17, 1)) } }));
+        tc.push(new Cs.GeometryInstance({ geometry: geomUcgen(Cs, enuDizi(tasi(m.tac)), enuYon(m.tac.nrm)), attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(0.16 + 0.05 * (i % 3), 0.40 + 0.05 * (i % 2), 0.13, 1)) } })); });
+      coll.add(new Cs.Primitive({ geometryInstances: gv.concat(tc), appearance: new Cs.PerInstanceColorAppearance({ flat: false, translucent: false, closed: false }), asynchronous: false, shadows: Cs.ShadowMode.ENABLED }));
+    }
+  };
+
   /* model her kurulduğunda: çevre binalar ve hatlar aynı koleksiyona eklenir (yerleşim / yükseklik modelle birlikte) */
   const kur = () => {
     const Cs = window.Cesium, coll = g3.model; durum.mats = []; durum.eksen = null; durum.boy = 0; g3.ekKesim = [];
     if (!Cs || !coll || !g3.toENU || !C.doc) return;
     let nb = 0, nh = 0;
+    try { kurGercek(Cs, coll); } catch (err) { console.warn(err); }
     // --- çevre binalar ---
     const cv = C.doc.set.cevre;
     if (durum.cevre && cv && cv.binalar && cv.binalar.length) {
@@ -339,6 +434,7 @@
     const ctl = $('#g3Ctl'); if (!ctl || $('#shOyna')) return;
     const d = document.createElement('div'); d.innerHTML = `
       <div class="row" style="border-top:1px solid #ffffff22;padding-top:5px"><label><input type="checkbox" id="shCevre"> Çevre binalar (şeffaf kutu)</label><button id="shIndir" title="Tesis ve hat çevresindeki bina izlerini OpenStreetMap'ten indirir">Çevre binaları indir</button></div>
+      <div class="row"><label title="Bitmiş hâl: asfalt yol ve bordür, kilit parke kaldırım, çim ada, boyalı cepheler, ağaçlar ve güneş gölgesi"><input type="checkbox" id="shGercek"> Gerçekçi görünüm (malzeme + gölge)</label></div>
       <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>`;
     const m = $('#g3Msg'); while (d.firstElementChild) ctl.insertBefore(d.firstElementChild, m);
     const yenile = () => { const b = $('#g3Re'); if (b) b.click(); };
@@ -346,6 +442,7 @@
     $('#shCevre').onchange = e => { durum.cevre = e.target.checked; sakla(); yenile(); };
     $('#shHat').onchange = e => { durum.hat = e.target.checked; sakla(); if (!durum.hat) S.durdur(); yenile(); };
     $('#shHendek').checked = durum.hendek !== false; $('#shHendek').onchange = e => { durum.hendek = e.target.checked; sakla(); yenile(); };
+    $('#shGercek').checked = durum.gercek !== false; $('#shGercek').onchange = e => { durum.gercek = e.target.checked; g3.golge = durum.gercek; sakla(); yenile(); };
     $('#shIndir').onclick = () => S.cevreIndir();
     $('#shOyna').onclick = () => durum.oynuyor ? S.durdur() : S.oynat(true);
     $('#shUc').onclick = () => S.uc();
@@ -355,5 +452,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kurArayuz, 0)); else setTimeout(kurArayuz, 0);
   C.addCommand && C.addCommand(['DENIZHATTI', 'AKISANIM'], 'Google 3B sekmesinde deniz hattı akış animasyonunu oynatır (DENIZ_HATTI katmanındaki güzergâh ekseni boyunca)', () => { C.setView('g3d'); setTimeout(() => S.oynat(true), 1500); }, { noUndo: true });
   C.addCommand && C.addCommand(['CEVREBINA', 'CEVREBINALAR'], 'Tesis ve hat çevresindeki binaları OpenStreetMap\'ten indirir; Google 3B sekmesinde şeffaf kutu olarak gösterir', () => S.cevreIndir(), { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);

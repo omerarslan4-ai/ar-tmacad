@@ -33,12 +33,13 @@ const SAHA = {
     { ad: 'Mevcut kapı (KD)', a: W(105.41, 94.41), b: W(102.74, 96.47), h: 2.1 },
     { ad: 'Mevcut kapı (B)', a: W(65.29, 71.26), b: W(63.22, 68.57), h: 2.1 },
   ],
-  yol: [                                               // GEN_1.KDM_YOLA: yol eksenleri (genişlik çizimden yaklaşık)
-    { a: W(72.74, 75.26), b: W(105.25, 51.56), w: 6 },
-    { a: W(89.97, 97.36), b: W(64.99, 65.33), w: 6 },
-    { a: W(87.09, 64.80), b: W(106.18, 90.98), w: 6 },
-    { a: W(92.13, 61.12), b: W(83.04, 48.59), w: 4 },
+  // yol alanı: genel yerleşimdeki yol taramasının (M-GORUNUS-6 / DASH) sınırı — adanın çevresini dolanır; ikinci parça sürgülü kapı önü
+  yol: [
+    [[97.64, 52.22], [102.27, 58.61], [101.79, 58.96], [92.40, 65.77], [109.14, 88.83], [103.23, 93.12], [89.49, 74.22], [88.81, 73.44], [87.98, 72.83], [87.05, 72.38], [86.05, 72.14], [85.02, 72.09], [84.00, 72.26], [83.04, 72.62], [82.16, 73.17], [81.26, 73.87], [80.53, 74.57], [79.95, 75.39], [79.54, 76.31], [79.32, 77.30], [79.29, 78.31], [79.47, 79.30], [79.83, 80.24], [80.37, 81.10], [91.93, 95.92], [88.02, 98.79], [63.08, 66.82], [67.76, 63.17], [72.86, 70.22], [88.36, 58.96], [81.57, 49.59], [84.46, 47.49], [91.26, 56.88]].map(p => W(p[0], p[1])),
+    [[102.68, 58.31], [98.05, 51.93], [102.93, 48.36], [107.56, 54.75]].map(p => W(p[0], p[1])),
   ],
+  // orta ada: çim taraması (M-GOST-GENEL / GRASS) sınırı — GB ucu yuvarlak
+  ada: [[100.51, 89.63], [92.05, 95.83], [80.49, 81.01], [79.96, 80.18], [79.61, 79.26], [79.44, 78.30], [79.47, 77.32], [79.68, 76.36], [80.08, 75.46], [80.64, 74.66], [81.35, 73.99], [82.25, 73.29], [83.00, 72.81], [83.82, 72.47], [84.69, 72.28], [85.58, 72.24], [86.46, 72.37], [87.30, 72.64], [88.09, 73.07], [88.78, 73.63], [89.37, 74.30]].map(p => W(p[0], p[1])),
   kotZemin: 0.38, kotYol: 0.40,
   terfi: { o: W(101.79, 58.96), ux: birim([93.21, 65.18], [108.36, 86.06]) },   // 25,8 × 10,6 m; yerel y = KB (vana odası) tarafı
   baca: { k: [W(90.67, 96.86), W(96.50, 92.63), W(99.55, 96.84), W(93.73, 101.07)] }, // dış 7,20 × 5,20 m
@@ -72,6 +73,9 @@ function terfi(B, dosya) {
     B.doc.ents.push(k); n++;
   }
   for (const k of B.doc.ents) { if (k.host && esle[k.host]) k.host = esle[k.host]; if (k.kOf && esle[k.kOf]) k.kOf = esle[k.kOf]; }
+  // çatı döşemesi kiriş üstüne otursun: kaynak modelde döşeme altı ile kiriş üstü arasında boşluk kalmışsa döşeme kalınlaştırılır (üst kot sabit)
+  { const kirisUst = Math.max(-1e9, ...B.doc.ents.filter(k => k.type === 'kiris' && esle && Object.values(esle).includes(k.id)).map(k => +k.zt || 0));
+    for (const k of B.doc.ents) if (k.type === 'plak' && k.cati && Object.values(esle).includes(k.id) && kirisUst > -1e8) { const alt = (+k.zt || 0) - (+k.t || 0.2); if (alt > kirisUst + 0.005 && alt - kirisUst < 0.6) k.t = +((+k.zt || 0) - kirisUst).toFixed(3); } }
   if (!n) { // kaynak yoksa: gövde + üst yapı kaba kütlesi
     B.kat('INS_PERDE', 8, 50); B.kat('INS_DOSEME', 8, 35);
     perde(B, 'INS_PERDE', [f(0, 0), f(25.8, 0), f(25.8, 10.6), f(0, 10.6)], { closed: true, hiza: 'DIS', tb: 0.65, z0: -7.9, h: 8.3 });
@@ -82,6 +86,9 @@ function terfi(B, dosya) {
   B.kat('INS_DUVAR', 31, 35); B.kat('INS_KAPI', 30, 25);
   const d = perde(B, 'INS_DUVAR', [f(4.075, 0.275), f(25.375, 0.275), f(25.375, 7.375), f(4.075, 7.375)], { closed: true, hiza: 'O', tb: 0.25, z0: 0.7, h: 6.95, malz: 'briket', ad: 'Terfi üst yapı duvarı' });
   acik(B, d, 3, 3.55, { kind: 'kapi', w: 3.5, hh: 3.5, kTip: 'S', pnl: 0.5, ray: true });   // SK1 350/350 seksiyonel kapı (GB cephe — yeri kabul)
+  B.kat('INS_PENCERE', 4, 25);
+  for (const seg of [0, 2]) for (let i = 0; i < 5; i++) acik(B, d, seg, 2.13 + i * 4.26, { w: 1.6, hh: 1.0, par: 3.6 });   // uzun cephelerde üst bant pencereleri (her aks arası; yeri kabul)
+  acik(B, d, 1, 3.55, { w: 1.6, hh: 1.0, par: 3.6 });
   return n;
 }
 
@@ -94,6 +101,12 @@ function baca(B) {
   perde(B, 'INS_PERDE', r(0, 0, 7.2, 5.2), { closed: true, hiza: 'DIS', tb: 0.60, z0: -2.40, h: 8.85, ad: 'T-102 yükleme bacası perdesi' });
   perde(B, 'INS_PERDE', [f(3.85, 0.6), f(3.85, 4.6)], { tb: 0.50, z0: -2.40, h: 3.40, ad: 'T-102 savak duvarı (+1.00)' });
   plak(B, 'INS_DOSEME', r(0, 0, 7.2, 5.2), 6.70, 0.25, { ad: 'T-102 üst döşeme (+6.70)' });
+  // üst döşeme korkuluğu (SW2_TOWER: Hand Rail): 1,10 m, iki sıra boru + dikmeler
+  B.kat('SAHA_KORKULUK', 2, 25);
+  const kose = [[0.08, 0.08], [7.12, 0.08], [7.12, 5.12], [0.08, 5.12]];
+  for (let i = 0; i < 4; i++) { const a = kose[i], b = kose[(i + 1) % 4], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.round(L / 1.2);
+    for (const zt of [7.80, 7.28]) B.ekle('kiris', 'SAHA_KORKULUK', { a: f(a[0], a[1]).concat(0), b: f(b[0], b[1]).concat(0), bw: 0.05, hb: 0.05, zt, hiza: 'O', beton: 'C30/37', ad: 'Korkuluk' });
+    for (let k = 0; k < n; k++) B.ekle('kolon', 'SAHA_KORKULUK', { sek: 'R', b: 0.05, d: 0.05, D: 0.05, h: 1.10, z0: 6.70, rot: f.aci, beton: 'C30/37', p: f(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n).concat(0), ad: 'Korkuluk dikmesi' }); }
   return { f, cikis: f(0, 2.6) };
 }
 
@@ -116,11 +129,12 @@ function saha(B) {
   B.kat('SAHA_ZEMIN', 254, 25); B.kat('SAHA_YOL', 8, 25); B.kat('SAHA_DUVAR', 9, 35); B.kat('SAHA_KAPI', 5, 25); B.kat('SAHA_YESIL', 94, 25);
   const halka = [].concat(SAHA.duvar[0], SAHA.duvar[1], SAHA.duvar[2], [SAHA.duvar[3][0]]);
   plak(B, 'SAHA_ZEMIN', halka, SAHA.kotZemin - 0.05, 0.20, { ad: 'Saha zemini (kilitli parke)' });
-  SAHA.yol.forEach((y, i) => plak(B, 'SAHA_YOL', serit(y.a, y.b, y.w), +(SAHA.kotYol + i * 0.004).toFixed(3), 0.12, { ad: 'Saha içi yol' }));
-  // orta ada: iki uzun yolun arasında (kenarlardan 3,5 m içeride)
-  const yB = SAHA.yol[1], yC = SAHA.yol[2], u = birim(yC.a, yC.b), n = [-u[1], u[0]];
-  const dn = (yB.a[0] - yC.a[0]) * n[0] + (yB.a[1] - yC.a[1]) * n[1], sg = Math.sign(dn), g = Math.abs(dn);
-  if (g > 9) { const o = yC.a, P = (s, t) => [+(o[0] + u[0] * s + n[0] * sg * t).toFixed(3), +(o[1] + u[1] * s + n[1] * sg * t).toFixed(3)], L = uzunluk([yC.a, yC.b]); plak(B, 'SAHA_YESIL', [P(4.5, 3.5), P(L - 6, 3.5), P(L - 6, g - 3.5), P(4.5, g - 3.5)], SAHA.kotZemin + 0.12, 0.15, { ad: 'Orta ada (yeşil alan)' }); }
+  SAHA.yol.forEach((y, i) => plak(B, 'SAHA_YOL', y, +(SAHA.kotYol + i * 0.004).toFixed(3), 0.12, { ad: 'Saha içi yol (asfalt)' }));
+  plak(B, 'SAHA_YESIL', SAHA.ada, SAHA.kotZemin + 0.12, 0.15, { ad: 'Orta ada (çim)' });
+  { // ada üzerinde 3 ağaç (peyzaj kabulü): adanın uzun ekseni boyunca
+    const a = SAHA.ada, uc = [(a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2], yuv = a[12], u = birim(yuv, uc), L = uzunluk([yuv, uc]), n = [-u[1], u[0]];
+    B.doc.set.peyzaj = { agac: [0.22, 0.5, 0.78].map((k, i) => [+(yuv[0] + u[0] * L * k + n[0] * (i % 2 ? 1.2 : -1.2)).toFixed(2), +(yuv[1] + u[1] * L * k + n[1] * (i % 2 ? 1.2 : -1.2)).toFixed(2), 5 + (i % 2) * 0.8, SAHA.kotZemin + 0.12]) };
+  }
   for (const d of SAHA.duvar) perde(B, 'SAHA_DUVAR', d, { tb: 0.20, z0: SAHA.kotZemin - 0.1, h: 2.6, malz: 'briket', ad: 'Çevre duvarı' });
   for (const k of SAHA.kapi) perde(B, 'SAHA_KAPI', [k.a, k.b], { tb: 0.06, z0: SAHA.kotZemin + 0.05, h: k.h, malz: 'briket', ad: k.ad });
 }

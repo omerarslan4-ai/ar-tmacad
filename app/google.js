@@ -116,7 +116,7 @@
     if (!G.isSet()) { status('Önce Harita sekmesinde koordinat sistemini (ör. TM3/UTM) tanımlayın; model ancak o zaman gerçek konumuna yerleşir.', true); return; }
     const ents = C.doc.ents.filter(e => C.layer(e.layer).on && e.type !== 'sheet');
     let bb = [Infinity, Infinity, -Infinity, -Infinity]; const meshes = [];
-    for (const e of ents) { let t; try { t = C.entTris(e); } catch (err) { continue; } if (!t || !t.pos.length) continue; meshes.push({ e, t }); for (let i = 0; i < t.pos.length; i += 3) { const x = t.pos[i], y = t.pos[i + 1]; if (x < bb[0]) bb[0] = x; if (y < bb[1]) bb[1] = y; if (x > bb[2]) bb[2] = x; if (y > bb[3]) bb[3] = y; } }
+    for (const e of ents) { if (g3.atla && g3.atla(e)) continue; /* saha3b.js: dokulu çizilen yüzeyler */ let t; try { t = C.entTris(e); } catch (err) { continue; } if (!t || !t.pos.length) continue; meshes.push({ e, t }); for (let i = 0; i < t.pos.length; i += 3) { const x = t.pos[i], y = t.pos[i + 1]; if (x < bb[0]) bb[0] = x; if (y < bb[1]) bb[1] = y; if (x > bb[2]) bb[2] = x; if (y > bb[3]) bb[3] = y; } }
     if (!meshes.length) { status('Çizimde 3B nesne yok (duvar, havuz, boru, pompa, katı…). 3B sekmesinde ya da Arıtma araçlarıyla model oluşturun.', true); g3.origin = null; return; }
     const o = [(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2]; g3.origin = o; g3.bb = bb;
     const ll = G.toLL(o), lx = G.toLL([o[0] + 10, o[1]]), ly = G.toLL([o[0], o[1] + 10]);
@@ -124,18 +124,24 @@
     const ex = enu(lx).map(v2 => v2 / 10), ey = enu(ly).map(v2 => v2 / 10); // plan x ve y birim vektörlerinin doğu/kuzey bileşenleri
     const tr = (x, y, z) => { const dx = x - o[0], dy = y - o[1]; return [ex[0] * dx + ey[0] * dy, ex[1] * dx + ey[1] * dy, z]; };
     g3.ll = ll; g3.toENU = tr;
-    const colOf = (e) => { const aci = C.entColor(e), conc = ['tank', 'ctank', 'wall', 'slab'].includes(e.type); const c = conc ? [184, 184, 178] : C.aciRgb(aci === 7 ? 9 : aci); return new Cs.Color(c[0] / 255, c[1] / 255, c[2] / 255, g3.opacity); };
-    const insts = [], lines = [];
+    const colOf = (e) => { const oz = g3.renk && g3.renk(e); if (oz) return new Cs.Color(oz[0], oz[1], oz[2], g3.opacity); /* saha3b.js: gerçekçi cephe renkleri */ const aci = C.entColor(e), conc = ['tank', 'ctank', 'wall', 'slab'].includes(e.type); const c = conc ? [184, 184, 178] : C.aciRgb(aci === 7 ? 9 : aci); return new Cs.Color(c[0] / 255, c[1] / 255, c[2] / 255, g3.opacity); };
+    const insts = [], lines = [], boya = {};
     for (const { e, t } of meshes) {
       const n = t.pos.length / 3, pos = new Float64Array(n * 3), nrm = new Float32Array(n * 3);
       for (let i = 0; i < n; i++) { const q = tr(t.pos[i * 3], t.pos[i * 3 + 1], t.pos[i * 3 + 2]); pos[i * 3] = q[0]; pos[i * 3 + 1] = q[1]; pos[i * 3 + 2] = q[2]; const nq = tr(o[0] + t.nrm[i * 3], o[1] + t.nrm[i * 3 + 1], t.nrm[i * 3 + 2]); const l = Math.hypot(nq[0], nq[1], nq[2]) || 1; nrm[i * 3] = nq[0] / l; nrm[i * 3 + 1] = nq[1] / l; nrm[i * 3 + 2] = nq[2] / l; }
       const idx = n > 65535 ? new Uint32Array(n) : new Uint16Array(n); for (let i = 0; i < n; i++) idx[i] = i;
       const geom = new Cs.Geometry({ attributes: { position: new Cs.GeometryAttribute({ componentDatatype: Cs.ComponentDatatype.DOUBLE, componentsPerAttribute: 3, values: pos }), normal: new Cs.GeometryAttribute({ componentDatatype: Cs.ComponentDatatype.FLOAT, componentsPerAttribute: 3, values: nrm }) }, indices: idx, primitiveType: Cs.PrimitiveType.TRIANGLES, boundingSphere: Cs.BoundingSphere.fromVertices(pos) });
-      insts.push(new Cs.GeometryInstance({ geometry: geom, id: 'e' + e.id, attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(colOf(e)) } }));
-      if (g3.edges) for (const [a, b] of t.edges) { const p = tr(a[0], a[1], a[2]), q = tr(b[0], b[1], b[2]); lines.push(p[0], p[1], p[2], q[0], q[1], q[2]); }
+      const cc = colOf(e), gi = new Cs.GeometryInstance({ geometry: geom, id: 'e' + e.id, attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(cc) } });
+      if (g3.golge && g3.opacity >= 1) { const k = cc.toRgba(); (boya[k] = boya[k] || { c: cc, i: [] }).i.push(gi); } else insts.push(gi);
+      if (g3.edges && !g3.golge) for (const [a, b] of t.edges) { const p = tr(a[0], a[1], a[2]), q = tr(b[0], b[1], b[2]); lines.push(p[0], p[1], p[2], q[0], q[1], q[2]); }
     }
     const coll = new Cs.PrimitiveCollection();
-    coll.add(new Cs.Primitive({ geometryInstances: insts, appearance: new Cs.PerInstanceColorAppearance({ flat: false, translucent: g3.opacity < 1, closed: false }), asynchronous: false, releaseGeometryInstances: true }));
+    // gerçekçi görünüm: her renk bir boya malzemesi (yayınım payı sayesinde güneş almayan cephe kararmaz), gölge alır / verir
+    if (Object.keys(boya).length) {
+      if (!Cs.Material._materialCache.getMaterial('AritmaBoya')) Cs.Material._materialCache.addMaterial('AritmaBoya', { fabric: { type: 'AritmaBoya', uniforms: { color: new Cs.Color(0.8, 0.8, 0.8, 1) }, source: 'czm_material czm_getMaterial(czm_materialInput materialInput){ czm_material m = czm_getDefaultMaterial(materialInput); m.diffuse = color.rgb * 0.60; m.emission = color.rgb * 0.44; m.specular = 0.02; m.alpha = 1.0; return m; }' }, translucent: () => false });
+      for (const k in boya) coll.add(new Cs.Primitive({ geometryInstances: boya[k].i, appearance: new Cs.MaterialAppearance({ material: new Cs.Material({ fabric: { type: 'AritmaBoya', uniforms: { color: boya[k].c } } }), materialSupport: Cs.MaterialAppearance.MaterialSupport.BASIC, translucent: false, closed: false, faceForward: true }), asynchronous: false, shadows: Cs.ShadowMode.ENABLED }));
+    }
+    if (insts.length) coll.add(new Cs.Primitive({ geometryInstances: insts, appearance: new Cs.PerInstanceColorAppearance({ flat: false, translucent: g3.opacity < 1, closed: false }), asynchronous: false, releaseGeometryInstances: true, shadows: g3.golge ? Cs.ShadowMode.ENABLED : Cs.ShadowMode.DISABLED }));
     if (lines.length) {
       const lp = new Float64Array(lines), li = lp.length / 3 > 65535 ? new Uint32Array(lp.length / 3) : new Uint16Array(lp.length / 3); for (let i = 0; i < li.length; i++) li[i] = i;
       const lg = new Cs.Geometry({ attributes: { position: new Cs.GeometryAttribute({ componentDatatype: Cs.ComponentDatatype.DOUBLE, componentsPerAttribute: 3, values: lp }) }, indices: li, primitiveType: Cs.PrimitiveType.LINES, boundingSphere: Cs.BoundingSphere.fromVertices(lp) });
