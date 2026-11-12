@@ -135,10 +135,7 @@ function saha(B) {
   plak(B, 'SAHA_ZEMIN', halka, SAHA.kotZemin - 0.05, 0.20, { ad: 'Saha zemini (kilitli parke)' });
   SAHA.yol.forEach((y, i) => plak(B, 'SAHA_YOL', y, +(SAHA.kotYol + i * 0.004).toFixed(3), 0.12, { ad: 'Saha içi yol (asfalt)' }));
   plak(B, 'SAHA_YESIL', SAHA.ada, SAHA.kotZemin + 0.12, 0.15, { ad: 'Orta ada (çim)' });
-  { // ada üzerinde 3 ağaç (peyzaj kabulü): adanın uzun ekseni boyunca
-    const a = SAHA.ada, uc = [(a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2], yuv = a[12], u = birim(yuv, uc), L = uzunluk([yuv, uc]), n = [-u[1], u[0]];
-    B.doc.set.peyzaj = { agac: [0.22, 0.5, 0.78].map((k, i) => [+(yuv[0] + u[0] * L * k + n[0] * (i % 2 ? 1.2 : -1.2)).toFixed(2), +(yuv[1] + u[1] * L * k + n[1] * (i % 2 ? 1.2 : -1.2)).toFixed(2), 5 + (i % 2) * 0.8, SAHA.kotZemin + 0.12]) };
-  }
+  // ağaç yok: kullanıcı 12.11.2026'da kaldırılmasını istedi (ada yalnız çim). İstenirse B.doc.set.peyzaj = { agac: [[x, y, boy, tabanKotu], …] } ile eklenebilir.
   for (const d of SAHA.duvar) perde(B, 'SAHA_DUVAR', d, { tb: 0.20, z0: SAHA.kotZemin - 0.1, h: 2.6, malz: 'briket', ad: 'Çevre duvarı' });
   for (const k of SAHA.kapi) perde(B, 'SAHA_KAPI', [k.a, k.b], { tb: 0.06, z0: SAHA.kotZemin + 0.05, h: k.h, malz: 'briket', ad: k.ad });
 }
