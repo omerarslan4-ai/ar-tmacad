@@ -12,6 +12,7 @@
   'use strict';
   const K = C.kmz3b = {};
   const xml = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const T = s => (typeof window !== 'undefined' && window.DIL && window.DIL.t) ? window.DIL.t(s) : s; // KML içindeki adlar seçili dilde yazılır
   const s3 = v => (Math.round(v * 1000) / 1000).toString(), s4 = v => (Math.round(v * 10000) / 10000).toString();
 
   /* ---------- COLLADA 1.4.1 yazıcı ----------
@@ -100,22 +101,21 @@
     out.push('<Style id="k3bina"><LineStyle><color>b3805433</color><width>1.2</width></LineStyle><PolyStyle><color>4dd9b38c</color></PolyStyle></Style>');
     out.push('<Style id="k3ad"><IconStyle><scale>0</scale></IconStyle><LabelStyle><scale>0.9</scale></LabelStyle></Style>');
     const toprak0 = set.seviye && isFinite(+set.seviye.toprak) ? +set.seviye.toprak : 0;
-    if (model && !o.dae) { const y = K.yuzeyler(model, toprak0); out.push(y.stil); out.push(`<Folder><name>${xml(set.name || 'Tesis')} — 3B model</name><description>${y.ucgen} yüzey</description>\n${y.govde}\n</Folder>`); }
+    if (model && !o.dae) { const y = K.yuzeyler(model, toprak0); out.push(y.stil); out.push(`<Folder><name>${xml(set.name || 'Tesis')} — ${T('3B model')}</name><description>${T(y.ucgen + ' yüzey')}</description>\n${y.govde}\n</Folder>`); }
     else if (model) {
       // model kot 0 = proje ±0,00; projede toprak kotu tanımlıysa arazi o kota oturur
-      const toprak = set.seviye && isFinite(+set.seviye.toprak) ? +set.seviye.toprak : 0;
-      out.push(`<Placemark><name>${xml(set.name || 'Tesis')} — 3B model</name><description>${model.ucgen} üçgen · yalnız Google Earth Pro'da görünür</description><Model><altitudeMode>relativeToGround</altitudeMode><Location><longitude>${model.ll[1].toFixed(8)}</longitude><latitude>${model.ll[0].toFixed(8)}</latitude><altitude>${(-toprak).toFixed(2)}</altitude></Location><Orientation><heading>0</heading><tilt>0</tilt><roll>0</roll></Orientation><Scale><x>1</x><y>1</y><z>1</z></Scale><Link><href>models/tesis.dae</href></Link></Model></Placemark>`);
+      out.push(`<Placemark><name>${xml(set.name || 'Tesis')} — ${T('3B model')}</name><description>${T(model.ucgen + " üçgen · yalnız Google Earth Pro'da görünür")}</description><Model><altitudeMode>relativeToGround</altitudeMode><Location><longitude>${model.ll[1].toFixed(8)}</longitude><latitude>${model.ll[0].toFixed(8)}</latitude><altitude>${(-toprak0).toFixed(2)}</altitude></Location><Orientation><heading>0</heading><tilt>0</tilt><roll>0</roll></Orientation><Scale><x>1</x><y>1</y><z>1</z></Scale><Link><href>models/tesis.dae</href></Link></Model></Placemark>`);
     }
     const sn = set.sunum && set.sunum.binalar;
-    if (sn && sn.length) out.push('<Folder><name>Yapı adları</name>\n' + sn.filter(b => b && b.p && b.satirlar && b.satirlar.length).map(b => `<Placemark><name>${xml(b.satirlar[0])}</name>${b.satirlar.length > 1 ? `<description>${xml(b.satirlar.slice(1).join('\n'))}</description>` : ''}<styleUrl>#k3ad</styleUrl><Point><altitudeMode>relativeToGround</altitudeMode><coordinates>${ll6(b.p)},${(+b.z || 0).toFixed(1)}</coordinates></Point></Placemark>`).join('\n') + '\n</Folder>');
+    if (sn && sn.length) out.push('<Folder><name>' + T('Yapı adları') + '</name>\n' + sn.filter(b => b && b.p && b.satirlar && b.satirlar.length).map(b => `<Placemark><name>${xml(b.satirlar[0])}</name>${b.satirlar.length > 1 ? `<description>${xml(b.satirlar.slice(1).join('\n'))}</description>` : ''}<styleUrl>#k3ad</styleUrl><Point><altitudeMode>relativeToGround</altitudeMode><coordinates>${ll6(b.p)},${(+b.z || 0).toFixed(1)}</coordinates></Point></Placemark>`).join('\n') + '\n</Folder>');
     const H = C.saha3b && C.saha3b.hatlar ? C.saha3b.hatlar(doc) : null;
     if (H && H.gruplar && H.gruplar.length) {
       const ad = g => g.ana ? (() => { const say = {}; for (const b of g.borular) say[b.dn] = (say[b.dn] || 0) + 1; return Object.keys(say).sort((a, b) => b - a).map(dn => say[dn] + '×DN' + dn).join(' + '); })() : g.borular.map(b => b.ad).join(' + ');
       const boy = pts => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
-      out.push('<Folder><name>Deniz hattı</name>\n' + H.gruplar.map(g => `<Placemark><name>${xml((g.ana && H.set.ad ? H.set.ad + ' — ' : '') + ad(g))}</name><description>${xml('Uzunluk ' + Math.round(boy(g.eksen)) + ' m · boru toprak altındadır, çizgi güzergâhı gösterir')}</description><styleUrl>#k3hat</styleUrl><LineString><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><coordinates>${g.eksen.map(p => ll6(p) + ',0').join(' ')}</coordinates></LineString></Placemark>`).join('\n') + '\n</Folder>');
+      out.push('<Folder><name>' + T('Deniz hattı') + '</name>\n' + H.gruplar.map(g => `<Placemark><name>${xml((g.ana && H.set.ad ? H.set.ad + ' — ' : '') + ad(g))}</name><description>${xml(T('Uzunluk ' + Math.round(boy(g.eksen)) + ' m · boru toprak altındadır, çizgi güzergâhı gösterir'))}</description><styleUrl>#k3hat</styleUrl><LineString><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode><coordinates>${g.eksen.map(p => ll6(p) + ',0').join(' ')}</coordinates></LineString></Placemark>`).join('\n') + '\n</Folder>');
     }
     const cv = set.cevre && set.cevre.binalar;
-    if (cv && cv.length) out.push('<Folder><name>Çevre binalar</name>' + (set.cevre.kaynak ? `<description>${xml(set.cevre.kaynak)}</description>` : '') + '\n' + cv.filter(b => b && b.p && b.p.length > 2).map(b => { const h = (+b.h || 7).toFixed(1); return `<Placemark><styleUrl>#k3bina</styleUrl><Polygon>${o.cevre3b ? '<extrude>1</extrude><altitudeMode>relativeToGround</altitudeMode>' : '<tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode>'}<outerBoundaryIs><LinearRing><coordinates>${[...b.p, b.p[0]].map(p => ll6(p) + ',' + (o.cevre3b ? h : '0')).join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`; }).join('\n') + '\n</Folder>');
+    if (cv && cv.length) out.push('<Folder><name>' + T('Çevre binalar') + '</name>' + (set.cevre.kaynak ? `<description>${xml(set.cevre.kaynak)}</description>` : '') + '\n' + cv.filter(b => b && b.p && b.p.length > 2).map(b => { const h = (+b.h || 7).toFixed(1); return `<Placemark><styleUrl>#k3bina</styleUrl><Polygon>${o.cevre3b ? '<extrude>1</extrude><altitudeMode>relativeToGround</altitudeMode>' : '<tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode>'}<outerBoundaryIs><LinearRing><coordinates>${[...b.p, b.p[0]].map(p => ll6(p) + ',' + (o.cevre3b ? h : '0')).join(' ')}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`; }).join('\n') + '\n</Folder>');
     return out.join('\n');
   };
 
@@ -128,4 +128,6 @@
     const dosyalar = [{ name: 'doc.kml', data: kml }]; if (dae) dosyalar.push({ name: 'models/tesis.dae', data: dae });
     return { veri: C.zip(dosyalar), ucgen: mod ? mod.ucgen : 0, model: !!mod };
   };
+  if (typeof window !== 'undefined' && window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['3B model', '3D model'], ['# yüzey', '# faces'], ["# üçgen · yalnız Google Earth Pro'da görünür", '# triangles · visible only in Google Earth Pro'], ['Yapı adları', 'Structure names'], ['Deniz hattı', 'Sea outfall line'], ['Çevre binalar', 'Surrounding buildings'],
+    ['Uzunluk # m · boru toprak altındadır, çizgi güzergâhı gösterir', 'Length # m · the pipe is buried, the line shows the route'], ['KMZ indirildi — 3B model içinde (# üçgen). Google Earth ile açın.', 'KMZ downloaded — 3D model included (# triangles). Open it with Google Earth.']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);

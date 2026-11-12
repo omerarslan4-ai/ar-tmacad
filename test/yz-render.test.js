@@ -21,6 +21,9 @@ t('iş akışı (kenar kılavuzlu): Canny + ControlNet örnekleyiciye bağlanır
 });
 t('betim: ambiyans ve kullanıcı tarifi eklenir', () => {
   const b = Y.betim(R.ambiyans('gunbatimi').tarif, 'ıslak asfalt'); assert.ok(/sunset/.test(b) && /ıslak asfalt/.test(b) && /photorealistic/.test(b)); assert.ok(/clear blue sky/.test(Y.betim('', '')));
+  // tesis tarifi projeden gelir; verilmezse genel tanım (SW2'ye özgü sözler yazılmaz)
+  assert.ok(Y.betim('', '').includes(Y.TESIS) && !/pumping station|yellow handrail/.test(Y.betim('', '')));
+  const o = Y.betim('', '', 'wastewater treatment plant, circular clarifiers'); assert.ok(/circular clarifiers/.test(o) && !o.includes(Y.TESIS));
 });
 t('model önerisi: gerçekçi model öne, kılavuz aynı aileden (XL ↔ XL)', () => {
   assert.deepStrictEqual(Y.oner(['sd_xl_base_1.0.safetensors', 'realvisxlV50.safetensors', 'sdxl_inpaint.safetensors'], ['control_v11p_sd15_canny.pth', 'controlnet-union-sdxl-1.0.safetensors']), { model: 'realvisxlV50.safetensors', kilavuz: 'controlnet-union-sdxl-1.0.safetensors' });

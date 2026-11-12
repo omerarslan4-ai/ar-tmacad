@@ -9,9 +9,9 @@
   const Y = C.yzRender = {};
   Y.VARSAYILAN = { adres: 'http://127.0.0.1:8188', model: '', kilavuz: '', guc: 0.55, adim: 28, genislik: 1344, tarif: '' };
   const OLUMSUZ = 'cartoon, illustration, 3d render, cgi, low quality, blurry, distorted geometry, extra buildings, text, watermark, logo, people, cars';
-  /* betim: tesisin sabit tanımı + ambiyans + kullanıcının (Türkçe de olabilir) kısa tarifi */
-  Y.betim = (ambiyansTarif, tarif) => ['photorealistic architectural photograph of a stormwater pumping station site', 'painted plaster buildings with blue concrete frame and flat roofs, concrete tower with yellow handrail, boundary wall, sliding steel gate',
-    'asphalt road with concrete kerbs, interlocking paving, mowed lawn island', ambiyansTarif || 'clear blue sky, bright daylight', (tarif || '').trim(), 'natural lighting, realistic materials, high detail, sharp focus, 35mm lens'].filter(Boolean).join(', ');
+  /* betim: tesisin tanımı (projeden: C.doc.set.render.yzTesis; yoksa genel tanım) + ambiyans + kullanıcının (Türkçe de olabilir) kısa tarifi */
+  Y.TESIS = 'water and wastewater infrastructure facility site, concrete and painted plaster buildings, site roads and paving';
+  Y.betim = (ambiyansTarif, tarif, tesis) => ['photorealistic architectural photograph', (tesis || '').trim() || Y.TESIS, ambiyansTarif || 'clear blue sky, bright daylight', (tarif || '').trim(), 'natural lighting, realistic materials, high detail, sharp focus, 35mm lens'].filter(Boolean).join(', ');
   /* ComfyUI iş akışı (API biçimi). kilavuz: ControlNet model adı (varsa kenar kılavuzu eklenir) */
   Y.isAkisi = (o) => {
     const guc = Math.max(0.2, Math.min(0.95, +o.guc || 0.55)), w = {
@@ -45,6 +45,7 @@
   const $ = s => document.querySelector(s), S = C.saha3b, RM = C.renderMalz;
   const ayar = Y.ayar = Object.assign({}, Y.VARSAYILAN); try { Object.assign(ayar, JSON.parse(localStorage.getItem('aritmacad.yzRender') || '{}')); } catch (e) { }
   const sakla = () => { try { localStorage.setItem('aritmacad.yzRender', JSON.stringify(ayar)); } catch (e) { } };
+  const T = s => (typeof window !== 'undefined' && window.DIL && window.DIL.t) ? window.DIL.t(s) : s; // durum iletileri seçili dile çevrilir
   const esc = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const adres = () => String(ayar.adres || Y.VARSAYILAN.adres).replace(/\/+$/, '');
   const getir = async (yol, o) => { const r = await fetch(adres() + yol, o); if (!r.ok) throw new Error('ComfyUI ' + r.status + ' (' + yol.split('?')[0] + ')'); return r; };
@@ -56,8 +57,8 @@
   /* bağlan: kayıtlı adres yanıt vermezse ComfyUI'nin bilinen iki adresini de dener (masaüstü sürümü 8000, komut satırı 8188) */
   Y.baglan = async () => {
     try { return await Y.modeller(); } catch (ilk) {
-      const eski = ayar.adres;
-      for (const a of ['http://127.0.0.1:8000', 'http://127.0.0.1:8188']) { if (a === adres()) continue; ayar.adres = a; try { const l = await Y.modeller(); sakla(); return l; } catch (e) { } }
+      const eski = ayar.adres, denenen = adres();
+      for (const a of ['http://127.0.0.1:8000', 'http://127.0.0.1:8188']) { if (a === denenen) continue; ayar.adres = a; try { const l = await Y.modeller(); sakla(); return l; } catch (e) { } }
       ayar.adres = eski; throw ilk;
     }
   };
@@ -92,6 +93,7 @@
       '<div class="fld"><label>Model</label><select id="yzModel">' + liste.modeller.map(n => '<option' + (n === ayar.model ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></div>' +
       '<div class="fld"><label>Kenar kılavuzu (binanın çizgilerini korur)</label><select id="yzKilavuz"><option value="-">yok — yalnız benzetim gücü</option>' + liste.kilavuzlar.map(n => '<option' + (n === ayar.kilavuz ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></div>' +
       '<div class="fld"><label>Benzetim gücü: <span id="yzGucY"></span> <span class="hint">(düşük = modele sadık · yüksek = daha fotoğraf gibi, daha çok değişiklik)</span></label><input id="yzGuc" type="range" min="0.25" max="0.9" step="0.05" value="' + (+ayar.guc || 0.55) + '" style="width:100%"></div>' +
+      '<div class="fld"><label>Tesis tarifi (projeyle saklanır; boşsa genel tanım kullanılır)</label><input id="yzTesis" type="text" value="' + esc((C.doc && C.doc.set.render && C.doc.set.render.yzTesis) || '') + '" placeholder="' + esc(Y.TESIS) + '"></div>' +
       '<div class="fld"><label>Ek tarif (isteğe bağlı; ör. "ıslak asfalt, arkada palmiyeler")</label><input id="yzTarif" type="text" value="' + esc(ayar.tarif) + '"></div>' +
       '<div id="yzSonuc" style="margin:8px 0;min-height:20px"></div><div class="bar" style="justify-content:space-between"><span class="hint" id="yzDurum"></span><span><button id="yzKapat">Kapat</button><button id="yzKaydet" style="display:none">Kaydet</button><button id="yzUret" class="pri">✨ Oluştur</button></span></div>';
     const q = s => govde.querySelector(s), gucYaz = () => q('#yzGucY').textContent = (+q('#yzGuc').value).toFixed(2); gucYaz(); q('#yzGuc').oninput = gucYaz;
@@ -99,10 +101,11 @@
     q('#yzKaydet').onclick = () => { if (!sonBlob) return; const ad = ((C.doc.set.name || 'gorunum') + '-yapay-zeka.png').replace(/[\\/:*?"<>|]+/g, '_'), a = document.createElement('a'); a.href = URL.createObjectURL(sonBlob); a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 6000); C.log && C.log('✨ Yapay zekâ render indirildi: ' + ad); };
     q('#yzUret').onclick = async () => {
       ayar.model = q('#yzModel').value; ayar.kilavuz = q('#yzKilavuz').value; ayar.guc = +q('#yzGuc').value; ayar.tarif = q('#yzTarif').value; sakla();
-      const dur = t => { q('#yzDurum').textContent = t; }, dug = q('#yzUret'); dug.disabled = true; q('#yzKaydet').style.display = 'none';
+      const tesis = q('#yzTesis').value.trim(); if (C.doc) { const r = C.doc.set.render = C.doc.set.render || {}; if ((r.yzTesis || '') !== tesis) { if (tesis) r.yzTesis = tesis; else delete r.yzTesis; C.changed && C.changed(); } }
+      const dur = t => { q('#yzDurum').textContent = T(t); }, dug = q('#yzUret'); dug.disabled = true; q('#yzKaydet').style.display = 'none';
       try {
         dur('Görünüm alınıyor…'); const tuval = await S.kareYakala(+ayar.genislik || 1344);
-        const blob = await Y.uret(tuval, { model: ayar.model, kilavuz: ayar.kilavuz === '-' ? '' : ayar.kilavuz, guc: ayar.kilavuz && ayar.kilavuz !== '-' ? Math.min(0.95, ayar.guc + 0.2) : ayar.guc, adim: ayar.adim, betim: Y.betim(am && am.tarif, ayar.tarif) }, dur);
+        const blob = await Y.uret(tuval, { model: ayar.model, kilavuz: ayar.kilavuz === '-' ? '' : ayar.kilavuz, guc: ayar.kilavuz && ayar.kilavuz !== '-' ? Math.min(0.95, ayar.guc + 0.2) : ayar.guc, adim: ayar.adim, betim: Y.betim(am && am.tarif, ayar.tarif, tesis) }, dur);
         sonBlob = blob; const u = URL.createObjectURL(blob); q('#yzSonuc').innerHTML = '<img src="' + u + '" style="max-width:100%;border-radius:6px;display:block">'; q('#yzKaydet').style.display = ''; dur('Hazır. Beğenmediyseniz gücü ya da tarifi değiştirip yeniden oluşturun.');
       } catch (err) { console.warn(err); dur('Olmadı: ' + (err.message || err)); }
       dug.disabled = false;
@@ -111,5 +114,17 @@
   const kur = () => { const ctl = $('#g3Ctl'), satir = $('#shAmbRow'); if (!ctl || !satir || $('#yzDugme')) return; const bt = document.createElement('button'); bt.id = 'yzDugme'; bt.textContent = '✨ Yapay zekâ render'; bt.title = 'Bu görünümü bu bilgisayardaki ücretsiz yapay zekâ (ComfyUI) ile fotoğraf gibi yeniden çizer'; bt.onclick = () => Y.pencere(); satir.appendChild(bt); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kur, 60)); else setTimeout(kur, 60);
   C.addCommand && C.addCommand(['YZRENDER', 'AIRENDER'], 'Google 3B görünümünü bu bilgisayardaki ücretsiz yapay zekâ (ComfyUI) ile fotoğraf gibi yeniden çizer', () => { C.setView('g3d'); setTimeout(() => Y.pencere(), 1200); }, { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['✨ Yapay zekâ render', '✨ AI render'], ['Yapay zekâ ile render', 'AI render'], ['✨ Oluştur', '✨ Generate'], ['Kaydet', 'Save'], ['Yeniden dene', 'Retry'], ['Benzetim gücü', 'Strength'], ['Ek tarif', 'Extra description'], ['Kenar kılavuzu', 'Edge guide']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['✨ Yapay zekâ render', '✨ AI render'], ['Yapay zekâ ile render', 'AI render'], ['✨ Oluştur', '✨ Generate'], ['Kaydet', 'Save'], ['Yeniden dene', 'Retry'], ['Benzetim gücü', 'Strength'], ['Ek tarif', 'Extra description'], ['Kenar kılavuzu', 'Edge guide'], ['Kapat', 'Close'], ['ComfyUI adresi', 'ComfyUI address'], ['Model', 'Model'],
+    ['Kenar kılavuzu (binanın çizgilerini korur)', 'Edge guide (keeps the building outlines)'], ['yok — yalnız benzetim gücü', 'none — strength only'],
+    ['(düşük = modele sadık · yüksek = daha fotoğraf gibi, daha çok değişiklik)', '(low = faithful to the model · high = more photo-like, more changes)'],
+    ['Ek tarif (isteğe bağlı; ör. "ıslak asfalt, arkada palmiyeler")', 'Extra description (optional; e.g. "wet asphalt, palm trees behind")'],
+    ['Tesis tarifi (projeyle saklanır; boşsa genel tanım kullanılır)', 'Facility description (saved with the project; a general one is used if empty)'],
+    ['Bu bilgisayardaki yapay zekâya bağlanılıyor…', 'Connecting to the AI on this computer…'], ['ComfyUI\'ye ulaşılamadı.', 'Could not reach ComfyUI.'], ['ComfyUI çalışıyor ama kurulu model yok.', 'ComfyUI is running but no model is installed.'],
+    ['Yapay zekâ render, bu bilgisayarda çalışan ücretsiz ComfyUI programını kullanır.', 'AI render uses the free ComfyUI program running on this computer.'],
+    ['Görüntü yapay zekâya gönderiliyor…', 'Sending the image to the AI…'], ['Yapay zekâ çiziyor… # sn', 'AI is drawing… # s'], ['Görünüm alınıyor…', 'Capturing the view…'],
+    ['Hazır. Beğenmediyseniz gücü ya da tarifi değiştirip yeniden oluşturun.', 'Done. If you do not like it, change the strength or the description and generate again.'], ['Olmadı', 'Failed'],
+    ['15 dakikada bitmedi', 'did not finish in 15 minutes'], ['iş başlatılamadı', 'could not start the job'], ['çıktı görüntüsü yok', 'no output image'], ['yapay zekâ hata verdi', 'the AI reported an error'],
+    ['Bu görünümü bu bilgisayardaki ücretsiz yapay zekâ (ComfyUI) ile fotoğraf gibi yeniden çizer', 'Redraws this view like a photograph with the free AI (ComfyUI) on this computer'],
+    ['bu bilgisayardaki yapay zekâya gönderilir ve fotoğraf gibi yeniden çizilir. Ücretsizdir, görüntü bilgisayardan çıkmaz. Yapay zekâ ayrıntıları değiştirebilir.', 'is sent to the AI on this computer and redrawn like a photograph. It is free and the image never leaves the computer. The AI may change details.'],
+    ['O anki görünüm', 'The current view'], ['Render kipi', 'Render mode'], ['ambiyans', 'ambience'], ['fon resmi', 'backdrop image'], ['Önce Google 3B sekmesini açın.', 'Open the Google 3D tab first.']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);

@@ -180,7 +180,8 @@ function uret(terfiDosya, cevre) {
     gozKot: SAHA.kotYol, yuruSure: 30, tur: 2, turSure: 26,
   };
   // render ayarları: proje Render kipi açık gelir (yaz sabahı 10:00, köşe kararması açık); malzemeler katman önerilerinden
-  B.doc.set.render = { acik: true, ay: 6, saat: 10, ao: true, parlama: false, katman: {} };
+  B.doc.set.render = { acik: true, ay: 6, saat: 10, ao: true, parlama: false, katman: {},
+    yzTesis: 'stormwater pumping station site, painted plaster buildings with blue concrete frame and flat roofs, concrete tower with yellow handrail, boundary wall, sliding steel gate, asphalt road with concrete kerbs, interlocking paving, mowed lawn island' }; // yapay zekâ render için tesis tarifi (app/yz-render.js)
   const L = hat(B, cevre, bc.cikis);
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, terfiNesne: nT, hatBoyu: L, bina: (cevre.binalar || []).length } };
 }

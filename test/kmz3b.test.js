@@ -52,4 +52,10 @@ t('SW2 projesi: KML eki — model toprak kotuna oturur, hat ve çevre binalar ya
   const hat = /<LineString>.*?<coordinates>([^<]*)</.exec(k)[1].split(' ')[0].split(',').map(Number); yak(hat[0], 20.0776, 0.002); yak(hat[1], 32.1317, 0.002);
   assert.ok(!/<Model>/.test(K.kml(doc, null))); // model yoksa yalnız ekler
 });
+t('yüzeyler: yöne göre ton (yatay en açık), cam saydam, zemin altı yazılmaz; KML rengi aabbggrr', () => {
+  const ll = [32.13175, 20.07757], y = K.yuzeyler({ ll, parcalar: [{ pos: kutu(0, 0, 0, 2).pos, renk: [1, 0.5, 0, 1] }, { pos: kutu(5, 0, -4, 2).pos, renk: [0, 1, 0, 1] }, { pos: [0, 0, 5, 1, 0, 5, 0, 1, 5], renk: [0.2, 0.4, 0.6, 0.5] }] }, 0);
+  assert.strictEqual(y.ucgen, 11); // kutunun tabanı (2) ve gömülü kutu (12) yok: 10 + cam üçgeni
+  assert.ok(/<color>ff0080ff<\/color>/.test(y.stil), 'yatay yüz tam renk (mavi-yeşil-kırmızı sırası)'); assert.ok(/<color>80[0-9a-f]{6}<\/color>/.test(y.stil), 'cam yarı saydam');
+  assert.ok(!/00ff00<\/color>/.test(y.stil), 'gömülü kutunun rengi yok'); assert.ok((y.stil.match(/<Style /g) || []).length >= 3 && /<outline>0<\/outline>/.test(y.stil));
+});
 console.log(`\n${n} test geçti.`);
