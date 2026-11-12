@@ -205,7 +205,7 @@
     const is = []; H.gruplar.forEach((g, gi) => { const ek = S.sik(g.eksen, 15), k = eksenAnahtar(ek, gi); if (!(durum.profil && durum.profil[k]) && !(durum.profilDenendi && durum.profilDenendi[k])) is.push({ ek, k }); });
     if (!is.length) return; durum.profilBekliyor = true; durum.profilDenendi = durum.profilDenendi || {};
     try {
-      const kesim = g3.tileset.clippingPolygons; g3.tileset.clippingPolygons = undefined;
+      g3.tileset.clippingPolygons = undefined; // kesilen hendeğin içini değil zemini oku (geri kurma: aşağıda kesimYenile — çıkarılan koleksiyon yok edildiği için eskisi geri takılmaz)
       for (const { ek, k } of is) {
         durum.profilDenendi[k] = true;
         const r = await v.scene.sampleHeightMostDetailed(ek.map(p => { const ll = G.toLL(p); return Cs.Cartographic.fromDegrees(ll[1], ll[0]); }), g3.model ? [g3.model] : []);
@@ -214,8 +214,8 @@
         const orta = dolu.map((_, i) => { const w = dolu.slice(Math.max(0, i - 2), i + 3).sort((a, b) => a - b); return w[Math.floor((w.length - 1) / 2)]; }); // araç / ağaç / bina sıçramaları: 5'li alt ortanca
         (durum.profil = durum.profil || {})[k] = orta.map(x => +x.toFixed(2));
       }
-      g3.tileset.clippingPolygons = kesim;
     } catch (err) { console.warn(err); }
+    try { if (g3.kesimYenile) g3.kesimYenile(); } catch (err) { console.warn(err); }
     durum.profilBekliyor = false;
     if (durum.profil && is.some(x => durum.profil[x.k])) { const b = $('#g3Re'); if (b) b.click(); }
   };
@@ -268,7 +268,8 @@
     try {
       v.clock.shouldAnimate = false; v.clock.currentTime = Cs.JulianDate.fromIso8601('2026-06-21T07:45:00Z');
       v.shadows = ac; if (v.shadowMap) { v.shadowMap.softShadows = true; v.shadowMap.size = 4096; v.shadowMap.maximumDistance = 450; v.shadowMap.darkness = 0.62; }
-      v.terrainShadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED; if (g3.tileset) g3.tileset.shadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED;
+      if (g3.tileset) g3.tileset.shadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED;   // Google 3B arazisi gölge alır
+      if (v.scene.globe) v.terrainShadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED;      // düz küre varsa (Google anahtarı yokken)
     } catch (err) { console.warn(err); }
   };
   const kurGercek = (Cs, coll) => {

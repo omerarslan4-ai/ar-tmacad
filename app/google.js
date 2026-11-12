@@ -175,6 +175,7 @@
       v.scene.requestRender();
     } catch (err) { console.warn(err); }
   };
+  g3.kesimYenile = applyClip; // saha3b.js: kesim kaldırıldıktan sonra YENİ koleksiyonla geri kurulur (Cesium çıkarılan koleksiyonu yok eder; eskisi geri takılamaz)
   const sampleGround = async () => {
     const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.ll) return;
     if (!v.scene.sampleHeightSupported) { status('Bu ekran kartında zemin yüksekliği okunamıyor; "Kot 0 yüksekliği"ni elle girin.', true); return; }
