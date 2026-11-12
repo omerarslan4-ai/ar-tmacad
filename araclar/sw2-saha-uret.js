@@ -148,12 +148,29 @@ function hat(B, cevre, cikis) {
   B.ekle('pline', 'DENIZ_HATTI_SAHA', { pts: [W(94.86, 69.69), W(106.19, 85.29), W(106.60, 86.04), W(106.76, 87.53), W(106.14, 88.90), W(105.52, 89.48), W(97.56, 95.26)].map(p => [p[0], p[1], 0]), closed: false, dn: 2000 });
   B.doc.set.denizHat = { ad: 'SW2 deniz deşarj hattı (güzergâh 12.11.2026 onaylı)', borular: [{ ad: 'DN1400-1', dn: 1400, ofs: -2.2 }, { ad: 'DN1400-2', dn: 1400, ofs: 0 }, { ad: 'DN900', dn: 900, ofs: 2.0 }], kiyiIndex: cevre.kiyiIndex, hiz: 2.0, kot: 1.0 };
   B.doc.set.cevre = { kaynak: cevre.kaynak, not: cevre.not, binalar: cevre.binalar || [] };
-  return uzunluk(g);
+  // sunum: hat bilgileri (eksen boyunca metre)
+  const L = uzunluk(g), kara = cevre.kiyiIndex != null ? uzunluk(g.slice(0, cevre.kiyiIndex + 1)) : L, tr = v => String(v).replace('.', ',');
+  B.doc.set.sunum = Object.assign(B.doc.set.sunum || {}, { tur: 2, turSure: 24, hat: [
+    { s: 25, satirlar: ['DENİZ DEŞARJ HATTI', '2 × DN1400 + 1 × DN900'] },
+    { s: +(kara * 0.33).toFixed(0), satirlar: ['Borular toprak altında', 'Boru üstü örtü 1,20 m · hendek ≈ 6,5 × 2,9 m'] },
+    { s: +(kara * 0.66).toFixed(0), satirlar: ['Kara kısmı ≈ ' + Math.round(kara / 10) * 10 + ' m'] },
+    { s: +kara.toFixed(0), satirlar: ['KIYI', 'Deniz kısmı ≈ ' + Math.round((L - kara) / 10) * 10 + ' m'] },
+    { s: +L.toFixed(0), satirlar: ['DENİZ DEŞARJI', 'Toplam hat boyu ≈ ' + Math.round(L / 10) * 10 + ' m'] },
+  ] });
+  return L;
 }
 
 function uret(terfiDosya, cevre) {
   const B = yeniBelge();
-  saha(B); const nT = terfi(B, terfiDosya); const bc = baca(B); bekci(B); const L = hat(B, cevre, bc.cikis);
+  saha(B); const nT = terfi(B, terfiDosya); const bc = baca(B); bekci(B);
+  // sunum: bina bilgi etiketleri (yer, etiket alt kotu, satırlar)
+  const fT = cerceve(SAHA.terfi.o, SAHA.terfi.ux), fG = cerceve(SAHA.bekci.p, birim(SAHA.bekci.p, SAHA.bekci.k2));
+  B.doc.set.sunum = { binalar: [
+    { p: fT(14.7, 3.8), z: 9.1, satirlar: ['T-101 SW2 TERFİ MERKEZİ', 'Yağmur suyu pompa istasyonu', '25,80 × 10,60 m · taban −8,00 · çatı +8,10'] },
+    { p: bc.f(3.6, 2.6), z: 7.8, satirlar: ['T-102 YÜKLEME BACASI', '7,20 × 5,20 m · taban −2,40 · üst +6,70', 'Giriş DN2000 · çıkış 2 × DN1400 + DN900'] },
+    { p: fG(3.5, 3.5), z: 4.1, satirlar: ['GÜVENLİK BİNASI', '4,70 × 4,70 m · döşeme +0,75 · parapet +4,10'] },
+  ] };
+  const L = hat(B, cevre, bc.cikis);
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, terfiNesne: nT, hatBoyu: L, bina: (cevre.binalar || []).length } };
 }
 

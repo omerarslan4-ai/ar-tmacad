@@ -9,7 +9,9 @@
      "Akışı oynat": su, istasyondan denize doğru ilerler; "Hat boyunca uç": kamera su cephesini izler.
    - Gerçekçi görünüm: SAHA_ZEMIN / SAHA_YOL / SAHA_YESIL / SAHA_KAPLAMA plakları dokulu çizilir (asfalt, bordür, kilit parke, çim),
      bina katmanları boyalı cephe rengini alır, C.doc.set.peyzaj.agac = [[x, y, boy]…] ağaçları ve güneş gölgesi eklenir.
-     Geometri saf fonksiyonlardır (C.saha3b.*), Node ile test/saha3b.test.js içinde denenir. */
+     - Sunum: "Sunumu oynat" tesis çevresinde tur atar (C.doc.set.sunum.binalar etiketleri), sonra hat boyunca yavaşça denize iner
+     (C.doc.set.sunum.hat bilgileri); "Video kaydet" aynı sunumu 3B tuvalden video dosyasına kaydeder.
+   Geometri saf fonksiyonlardır (C.saha3b.*), Node ile test/saha3b.test.js içinde denenir. */
 (function (C) {
   'use strict';
   const S = C.saha3b = {};
@@ -144,6 +146,9 @@
     for (const c of cizgi) if (c.dn) { gruplar.push({ eksen: c.pts, borular: [{ ad: 'DN' + c.dn, dn: c.dn, ofs: 0 }] }); out.push({ ad: 'DN' + c.dn, dn: c.dn, eksen: c.pts, pts: c.pts, tek: true }); } // dn özelliği olan çizgi: tek boru (ör. saha içi basma hattı)
     return { set, eksenler: eks, borular: out, gruplar };
   };
+
+  /* sunum zaman çizelgesi: aşama sınırları (sn) */
+  S.sunumSure = V => { const T1 = (+V.tur || 0) * (+V.turSure || 0), TG = 5, T2 = +V.hatSure || 0, TS = 7; return { tur: T1, gecis: T1 + TG, hat: T1 + TG + T2, toplam: T1 + TG + T2 + TS }; };
 
   if (typeof document === 'undefined') return; // Node testleri buraya kadar
 
@@ -365,9 +370,10 @@
         const e = durum.eksen, ozet = (H.set.borular || []).reduce((m, b) => { m[b.dn] = (m[b.dn] || 0) + 1; return m; }, {}), yazi = Object.entries(ozet).sort((a, b) => b[0] - a[0]).map(([dn, k]) => `${k}×DN${dn}`).join(' + ');
         et(e[0], 9, 'SW2 yükleme bacası'); et(S.noktaAt(e, durum.boy * 0.5).p, 5, yazi + ' · ' + Math.round(durum.boy) + ' m');
         const ki = H.set.kiyiIndex != null && e[H.set.kiyiIndex] ? e[H.set.kiyiIndex] : null; if (ki) et(ki, 4, 'Kıyı'); et(e[e.length - 1], 4, 'Deniz deşarjı');
-        coll.add(lc);
+        coll.add(lc); durum.etiket = lc;
       } catch (err) { console.warn(err); }
     }
+    try { sunumEtiketKur(Cs, coll); } catch (err) { console.warn(err); }
     const bt = $('#shOyna'); if (bt) bt.disabled = !durum.mats.length; const bu = $('#shUc'); if (bu) bu.disabled = !durum.mats.length;
     S.son = { bina: nb, boru: nh };
   };
@@ -400,6 +406,102 @@
     v.camera.flyToBoundingSphere(bs, { offset: new Cs.HeadingPitchRange(Cs.Math.toRadians(-20), Cs.Math.toRadians(-38), bs.radius * 2.6), duration: 1.8 });
   };
   S.tumHat = tumHat;
+
+  /* ---------- SUNUM: tesis çevresinde tur (bina bilgileri) → hat boyunca yavaş ilerleyiş (hat bilgileri) → genel görünüş; istenirse video kaydı ----------
+     Veri: C.doc.set.sunum = { tur, turSure (sn/tur), hatSure (sn), binalar: [{ p: [x, y], z, satirlar: [..] }], hat: [{ s (m, eksen boyunca), z, satirlar: [..] }] } */
+  S.sunumVeri = doc => {
+    const s = Object.assign({ tur: 2, turSure: 24, hatSure: 0, binalar: [], hat: [] }, doc.set.sunum || {}), H = S.hatlar(doc), ek = H.eksenler[0];
+    if (ek && !(s.hat && s.hat.length)) { // veri yoksa hat özetinden üret
+      const L = S.boy(ek), oz = (H.set.borular || []).reduce((m, b) => { m[b.dn] = (m[b.dn] || 0) + 1; return m; }, {}), yazi = Object.entries(oz).sort((a, b) => b[0] - a[0]).map(([dn, k]) => k + ' × DN' + dn).join(' + ');
+      s.hat = [{ s: Math.min(25, L * 0.05), satirlar: ['DENİZ DEŞARJ HATTI', yazi] }, { s: L * 0.5, satirlar: ['Hat boyu ≈ ' + Math.round(L) + ' m'] }, { s: L, satirlar: ['DENİZ DEŞARJI'] }];
+    }
+    if (!(s.hatSure > 0)) s.hatSure = ek ? Math.max(45, Math.min(150, S.boy(ek) / 13)) : 45; // "yavaş yavaş": ≈ 13 m/sn
+    return s;
+  };
+  /* yumuşak geçiş (0..1) */
+  S.yumusak = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  const sunumEtiketKur = (Cs, coll) => {
+    durum.sunumEt = null; if (!C.doc) return; const V = S.sunumVeri(C.doc), ek = durum.eksen;
+    const lc = new Cs.BillboardCollection(), pc = new Cs.PolylineCollection(), bina = [], hat = [];
+    // bilgi kutusu: başlık kalın, alt satırlar ince; yuvarlak köşeli koyu kutu (2× çözünürlükte çizilir, yarı ölçekte gösterilir → keskin yazı)
+    const kutu = (satirlar, renk) => {
+      const cv = document.createElement('canvas'), x = cv.getContext('2d'), K = 2, f1 = 'bold ' + 17 * K + 'px Arial', f2 = 14 * K + 'px Arial', pad = 11 * K, sy = 21 * K;
+      let w = 0; satirlar.forEach((s, i) => { x.font = i ? f2 : f1; w = Math.max(w, x.measureText(s).width); });
+      cv.width = Math.ceil(w + pad * 2); cv.height = Math.ceil(pad * 2 + sy * satirlar.length - 4 * K);
+      const g = cv.getContext('2d'), r = 7 * K; g.beginPath(); g.moveTo(r, 0); g.arcTo(cv.width, 0, cv.width, cv.height, r); g.arcTo(cv.width, cv.height, 0, cv.height, r); g.arcTo(0, cv.height, 0, 0, r); g.arcTo(0, 0, cv.width, 0, r); g.closePath();
+      g.fillStyle = renk; g.fill(); g.lineWidth = 1.5 * K; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.stroke();
+      g.textBaseline = 'top'; g.textAlign = 'center'; satirlar.forEach((s, i) => { g.font = i ? f2 : f1; g.fillStyle = i ? '#e3eef5' : '#ffffff'; g.fillText(s, cv.width / 2, pad + sy * i - 1 * K); });
+      return cv;
+    };
+    const ekle = (p, zAlt, zUst, satirlar, renk) => {
+      const q = g3.toENU(p[0], p[1], zUst), q0 = g3.toENU(p[0], p[1], zAlt);
+      const l = lc.add({ position: new Cs.Cartesian3(q[0], q[1], q[2]), image: kutu(satirlar, renk), scale: 0.5, verticalOrigin: Cs.VerticalOrigin.BOTTOM, horizontalOrigin: Cs.HorizontalOrigin.CENTER, disableDepthTestDistance: Number.POSITIVE_INFINITY, show: false });
+      const c = pc.add({ positions: [new Cs.Cartesian3(q0[0], q0[1], q0[2]), new Cs.Cartesian3(q[0], q[1], q[2])], width: 2, material: Cs.Material.fromType('Color', { color: Cs.Color.WHITE.withAlpha(0.9) }), show: false });
+      return { l, c };
+    };
+    for (const b of V.binalar || []) if (b.p && b.satirlar) bina.push(ekle(b.p, +b.z || 5, (+b.z || 5) + (bina.length % 2 ? 9 : 4), b.satirlar, 'rgba(10,56,97,0.88)')); // ardışık etiketler farklı yükseklikte: üst üste binmesin
+    if (ek) for (const h of V.hat || []) { const k = S.noktaAt(ek, Math.max(0, Math.min(durum.boy, +h.s || 0))); hat.push(Object.assign(ekle(k.p, 0.5, (h.z != null ? +h.z : 14), h.satirlar, 'rgba(5,76,107,0.88)'), { s: +h.s || 0 })); }
+    coll.add(lc); coll.add(pc); durum.sunumEt = { bina, hat, veri: V };
+  };
+  const sunumGoster = (liste, ac) => { for (const x of liste || []) { x.l.show = ac; x.c.show = ac; } };
+  const kamera = (hedef, bas, egim, uzak) => { const Cs = window.Cesium, v = g3.viewer; v.camera.lookAt(hedef, new Cs.HeadingPitchRange(bas, egim, uzak)); };
+  const sunumKare = () => {
+    const Cs = window.Cesium, v = g3.viewer, su = durum.sunum; if (!su || !Cs || !v || !g3.ll || !durum.sunumEt) return;
+    const t = (performance.now() - su.t0) / 1000, V = durum.sunumEt.veri, T1 = V.tur * V.turSure, TG = 5, T2 = V.hatSure, TS = 7, E = durum.sunumEt;
+    const b = g3.bb, mer = [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], R = Math.max(70, hyp(b[2] - b[0], b[3] - b[1]) * 1.05), ek = durum.eksen, yonu = u => { const e = g3.toENU(g3.origin[0] + u[0], g3.origin[1] + u[1], 0), z = g3.toENU(g3.origin[0], g3.origin[1], 0); return Math.atan2(e[0] - z[0], e[1] - z[1]); };
+    const bas0 = Cs.Math.toRadians(200), egim1 = Cs.Math.toRadians(-27);
+    let asama;
+    if (t < T1) { // 1) tesis çevresinde tur; bina etiketleri sırayla açılır
+      asama = 'Tesis çevresinde tur'; const bas = bas0 + (t / V.turSure) * 2 * Math.PI; kamera(dunya(mer, 3), bas, egim1, R);
+      E.bina.forEach((x, i) => { const ac = t > 2 + i * 3; x.l.show = ac; x.c.show = ac; }); sunumGoster(E.hat, false);
+      for (const m of durum.mats) m.uniforms.on = 0;
+    } else if (!ek || !durum.mats.length) { su.bitti = true;
+    } else if (t < T1 + TG) { // 2) geçiş: hat başlangıcına süzül
+      asama = 'Hatta geçiş'; const k = S.yumusak((t - T1) / TG), a = dunya(mer, 3), z = dunya(ek[0], 2), hedef = Cs.Cartesian3.lerp(a, z, k, new Cs.Cartesian3());
+      const basA = bas0 + (T1 / V.turSure) * 2 * Math.PI, basB = yonu(S.noktaAt(ek, 0).u) - 0.45, fark = Math.atan2(Math.sin(basB - basA), Math.cos(basB - basA)); su.bas = basA + fark * k;
+      kamera(hedef, su.bas, Cs.Math.toRadians(-27 - 5 * k), R + (240 - R) * k); sunumGoster(E.bina, k < 0.6);
+      for (const m of durum.mats) m.uniforms.on = 0;
+    } else if (t < T1 + TG + T2) { // 3) hat boyunca yavaş ilerleyiş; su cephesi geçtikçe hat bilgileri açılır
+      asama = 'Hat boyunca'; const tt = t - T1 - TG; durum.on = Math.min(durum.boy + 10, tt / T2 * (durum.boy + 10));
+      for (const m of durum.mats) { m.uniforms.time = tt; m.uniforms.on = durum.on; }
+      const k = S.noktaAt(ek, Math.min(durum.on, durum.boy)), bas = yonu(k.u) - 0.45; su.bas = su.bas == null ? bas : su.bas + Math.atan2(Math.sin(bas - su.bas), Math.cos(bas - su.bas)) * 0.02;
+      kamera(dunya(k.p, 2), su.bas, Cs.Math.toRadians(-32), 240); sunumGoster(E.bina, false);
+      for (const x of E.hat) { const ac = durum.on >= x.s - 15; x.l.show = ac; x.c.show = ac; }
+    } else if (t < T1 + TG + T2 + TS) { // 4) kapanış: hattın tamamı kuşbakışı
+      asama = 'Genel görünüş'; const tt = t - T1 - TG; for (const m of durum.mats) { m.uniforms.time = tt; m.uniforms.on = 1e9; }
+      if (!su.son) { su.son = true; v.camera.lookAtTransform(Cs.Matrix4.IDENTITY); tumHat(); sunumGoster(E.hat, true); }
+    } else su.bitti = true;
+    if (asama && asama !== su.asama) { su.asama = asama; msg('Sunum: ' + asama + (su.kayit ? ' · ● kayıt' : '')); }
+    v.scene.requestRender();
+    if (su.bitti) { S.sunumDur(true); return; }
+    su.raf = requestAnimationFrame(sunumKare);
+  };
+  /* sunumu başlatır; kayit = true ise ekran (3B tuval) videoya kaydedilir ve bitince indirilir */
+  S.sunumBaslat = (kayit) => {
+    const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v || !g3.ll || !durum.sunumEt) { msg('Sunum için önce Google 3B sekmesinde model kurulmalı.', true); return; }
+    S.durdur(); if (durum.sunum) S.sunumDur(false);
+    const su = durum.sunum = { t0: performance.now(), kayit: !!kayit };
+    if (durum.etiket) durum.etiket.show = false;
+    if (kayit) {
+      try {
+        const tuval = v.scene.canvas, akis = tuval.captureStream(30), tur = ['video/mp4;codecs=avc1.640028', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x));
+        if (!tur) throw new Error('bu tarayıcı video kaydını desteklemiyor');
+        const parca = []; su.kaydedici = new MediaRecorder(akis, { mimeType: tur, videoBitsPerSecond: 14e6 });
+        su.kaydedici.ondataavailable = e => { if (e.data && e.data.size) parca.push(e.data); };
+        su.kaydedici.onstop = () => { const uz = /mp4/.test(tur) ? 'mp4' : 'webm', ad = ((C.doc.set.name || 'sunum') + '-sunum.' + uz).replace(/[\\/:*?"<>|]+/g, '_'), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(parca, { type: tur.split(';')[0] })); a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); C.log && C.log('🎬 Sunum videosu indirildi: ' + ad + ' (' + (parca.reduce((s, p) => s + p.size, 0) / 1048576).toFixed(1) + ' MB)'); msg('Sunum videosu indirildi: ' + ad); };
+        su.kaydedici.start(1000);
+      } catch (err) { su.kayit = false; su.kaydedici = null; msg('Video kaydı başlatılamadı: ' + (err.message || err) + ' — sunum kayıtsız oynatılıyor.', true); }
+    }
+    sunumDugme(); sunumKare();
+  };
+  S.sunumDur = (bitti) => {
+    const Cs = window.Cesium, v = g3.viewer, su = durum.sunum; if (!su) return; cancelAnimationFrame(su.raf); durum.sunum = null;
+    if (su.kaydedici && su.kaydedici.state !== 'inactive') { try { su.kaydedici.stop(); } catch (e) { } }
+    if (Cs && v) { if (!su.son) v.camera.lookAtTransform(Cs.Matrix4.IDENTITY); for (const m of durum.mats) m.uniforms.on = 1e9; if (durum.sunumEt) { sunumGoster(durum.sunumEt.bina, false); sunumGoster(durum.sunumEt.hat, false); } if (durum.etiket) durum.etiket.show = true; v.scene.requestRender(); }
+    if (!su.kayit) msg(bitti ? 'Sunum bitti.' : 'Sunum durduruldu.');
+    sunumDugme();
+  };
+  const sunumDugme = () => { const a = $('#shSunum'), k = $('#shVideo'), on = !!durum.sunum; if (a) a.textContent = on && !durum.sunum.kayit ? '■ Sunumu durdur' : '▶ Sunumu oynat'; if (k) k.textContent = on && durum.sunum.kayit ? '■ Kaydı bitir' : '🎬 Video kaydet'; };
 
   /* ---------- çevre binaları OpenStreetMap'ten indir ---------- */
   S.cevreIndir = async () => {
@@ -435,7 +537,8 @@
     const d = document.createElement('div'); d.innerHTML = `
       <div class="row" style="border-top:1px solid #ffffff22;padding-top:5px"><label><input type="checkbox" id="shCevre"> Çevre binalar (şeffaf kutu)</label><button id="shIndir" title="Tesis ve hat çevresindeki bina izlerini OpenStreetMap'ten indirir">Çevre binaları indir</button></div>
       <div class="row"><label title="Bitmiş hâl: asfalt yol ve bordür, kilit parke kaldırım, çim ada, boyalı cepheler, ağaçlar ve güneş gölgesi"><input type="checkbox" id="shGercek"> Gerçekçi görünüm (malzeme + gölge)</label></div>
-      <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>`;
+      <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>
+      <div class="row"><button id="shSunum" title="Tesis çevresinde tur ve bina bilgileri, sonra hat boyunca yavaş ilerleyiş ve hat bilgileri">▶ Sunumu oynat</button><button id="shVideo" title="Aynı sunumu oynatır ve 3B görüntüyü video dosyası olarak kaydeder (bitince İndirilenler klasörüne iner)">🎬 Video kaydet</button></div>`;
     const m = $('#g3Msg'); while (d.firstElementChild) ctl.insertBefore(d.firstElementChild, m);
     const yenile = () => { const b = $('#g3Re'); if (b) b.click(); };
     $('#shCevre').checked = !!durum.cevre; $('#shHat').checked = !!durum.hat;
@@ -447,10 +550,12 @@
     $('#shOyna').onclick = () => durum.oynuyor ? S.durdur() : S.oynat(true);
     $('#shUc').onclick = () => S.uc();
     $('#shTum').onclick = () => tumHat();
+    $('#shSunum').onclick = () => durum.sunum ? S.sunumDur(false) : S.sunumBaslat(false);
+    $('#shVideo').onclick = () => durum.sunum ? S.sunumDur(false) : S.sunumBaslat(true);
     dugme();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kurArayuz, 0)); else setTimeout(kurArayuz, 0);
   C.addCommand && C.addCommand(['DENIZHATTI', 'AKISANIM'], 'Google 3B sekmesinde deniz hattı akış animasyonunu oynatır (DENIZ_HATTI katmanındaki güzergâh ekseni boyunca)', () => { C.setView('g3d'); setTimeout(() => S.oynat(true), 1500); }, { noUndo: true });
   C.addCommand && C.addCommand(['CEVREBINA', 'CEVREBINALAR'], 'Tesis ve hat çevresindeki binaları OpenStreetMap\'ten indirir; Google 3B sekmesinde şeffaf kutu olarak gösterir', () => S.cevreIndir(), { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);
