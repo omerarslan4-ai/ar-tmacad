@@ -2,7 +2,8 @@
    Kullanım:  node araclar/sw2-saha-uret.js [terfi.aritma] [cikti.aritma]
    Kaynak çizimler (test-proje/SW2): SW-2_GY_R1.DWG (genel yerleşim, gerçek koordinat), SW2_TOWER.dwg (yükleme bacası),
    GÜVENLİK BİNASI.dwg (bekçi), terfi için Belgeler/sw2.aritma içindeki 3B model.
-   Koordinat: LGD2006 / Libya TM 11. dilim (DOM 21°, k0 0,99995, FE 200000) — genel yerleşim çizimindeki X/Y ile aynı.
+   Koordinat: LGD2006 / Libya TM 11. dilim (DOM 21°, k0 0,99995, FE 200000) — genel yerleşim çizimindeki X/Y ile aynı;
+   haritaya (WGS84) oturması için datum kayması SAHA.geo içinde eşdeğer FE/FN olarak tanımlıdır.
    Ürettikleri: terfi merkezi, yükleme bacası (T-102), güvenlik binası, çevre duvarı, kapılar, yollar, saha zemini,
    denize giden taslak hat ekseni (DENIZ_HATTI katmanı) ve çevre binalar (set.cevre). Saf fonksiyonlar test/sw2-saha.test.js ile denenir. */
 'use strict';
@@ -21,7 +22,10 @@ const uzunluk = pts => pts.reduce((s, p, i) => i ? s + Math.hypot(p[0] - pts[i -
 
 /* ---------- saha verisi (SW-2_GY_R1.DWG) ---------- */
 const SAHA = {
-  geo: { mode: 'tm', lat0: 32.1318, lon0: 20.0779, rot: 0, cm: 21, k0: 0.99995, fe: 200000, fn: 0, zone: 34 },
+  // Pafta koordinatları LGD2006 datumunda (International 1924 elipsoidi). Program WGS84 elipsoidiyle çalıştığı için datum kayması (EPSG:1183:
+  // dX −208,41 dY −109,88 dZ −2,58 m) bu sahada eşdeğer yanlış doğu / kuzey olarak verilir: FE 200027,541 · FN 13,486 (1 km içinde hata < 1 cm).
+  // Datum kayması uygulanmazsa saha haritada ≈ 27 m doğuya, 14 m kuzeye düşer.
+  geo: { mode: 'tm', lat0: 32.1317, lon0: 20.0776, rot: 0, cm: 21, k0: 0.99995, fe: 200027.541, fn: 13.486, zone: 34 },
   duvar: [                                             // GEN_Telcit: çevre duvarı parçaları
     [W(62.01, 67.00), W(62.94, 61.48), W(94.66, 37.22), W(102.73, 48.34)],
     [W(107.45, 54.85), W(125.22, 79.32), W(105.41, 94.41)],

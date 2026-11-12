@@ -43,7 +43,7 @@ t('çevre duvarı köşeleri paftadaki koordinatlara oturur (X:112991 Y:3556705 
 });
 t('sürgülü kapı boşluğu ≈ 7,90 m', () => { const kp = doc.ents.find(e => /Sürgülü/.test(e.ad || '')); yak(kenar(kp, 0), 7.9, 0.2); });
 t('koordinat sistemi: saha Bingazi\'de (32,13 K · 20,08 D)', () => {
-  globalThis.C.doc = doc; const ll = G.toLL([112992, 3556670]); yak(ll[0], 32.1319, 0.001); yak(ll[1], 20.0779, 0.001);
+  globalThis.C.doc = doc; const ll = G.toLL([112992, 3556670]); yak(ll[0], 32.131748, 0.00002); yak(ll[1], 20.077572, 0.00002); // LGD2006 → WGS84 tam dönüşümle hesaplanan değer (datum kayması dahil)
 });
 t('deniz hattı: bacadan başlar, 3 boru (2×DN1400 + DN900), kıyıdan sonra denize uzanır', () => {
   const H = S.hatlar(doc); assert.strictEqual(H.eksenler.length, 1); assert.strictEqual(H.borular.length, 4);
