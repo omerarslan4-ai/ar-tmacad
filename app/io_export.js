@@ -240,7 +240,7 @@
 <Style id="vlv"><IconStyle><color>ffff00ff</color><scale>0.6</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_square.png</href></Icon></IconStyle></Style>`;
     const folders = Object.entries(byLayer).map(([n, a]) => `<Folder><name>${xml(n)}</name>\n${a.join('\n')}\n</Folder>`).join('\n');
     const nm = xml(opts.name || C.doc.set.name);
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${nm}</name><description>ArıtmaCAD — ${xml(C.geo.describe())}</description>\n${fixed}\n${st}\n${folders}\n</Document>\n</kml>\n`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document><name>${nm}</name><description>ArıtmaCAD — ${xml(C.geo.describe())}</description>\n${fixed}\n${st}\n${opts.ek || ''}\n${folders}\n</Document>\n</kml>\n`;
   };
   C.kmzWrite = opts => C.zip([{ name: 'doc.kml', data: C.kmlWrite(opts) }]);
 

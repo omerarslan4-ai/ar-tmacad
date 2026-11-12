@@ -833,6 +833,7 @@
   C.addCommand(['OBJOUT', 'OBJ'], 'OBJ dışa aktarır (renkli, metre, Y yukarı)', async () => { const r = C.objWrite(); if (!r.verts) { C.warn('3B nesne yok.'); return; } download(r.text, base() + '.obj', 'model/obj'); C.log('OBJ indirildi.'); }, { noUndo: true });
   C.addCommand(['KMZOUT', 'KMZ', 'GOOGLEEARTH'], 'Google Earth KMZ dışa aktarır (koordinat sistemi gerekir)', async () => {
     if (!C.geo.isSet()) { C.warn('Önce koordinat sistemini tanımlayın: Harita sekmesi ya da KOORDINAT komutu.'); C.setView('map'); return; }
+    if (C.kmz3b) { const r = C.kmz3b.yaz({}); download(r.veri, base() + '.kmz', 'application/vnd.google-earth.kmz'); C.log(r.model ? 'KMZ indirildi — 3B model içinde (' + r.ucgen + ' üçgen). 3B görünüm için Google Earth Pro ile açın.' : 'KMZ indirildi — Google Earth\'te açabilirsiniz.'); return; } // kmz3b.js: gerçek 3B model + deniz hattı + çevre binalar
     download(C.kmzWrite({}), base() + '.kmz', 'application/vnd.google-earth.kmz'); C.log('KMZ indirildi — Google Earth\'te açabilirsiniz.');
   }, { noUndo: true });
   C.addCommand(['KMLOUT', 'KML'], 'KML dışa aktarır', async () => { if (!C.geo.isSet()) { C.warn('Önce koordinat sistemini tanımlayın.'); return; } download(C.kmlWrite({}), base() + '.kml', 'application/vnd.google-earth.kml+xml'); }, { noUndo: true });
