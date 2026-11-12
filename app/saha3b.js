@@ -157,7 +157,7 @@
   const durum = S.durum = { cevre: true, hat: true, oynuyor: false, izle: false, t0: 0, on: 0, mats: [], boy: 0, eksen: null, raf: 0 };
   try { Object.assign(durum, JSON.parse(localStorage.getItem('aritmacad.saha3b') || '{}')); } catch (e) { }
   durum.oynuyor = false; durum.izle = false; durum.mats = []; g3.golge = durum.gercek !== false;
-  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek, gercek: durum.gercek, sunumHiz: durum.sunumHiz })); } catch (e) { } };
+  const sakla = () => { try { localStorage.setItem('aritmacad.saha3b', JSON.stringify({ cevre: durum.cevre, hat: durum.hat, hendek: durum.hendek, gercek: durum.gercek, sunumHiz: durum.sunumHiz, kalite: durum.kalite })); } catch (e) { } };
   const msg = (t, uyari) => { const el = $('#g3Msg'); if (el) { el.textContent = t || ''; el.style.color = uyari ? '#ffb347' : ''; } };
 
   const AKIS = 'AritmaAkis';
@@ -208,7 +208,7 @@
       g3.tileset.clippingPolygons = undefined; // kesilen hendeğin içini değil zemini oku (geri kurma: aşağıda kesimYenile — çıkarılan koleksiyon yok edildiği için eskisi geri takılmaz)
       for (const { ek, k } of is) {
         durum.profilDenendi[k] = true;
-        const r = await v.scene.sampleHeightMostDetailed(ek.map(p => { const ll = G.toLL(p); return Cs.Cartographic.fromDegrees(ll[1], ll[0]); }), g3.model ? [g3.model] : []);
+        const golge = v.shadows; v.shadows = false; let r; try { r = await v.scene.sampleHeightMostDetailed(ek.map(p => { const ll = G.toLL(p); return Cs.Cartographic.fromDegrees(ll[1], ll[0]); }), g3.model ? [g3.model] : []); } finally { v.shadows = golge; }
         const taban = (g3.h0 || 0) + (g3.dh || 0), ham = r.map(c => c && isFinite(c.height) ? c.height - taban : null); if (ham.filter(x => x != null).length < ham.length * 0.8) continue;
         const ilkDolu = ham.find(y => y != null), dolu = []; ham.forEach((x, i) => dolu.push(x != null ? x : (i ? dolu[i - 1] : ilkDolu)));
         const orta = dolu.map((_, i) => { const w = dolu.slice(Math.max(0, i - 2), i + 3).sort((a, b) => a - b); return w[Math.floor((w.length - 1) / 2)]; }); // araç / ağaç / bina sıçramaları: 5'li alt ortanca
@@ -267,13 +267,27 @@
     const Cs = window.Cesium, v = g3.viewer; if (!Cs || !v) return; const ac = durum.gercek !== false;
     try {
       v.clock.shouldAnimate = false; v.clock.currentTime = Cs.JulianDate.fromIso8601('2026-06-21T07:45:00Z');
-      v.shadows = ac; if (v.shadowMap) { v.shadowMap.softShadows = true; v.shadowMap.size = 4096; v.shadowMap.maximumDistance = 450; v.shadowMap.darkness = 0.62; }
-      if (g3.tileset) g3.tileset.shadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED;   // Google 3B arazisi gölge alır
+      v.shadows = ac && !durum.golgeYok; if (v.shadowMap) { v.shadowMap.softShadows = true; v.shadowMap.size = 4096; v.shadowMap.maximumDistance = 450; v.shadowMap.darkness = 0.62; }
+      if (g3.tileset) g3.tileset.shadows = Cs.ShadowMode.DISABLED;   // Google 3B arazisi gölge hesabına girmez (fotoğrafın kendi gölgesi var; kesimle birlikte sorun çıkarabiliyor)
       if (v.scene.globe) v.terrainShadows = ac ? Cs.ShadowMode.RECEIVE_ONLY : Cs.ShadowMode.DISABLED;      // düz küre varsa (Google anahtarı yokken)
     } catch (err) { console.warn(err); }
   };
+  /* çizim hatasında çökmek yerine: sorunlu olabilecek özelliği sırayla kapat (1: gölge, 2: hendek kesimi), çizimi yeniden başlat, ne yapıldığını yaz */
+  const koru = () => {
+    const v = g3.viewer; if (!v || v.__shKoru) return; v.__shKoru = true;
+    try { v.cesiumWidget._showRenderLoopErrors = false; } catch (e) { }
+    v.scene.renderError.addEventListener((sc, err) => {
+      const ad = String(err && err.message || err), iz = String(err && err.stack || '').split(String.fromCharCode(10)).slice(0, 6).join(' | '); durum.cizimHata = (durum.cizimHata || 0) + 1; console.error(err);
+      let ne = '';
+      if (!durum.golgeYok && v.shadows) { durum.golgeYok = true; v.shadows = false; ne = 'gölge kapatıldı'; }
+      else if (!durum.kesimYok && (g3.ekKesim || []).length) { durum.kesimYok = true; g3.ekKesim = []; try { g3.kesimYenile && g3.kesimYenile(); } catch (e) { } ne = 'hendek kesimi kapatıldı (borular röntgen görünümünde)'; }
+      else if (durum.cizimHata > 6) { msg('3B çizim hatası sürüyor: ' + ad, true); C.warn && C.warn('Google 3B çizim hatası: ' + ad + ' — ' + iz); return; }
+      C.warn && C.warn('Google 3B çizim hatası yakalandı (' + (ne || 'yeniden deneniyor') + '): ' + ad + ' — ' + iz);
+      setTimeout(() => { try { v.useDefaultRenderLoop = true; if (durum.kesimYok) { const b = $('#g3Re'); if (b) b.click(); } v.scene.requestRender(); msg('Çizim hatası yakalandı: ' + (ne || 'yeniden denendi') + '. Ayrıntı komut satırı günlüğünde.', true); } catch (e) { } }, 150);
+    });
+  };
   const kurGercek = (Cs, coll) => {
-    gunes(); if (durum.gercek === false) return;
+    koru(); gunes(); if (durum.gercek === false) return;
     zeminMalzemeKaydet(Cs);
     const pl = C.doc.ents.filter(e => e.type === 'plak' && DOKULU.includes(e.layer) && C.layer(e.layer).on && e.pts && e.pts.length > 2);
     const yuzey = (pos, nrm, tur) => {
@@ -324,7 +338,7 @@
       malzemeKaydet(Cs);
       const renk = dn => dn >= 1200 ? new Cs.Color(0.05, 0.42, 0.95, 1) : new Cs.Color(0.0, 0.70, 0.78, 1);
       // gömülü borular: zemin kotundan "örtü" kadar aşağıda; karada açık hendek kesiti (harita hendek boyunca kesilir), denizde deniz tabanında
-      const hendekli = durum.hendek !== false, ortu = +H.set.ortu || 1.2, yan = [], tab = []; g3.ekKesim = [];
+      const hendekli = durum.hendek !== false && !durum.kesimYok, ortu = +H.set.ortu || 1.2, yan = [], tab = []; g3.ekKesim = [];
       const boruEkle = (pts, zs, r, s0, dn, gomulu) => {
         const t = S.tup(pts, zs, r, 14, s0); if (!t) return 0;
         const mat = new Cs.Material({ fabric: { type: AKIS, uniforms: { color: renk(dn), time: 0, on: durum.oynuyor ? durum.on : 1e9, len: 14, speed: +H.set.hiz || 2, opak: gomulu ? 1 : 0 } } });
@@ -442,7 +456,7 @@
     };
     for (const b of V.binalar || []) if (b.p && b.satirlar) bina.push(ekle(b.p, +b.z || 5, (+b.z || 5) + (bina.length % 2 ? 9 : 4), b.satirlar, 'rgba(10,56,97,0.88)')); // ardışık etiketler farklı yükseklikte: üst üste binmesin
     if (ek) for (const h of V.hat || []) { const k = S.noktaAt(ek, Math.max(0, Math.min(durum.boy, +h.s || 0))); hat.push(Object.assign(ekle(k.p, 0.5, (h.z != null ? +h.z : 14), h.satirlar, 'rgba(5,76,107,0.88)'), { s: +h.s || 0 })); }
-    coll.add(lc); coll.add(pc); durum.sunumEt = { bina, hat, veri: V };
+    coll.add(lc); coll.add(pc); durum.sunumEt = { bina, hat, veri: V }; if (durum.sunum && durum.sunum.olcek) etiketOlcek(durum.sunum.olcek);
   };
   const sunumGoster = (liste, ac) => { for (const x of liste || []) { x.l.show = ac; x.c.show = ac; } };
   const kamera = (hedef, bas, egim, uzak) => { const Cs = window.Cesium, v = g3.viewer; v.camera.lookAt(hedef, new Cs.HeadingPitchRange(bas, egim, uzak)); };
@@ -486,23 +500,33 @@
     if (durum.etiket) durum.etiket.show = false;
     if (kayit) {
       try {
-        const tuval = v.scene.canvas, akis = tuval.captureStream(30), tur = ['video/mp4;codecs=avc1.640028', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x));
+        // kayıt kalitesi: tuval hedef genişliğe (1920 / 3840 px) büyütülür, kenar yumuşatma ve daha ayrıntılı harita karoları açılır; kayıt bitince eski hâline döner
+        const tuval = v.scene.canvas, hedef = +durum.kalite >= 2160 ? 3840 : 1920, cw = tuval.clientWidth || 1280, dpr = window.devicePixelRatio || 1;
+        su.eski = { ubr: v.useBrowserRecommendedResolution, rs: v.resolutionScale, msaa: v.scene.msaaSamples, sse: g3.tileset ? g3.tileset.maximumScreenSpaceError : null, gsse: v.scene.globe ? v.scene.globe.maximumScreenSpaceError : null };
+        v.useBrowserRecommendedResolution = false; v.resolutionScale = Math.max(1 / dpr, Math.min(4, hedef / (cw * dpr)));
+        try { v.scene.msaaSamples = 4; } catch (e) { } if (g3.tileset) g3.tileset.maximumScreenSpaceError = 6; if (v.scene.globe) v.scene.globe.maximumScreenSpaceError = 1.3;
+        v.resize(); v.render(); su.olcek = (tuval.width || cw) / cw; etiketOlcek(su.olcek);
+        const akis = tuval.captureStream(30), tur = ['video/mp4;codecs=avc1.640028', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(x => window.MediaRecorder && MediaRecorder.isTypeSupported(x));
         if (!tur) throw new Error('bu tarayıcı video kaydını desteklemiyor');
-        const parca = []; su.kaydedici = new MediaRecorder(akis, { mimeType: tur, videoBitsPerSecond: 14e6 });
+        const parca = []; su.kaydedici = new MediaRecorder(akis, { mimeType: tur, videoBitsPerSecond: hedef > 1920 ? 60e6 : 32e6 });
         su.kaydedici.ondataavailable = e => { if (e.data && e.data.size) parca.push(e.data); };
         su.kaydedici.onstop = () => { const uz = /mp4/.test(tur) ? 'mp4' : 'webm', ad = ((C.doc.set.name || 'sunum') + '-sunum.' + uz).replace(/[\\/:*?"<>|]+/g, '_'), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(parca, { type: tur.split(';')[0] })); a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); C.log && C.log('🎬 Sunum videosu indirildi: ' + ad + ' (' + (parca.reduce((s, p) => s + p.size, 0) / 1048576).toFixed(1) + ' MB)'); msg('Sunum videosu indirildi: ' + ad); };
         su.kaydedici.start(1000);
-      } catch (err) { su.kayit = false; su.kaydedici = null; msg('Video kaydı başlatılamadı: ' + (err.message || err) + ' — sunum kayıtsız oynatılıyor.', true); }
+      } catch (err) { su.kayit = false; su.kaydedici = null; kaliteGeri(su); msg('Video kaydı başlatılamadı: ' + (err.message || err) + ' — sunum kayıtsız oynatılıyor.', true); }
     }
     sunumDugme(); sunumKare();
   };
   S.sunumDur = (bitti) => {
     const Cs = window.Cesium, v = g3.viewer, su = durum.sunum; if (!su) return; cancelAnimationFrame(su.raf); durum.sunum = null;
     if (su.kaydedici && su.kaydedici.state !== 'inactive') { try { su.kaydedici.stop(); } catch (e) { } }
+    kaliteGeri(su);
     if (Cs && v) { if (!su.son) v.camera.lookAtTransform(Cs.Matrix4.IDENTITY); for (const m of durum.mats) m.uniforms.on = 1e9; if (durum.sunumEt) { sunumGoster(durum.sunumEt.bina, false); sunumGoster(durum.sunumEt.hat, false); } if (durum.etiket) durum.etiket.show = true; v.scene.requestRender(); }
     if (!su.kayit) msg(bitti ? 'Sunum bitti.' : 'Sunum durduruldu.');
     sunumDugme();
   };
+  /* bilgi kutuları ekran pikseliyle çizilir: tuval büyütülünce aynı oranda büyütülür */
+  const etiketOlcek = k => { const E = durum.sunumEt; if (!E) return; for (const x of E.bina.concat(E.hat)) { x.l.scale = 0.5 * k; x.c.width = 2 * k; } };
+  const kaliteGeri = su => { const v = g3.viewer, e = su && su.eski; if (!v || !e) return; su.eski = null; try { v.useBrowserRecommendedResolution = e.ubr; v.resolutionScale = e.rs; v.scene.msaaSamples = e.msaa; if (g3.tileset && e.sse != null) g3.tileset.maximumScreenSpaceError = e.sse; if (v.scene.globe && e.gsse != null) v.scene.globe.maximumScreenSpaceError = e.gsse; etiketOlcek(1); v.resize(); v.scene.requestRender(); } catch (err) { console.warn(err); } };
   const sunumDugme = () => { const a = $('#shSunum'), k = $('#shVideo'), on = !!durum.sunum; if (a) a.textContent = on && !durum.sunum.kayit ? '■ Sunumu durdur' : '▶ Sunumu oynat'; if (k) k.textContent = on && durum.sunum.kayit ? '■ Kaydı bitir' : '🎬 Video kaydet'; };
 
   /* ---------- çevre binaları OpenStreetMap'ten indir ---------- */
@@ -540,7 +564,7 @@
       <div class="row" style="border-top:1px solid #ffffff22;padding-top:5px"><label><input type="checkbox" id="shCevre"> Çevre binalar (şeffaf kutu)</label><button id="shIndir" title="Tesis ve hat çevresindeki bina izlerini OpenStreetMap'ten indirir">Çevre binaları indir</button></div>
       <div class="row"><label title="Bitmiş hâl: asfalt yol ve bordür, kilit parke kaldırım, çim ada, boyalı cepheler, ağaçlar ve güneş gölgesi"><input type="checkbox" id="shGercek"> Gerçekçi görünüm (malzeme + gölge)</label></div>
       <div class="row"><label><input type="checkbox" id="shHat"> Deniz hattı</label><label title="Boru toprak altında; harita hat boyunca açık hendek olarak kesilir. Kapalıyken boru zemin altında röntgen gibi görünür."><input type="checkbox" id="shHendek"> Hendek kesiti</label><button id="shOyna">▶ Akışı oynat</button><button id="shUc">✈ Hat boyunca uç</button><button id="shTum" title="Hattın tamamını göster">Tüm hat</button></div>
-      <div class="row"><button id="shSunum" title="Tesis çevresinde tur ve bina bilgileri, sonra hat boyunca yavaş ilerleyiş ve hat bilgileri">▶ Sunumu oynat</button><button id="shVideo" title="Aynı sunumu oynatır ve 3B görüntüyü video dosyası olarak kaydeder (bitince İndirilenler klasörüne iner)">🎬 Video kaydet</button><label title="Sunumun (ve kaydedilen videonun) hızı; yavaş seçilirse süre uzar">Hız <select id="shHiz"><option value="0.35">Çok yavaş</option><option value="0.6">Yavaş</option><option value="1">Normal</option><option value="1.6">Hızlı</option></select></label></div>`;
+      <div class="row"><button id="shSunum" title="Tesis çevresinde tur ve bina bilgileri, sonra hat boyunca yavaş ilerleyiş ve hat bilgileri">▶ Sunumu oynat</button><button id="shVideo" title="Aynı sunumu oynatır ve 3B görüntüyü video dosyası olarak kaydeder (bitince İndirilenler klasörüne iner)">🎬 Video kaydet</button><label title="Sunumun (ve kaydedilen videonun) hızı; yavaş seçilirse süre uzar">Hız <select id="shHiz"><option value="0.35">Çok yavaş</option><option value="0.6">Yavaş</option><option value="1">Normal</option><option value="1.6">Hızlı</option></select></label><label title="Kaydedilen videonun çözünürlüğü (pencere boyutundan bağımsız)">Kalite <select id="shKalite"><option value="1080">Full HD (1920)</option><option value="2160">4K (3840)</option></select></label></div>`;
     const m = $('#g3Msg'); while (d.firstElementChild) ctl.insertBefore(d.firstElementChild, m);
     const yenile = () => { const b = $('#g3Re'); if (b) b.click(); };
     $('#shCevre').checked = !!durum.cevre; $('#shHat').checked = !!durum.hat;
@@ -554,6 +578,7 @@
     $('#shTum').onclick = () => tumHat();
     $('#shHiz').value = String(durum.sunumHiz || 1); if (!$('#shHiz').value) $('#shHiz').value = '1';
     $('#shHiz').onchange = e => { durum.sunumHiz = +e.target.value || 1; sakla(); if (durum.sunum) durum.sunum.hiz = durum.sunumHiz; const V = durum.sunumEt && durum.sunumEt.veri; if (V) msg('Sunum süresi ≈ ' + Math.round(S.sunumSure(V).toplam / durum.sunumHiz) + ' sn'); };
+    $('#shKalite').value = String(+durum.kalite >= 2160 ? 2160 : 1080); $('#shKalite').onchange = e => { durum.kalite = +e.target.value; sakla(); };
     $('#shSunum').onclick = () => durum.sunum ? S.sunumDur(false) : S.sunumBaslat(false);
     $('#shVideo').onclick = () => durum.sunum ? S.sunumDur(false) : S.sunumBaslat(true);
     dugme();
@@ -561,5 +586,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(kurArayuz, 0)); else setTimeout(kurArayuz, 0);
   C.addCommand && C.addCommand(['DENIZHATTI', 'AKISANIM'], 'Google 3B sekmesinde deniz hattı akış animasyonunu oynatır (DENIZ_HATTI katmanındaki güzergâh ekseni boyunca)', () => { C.setView('g3d'); setTimeout(() => S.oynat(true), 1500); }, { noUndo: true });
   C.addCommand && C.addCommand(['CEVREBINA', 'CEVREBINALAR'], 'Tesis ve hat çevresindeki binaları OpenStreetMap\'ten indirir; Google 3B sekmesinde şeffaf kutu olarak gösterir', () => S.cevreIndir(), { noUndo: true });
-  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['Hız', 'Speed'], ['Çok yavaş', 'Very slow'], ['Yavaş', 'Slow'], ['Normal', 'Normal'], ['Hızlı', 'Fast'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
+  if (window.DIL && window.DIL.ekle) { try { window.DIL.ekle('en', 'English', [['Çevre binalar (şeffaf kutu)', 'Surrounding buildings (transparent boxes)'], ['Çevre binaları indir', 'Download surrounding buildings'], ['Deniz hattı', 'Sea outfall line'], ['Hendek kesiti', 'Trench section'], ['Gerçekçi görünüm (malzeme + gölge)', 'Realistic view (materials + shadows)'], ['▶ Akışı oynat', '▶ Play flow'], ['⏸ Akışı durdur', '⏸ Stop flow'], ['✈ Hat boyunca uç', '✈ Fly along the line'], ['■ Uçuşu bırak', '■ Stop flight'], ['Tüm hat', 'Whole line'], ['▶ Sunumu oynat', '▶ Play presentation'], ['■ Sunumu durdur', '■ Stop presentation'], ['🎬 Video kaydet', '🎬 Record video'], ['Hız', 'Speed'], ['Kalite', 'Quality'], ['Çok yavaş', 'Very slow'], ['Yavaş', 'Slow'], ['Normal', 'Normal'], ['Hızlı', 'Fast'], ['■ Kaydı bitir', '■ Finish recording'], ['SW2 yükleme bacası', 'SW2 loading tower'], ['Deniz deşarjı', 'Sea outfall'], ['Kıyı', 'Shore']]); } catch (e) { } }
 })(typeof window !== 'undefined' ? window.C : globalThis.C);

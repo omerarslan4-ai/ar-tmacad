@@ -184,7 +184,7 @@
       const pts = [Cs.Cartographic.fromDegrees(g3.ll[1], g3.ll[0])];
       const ex = g3.model ? [g3.model] : [];
       const clip = g3.tileset && g3.tileset.clippingPolygons; if (g3.tileset) g3.tileset.clippingPolygons = undefined; // kesilen alanın içini değil zemini oku
-      const r = await v.scene.sampleHeightMostDetailed(pts, ex);
+      const golge = v.shadows; v.shadows = false; let r; try { r = await v.scene.sampleHeightMostDetailed(pts, ex); } finally { v.shadows = golge; } // gölge açıkken yükseklik okuması çizimi çökertebiliyor
       if (g3.tileset && clip) applyClip();
       if (r && r[0] && r[0].height != null && isFinite(r[0].height)) { g3.h0 = r[0].height; placeModel(); updUi(); status(`Zemin (elipsoit) yüksekliği ${g3.h0.toFixed(2)} m okundu; tesisin kot 0'ı buraya oturtuldu. Gerekirse "Yükseklik düzeltme" ile ayarlayın.`); }
       else status('Zemin yüksekliği okunamadı (Google modeli bu noktada henüz yüklenmemiş olabilir). Biraz yaklaşıp tekrar deneyin.', true);
