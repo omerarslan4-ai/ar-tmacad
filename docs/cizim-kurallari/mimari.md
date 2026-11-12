@@ -111,14 +111,14 @@ hangi elemanların ölçülendirildiği (perde kalınlığı, açıklık, aks ar
 ## 5. Tarama
 | Katman | Desen | Ne için |
 | --- | --- | --- |
-| `Tarama` (renk 136, 0,09) | **AR-SAND** (Karar 8) | Kesit taramaları |
+| `Tarama` (renk 136, 0,09) | **AR-SAND, DASH ya da SOLID** (Karar 8) | Kesit taramaları |
 | `Grobeton` | AR-CONC | Grobeton |
 | `Su` | ANSI31 | Su |
 | `Ongor` | ANSI31 | Görünüşte tarama |
 | `Solid` | SOLID | Dolu alan |
 
-Not: örneklerde `Tarama` katmanında AR-SAND'in yanında DASH (en sık), ANSI36 ve ANSI31 de kullanılmış. Kullanıcı 12.11.2026'da "AR-SAND" dedi; bu, kesit taramasının AR-SAND olacağı şeklinde işlendi.
-**Doğrulanacak:** DASH, ANSI36 ve ANSI31 başka bir malzeme için de kullanılacak mı (dolgu, yalıtım, kum)?
+Not: örneklerde `Tarama` katmanında ANSI36 ve ANSI31 de kullanılmış. Kullanıcı 12.11.2026'da önce "AR-SAND", sonra "DASH ya da SOLID olacak" dedi; `Tarama` katmanında bu üç desen kabul edilir, ANSI36 ve ANSI31 kullanılmaz.
+**Doğrulanacak:** hangi desen hangi malzeme için (ör. beton kesiti DASH mı SOLID mi, AR-SAND ne zaman)? Kesinleşene kadar program kesilen betonu DASH ile tarar (örneklerde en sık kullanılan).
 
 ## 6. Programın bugünkü durumu (fark)
 Programın mimari pafta üreten kodunda geçen katman adları: `YAZI`, `ZEMIN`, `EKSEN`, `KOT`, `AKS_BLOK`, `KESIT_OLCU`, `DETAY_OLCU`, `KESIT_POZ`, `K3_BETON_CIZGI`, `MALZEME_ACILIM`, `MAHAL_LISTESI`.

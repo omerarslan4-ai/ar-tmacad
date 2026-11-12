@@ -48,7 +48,7 @@ t('ölçü: katman, eğik tik, yazı üstte ve hizalı, yazı stili, ondalık', 
   const k = konular(denetle(P, K)); assert.deepStrictEqual(k, ['HATA:ölçü katmanı:50', 'HATA:ölçü ucu:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü ondalığı:50', 'HATA:ölçü yazısı:50']);
 });
 t('kot bloğu ve tarama deseni', () => {
-  const P = dogru(); P.bloklar.KOT101 = { adet: 3, katman: { Kot: 3 } }; P.bloklar.CK_TR1.katman = { Kot: 1, Beton: 1 }; P.taramalar.Tarama = { 'AR-SAND': 2, DASH: 5 }; P.taramalar.Beton = { SOLID: 1 };
+  const P = dogru(); P.bloklar.KOT101 = { adet: 3, katman: { Kot: 3 } }; P.bloklar.CK_TR1.katman = { Kot: 1, Beton: 1 }; P.taramalar.Tarama = { 'AR-SAND': 2, DASH: 5, SOLID: 1, ANSI36: 4 }; P.taramalar.Beton = { SOLID: 1 };
   assert.deepStrictEqual(konular(denetle(P, K)), ['HATA:kot işareti:KOT101', 'HATA:kot işareti:CK_TR1', 'HATA:tarama deseni:Tarama', 'UYARI:tarama:Beton']);
 });
 console.log(`\n${n} test geçti.`);
