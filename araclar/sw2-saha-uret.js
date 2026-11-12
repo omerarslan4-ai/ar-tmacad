@@ -174,7 +174,8 @@ function uret(terfiDosya, cevre) {
     // bilgi kutuları: ilk turda bu sırayla, teker teker açılır
     binalar: [
       { p: fG(3.5, 3.5), z: 4.1, satirlar: ['GÜVENLİK BİNASI'] },
-      { p: fT(14.7, 3.8), z: 9.1, satirlar: ['SW2 POMPA İSTASYONU', '5 yağmur suyu pompası (4 asıl + 1 yedek) · 3 kuru hava pompası', 'Toplam kapasite 5,40 m³/s (4 × 1.350 L/s)'] }, // pompa sayıları genel yerleşimden; kapasite "SW2 Comprehensive Report" değerleri — onay bekliyor
+      // pompa verisi: SW2_MIM_MEK malzeme listesi (SW2/P1/001…5 ve SW2/P2/001,2); yağmur suyu pompa debisi kullanıcı düzeltmesiyle 1.750 L/s (listede 2.000 L/s yazıyor)
+      { p: fT(14.7, 3.8), z: 9.1, satirlar: ['SW2 POMPA İSTASYONU', '5 yağmur suyu pompası × 1.750 L/s (Hm 14 m · 375 kW)', '2+1 atıksu pompası × 80 L/s (Hm 15 m · 22 kW)', 'Toplam yağmur suyu kapasitesi 8,75 m³/s'] },
       { p: bc.f(3.6, 2.6), z: 7.8, satirlar: ['T-102 YÜKLEME BACASI', '7,20 × 5,20 m · taban −2,40 · üst +6,70', 'Giriş DN2000 · çıkış 2 × DN1400 + DN900'] },
     ],
     // kamera yürüyüşü: sürgülü kapının dışından girer, saha yolundan terfinin yanından geçer, sağa dönüp kolektörün (vana odası) önünden bacaya ilerler
