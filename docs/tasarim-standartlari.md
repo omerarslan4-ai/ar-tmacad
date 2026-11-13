@@ -28,8 +28,8 @@
 - Çokal raporundaki tip kesitler (bina): kolon 30/30 (8Ø14), 30/50 (10Ø14), 40/60 (14Ø16); kiriş 30/60, 40/60 (8,8 m açıklıkta 40/80); döşeme 15 cm; radye 40 cm.
 
 ### Eleman birleşimleri ve minha (13.11.2026)
-- Yapı elemanları eksenden eksene çizilebilir; birleşimde hangisinin bütün kalacağını program belirler. Öncelik sırası: temel / radye > kolon > betonarme perde > döşeme > kiriş > tuğla (dolgu) duvar > sıkıştırılmış dolgu. Önceliği yüksek eleman bütün kalır, öbürü birleşimde kesilir.
-  - Kiriş kolon ve perde yüzünde biter (temiz açıklık). Kirişin döşeme kalınlığı içindeki kısmı döşemeye sayılır; kiriş gövdesi döşeme altından ölçülür. (Kiriş / döşeme sırası kullanıcı onayı bekliyor — bkz. açık sorular.)
+- Yapı elemanları eksenden eksene çizilebilir; birleşimde hangisinin bütün kalacağını program belirler. Öncelik sırası: temel / radye > kolon > betonarme perde > kiriş > döşeme > tuğla (dolgu) duvar > sıkıştırılmış dolgu. Önceliği yüksek eleman bütün kalır, öbürü birleşimde kesilir.
+  - Kiriş kolon ve perde yüzünde biter (temiz açıklık). Kiriş tam yüksekliğiyle (döşeme kalınlığı dahil) kirişe sayılır; döşeme kiriş yüzleri arasında kalır — Çokal statik paftalarındaki gibi (30/60 kirişte etriye 23 × 55: kesit döşemeyi içerir; kullanıcı kararı 13.11.2026: "örnekte hangisine aitse ona").
   - Tuğla duvar kolonlar arasında ve kiriş altında kalır; betonarme perdeye girmez.
   - Döşeme kolon izinden delinir.
 - Boşluklar (minha) elemanın kendi hacminden düşülür: pencere, kapı, döşeme ve perdedeki geçişler, kanal ve kaide yuvaları.

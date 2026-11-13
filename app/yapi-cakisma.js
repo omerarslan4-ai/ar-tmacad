@@ -4,7 +4,7 @@
      1) cakisma(ents)  → hangi eleman çifti ne kadar hacimde üst üste biniyor (ham model; hiçbir kesme uygulanmadan)
      2) net(ents)      → birleşim önceliğiyle (docs/tasarim-standartlari.md › "Eleman birleşimleri") her elemanın net parçaları:
                          önceliği yüksek eleman bütün kalır, düşük öncelikli olan birleşimde kesilir; aynı hacim iki kez sayılmaz.
-   Öncelik: temel / radye > kolon > betonarme perde > döşeme > kiriş > tuğla duvar > sıkıştırılmış dolgu (eşit öncelikte modele önce giren).
+   Öncelik: temel / radye > kolon > betonarme perde > kiriş > döşeme > tuğla duvar > sıkıştırılmış dolgu (eşit öncelikte modele önce giren).
    Boşluklar (minha): pencere / kapı (acik), İT/ÇEK boşlukları (bosluk3) elemanın kendi hacminden düşülür.
    Metraj (INSMETRAJ, INSCAKISMA) ve statik eleman listesi aynı net parçaları kullanır.
    Kısıt: prizmalar düşeydir — eğimli yüzlü perde ortalama kalınlıkla, kolon gusesi ayrı (guse hacmi kolonun kendi hacmine eklenir) alınır. */
@@ -73,7 +73,7 @@
   };
 
   /* ---------- eleman → tür ---------- */
-  const TUR = { temel: 0, kolon: 1, perde: 2, doseme: 3, kiris: 4, duvar: 5, dolgu: 6 };
+  const TUR = { temel: 0, kolon: 1, perde: 2, kiris: 3, doseme: 4, duvar: 5, dolgu: 6 };
   const TUR_AD = { temel: 'Temel', kolon: 'Kolon', perde: 'Perde', doseme: 'Döşeme', kiris: 'Kiriş', duvar: 'Duvar', dolgu: 'Dolgu' };
   const turu = e => {
     if (!e) return null;

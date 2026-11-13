@@ -20,7 +20,7 @@ ArıtmaCAD'in statik modülünde çalışan geliştiricisin. Su yapıları (perd
 - Çözücüde yaptığın her değişiklikten sonra bütün statik testleri çalıştır: `node araclar/tum-testler.js statik` ve `node araclar/tum-testler.js donati`.
 - Pafta çizim stili (yazı, ölçü, antet) `pafta-cizim` ajanının alanıdır; statik paftanın içeriği (hangi kesit, hangi açılım, metraj) senindir.
 - Statik paftada katman, renk, kalınlık, yazı yüksekliği ve etiket biçimini elle yazma: `docs/cizim-kurallari/statik.md` ve `app/cizim-kural.js` → `STATIK` tablosundan al. Pafta kodunu değiştirdikten sonra `cizim-denetci-statik` ajanı çalıştırılır.
-- Elemanların birleşimi ve net hacmi tek kaynaktan gelir: `app/yapi-cakisma.js` (öncelik: temel > kolon > perde > döşeme > kiriş > duvar). Statik eleman listesi metrajla aynı elemanları saymalıdır; model ya da statik model kodunu değiştirdikten sonra `statik-model-denetci` ajanı çalıştırılır.
+- Elemanların birleşimi ve net hacmi tek kaynaktan gelir: `app/yapi-cakisma.js` (öncelik: temel > kolon > perde > kiriş > döşeme > duvar). Statik eleman listesi metrajla aynı elemanları saymalıdır; model ya da statik model kodunu değiştirdikten sonra `statik-model-denetci` ajanı çalıştırılır.
 - Perde / radye kalınlığı önerisi gerçek projelerdeki aralıkta kalmalıdır (belgede "Statik ve donatı"); hesap kalınlığı sınırsız büyütmez, yetmiyorsa nedenini (açıklık, mesnet, yük) söyler.
 
 ## Ortak kurallar

@@ -22,7 +22,7 @@ t('kolon döşemeyi deler: döşeme neti = brüt − kolon izi × kalınlık; ko
   yak(Y.netCakisma(N), 0, 1e-9);
 });
 
-t('eksenden eksene çizilen kiriş kolon yüzünde biter; döşeme içindeki kısmı döşemeye sayılır', () => {
+t('eksenden eksene çizilen kiriş kolon yüzünde biter; kiriş tam yükseklikte kirişe sayılır, döşeme kiriş yüzleri arasında kalır', () => {
   const E = [
     { id: 1, type: 'kolon', sek: 'R', b: 0.5, d: 0.5, h: 3, z0: 0, p: [0, 0, 0] },
     { id: 2, type: 'kolon', sek: 'R', b: 0.5, d: 0.5, h: 3, z0: 0, p: [6, 0, 0] },
@@ -31,8 +31,8 @@ t('eksenden eksene çizilen kiriş kolon yüzünde biter; döşeme içindeki kı
   ];
   const N = Y.net(E);
   yak(N.get(3).brut, 6 * 0.3 * 0.6, 1e-9);
-  yak(N.get(3).net, 5.5 * 0.3 * (0.6 - 0.15), 1e-9);                       // temiz açıklık × gövde (döşeme altı)
-  yak(N.get(4).net, (6.5 * 4 - 2 * 0.25) * 0.15, 1e-9);                    // döşeme − iki kolon izi
+  yak(N.get(3).net, 5.5 * 0.3 * 0.6, 1e-9);                                // temiz açıklık × tam kesit (döşeme dahil)
+  yak(N.get(4).net, (6.5 * 4 - 2 * 0.25 - 5.5 * 0.3) * 0.15, 1e-9);        // döşeme − iki kolon izi − kiriş izi
   yak(Y.netCakisma(N), 0, 1e-9);
 });
 
@@ -78,7 +78,7 @@ t('Konya: birleşim kuralından sonra hiçbir hacim iki kez sayılmaz', () => {
   yak(top.Kolon, 10 * 0.5 * 0.5 * 11.2, 1e-6);                             // kolonlar bütün
   yak(top.Temel, 20.7 * 9.0 * 0.4, 1e-6);
   assert.ok(top.Perde < 115.31 - 11.8 + 0.05 && top.Perde > 103.4, 'perde: kolon izleri düşülmüş ' + top.Perde);
-  assert.ok(top['Kiriş'] < 21 && top['Kiriş'] > 19.5, 'kiriş: kolon, perde ve döşeme içi düşülmüş ' + top['Kiriş']);
+  assert.ok(top['Kiriş'] < 27.18 - 0.9 && top['Kiriş'] > 25.5, 'kiriş: kolon, perde ve çapraz kiriş içi düşülmüş, döşeme içi kirişte ' + top['Kiriş']);
 });
 t('Konya: her elemanın neti brütünden büyük değil; kesen türler öncelik sırasına uyar', () => {
   const N = Y.net(E);

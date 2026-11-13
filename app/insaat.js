@@ -713,7 +713,7 @@
   C.addCommand(['SEKSIYONELKAPI', 'SEKSIYONEL', 'GARAJKAPI'], 'Seksiyonel (endüstriyel, yukarı açılan panelli) kapı: genişlik, yükseklik, panel yüksekliği; perde ya da duvar üzerine tıklayın (tıkladığınız taraf iç taraf, tavan rayı o yöne)', openCmd('kapi', 'S'));
   C.addCommand(['CELIKKAPI', 'CELIK', 'STEELDOOR'], 'Çelik kapı: genişlik, yükseklik, tek/çift kanat, kasa genişliği; perde ya da duvar üzerine tıklayın (tıkladığınız taraf açılış yönü)', openCmd('kapi', 'C'));
 
-  /* ---------- MİNHA: elemanlar dışbükey düşey prizmalara ayrılır, öncelik sırasıyla (temel > kolon > perde > döşeme > kiriş > duvar)
+  /* ---------- MİNHA: elemanlar dışbükey düşey prizmalara ayrılır, öncelik sırasıyla (temel > kolon > perde > kiriş > döşeme > duvar)
      her eleman kendinden önceki elemanların hacmini düşer — kesişen hacim iki kez sayılmaz ---------- */
   const ccw = q => (M.polyArea(q) < 0 ? q.slice().reverse() : q);
   const clipHalf = (poly, a, b, keepIn) => { // a→b kenarının solu (iç) / sağı (dış)
@@ -836,7 +836,7 @@
       else if (e.type === 'dolgu') { const g = Math.abs(M.polyArea(e.pts.map(p2))) * Math.max(0, (+e.zb || 0) - (+e.za || 0)), d = Math.min(g, mOf(e)); dolguV += g - d; minha.Dolgu = (minha.Dolgu || 0) + d; }
     }
     const mk = Object.keys(pairT).filter(k => pairT[k] > 5e-4);
-    if (mk.length) C.log('MİNHA (çakışan hacim bir kez sayıldı — öncelik: temel > kolon > perde > döşeme > kiriş > duvar): ' + mk.map(k => `${k} ${pairT[k].toFixed(3)} m³`).join(' · ') + (minha.Duvar ? ` · duvar alanından ${minha.Duvar.toFixed(2)} m² düşüldü` : ''));
+    if (mk.length) C.log('MİNHA (çakışan hacim bir kez sayıldı — öncelik: temel > kolon > perde > kiriş > döşeme > duvar): ' + mk.map(k => `${k} ${pairT[k].toFixed(3)} m³`).join(' · ') + (minha.Duvar ? ` · duvar alanından ${minha.Duvar.toFixed(2)} m² düşüldü` : ''));
     const cats = ['Temel', 'Perde', 'Kolon', 'Kiriş', 'Döşeme'], rows = [];
     let tot = 0; for (const cls of Object.keys(by).sort()) { const o = by[cls], s = cats.reduce((x, c) => x + (o[c] || 0), 0); tot += s; rows.push([cls, ...cats.map(c => o[c] ? o[c].toFixed(2) : '-'), s.toFixed(2)]); C.log(`${cls}: ${cats.filter(c => o[c]).map(c => `${c} ${o[c].toFixed(2)}`).join(' · ')} → ${s.toFixed(2)} m³`); }
     C.log(`TOPLAM BETON (net, minhalar düşülmüş) ${tot.toFixed(2)} m³ ·${dolguV ? ` sıkıştırılmış dolgu ${dolguV.toFixed(2)} m³ ·` : ''} perde kalıbı ${kalip.toFixed(1)} m² · duvar ${duvarA.toFixed(1)} m² · ${nP} pencere · ${nK} kapı`);
