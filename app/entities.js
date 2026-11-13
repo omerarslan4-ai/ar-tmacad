@@ -378,7 +378,7 @@
     prims: e => {
       if (e.k === 'r' || e.k === 'd') return T.dim.radPrims(e);
       const { a, b, a2, b2, u, val, set } = T.dim.geom(e);
-      const ps = C.pstil ? C.pstil() : null, D = ps && ps.dim ? ps.dim() : { exo: 0.8, exe: 1.5, dle: 0, tik: set.dimTick, th: set.dimTextH, ah: set.dimArrow, st: null }; // pafta çizim stili (pafta-stil.js)
+      const ps = C.pstil ? C.pstil() : null, D = ps && ps.dim ? ps.dim(e) : { exo: 0.8, exe: 1.5, dle: 0, tik: set.dimTick, th: set.dimTextH, ah: set.dimArrow, st: null }; // pafta çizim stili (pafta-stil.js)
       const S1 = C.annoH(1), ah = C.annoH(D.ah), th = C.annoH(D.th);
       const out = [];
       const ext = (p, p2) => { const d = M.sub(p2, p); const l = M.len(d); if (l < 1e-9) return; const dn = M.mul(d, 1 / l); out.push(L(D.exf ? M.sub(p2, M.mul(dn, Math.min(S1 * D.exf, l))) : M.add(p, M.mul(dn, Math.min(S1 * D.exo, l * 0.5))), M.add(p2, M.mul(dn, S1 * D.exe)), { lw: 13 })); }; // exf: uzatma çizgisi ölçülen noktadan değil ölçü çizgisinin exf mm berisinden başlar (pafta stili)

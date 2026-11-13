@@ -113,7 +113,8 @@ Kullanıcı kararı (13.11.2026): **ölçülendirme yönteminin ölçütü Çoka
 Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kullanır (13.11.2026).
 
 **Örneklerde tek bir değer çıkmayan, kullanıcıya sorulanlar:**
-- İlk (iç) ölçü sırasının çizime uzaklığı: örneklerde 6 mm ile 77 mm arasında değişiyor (en sık 14 mm ve 34 – 35 mm); sabit bir kural görünmüyor. Program şimdilik ilk sırayı en dış beton çizgisinden 5 mm uzağa koyar.
+- İlk (iç) ölçü sırasının çizime uzaklığı: örneklerde 6 mm ile 77 mm arasında değişiyor (en sık 14 mm ve 34 – 35 mm); sabit bir kural görünmüyor. Program şimdilik kesitte alttaki ilk sırayı en dış beton çizgisinden 5 mm, soldaki ilk sırayı 8 mm uzağa koyar.
+- Bu yerleşim yalnız mimari ölçülere uygulanır; statik, mekanik ve bina tesisatı ölçüleri eski hâliyle çizilir (onların kuralı ayrıca çıkarılacak).
 - Neyin ölçülendirileceği (perde kalınlığı, açıklık, aks arası, döşeme kalınlığı, toplam) ve planlarda ölçü sıralarının hangi kenarlara konacağı henüz çıkarılmadı.
 
 ## 4. Kot, aks, kesit işaretleri
