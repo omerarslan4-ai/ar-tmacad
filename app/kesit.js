@@ -329,12 +329,15 @@
         /* ilk sıranın yeri: pafta stilinde çizimin en dış çizgisinden (tretuvar dahil) ilk mm uzakta (kural tablosu → olcuYeri.ilkSira); eski görünümde betondan bir sıra aralığı */
         let yA = zb - dd, xA = x0 - dd * 1.6;
         if (psD && psD.ilk) { let ax = x0, az = zb; for (const lp of R.loops) { if (lp.lk === 'KORKULUK') continue; for (const q of lp) { ax = Math.min(ax, q[0]); az = Math.min(az, q[1]); } } yA = az - C.annoH(psD.ilk); xA = ax - C.annoH(psD.ilk); }
-        if (XS.length > 2) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, yA]);
-        dim('h', [x0, z0], [x1, z0], [0, yA - (XS.length > 2 ? dd : 0)]);
-        if (ZS.length > 2) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);
-        dim('v', [x0, z0], [x0, z1], [xA - (ZS.length > 2 ? dd : 0), 0]);
-        if (psD && C.cizimKural && C.cizimKural.kesitIcOlculer) for (const q of C.cizimKural.kesitIcOlculer(LPD.map(lp => ({ lk: lp.lk || '', pts: lp })), C.annoH(1))) dim(q.k, q.a, q.b, q.p); /* yapının içinde: her hacmin net genişliği ve net yüksekliği (R2'deki gibi) */
-        dimBot = yA - (XS.length > 2 ? dd : 0) - dd * 0.6; void zF;
+        /* pafta stili (kullanıcı 13.11.2026): ölçüler yapının içinden zincir olarak verilir; dışarıda yalnız toplam boy ve toplam yükseklik kalır */
+        const icO = psD && C.cizimKural && C.cizimKural.kesitIcOlculer ? C.cizimKural.kesitIcOlculer(LPD.map(lp => ({ lk: lp.lk || '', pts: lp })), C.annoH(1), (C.cizimKural.MIMARI.olcuYeri || {}).genel) : [];
+        const disH = !icO.length && XS.length > 2, disV = !icO.length && ZS.length > 2;
+        if (disH) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, yA]);
+        dim('h', [x0, z0], [x1, z0], [0, yA - (disH ? dd : 0)]);
+        if (disV) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);
+        dim('v', [x0, z0], [x0, z1], [xA - (disV ? dd : 0), 0]);
+        for (const q of icO) dim(q.k, q.a, q.b, q.p);
+        dimBot = yA - (disH ? dd : 0) - dd * 0.6; void zF;
       }
     }
     // mekanik poz balonları (POZNO ile aynı numaralar)

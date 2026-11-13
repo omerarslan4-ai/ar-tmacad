@@ -64,7 +64,7 @@
     },
     /* katman → izin verilen yazı stilleri ve kâğıt üstü yükseklikler (mm) */
     yazi: {
-      'Mim_Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi20': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'YZ': { stil: ['YZ'], mm: [2, 2.5, 3] },
+      'Mim_Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi20': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3, 3.5, 4] }, /* 3,5: açılım kodu, 4: DÖŞEMELER / DUVARLAR başlığı */ 'YZ': { stil: ['YZ'], mm: [2, 2.5, 3] },
       'ZMN': { stil: ['YZ'], mm: [2.5, 3] }, 'Kot': { stil: ['YZ'], mm: [2, 3] },
       'Aks': { stil: ['ARIAL'], mm: [5] }, 'Kesit_Cizgisi': { stil: ['ARIAL'], mm: [5] },
       'MAHAL İSİM': { stil: ['ARIAL', 'TÜRKÇE'], mm: [3, 4, 5] }, 'Yazi30': { stil: null, mm: [4, 5] },
@@ -84,7 +84,7 @@
        detay (1/25 ve büyük, "1-20" stili): sıralar 6,5 – 7,5 mm arayla (program 7); uzatma çizgisi ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar; ölçü çizgisi taşması 1 mm. */
     /* ilkSira: ilk ölçü sırası çizimin en dış çizgisinden (tretuvar dahil; tretuvarın dışında) 14 mm uzakta — kullanıcı kararı 13.11.2026, "çizime göre revize ederiz" */
     olcuYeri: {
-      genel: { ilkSira: 14, siraAraligi: 5, uzatmaSabit: 1, uzatmaBosluk: 0, uzatmaTasma: 4.1, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3 },
+      genel: { ilkSira: 14, siraAraligi: 5, uzatmaSabit: 1, uzatmaBosluk: 0, uzatmaTasma: 4.1, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
       detay: { ilkSira: 14, siraAraligi: 7, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
     },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
@@ -92,6 +92,20 @@
     /* kesilen betonun taraması: örneklerde DASH, ölçek 0,50, açı 0 (cm çizim, 1/50) → kâğıtta satır aralığı 0,32 mm; programdaki açıklama ölçeği 0,1 */
     kesitTarama: { desen: 'DASH', aci: 0, kagitOlcek: 0.1, yerine: ['ANSI31', 'ANSI36', 'AR-SAND'],
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
+    /* MALZEME AÇILIMI ve PERDE / DÖŞEME NUMARALARI (Çokal R2: çöktürme, yoğunlaştırma, ön arıtma, terfi mimari paftalarından ölçüldü; kâğıt mm).
+       etiket: kesitte elemanın yanındaki kod (DU01, DÖ02 …) — 2,5 mm YZ, katman Mim_Yazi25; koddan elemana ince çizgi (renk 243).
+               Duvarda çizgi yataydır: duvarın ortasından çıkar, yüzden 4,5 mm sonra biter, kod çizgiden 1,3 mm sonra başlar.
+               Döşemede çizgi "L" biçimindedir: döşemeden 12 mm dik çıkar, 2,3 mm yatay döner, kod ondan sonra yazılır.
+               Sayı: kesilen her duvar parçasına (toprak altı ve toprak üstü ayrı) ve her döşeme parçasına bir kod.
+       kutu  : paftadaki açılım çerçevesi — üstte "DÖŞEMELER", altta "DUVARLAR" (4 mm, altı çizili); kodlar yan yana (sütun aralığı 84 mm);
+               kod 3,5 mm altı çizili renk 94; satırlar 2,5 mm, tireli; yazılar Yazi25, çerçeve Mim_Yazi25 katmanında. */
+    acilim: {
+      etiket: { katman: 'Mim_Yazi25', yaziMm: 2.5, cizgiRenk: 243, bosluk: 1.3, duvarTasma: 4.5, dosemeDik: 12, dosemeYatay: 2.3 },
+      kutu: { yaziKatman: 'Yazi25', cerceveKatman: 'Mim_Yazi25', baslikMm: 4, kodMm: 3.5, kodRenk: 94, satirMm: 2.5, satirAralik: 4.2, kodAralik: 5.8,
+        girinti: 4, sutun: 84, kenar: 3.6, baslikAlt: 12, kutuAlt: 15.6, grupBosluk: 6, satirHarf: 40 },
+    },
+    /* katmandan bağımsız kalan nesne renkleri (örnek çizimlerde de nesnede yazılıdır) */
+    renkKorunur: { 'Mim_Yazi25': [243], 'Yazi25': [94] },
     /* nesne türü → çizim katmanı (katman adından önce gelir) */
     tipKatman: { baslik: 'Yazi30', kot: 'Kot', dim: 'ÖL', aks: 'Aks', kesitisaret: 'Kesit_Cizgisi', seviyecizgi: 'ZMN' },
     yaziKatmani: 'Mim_Yazi25',                            // çizgi katmanına düşen yazılar (eleman etiketleri) buraya alınır
@@ -118,10 +132,10 @@
       [/^GORUNUS_.*_KESIT(_|$)/, 'Ongor'],                 // görünüşte (cephe) kesilen yok: çizgiler görünüş çizgisidir
       [/(^|_)KESIT(_|$)/, 'Beton'], [/(^|_)GORUNEN(_|$)/, 'Ongor'], [/(^|_)GIZLI(_|$)/, 'Arkagor'],
       [/^DETAY_BETON$/, 'Beton'],
-      [/^(YAZI|YAZI_KAPAK|MAHAL_LISTESI)$/, 'Mim_Yazi25'], [/^MALZEME_ACILIM$/, 'YZ'], [/^MAHAL_ADI$/, 'MAHAL İSİM'],
+      [/^(YAZI|YAZI_KAPAK|MAHAL_LISTESI)$/, 'Mim_Yazi25'], [/^MALZEME_ACILIM_YAZI$/, 'Yazi25'], [/^MALZEME_ACILIM$/, 'Mim_Yazi25'], [/^MAHAL_ADI$/, 'MAHAL İSİM'],
       /* plan: model elemanlarının kendi katmanları (planda kesilenler Beton, üstten görünenler Ongor) */
       [/^(INS_(PERDE|KOLON|DUVAR.*|TEMEL.*|PARAPET|AYAK_DUVARI)|BETON|DUVAR)$/, 'Beton'],
-      [/^INS_(DOSEME|CATI_DOSEMESI|KIRIS|PENCERE|KAPI|CATI)$/, 'Ongor'],
+      [/^INS_(DOSEME|CATI_DOSEMESI|KIRIS|PENCERE|KAPI|CATI)$/, 'Ongor'], [/^RAMPA$/, 'Ongor'], /* rampa: KABUL */
     ],
     tarama: { 'Tarama': ['DASH', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
   };
@@ -147,23 +161,33 @@
     if (D.length) { const xm = Math.min(...D.map(d => d.x0)); for (const d of D) if (d.x0 - xm < 0.6) zs.push(d.z0, d.z1); } // sol dış duvar: pencere / kapı boşluğu duvarı parçalara böler
     return { xs, zs };
   };
-  /* YAPININ İÇİNDEKİ ÖLÇÜLER (kullanıcı 13.11.2026: "yapının içinden de R2'deki gibi ölçü verilebilir"). Çokal R2'de 1/50 ölçülerin
-     yaklaşık üçte biri yapının içindedir ve çoğu tek ölçüdür: hacmin net genişliği (480, 500, 600 …) ve net yüksekliği (365, 500, 600 …).
-     Her kat aralığında, kesilen iki duvar arasındaki her hacim için bir net genişlik (yatay) ve bir net yükseklik (düşey) ölçüsü üretir.
-     mm: kâğıtta 1 mm'nin modeldeki boyu. Yerler KABUL: yatay ölçü döşemeden 25 mm yukarıda, düşey ölçü sol duvardan 12 mm içeride.
+  /* YAPININ İÇİNDEKİ ÖLÇÜLER (kullanıcı 13.11.2026: "ölçüler içeriden verilsin"). Kesitte ölçüler yapının içinden zincir olarak verilir:
+       yatay : her kat aralığında, döşemeden icYatay mm yukarıda tek zincir — duvar kalınlığı · net açıklık · duvar kalınlığı …
+       düşey : kesilen iki duvar arasındaki her hacimde, sol duvardan icDusey mm içeride tek zincir — alt döşeme kalınlığı · net yükseklik
+               (sol duvardaki pencere / kapı boşluğu varsa parçalarıyla) · üst döşeme kalınlığı.
+     Dışarıda yalnız toplam boy ve toplam yükseklik kalır. mm: kâğıtta 1 mm'nin modeldeki boyu; yer: { icYatay, icDusey } (kural tablosu → olcuYeri).
      Döner: [{ k: 'h' | 'v', a, b, p }] (kesit koordinatı [x, z]). */
-  K.kesitIcOlculer = (halkalar, mm) => {
+  K.kesitIcOlculer = (halkalar, mm, yer) => {
     const B = []; for (const h of halkalar || []) { if (!h.pts || !h.pts.length) continue; let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
       for (const q of h.pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); } B.push({ lk: String(h.lk || ''), x0, x1, z0, z1 }); }
     const dos = B.filter(b => DOSEME.test(b.lk) && b.x1 - b.x0 >= 1.5), duv = B.filter(b => DUVAR.test(b.lk) && !DOSEME.test(b.lk));
     const birles = (v, tol) => { v.sort((a, b) => a[0] - b[0]); const o = []; for (const q of v) { const l = o[o.length - 1]; if (l && q[0] <= l[1] + tol) l[1] = Math.max(l[1], q[1]); else o.push(q.slice()); } return o; };
-    const K2 = birles(dos.map(b => [b.z0, b.z1]), 0.02), out = [], e = mm || 0.05;
+    const tek = v => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > 0.045) o.push(x); return o; };
+    const Y = Object.assign({ icYatay: 25, icDusey: 20 }, yer || {}), K2 = birles(dos.map(b => [b.z0, b.z1]), 0.02), out = [], e = mm || 0.05;
     for (let i = 1; i < K2.length; i++) { const zA = K2[i - 1][1], zB = K2[i][0], H = zB - zA; if (H < 1.2) continue; const zM = (zA + zB) / 2;
-      const W = birles(duv.filter(b => b.z0 < zM && b.z1 > zM).map(b => [b.x0, b.x1]), 0.02);
-      for (let j = 1; j < W.length; j++) { const xA = W[j - 1][1], xB = W[j][0], L = xB - xA; if (L < 0.8) continue;
-        const yH = zA + Math.min(H * 0.5, 25 * e); out.push({ k: 'h', a: [xA, yH - e], b: [xB, yH - e], p: [xA, yH] });
-        const xV = xA + Math.min(L * 0.5, 12 * e), alt = dos.some(b => Math.abs(b.z1 - zA) < 0.03 && b.x0 <= xV && b.x1 >= xV), ust = dos.some(b => Math.abs(b.z0 - zB) < 0.03 && b.x0 <= xV && b.x1 >= xV);
-        if (alt && ust) out.push({ k: 'v', a: [xV + e, zA], b: [xV + e, zB], p: [xV, zA] }); } }
+      /* kat aralığına giren her duvar sınırdır: pencereyle bölünen duvar da, kapının üstünde kalan lento parçası da */
+      const W = birles(duv.filter(b => Math.min(b.z1, zB) - Math.max(b.z0, zA) > 0.005).map(b => [b.x0, b.x1]), 0.02); if (W.length < 2) continue;
+      const yH = zA + Math.min(H * 0.5, Y.icYatay * e), X = tek(W.reduce((a, w) => a.concat(w), []));
+      for (let j = 1; j < X.length; j++) out.push({ k: 'h', a: [X[j - 1], yH - e], b: [X[j], yH - e], p: [X[j - 1], yH] });
+      for (let j = 1; j < W.length; j++) { const xA = W[j - 1][1], xB = W[j][0], L = xB - xA; if (L < 0.8) continue; const d = Math.min(L * 0.5, Y.icDusey * e);
+        const bos = (kenar, yuz, zA1, zB1) => { const o = []; for (const b of duv) if (Math.abs(b[kenar] - yuz) < 0.03) for (const z of [b.z0, b.z1]) if (z > zA1 + 0.05 && z < zB1 - 0.05) o.push(z); return o; };
+        const sagda = !bos('x1', xA, zA, zB).length && bos('x0', xB, zA, zB).length > 0; /* boşluk (pencere / kapı) yalnız sağ duvardaysa zincir sağ duvarın yanına konur */
+        for (const xV of sagda ? [xB - d, (xA + xB) / 2, xA + d] : [xA + d, (xA + xB) / 2, xB - d]) { const ic = b => b.x0 <= xV && b.x1 >= xV;
+          const alt = dos.filter(b => ic(b) && b.z1 <= zM).sort((p, q) => q.z1 - p.z1)[0], ust = dos.filter(b => ic(b) && b.z0 >= zM).sort((p, q) => p.z0 - q.z0)[0]; if (!alt || !ust) continue;
+          const Z = [alt.z0, alt.z1, ust.z0, ust.z1];
+          Z.push(...(sagda ? bos('x0', xB, alt.z1, ust.z0) : bos('x1', xA, alt.z1, ust.z0)));
+          const T = tek(Z); for (let q = 1; q < T.length; q++) out.push({ k: 'v', a: [xV + e, T[q - 1]], b: [xV + e, T[q]], p: [xV, T[q - 1]] });
+          break; } } }
     return out;
   };
   const KESIKLI = /^(HIDDEN|DASHED)$/;
@@ -188,7 +212,7 @@
       if (!katmanlar[h]) katmanlar[h] = Object.assign({ name: h, on: true, lock: false }, t ? K.ozellik(t) : { color: 7, lt: 'CONTINUOUS', lw: -1 });
       if (st.layer !== h) eslenen++;
       st.layer = h; kullanilan.add(h);
-      if (kurali && !kurali.serbest) { st.color = 256; st.lt = 'BYLAYER'; st.lw = -1; }
+      if (kurali && !kurali.serbest) { if (!((kural.renkKorunur || {})[h] || []).includes(st.color)) st.color = 256; st.lt = 'BYLAYER'; st.lw = -1; }
     }
     for (const n of Object.keys(katmanlar)) if (!kullanilan.has(n)) delete katmanlar[n];
     return { eslenen, eslenmeyen: [...yok].sort() };

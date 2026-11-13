@@ -18,7 +18,7 @@ t('ölçü, kot, aks, zemin, yazı ve kesit işareti', () => {
   for (const a of ['OLCU', 'KESIT_OLCU', 'DETAY_OLCU']) assert.strictEqual(es(a), 'ÖL');
   for (const a of ['KOT', 'PLAN_0_00_KOT']) assert.strictEqual(es(a), 'Kot');
   for (const a of ['AKS', 'AKS_BLOK', 'PLAN_0_00_AKS']) assert.strictEqual(es(a), 'Aks');
-  assert.strictEqual(es('ZEMIN'), 'ZMN'); assert.strictEqual(es('YAZI'), 'Mim_Yazi25'); assert.strictEqual(es('MALZEME_ACILIM'), 'YZ'); assert.strictEqual(es('KESIT_ISARET'), 'Kesit_Cizgisi'); assert.strictEqual(es('MAHAL_ADI'), 'MAHAL İSİM');
+  assert.strictEqual(es('ZEMIN'), 'ZMN'); assert.strictEqual(es('YAZI'), 'Mim_Yazi25'); assert.strictEqual(es('MALZEME_ACILIM'), 'Mim_Yazi25'); assert.strictEqual(es('MALZEME_ACILIM_YAZI'), 'Yazi25'); assert.strictEqual(es('KESIT_ISARET'), 'Kesit_Cizgisi'); assert.strictEqual(es('MAHAL_ADI'), 'MAHAL İSİM');
 });
 t('mekanik nesneler mekanik katmanlara gider; statik ve kazı katmanlarına dokunulmaz; çizim katmanı kendisine eşlenir', () => {
   assert.strictEqual(es('KESIT_MEK_BORU_PE'), 'Mekanik'); assert.strictEqual(es('GORUNEN_POMPA'), 'Mekanik'); assert.strictEqual(es('KESIT_POZ'), 'Mek_Yazi'); assert.strictEqual(es('EKSEN'), 'Boru_Eksen');
@@ -64,12 +64,14 @@ t('kesitte yalnız mimari elemanlar ölçülür: duvar yüzleri (yatay), döşem
 t('yapının içinde: her hacmin net genişliği ve net yüksekliği (R2: 480 / 500 / 600 gibi tek ölçüler)', () => {
   const kutu = (lk, x0, z0, x1, z1) => ({ lk, pts: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] });
   // radye 50, iki dış perde 30, ortada 20'lik duvar, üstte 20'lik döşeme: iki hacim (net 300 ve 220 genişlik, net 300 yükseklik)
-  const r = K.kesitIcOlculer([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 3), kutu('DUVAR_TUGLA', 3.3, 0, 3.5, 3), kutu('PERDE', 5.7, 0, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2), kutu('MERDIVEN', 4, 0, 4.3, 0.17)], 0.05);
+  const r = K.kesitIcOlculer([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 3), kutu('DUVAR_TUGLA', 3.3, 0, 3.5, 3), kutu('PERDE', 5.7, 0, 6, 1), kutu('PERDE', 5.7, 2.2, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2), kutu('MERDIVEN', 4, 0, 4.3, 0.17)], 0.05);
   const h = r.filter(d => d.k === 'h'), v = r.filter(d => d.k === 'v'), yv = x => Math.round(x * 100) / 100;
-  assert.deepStrictEqual(h.map(d => yv(d.b[0] - d.a[0])), [3, 2.2]);                 // net genişlikler
-  assert.deepStrictEqual(v.map(d => yv(d.b[1] - d.a[1])), [3, 3]);                   // net yükseklikler
-  assert.deepStrictEqual(h.map(d => yv(d.p[1])), [1.25, 1.25]);                      // döşemeden 25 mm yukarıda (1/50: 1,25 m)
-  assert.deepStrictEqual(v.map(d => yv(d.p[0])), [0.9, 4.1]);                        // sol duvardan 12 mm içeride (0,60 m)
+  assert.deepStrictEqual(h.map(d => yv(d.b[0] - d.a[0])), [0.3, 3, 0.2, 2.2, 0.3]);                  // yatay zincir: duvar · net açıklık · duvar · net açıklık · duvar (pencereli duvar da sınır)
+  assert.deepStrictEqual(h.map(d => yv(d.p[1])), [1.25, 1.25, 1.25, 1.25, 1.25]);                    // döşemeden 25 mm yukarıda (1/50: 1,25 m)
+  assert.deepStrictEqual(v.filter(d => yv(d.p[0]) === 1.3).map(d => yv(d.b[1] - d.a[1])), [0.5, 3, 0.2]);  // sol hacim: temel · net yükseklik · döşeme; sol duvardan 20 mm içeride (1,00 m)
+  assert.deepStrictEqual(v.filter(d => yv(d.p[0]) === 4.7).map(d => yv(d.b[1] - d.a[1])), [0.5, 1, 1.2, 0.8, 0.2]); // sağ hacim: pencere sağ duvarda → zincir sağ duvarın yanında, parapet · pencere · lento
+  assert.strictEqual(v.length, 8);
   assert.deepStrictEqual(K.kesitIcOlculer([kutu('TEMEL_RADYE', 0, -0.5, 6, 0), kutu('PERDE', 0, 0, 0.3, 3)], 0.05), []); // üstü açık tek duvar: iç ölçü yok
+  assert.deepStrictEqual(K.kesitIcOlculer([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 3), kutu('PERDE', 5.7, 0, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2)], 0.05, { icYatay: 10, icDusey: 30 }).map(d => d.k + yv(d.k === 'h' ? d.p[1] : d.p[0])).filter((x, i, a) => a.indexOf(x) === i), ['h0.5', 'v1.8']); // yerler kural tablosundan
 });
 console.log(`\n${n} test geçti.`);

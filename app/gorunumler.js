@@ -201,7 +201,8 @@
     return yTop - y;
   };
   /* MALZEME AÇILIM TABLOSU (örnek proje düzeni): "DÖŞEMELER" / "DUVARLAR" başlıkları altında kodlu kutular → Mimari paftası.
-     Ölçüler kâğıt mm: başlık 3,04; kod 2,66 (altı çizili, renk 94); satır 1,9; kutu aralığı 55; satır aralığı 3,2. Yazı stili YZ. */
+     Pafta stilinde ölçüler kural tablosundan (app/cizim-kural.js → MIMARI.acilim.kutu; Çokal R2'den ölçüldü): başlık 4; kod 3,5 (altı çizili, renk 94);
+     satır 2,5; sütun aralığı 84; çerçeveli. Eski görünümde: başlık 3,04; kod 2,66; satır 1,9; kutu aralığı 55; satır aralığı 3,2. Yazı stili YZ. */
   C.acilimTablo = (sessiz) => {
     if (!C.acilimTabloVeri) return null; const G = C.acilimTabloVeri(); if (!G.length) { if (!sessiz) C.warn('Çizimde malzeme açılımı yok (önce KESITPAFTA ile kesit alın ya da MALZEMEACILIM).'); return null; }
     const ps = C.pstil ? C.pstil() : null, st = ps ? ps.yazi : undefined, ol = +(C.doc.set.sonKesitOlcek || 50), k = ol / 1000, ly = 'MALZEME_ACILIM'; C.ensureLayer(ly, 7, 'CONTINUOUS', 25);
@@ -211,6 +212,21 @@
     const ln = (x0, y0, x1, y1, renk) => { const e = C.add(C.newEnt('line', Object.assign({ a: [x0 * k + o[0], y0 * k + o[1], 0], b: [x1 * k + o[0], y1 * k + o[1], 0], layer: ly, lw: 18 }, renk ? { color: renk } : {}))); e.gv = gv; delete e.sp; };
     const gen = (s, h) => (C.measureText ? C.measureText(s, h, C.textStyle(st)) * (C.textStyle(st).wf || 1) : s.length * h * 0.7);
     let y = 0, n = 0;
+    /* Çokal R2 düzeni (kural tablosu → acilim.kutu): çerçeve içinde üstte DÖŞEMELER, altta DUVARLAR; kodlar yan yana; yazılar Yazi25, çerçeve Mim_Yazi25 katmanında */
+    const Kt = ps && C.cizimKural && C.cizimKural.MIMARI.acilim ? C.cizimKural.MIMARI.acilim.kutu : null;
+    if (Kt) { const lyY = 'MALZEME_ACILIM_YAZI'; C.ensureLayer(lyY, 7, 'CONTINUOUS', 25);
+      const ty = (x, yy, s, h, renk) => { const e = tx(x, yy, s, h, renk); e.layer = lyY; return e; }, cz = (x0, y0, x1, y1, renk, kat) => { ln(x0, y0, x1, y1, renk); const e = C.doc.ents[C.doc.ents.length - 1]; e.layer = kat || lyY; if (kat) e.lw = 25; };
+      let gTop = 0, sonKutu = 0, enAlt = 0, sut = 1;
+      for (const g of G) { const yB = gTop - Kt.baslikAlt, yK = gTop - Kt.kutuAlt; sonKutu = yK; enAlt = yK; sut = Math.max(sut, g.kutular.length);
+        ty(Kt.kenar + 2.6, yB, g.baslik, Kt.baslikMm); cz(Kt.kenar + 2.6, yB - 0.9, Kt.kenar + 2.6 + gen(g.baslik, Kt.baslikMm), yB - 0.9);
+        g.kutular.forEach((kt, i) => { const x = Kt.kenar + i * Kt.sutun; let yy = yK - Kt.kodMm;
+          ty(x, yy, kt.kod, Kt.kodMm, Kt.kodRenk); cz(x, yy - 0.8, x + gen(kt.kod, Kt.kodMm), yy - 0.8, Kt.kodRenk); yy -= Kt.kodAralik;
+          for (const s of kt.satir) K.kaydir(s, Kt.satirHarf).forEach((parca, j) => { if (j === 0) ty(x, yy, '-', Kt.satirMm); ty(x + Kt.girinti, yy, parca, Kt.satirMm); yy -= Kt.satirAralik; });
+          enAlt = Math.min(enAlt, yy + Kt.satirAralik); n++; });
+        gTop = Math.min(enAlt, yK - 22) - 2; }
+      const yAlt = Math.min(enAlt - 6, sonKutu - 30.4), gW = sut * Kt.sutun;
+      cz(0, 0, gW, 0, null, ly); cz(gW, 0, gW, yAlt, null, ly); cz(gW, yAlt, 0, yAlt, null, ly); cz(0, yAlt, 0, 0, null, ly);
+    } else
     for (const g of G) {
       tx(0, y - 3.04, g.baslik, 3.04); ln(0, y - 3.8, gen(g.baslik, 3.04), y - 3.8); y -= 8.5; let enAlt = y;
       g.kutular.forEach((kt, i) => { const x = i * 55; let yy = y;

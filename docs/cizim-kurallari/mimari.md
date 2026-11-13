@@ -120,8 +120,35 @@ Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kull
 **Neyin ölçülendirileceği (kullanıcı kuralı, 13.11.2026):** ölçü, mimari olarak ne varsa onu gösterir — **duvar / perde, pencere / kapı, döşeme, boşluk**. Her kenarı ölçen, bir şey ifade etmeyen zincir verilmez.
 Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile aralarındaki boşluklar; düşey zincirde temel ve döşeme kalınlıkları, aralarındaki yükseklikler ve sol dış duvardaki pencere / kapı boşlukları; her iki yönde en dışta toplam ölçü. Merdiven basamağı, kiriş kenarı, pah, korkuluk ölçülmez.
 
-**Yapının içindeki ölçüler (kullanıcı, 13.11.2026: "yapının içinden de R2'deki gibi ölçü verilebilir"):** Çokal R2'de 1/50 ölçülerin yaklaşık üçte biri yapının içindedir (ör. Kaba-İnce: 211 iç / 396 dış) ve çoğu zincir değil tek ölçüdür: hacmin net genişliği (480, 500, 600, 1100 cm) ve net yüksekliği (365, 500, 600, 870 cm), yanında duvar / döşeme kalınlıkları (20, 30, 40 cm).
-Program kesitte her kat aralığında, kesilen iki duvar arasındaki her hacim için bir net genişlik ve bir net yükseklik ölçüsü koyar. **Kabul:** yatay ölçü döşemeden 25 mm yukarıda, düşey ölçü soldaki duvardan 12 mm içeride (örneklerde sabit bir yer çıkmadı; çizime göre revize edilecek).
+**Örneklerde yapının içindeki ölçüler:** Çokal R2'de 1/50 ölçülerin yaklaşık üçte biri yapının içindedir (ör. Kaba-İnce: 211 iç / 396 dış) ve çoğu zincir değil tek ölçüdür: hacmin net genişliği (480, 500, 600, 1100 cm) ve net yüksekliği (365, 500, 600, 870 cm), yanında duvar / döşeme kalınlıkları (20, 30, 40 cm).
+**Ölçüler içeriden verilir (kullanıcı kuralı, 13.11.2026: "ölçüler içerden verilsin"):** kesitte ölçüler yapının içinden zincir olarak verilir; dışarıda yalnız toplam boy ve toplam yükseklik kalır (ilk sıra kuralı: tretuvarın dışından 14 mm).
+- **Yatay zincir:** her kat aralığında tek sıra — duvar kalınlığı · net açıklık · duvar kalınlığı … Pencereyle bölünen duvar ve kapının üstünde kalan lento parçası da sınır sayılır.
+- **Düşey zincir:** kesilen iki duvar arasındaki her hacimde tek sıra — alt döşeme kalınlığı · net yükseklik · üst döşeme kalınlığı. Yandaki duvarda pencere / kapı boşluğu varsa net yükseklik parapet · boşluk · lento olarak bölünür (boşluk yalnız sağ duvardaysa zincir sağ duvarın yanına konur).
+- **Kabul:** yatay zincir döşemeden 25 mm yukarıda, düşey zincir duvardan 20 mm içeride (`olcuYeri.genel.icYatay / icDusey`; örneklerde sabit bir yer çıkmadı, çizime göre revize edilecek).
+
+### Malzeme açılımı ve perde / döşeme numaraları (Çokal R2'den ölçüldü, 13.11.2026)
+Ölçülen paftalar: çöktürme, yoğunlaştırma, ön arıtma, terfi (anaerobik paftasında açılım yok). Sayılar `app/cizim-kural.js → MIMARI.acilim` içindedir.
+
+**Kesitteki numara (DU01, DU02, DÖ01 …):**
+| Özellik | Değer |
+| --- | --- |
+| Yazı | YZ, 2,5 mm, katman `Mim_Yazi25`, renk katmandan |
+| Çizgi | koddan elemana ince çizgi, katman `Mim_Yazi25`, **renk 243** (nesnede yazılı) |
+| Duvar (DU) | çizgi yatay; duvarın içinden çıkar, kod duvarın sağında, çizginin ucundan 1,3 mm sonra başlar (çizgi boyu örneklerde 7,5 – 12 mm; programda duvar yüzünden 4,5 mm taşar) |
+| Döşeme (DÖ) | çizgi "L": döşemeden 12 – 17 mm dik çıkar (programda 12), 2,3 mm yatay döner, kod ondan sonra yazılır |
+| Sayı | kod her elemana ayrı yazılır: kesilen her duvar parçası (toprak altı DU01, toprak üstü DU02 ayrı) ve her döşeme parçası bir kod alır (terfi: 4 kesitte 31 kod; ön arıtma: 79) |
+Çatı örtüsü (makas, kiremit) döşeme sayılmaz, kod almaz. Pencere / kapı kod almaz.
+
+**Paftadaki açılım çerçevesi:**
+| Özellik | Değer |
+| --- | --- |
+| Düzen | çerçeve içinde üstte **DÖŞEMELER**, altta **DUVARLAR**; kodlar soldan sağa yan yana |
+| Başlık | YZ 4 mm, altı çizili, katman `Yazi25` |
+| Kod | 3,5 mm (satırın 1,4 katı), altı çizili, **renk 94**, katman `Yazi25` |
+| Satırlar | 2,5 mm, başında tire, büyük harf; satır aralığı ≈ 4,2 mm |
+| Sütun aralığı | 84 mm (örneklerde 74 – 84) |
+| Çerçeve | katman `Mim_Yazi25`; kenardan yazıya 3,6 mm |
+**Kabul:** terfi ve ön arıtma paftalarında aynı kutu küçültülerek çizilmiş (satır 0,95 ve 1,9 mm); 1/50 ölçülen çöktürme ve yoğunlaştırma paftalarındaki boy (2,5 mm) esas alındı. Çerçevedeki iki köşegen çizgi (örneklerde var) çizilmez — yardımcı çizgi sayıldı. Rampa katmanı `Ongor` sayıldı.
 
 ## 4. Kot, aks, kesit işaretleri
 - Kot işareti **`CK_TR1` bloğu** ile konur (**Karar 7**; örneklerde 5 dosyada 287 adet). `KOT101` bloğu kullanılmaz. Katman `Kot`, yazı YZ 2 mm.
@@ -165,7 +192,8 @@ Program katmanı → çizim katmanı:
 | `ZEMIN` | `ZMN` |
 | `YAZI`, `MAHAL_LISTESI`, eleman etiketleri | `Mim_Yazi25` |
 | görünüş başlığı ("A-A KESİTİ") | `Yazi30` (altındaki ölçek satırı `Mim_Yazi25`) |
-| `MALZEME_ACILIM` | `YZ` |
+| `MALZEME_ACILIM` (kesitteki kod, açılım çerçevesi) | `Mim_Yazi25` |
+| `MALZEME_ACILIM_YAZI` (açılım çerçevesinin yazıları) | `Yazi25` |
 | `MAHAL_ADI` | `MAHAL İSİM` |
 | antet ve pafta çerçevesi | `ANTET` (pafta yazıları `YAZI GENEL`, pafta penceresi çerçevesi `Defpoints`) |
 | `ARAZI` | `Toprak` |

@@ -42,7 +42,7 @@ function denetle(P, kural, o) {
     if (kural.katmandan && !k.serbest) {
       const fark = (m, ad2, ayni) => { const f = Object.entries(m).filter(([r]) => r !== 'katmandan' && !ayni(r)); // katmanla aynı değer elle yazılmışsa sapma sayılmaz
         if (f.length) ekle('HATA', 'katmandan alınmıyor', ad, `${f.reduce((s, x) => s + x[1], 0)} nesnede ${ad2} elle verilmiş (${f.map(([r, n]) => r + '×' + n).join(', ')})`); };
-      fark(u.renk, 'renk', r => +r === k.renk); fark(u.cizgiTipi, 'çizgi tipi', r => esit(r, k.tip) || esit(r, 'ByLayer')); fark(u.kalinlik, 'kalınlık', r => k.kal != null && +r === Math.round(k.kal * 100));
+      fark(u.renk, 'renk', r => +r === k.renk || ((kural.renkKorunur || {})[ad] || []).includes(+r)); /* örneklerde de nesnede yazılı renkler: kod çizgisi 243, açılım kodu 94 */ fark(u.cizgiTipi, 'çizgi tipi', r => esit(r, k.tip) || esit(r, 'ByLayer')); fark(u.kalinlik, 'kalınlık', r => k.kal != null && +r === Math.round(k.kal * 100));
     }
   }
   /* 4. yazı stilleri ve yükseklikleri */

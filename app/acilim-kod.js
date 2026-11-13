@@ -24,6 +24,8 @@
   const M = C.M, T = C.T, { L, TX } = C.prim;
   const etkin = () => !!(C.pstil && C.pstil());
   const kayit = () => (C.doc.set.acilimKod = C.doc.set.acilimKod || {});
+  const etiketKural = () => (C.cizimKural && C.cizimKural.MIMARI.acilim && C.cizimKural.MIMARI.acilim.etiket) || { cizgiRenk: 243, bosluk: 1.3, duvarTasma: 4.5, dosemeDik: 12, dosemeYatay: 2.3 };
+  C.acilimEtiketKural = etiketKural;
   /* açılımın türü: kesitten otomatik gelenlerde e.tur; eskilerde ok doğrultusundan (yatay ok → duvar) */
   const turu = e => e.tur || (Math.abs((e.p[0] || 0) - (e.a[0] || 0)) > Math.abs((e.p[1] || 0) - (e.a[1] || 0)) * 3 ? 'duvar' : 'doseme');
   C.acilimKodu = e => kodVer(kayit(), turu(e), e.lines || []);
@@ -33,7 +35,11 @@
   T.acilim.prims = e => {
     if (!etkin()) return p0(e);
     const ps = C.pstil(), th = C.annoH(ps.kodH), a = M.p3(e.a), p = M.p3(e.p), sd = e.side || (p[0] >= a[0] ? 1 : -1), kod = C.acilimKodu(e);
-    return [L(a, p, { lw: 13 }), L(p, [p[0] + sd * th * 0.6, p[1], 0], { lw: 13 }), TX([p[0] + sd * th * 0.9, p[1], 0], th, kod, 0, sd > 0 ? 'ML' : 'MR', { st: ps.yazi })];
+    /* Çokal R2: çizgi elemandan dik çıkar, kodun hizasında yatay döner (duvarda yalnız yatay), kod çizgiden 1,3 mm sonra başlar; çizgi rengi 243 (kural tablosu → acilim.etiket) */
+    const Ek = etiketKural(), o = { lw: 13, color: Ek.cizgiRenk }, kose = [a[0], p[1], 0], out = [];
+    if (Math.abs(a[1] - p[1]) > 1e-6) out.push(L(a, kose, o)); if (Math.abs(a[0] - p[0]) > 1e-6) out.push(L(kose, p, o));
+    out.push(TX([p[0] + sd * C.annoH(Ek.bosluk), p[1], 0], th, kod, 0, sd > 0 ? 'ML' : 'MR', { st: ps.yazi }));
+    return out;
   };
   { const i0 = T.acilim.info; T.acilim.info = e => (etkin() ? C.acilimKodu(e) + ' · ' : '') + i0(e); }
 
@@ -51,8 +57,8 @@
           if (ic) { if (!cur) cur = { s0: s, s1: s }; else cur.s1 = s; } if ((!ic || s + adim > m.ub[2]) && cur) { if (!en || cur.s1 - cur.s0 > en.s1 - en.s0) en = cur; cur = null; } }
         if (!en) continue; const sm = (en.s0 + en.s1) / 2, sd = sm < orta ? -1 : 1, duvar = it.tur === 'duvar';
         const za = duvar ? Math.min(it.z1 - 0.3, (it.z0 + it.z1) / 2 + 0.6) : it.z1 - 0.005, a = W([sm, za]);
-        const p = duvar ? [a[0] + sd * ((en.s1 - en.s0) / 2 + 9 * k), a[1] + 4 * k, 0] : [a[0] + sd * 5 * k, W([sm, it.z0])[1] - 7 * k, 0];
-        C.add(C.newEnt('acilim', { a, p, lines: it.lines.slice(), tur: it.tur, side: sd, src: { k: m.nm, s: sm, z: za, unite: e.id }, dis: 'Mimari', layer: (C.ensureLayer('MALZEME_ACILIM', 7, 'CONTINUOUS', 18), 'MALZEME_ACILIM') })); n++; } }
+        const Ek = etiketKural(), p = duvar ? [a[0] + (en.s1 - en.s0) / 2 + Ek.duvarTasma * k, a[1], 0] : [a[0] + Ek.dosemeYatay * k, a[1] + Ek.dosemeDik * k, 0]; /* Çokal R2: kod elemanın yanında */
+        C.add(C.newEnt('acilim', { a, p, lines: it.lines.slice(), tur: it.tur, side: 1, src: { k: m.nm, s: sm, z: za, unite: e.id }, dis: 'Mimari', layer: (C.ensureLayer('MALZEME_ACILIM', 7, 'CONTINUOUS', 18), 'MALZEME_ACILIM') })); n++; } }
     void ps; return n;
   };
   if (C.malzemeAcilimOto) { const o0 = C.malzemeAcilimOto; C.malzemeAcilimOto = function (m) { let n = o0.apply(this, arguments) || 0; try { if (etkin()) n += uniteAcilim(m); } catch (er) { console.error('ünite açılımı', er); } return n; }; }
