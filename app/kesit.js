@@ -322,6 +322,7 @@
         for (const lp of LPD) for (let i = 0; i < lp.length; i++) { const A = lp[i], B = lp[(i + 1) % lp.length], dx = B[0] - A[0], dy = B[1] - A[1];
           if (Math.abs(dx) < 1e-3 && Math.abs(dy) > 0.05 && (fnd.has(lp) ? false : true)) xs.push(A[0]);
           if (Math.abs(dy) < 1e-3 && Math.abs(dx) > 0.05) zs.push(A[1]); }
+        if (C.pstil && C.pstil() && C.cizimKural && C.cizimKural.kesitOlcuNoktalari) { const r = C.cizimKural.kesitOlcuNoktalari(LPD.map(lp => ({ lk: lp.lk || '', pts: lp }))); if (r.xs.length || r.zs.length) { xs.length = 0; zs.length = 0; xs.push(...r.xs); zs.push(...r.zs); } } /* pafta stili: yalnız mimari elemanlar ölçülür (duvar, boşluk, döşeme) */
         const uniq = (v, tol) => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > tol) o.push(x); return o; };
         const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), psD = C.pstil && C.pstil() && C.pstil().dim ? C.pstil().dim() : null, dd = C.annoH((psD && psD.sira) || 7), /* ölçü sıra aralığı pafta stilinden (kural tablosu) */ zb = z0 - (gb || 0);
         const dim = (k, a, b, p) => { C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; };

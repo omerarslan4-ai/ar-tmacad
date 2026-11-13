@@ -133,6 +133,20 @@
   K.tanim = (kural, hedef) => kural.katmanlar[hedef] || (kural.digerKatman || {})[hedef] || null;
   /* tanımın program katmanı biçimi: { color, lt, lw (1/100 mm) } */
   K.ozellik = t => ({ color: t.renk, lt: String(t.tip || 'Continuous').toUpperCase(), lw: t.kal == null ? -1 : Math.round(t.kal * 100) });
+  /* KESİTTE NEYİN ÖLÇÜLENDİRİLECEĞİ (kullanıcı kuralı 13.11.2026): ölçü, mimari olarak ne varsa onu gösterir — duvar / perde kalınlığı,
+     aralarındaki boşluk (net açıklık), pencere / kapı boşluğu, döşeme ve temel kalınlığı, kat yüksekliği. Merdiven basamağı, kiriş kenarı,
+     pah, korkuluk gibi her kenar ölçülmez. halkalar: kesilen elemanların sınırları [{ lk: 'PERDE' | 'DOSEME' …, pts: [[x, z] …] }].
+     Döner: yatay zincirin x noktaları (duvar yüzleri) ve düşey zincirin z noktaları (döşeme / temel yüzleri + sol dış duvardaki boşluklar). */
+  const DUVAR = /PERDE|DUVAR|KOLON|PARAPET/, DOSEME = /DOSEME|RADYE|TEMEL|PLAK/;
+  K.kesitOlcuNoktalari = halkalar => {
+    const xs = [], zs = [], D = [];
+    for (const h of halkalar || []) { if (!h.pts || !h.pts.length) continue; let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const q of h.pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); }
+      const lk = String(h.lk || '');
+      if (DOSEME.test(lk)) zs.push(z0, z1); else if (DUVAR.test(lk)) { xs.push(x0, x1); D.push({ x0, z0, z1 }); } }
+    if (D.length) { const xm = Math.min(...D.map(d => d.x0)); for (const d of D) if (d.x0 - xm < 0.6) zs.push(d.z0, d.z1); } // sol dış duvar: pencere / kapı boşluğu duvarı parçalara böler
+    return { xs, zs };
+  };
   const KESIKLI = /^(HIDDEN|DASHED)$/;
   /* ÇIKTI EŞLEMESİ (saf): kayitlar = [{ st: { layer, color, lt, lw } }], katmanlar = { ad: { name, color, lt, lw, on, lock } }.
      Eşlenen her kaydın katmanı çizim katmanına çevrilir, renk / çizgi tipi / kalınlık katmandan alınır (karar 3); nesne elle kesikli çizgi tipi

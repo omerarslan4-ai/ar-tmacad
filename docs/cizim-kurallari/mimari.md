@@ -115,7 +115,10 @@ Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kull
 
 **Örneklerde tek bir değer çıkmayan, kullanıcıya sorulanlar:**
 - İlk ölçü sırasının çizime uzaklığı örneklerde 6 – 77 mm arasında değişiyordu; kullanıcı 14 mm ve "tretuvarın dışı" dedi (yukarıdaki tablo).
-- Neyin ölçülendirileceği (perde kalınlığı, açıklık, aks arası, döşeme kalınlığı, toplam) ve planlarda ölçü sıralarının hangi kenarlara konacağı henüz çıkarılmadı.
+- Planlarda ölçü sıralarının hangi kenarlara konacağı henüz çıkarılmadı.
+
+**Neyin ölçülendirileceği (kullanıcı kuralı, 13.11.2026):** ölçü, mimari olarak ne varsa onu gösterir — **duvar / perde, pencere / kapı, döşeme, boşluk**. Her kenarı ölçen, bir şey ifade etmeyen zincir verilmez.
+Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile aralarındaki boşluklar; düşey zincirde temel ve döşeme kalınlıkları, aralarındaki yükseklikler ve sol dış duvardaki pencere / kapı boşlukları; her iki yönde en dışta toplam ölçü. Merdiven basamağı, kiriş kenarı, pah, korkuluk ölçülmez.
 
 ## 4. Kot, aks, kesit işaretleri
 - Kot işareti **`CK_TR1` bloğu** ile konur (**Karar 7**; örneklerde 5 dosyada 287 adet). `KOT101` bloğu kullanılmaz. Katman `Kot`, yazı YZ 2 mm.

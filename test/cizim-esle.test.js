@@ -53,4 +53,12 @@ t('dönüştürülen çıktı denetim aracından hatasız geçer', () => {
   for (const k of kay) P.kullanim[k.st.layer] = kul({ LINE: 1 });
   const D = denetle(P, M); assert.deepStrictEqual(D.bulgular.filter(b => b.duzey === 'HATA').map(b => b.konu + ':' + b.yer), []);
 });
+t('kesitte yalnız mimari elemanlar ölçülür: duvar yüzleri (yatay), döşeme / temel yüzleri ve sol duvardaki boşluk (düşey)', () => {
+  const kutu = (lk, x0, z0, x1, z1) => ({ lk, pts: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] });
+  const r = K.kesitOlcuNoktalari([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 1), kutu('PERDE', 0, 2.2, 0.3, 3), kutu('PERDE', 5.7, 0, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2),
+    kutu('MERDIVEN', 2, 0, 2.3, 0.17), kutu('KIRIS', 3, 2.6, 3.25, 3), kutu('KORKULUK', 4, 3.2, 4.05, 4.3)]);
+  const u = v => [...new Set(v)].sort((a, b) => a - b);
+  assert.deepStrictEqual(u(r.xs), [0, 0.3, 5.7, 6]);                    // perde 30 · boşluk 540 · perde 30; merdiven ve kiriş yok
+  assert.deepStrictEqual(u(r.zs), [-0.5, 0, 1, 2.2, 3, 3.2]);           // radye 50 · parapet 100 · pencere 120 · 80 · döşeme 20
+});
 console.log(`\n${n} test geçti.`);
