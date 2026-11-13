@@ -20,6 +20,13 @@
 - Kalıp planında gereken her yerde ek kesit alınır (kolonlardan, ara döşemelerden ve üzerine oturan perdelerden).
 - Statik rapor ve paftalar (kalıp, donatı, perde detayları, metraj tabloları, DSİ antet) firmanın standart biçimini izler (örnek: ÇOKAL AAT statik rapor ve paftaları).
 
+### Kalınlık basamakları ve sınırları (13.11.2026 — Çokal AAT statik raporundan ölçüldü, kullanıcı onayı bekliyor)
+- Perde ve temel kalınlıkları 5 cm adımlı değil basamaklıdır: 20 (yalnız susuz küçük oda) – 25 – 30 – 40 – 50 – 60 – 70 – 80 cm. Üst döşeme 15 – 20 – 25 – 30 cm.
+- Dış perde kalınlığı perde yüksekliğine (H) bağlı aralıkta kalır: en ince max(25 cm; H/18), en kalın H/9,5'i karşılayan ilk basamak (Çokal: 2,2 m → 25; 3,75 – 6,3 m → 40; 10,65 m → 60). Ara perde dış perdeden kalın olmaz.
+- Radye perdeye eşit ya da en çok iki basamak üstü (Çokal: 25→30, 40→40/50, 60→70). Üst döşeme çoğunlukla 20 cm.
+- "Kalınlık öner" bu aralığın dışına çıkmaz; üst sınırda da yetmiyorsa kalınlığı büyütmez, uyarır (çözüm: donatı, ara mesnet, bölme perdesi).
+- Çokal raporundaki tip kesitler (bina): kolon 30/30 (8Ø14), 30/50 (10Ø14), 40/60 (14Ø16); kiriş 30/60, 40/60 (8,8 m açıklıkta 40/80); döşeme 15 cm; radye 40 cm.
+
 ### Eleman birleşimleri ve minha (13.11.2026)
 - Yapı elemanları eksenden eksene çizilebilir; birleşimde hangisinin bütün kalacağını program belirler. Öncelik sırası: temel / radye > kolon > betonarme perde > döşeme > kiriş > tuğla (dolgu) duvar > sıkıştırılmış dolgu. Önceliği yüksek eleman bütün kalır, öbürü birleşimde kesilir.
   - Kiriş kolon ve perde yüzünde biter (temiz açıklık). Kirişin döşeme kalınlığı içindeki kısmı döşemeye sayılır; kiriş gövdesi döşeme altından ölçülür. (Kiriş / döşeme sırası kullanıcı onayı bekliyor — bkz. açık sorular.)

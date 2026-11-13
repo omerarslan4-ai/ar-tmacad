@@ -370,26 +370,47 @@
     return R;
   };
 
-  /* kalınlık önerisi: yetersiz elemanlarda 5 cm artırarak tekrar hesap */
+  /* KALINLIK SINIRLARI (docs/tasarim-standartlari.md › "Statik ve donatı" › kalınlık basamakları; Çokal AAT statik raporundaki 14 yapıdan):
+     kalınlıklar 5 cm adımlı değil basamaklıdır; dış perde en ince max(25 cm, H/18), en kalın H/9,5'i karşılayan ilk basamak;
+     radye perdenin en çok iki basamak üstü; üst döşeme 15 – 30 cm. Öneri bu aralığın dışına çıkmaz. */
+  P.KALINLIK = { basamak: [0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80], doseme: [0.15, 0.20, 0.25, 0.30], perdeMin: 0.25, inceOran: 18, kalinOran: 9.5, radyeEk: 2 };
+  const basUst = (v, L) => { const b = (L || P.KALINLIK.basamak).find(x => x >= v - 1e-6); return b == null ? (L || P.KALINLIK.basamak).slice(-1)[0] : b; };   // v'yi karşılayan ilk basamak
+  const basSonra = (t, L) => (L || P.KALINLIK.basamak).find(x => x > t + 1e-6);                                                                                // bir üst basamak (yoksa undefined)
+  /* perde yüksekliği H (m) → dış perde için kabul edilen kalınlık aralığı */
+  P.perdeKalinlikAraligi = H => { const K = P.KALINLIK, min = basUst(Math.max(K.perdeMin, H / K.inceOran)); return { H, min, max: Math.max(min, basUst(H / K.kalinOran)) }; };
+  P.kalinlikSinir = S => { const g = S.geo, K = P.KALINLIK, H = Math.max(0.5, (+g.kUst || 0) - (+g.kAlt || 0) - (+g.hr || 0)), p = P.perdeKalinlikAraligi(H);
+    let rMax = Math.max(0.40, g.tw); for (let i = 0; i < K.radyeEk; i++) rMax = basSonra(rMax) || rMax;
+    return { H, perde: p, radyeMax: rMax, dosemeMax: K.doseme.slice(-1)[0] }; };
+
+  /* kalınlık önerisi: yetersiz (ya da donatı oranı %1'i geçen) eleman bir üst kalınlık basamağına çıkarılır, yeniden hesaplanır.
+     Her eleman grubu turda en çok bir basamak büyür ve firma aralığını (P.kalinlikSinir) aşmaz; üst sınırda da yetmiyorsa kalınlık
+     büyütülmez, neden yetmediği `sinir` listesinde bildirilir (çözüm kalınlık değil: donatı, ara mesnet, açıklık). */
   P.kalinlikOner = (S, maxIter = 12) => {
-    const S2 = JSON.parse(JSON.stringify(S)); let R = P.hesapla(S2), it = 0; const log = [];
-    const agirMi = R2 => R2.tasarim.some(t => t.katman.some(k => k.sec.ok && k.sec.As > 0.01 * t.h));
-    while ((!R.ok || agirMi(R)) && it++ < maxIter) {
+    const S2 = JSON.parse(JSON.stringify(S)); let R = P.hesapla(S2), it = 0; const log = [], sinir = [], dolu = new Set();
+    const cm = v => r2(v * 100), agirT = t => t.katman.some(k => k.sec.ok && k.sec.As > 0.01 * t.h), yetersizT = t => !(t.katman.every(k => k.sec.ok) && t.kesme.ok);
+    const ustSinir = (anahtar, ad, t, max, yetersiz) => { if (yetersiz && !dolu.has(anahtar)) { dolu.add(anahtar); sinir.push(`${ad} ${cm(t)} cm üst sınırda (en çok ${cm(max)} cm): kalınlık artırılmadı — donatıyı sıklaştırın ya da ara mesnet (bölme perdesi, payanda, kiriş) ekleyin.`); } };
+    while (it++ < maxIter) {
+      const L = P.kalinlikSinir(S2), g = S2.geo, ist = {};           // ist: bu turda büyütülecek gruplar → yetersiz mi (true) yoksa yalnız ağır donatılı mı (false)
+      for (const t of R.tasarim) {
+        const y = yetersizT(t), a = agirT(t); if (!y && !a) continue;  // brüt donatı oranı > %1 → ekonomik değil
+        const k = /^Dış perde/.test(t.eleman) ? 'tw' : /^Ara perde/.test(t.eleman) ? 'ti' : /^Radye/.test(t.eleman) ? 'hr' : 'd' + g.doseme.findIndex(d => t.eleman.includes(' ' + (d.ad || '') + ' '));
+        if (k !== 'd-1') ist[k] = ist[k] || y;
+      }
+      if (!R.kald.ok) ist.hr = true;
       let degisti = false;
-      R.tasarim.forEach((t, i) => {
-        const agir = t.katman.some(k => k.sec.ok && k.sec.As > 0.01 * t.h); // brüt donatı oranı > %1 → ekonomik değil
-        const kotu = !(t.katman.every(k => k.sec.ok) && t.kesme.ok) || agir; if (!kotu) return;
-        if (/^Dış perde/.test(t.eleman)) { S2.geo.tw = r2(S2.geo.tw + 0.05); degisti = true; log.push('Dış perde → ' + r2(S2.geo.tw * 100) + ' cm'); }
-        else if (/^Ara perde/.test(t.eleman)) { S2.geo.ti = r2(S2.geo.ti + 0.05); degisti = true; log.push('Ara perde → ' + r2(S2.geo.ti * 100) + ' cm'); }
-        else if (/^Radye/.test(t.eleman)) { S2.geo.hr = r2(S2.geo.hr + 0.05); degisti = true; log.push('Radye → ' + r2(S2.geo.hr * 100) + ' cm'); }
-        else { const k = S2.geo.doseme.findIndex(d => t.eleman.includes(' ' + (d.ad || '') + ' ')); if (k >= 0) { S2.geo.doseme[k].t = r2(S2.geo.doseme[k].t + 0.02); degisti = true; log.push('Döşeme ' + S2.geo.doseme[k].ad + ' → ' + r2(S2.geo.doseme[k].t * 100) + ' cm'); } }
-      });
-      if (!R.kald.ok) { S2.geo.hr = r2(S2.geo.hr + 0.05); S2.geo.toe = r2(S2.geo.toe + 0.20); degisti = true; log.push('Kaldırma: radye ' + r2(S2.geo.hr * 100) + ' cm, pabuç ' + r2(S2.geo.toe * 100) + ' cm'); }
-      if (!R.zem.ok) { S2.geo.toe = r2(S2.geo.toe + 0.25); degisti = true; log.push('Zemin gerilmesi: pabuç ' + r2(S2.geo.toe * 100) + ' cm'); }
+      for (const [k, y] of Object.entries(ist)) {
+        if (k === 'tw') { const n = basSonra(g.tw); if (n != null && n <= L.perde.max + 1e-9) { g.tw = n; degisti = true; log.push('Dış perde → ' + cm(n) + ' cm'); } else ustSinir(k, 'Dış perde', g.tw, L.perde.max, y); }
+        else if (k === 'ti') { const n = basSonra(g.ti), mx = Math.min(L.perde.max, Math.max(g.tw, g.ti)); if (n != null && n <= mx + 1e-9) { g.ti = n; degisti = true; log.push('Ara perde → ' + cm(n) + ' cm'); } else ustSinir(k, 'Ara perde', g.ti, mx, y); }
+        else if (k === 'hr') { const n = basSonra(g.hr); if (n != null && n <= L.radyeMax + 1e-9) { g.hr = n; degisti = true; log.push('Radye → ' + cm(n) + ' cm'); } else ustSinir(k, 'Radye', g.hr, L.radyeMax, y); }
+        else { const d = g.doseme[+k.slice(1)], n = basSonra(d.t, P.KALINLIK.doseme); if (n != null) { d.t = n; degisti = true; log.push('Döşeme ' + d.ad + ' → ' + cm(n) + ' cm'); } else ustSinir(k, 'Döşeme ' + d.ad, d.t, L.dosemeMax, y); }
+      }
+      if (!R.kald.ok) { g.toe = r2(g.toe + 0.20); degisti = true; log.push('Kaldırma: pabuç ' + cm(g.toe) + ' cm'); }
+      if (!R.zem.ok) { g.toe = r2(g.toe + 0.25); degisti = true; log.push('Zemin gerilmesi: pabuç ' + cm(g.toe) + ' cm'); }
       if (!degisti) break;
       R = P.hesapla(S2);
     }
-    return { S: S2, R, log };
+    for (const s of sinir) log.push('⚠ ' + s);
+    return { S: S2, R, log, sinir };
   };
 
   /* ================= DONATI METRAJI ================= */
