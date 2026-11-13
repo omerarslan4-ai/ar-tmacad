@@ -4,7 +4,7 @@
    Çalıştır: node test/mimari-pafta.test.js */
 'use strict';
 const assert = require('assert');
-const { PAFTA_R2, paftaPlanla, katKotlari, kesitHatlari, kotYaz } = require('../app/mimari-pafta.js');
+const { PAFTA_R2, paftaPlanla, katKotlari, kesitHatlari, kotYaz, tekKopyaYap } = require('../app/mimari-pafta.js');
 let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
 const pay = PAFTA_R2.pay, blk = (id, w, h) => ({ id, w: w - 2 * pay, h: h - 2 * pay }); // örnekteki pencere boyu → blok
 const yakin = (a, b, tol, m) => assert.ok(Math.abs(a - b) <= tol, `${m}: ${a} ≠ ${b} (±${tol})`);
@@ -23,9 +23,12 @@ t('BB-01 kat planı (pencere 511 × 555): tek A1 genişliği 841; plan ortada (�
 t('BB-02 çatı + A-A + B-B + açılım: genişlik 1261 (örnekle aynı); A-A çatının hemen sağında (x 628), açılım B-B yanında', () => {
   const P = paftaPlanla([blk('cati', 598, 574), blk('AA', 423, 271), blk('BB', 315, 258), blk('acilim', 63, 266)]);
   assert.strictEqual(P.pw, 1261);
-  yakin(P.yer.cati[0] - pay, 30, 0.01, 'çatı x'); yakin(P.yer.AA[0] - pay, 628, 0.01, 'A-A x'); yakin(P.yer.BB[0] - pay, 628, 20, 'B-B x (örnekte 644)');
+  /* Örnekte B-B (315 mm) ve açılım (63 mm) A-A sütununa elle konmuş: B-B sütunun solundan 16 mm içeride (644), açılım antet çizgisinden
+     16 mm önde bitiyor (972 + 63 = 1035; çizgi 1051). İkisini birden veren bir kural çıkmıyor (B-B sütunda ortalı olsaydı 682 olurdu).
+     Program sütunda bloğu sola, yanına sığan dar bloğu sağa (antet sütununa) yaslar: B-B 628, açılım 988 — örnekten 16'şar mm. */
+  yakin(P.yer.cati[0] - pay, 30, 0.01, 'çatı x'); yakin(P.yer.AA[0] - pay, 628, 0.01, 'A-A x'); yakin(P.yer.BB[0] - pay, 644, 16, 'B-B x (örnekte 644)');
   assert.ok(P.yer.AA[1] > P.yer.BB[1], 'A-A üstte, B-B altta');
-  yakin(P.yer.acilim[0] - pay, 943, 30, 'açılım x (örnekte 972)'); assert.ok(P.yer.acilim[0] + 63 <= 1261 - 10 - 200 + 1e-6, 'açılım antet sütununa girmez');
+  yakin(P.yer.acilim[0] - pay, 972, 16, 'açılım x (örnekte 972)'); yakin(P.yer.acilim[0] - pay + 63, 1051, 0.01, 'açılım antet çizgisine yaslı'); assert.ok(P.yer.acilim[0] - pay + 63 <= 1261 - 10 - 200 + 1e-6, 'açılım antet sütununa girmez');
 });
 
 t('BB-03 görünüşler: ön + arka üst sırada (811), sağ + sol yan altta (640) → genişlik 1051 (örnekle aynı), alt sıra ortalı (örnekte x 113)', () => {
@@ -66,6 +69,19 @@ t('kesit hatları: A-A uzun yönde, B-B enine; ikisi de ortadan, yapıdan 1,5 m 
   assert.strictEqual(A.nm, 'A'); assert.deepStrictEqual(A.a, [-1.5, 4]); assert.deepStrictEqual(A.b, [21.5, 4]); assert.strictEqual(A.depth, 4.5);
   assert.deepStrictEqual(B.a, [10, -1.5]); assert.deepStrictEqual(B.b, [10, 9.5]);
   const [A2] = kesitHatlari([0, 0, 6, 15]); assert.deepStrictEqual(A2.a, [3, -1.5]);
+});
+
+t('Mimari grubunda tek kopya: KESITPAFTA\'nın Mimari kesit paftasındaki A-A ve açılım MİMARİ-02\'de kalır, boşalan pafta silinir; öbür disiplinler kalır', () => {
+  const mim = g => /MIMAR/i.test(g);
+  const L = [
+    { grp: 'Mimari', name: 'MİMARİ — KESİTLER 1', kesitPaftasi: true, vps: [{ gorunum: 'GA' }, { gorunum: 'GT' }] },
+    { grp: 'Mimari', name: 'MİMARİ — KESİTLER 2', kesitPaftasi: true, vps: [{ gorunum: 'GA' }, { gorunum: 'GX' }] },
+    { grp: 'Statik', name: 'STATİK — KESİTLER 1', kesitPaftasi: true, vps: [{ gorunum: 'GA' }] },
+    { grp: 'Mimari', name: 'MİMARİ-02', mimPafta: 'M2', vps: [{ gorunum: 'GA' }, { gorunum: 'GT' }, {}] },
+  ];
+  const R = tekKopyaYap(L, mim);
+  assert.deepStrictEqual(R.map(x => x.name), ['MİMARİ — KESİTLER 2', 'STATİK — KESİTLER 1', 'MİMARİ-02']);
+  assert.deepStrictEqual(R[0].vps, [{ gorunum: 'GX' }]); assert.strictEqual(R[1].vps.length, 1); assert.strictEqual(R[2].vps.length, 3);
 });
 
 console.log(`\n${n} test geçti.`);

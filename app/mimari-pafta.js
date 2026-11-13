@@ -45,8 +45,8 @@
       const c = cols[cols.length - 1];
       if (c && c.h + b.h <= H + 1e-6) { c.items.push({ b, x: 0, y: c.h }); c.h += b.h; c.w = Math.max(c.w, b.w); continue; }
       if (c) { // son bloğun yanına sığıyor mu (Çokal BB-02: açılım B-B kesitinin yanında)
-        const son = c.items[c.items.length - 1], yx = son.yanX == null ? son.b.w : son.yanX;
-        if (c.w - yx >= b.w - 1e-6 && b.h <= H - son.y + 1e-6) { c.items.push({ b, x: yx, y: son.y }); son.yanX = yx + b.w; c.h = Math.max(c.h, son.y + b.h); continue; }
+        const son = c.items[c.items.length - 1], yr = son.yanR || 0; // yandaki bloklar sütunun sağına (antet sütununa doğru) yaslanır
+        if (c.w - son.b.w - yr >= b.w - 1e-6 && b.h <= H - son.y + 1e-6) { c.items.push({ b, x: c.w - yr - b.w, y: son.y }); son.yanR = yr + b.w; c.h = Math.max(c.h, son.y + b.h); continue; }
       }
       cols.push({ w: b.w, h: b.h, items: [{ b, x: 0, y: 0 }] });
     }
@@ -77,7 +77,14 @@
     const boyuna = { a: [x0 - pay, ym], b: [x1 + pay, ym], sp: [xm, ym + 1], depth: r2(y1 - ym + 0.5) }, enine = { a: [xm, y0 - pay], b: [xm, y1 + pay], sp: [xm + 1, ym], depth: r2(x1 - xm + 0.5) };
     return x1 - x0 >= y1 - y0 ? [Object.assign({ nm: 'A' }, boyuna), Object.assign({ nm: 'B' }, enine)] : [Object.assign({ nm: 'A' }, enine), Object.assign({ nm: 'B' }, boyuna)];
   };
-  const api = { PAFTA_R2, paftaPlanla, katKotlari, kesitHatlari, kotYaz };
+  /* Mimari grubunda her görünüm bir kez: MİMARİ paftalarındaki (L.mimPafta) görünüm kimlikleri öbür Mimari paftalarından çıkarılır;
+     boşalan kesit paftası (KESITPAFTA / ACILIMTABLO'nun açtığı "MİMARİ — KESİTLER n") silinir. Döner: yeni düzen listesi. */
+  const tekKopyaYap = (layouts, mimariMi) => {
+    const ids = new Set(); for (const L of layouts) if (L.mimPafta) for (const v of L.vps || []) if (v.gorunum) ids.add(v.gorunum);
+    for (const L of layouts) if (!L.mimPafta && mimariMi(L.grp)) L.vps = (L.vps || []).filter(v => !(v.gorunum && ids.has(v.gorunum)));
+    return layouts.filter(L => !(L.kesitPaftasi && !L.mimPafta && mimariMi(L.grp) && !L.vps.length));
+  };
+  const api = { PAFTA_R2, paftaPlanla, katKotlari, kesitHatlari, kotYaz, tekKopyaYap };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariPaftaApi = api;
@@ -141,12 +148,12 @@
       }
     } else for (const v of kes) if (v.kaynak === 'MIMARIPAFTA') { const gv = v.gv; G.sil(v); v.gv = gv; try { await G.kesitUret(v); } catch (er) { console.error(er); } } // modelden yenile
     // --- açılım tablosu (kodlu: DÖŞEMELER / DUVARLAR)
-    let acGv = null; try { if (C.acilimTablo && C.doc.ents.some(e => e.type === 'acilim')) { C.doc.set.sonKesitOlcek = SC; C.acilimTablo(true, { yerlestir: false }); const t = VL.find(v => v.tip === 'tablo' && v.unite === 'ACILIM'); acGv = t ? t.gv : null; } } catch (er) { console.error('açılım tablosu', er); }
+    let acGv = null, acV = null; try { if (C.acilimTablo && C.doc.ents.some(e => e.type === 'acilim')) { C.doc.set.sonKesitOlcek = SC; C.acilimTablo(true, { yerlestir: false }); const t = VL.find(v => v.tip === 'tablo' && v.unite === 'ACILIM'); acGv = t ? t.gv : null; acV = t || null; } } catch (er) { console.error('açılım tablosu', er); }
     // --- görünüşler
     const gor = {}; for (const d of ['ON', 'ARKA', 'SAG', 'SOL']) gor[d] = gorunus({ kind: 'view', dir: d, hatch: 'YOK' });
     // --- mahal listesi (zemin kaplaması verilmiş odalar varsa; modelden canlı)
     let mahGv = null; try { if (C.mahalVerisi && C.T.mahaltablo && C.mahalVerisi().rooms.length) { mahGv = 'MIM_MAHAL_' + Date.now().toString(36); const e = C.add(C.newEnt('mahaltablo', { p: [X0, Yc, 0], dis: 'Mimari', layer: 'MAHAL_LISTESI', gv: mahGv, title: yapiAdi(u) })); delete e.sp; st.gvs.push(mahGv); asagi(mahGv); } } catch (er) { console.error('mahal listesi', er); }
-    return { planlar, cati, kes, acGv, gor, mahGv, yapi: yapiAdi(u) };
+    return { planlar, cati, kes, acGv, acV, gor, mahGv, yapi: yapiAdi(u) };
   };
   const yapiAdi = u => up((u && (u.name || u.ad || u.code)) || (C.doc.set.name && !/^ads[ıi]z/i.test(C.doc.set.name) ? C.doc.set.name : '') || 'YAPI');
 
@@ -163,8 +170,17 @@
     return L;
   };
   /* antet sütununu ayıran düşey kalın çizgi (Çokal R2: iç çerçevenin sağından 200 mm) */
+  /* antet sütunu: düşey ayırma çizgisi (Çokal R2: iç çerçevenin sağından 200 mm), kalınlığı kural tablosundaki "Antet Kalın" katmanından.
+     Kullanıcı antet yüklemediyse programın varsayılan anteti (180 mm) sütun genişliğine (200 mm) orantılı büyütülür, sağ alt köşesi sabit:
+     sütunda boşluk kalmaz. Yüklenen antete dokunulmaz (sütun en az onun genişliğinde). */
+  const antetKalin = () => { const k = C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.katmanlar['Antet Kalın']; return k ? Math.round(k.kal * 100) : 40; };
+  const VARSAYILAN_ANTET = 180; // app/entities.js T.sheet (bw)
   if (C.titlePrims && !C._mimPaftaTP) { const tp0 = C.titlePrims; C._mimPaftaTP = true;
-    C.titlePrims = L => { const out = tp0(L); if (!L || !L.mimPafta) return out; const fr = C.layoutFrame(L), x = fr.x1 - (L.antetSutun || PAFTA_R2.antetSutun); out.push(C.prim.L([x, fr.y0, 0], [x, fr.y1, 0], { lw: 50 })); return out; }; }
+    C.titlePrims = L => { const out = tp0(L); if (!L || !L.mimPafta) return out; const fr = C.layoutFrame(L), A = L.antetSutun || PAFTA_R2.antetSutun, x = fr.x1 - A;
+      const tb = C.doc.set.titleBlock || C.defaultTitleBlock;
+      if (!(tb && tb.ents && tb.ents.length)) { const sk = A / VARSAYILAN_ANTET, X = q => [fr.x1 - (fr.x1 - q[0]) * sk, fr.y0 + (q[1] - fr.y0) * sk, q[2] || 0];
+        out.forEach((pr, i) => { if (i < 2) return; if (pr.a) { pr.a = X(pr.a); pr.b = X(pr.b); } if (pr.pts) pr.pts = pr.pts.map(X); if (pr.p) pr.p = X(pr.p); if (pr.c) pr.c = X(pr.c); if (pr.h) pr.h *= sk; if (pr.r) pr.r *= sk; }); }
+      out.push(C.prim.L([x, fr.y0, 0], [x, fr.y1, 0], { lw: antetKalin() })); return out; }; }
 
   const MIMARIPAFTA = async () => {
     const anno0 = C.doc.set.anno; C.doc.set.anno = PAFTA_R2.olcek; let r;
@@ -174,13 +190,19 @@
     const g = r.gor, gb = { ON: olc(g.ON), ARKA: olc(g.ARKA), SAG: olc(g.SAG), SOL: olc(g.SOL) };
     const paf = [];
     const p1 = paftaKur('M1', '01', 'KAT PLANLARI', r.yapi, [...pl, mah]); if (p1) paf.push(p1);
-    const p2 = paftaKur('M2', String(paf.length + 1).padStart(2, '0'), 'ÇATI PLANI VE KESİTLER', r.yapi, [olc(r.cati), ...kes, olc(r.acGv)]); if (p2) paf.push(p2);
+    const p2 = paftaKur('M2', String(paf.length + 1).padStart(2, '0'), 'ÇATI PLANI VE KESİTLER', r.yapi, [olc(r.cati), ...kes, (() => { const b = olc(r.acGv); if (b && r.acV) b.v = r.acV; return b; })()]); if (p2) paf.push(p2);
     const sat = [[gb.ON, gb.ARKA], [gb.SAG, gb.SOL]].map(s => s.filter(Boolean).map(b => b.gv)).filter(s => s.length);
     const p3 = paftaKur('M3', String(paf.length + 1).padStart(2, '0'), 'GÖRÜNÜŞLER', r.yapi, [gb.ON, gb.ARKA, gb.SAG, gb.SOL], 'satir', sat); if (p3) paf.push(p3);
+    tekKopya();
     { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Mimari')) s.grups.unshift('Mimari'); }
     durum().t = Date.now(); C.changed(); C.emit('layouts');
     return { paf, r };
   };
+  /* Mimari grubunda her kesit / tablo bir kez: MİMARİ paftalarındaki görünümler (gorunum kimliği) öbür Mimari paftalarından
+     (KESITPAFTA / ACILIMTABLO'nun açtığı "MİMARİ — KESİTLER n") kaldırılır, boşalan kesit paftası silinir. Sonradan çalışan
+     KESITPAFTA / ACILIMTABLO aynı kimliği MİMARİ-02'de bulur ve yalnız günceller (gorunumler.js → paftayaKoy). */
+  const tekKopya = () => { C.doc.layouts = tekKopyaYap(C.doc.layouts || [], g => /MIMAR/.test(C.ascii(up(g)))); };
+  C.mimariTekKopya = tekKopya;
   C.mimariPaftalari = MIMARIPAFTA;
 
   C.addCommand(['MIMARIPAFTA', 'MIMARICIZ', 'MIMPAFTA'], 'Seçili yapının (seçim yoksa bütün modelin) mimari paftalarını "Mimari" grubuna hazırlar (Çokal R2 düzeni): kat planları ve mahal listesi; çatı planı, A-A / B-B kesitleri ve malzeme açılımı; görünüşler. Antet: yüklediğiniz antet. Model değişince yeniden çalıştırın.', async () => {
@@ -212,6 +234,6 @@
   if (typeof window !== 'undefined' && window.DIL) window.DIL.ekle('en', 'English', [
     ['Mimari', 'Architecture'], ['Mimari paftalar', 'Architectural sheets'], ['KAT PLANLARI', 'FLOOR PLANS'], ['ÇATI PLANI VE KESİTLER', 'ROOF PLAN AND SECTIONS'], ['GÖRÜNÜŞLER', 'ELEVATIONS'],
     ['ÇATI PLANI', 'ROOF PLAN'], ['KOTU PLANI', 'LEVEL PLAN'], ['Kesitleri güncelle', 'Update sections'], ['Açılım tablosu', 'Material legend'], ['Mahal listesi', 'Room schedule'], ['Mahal adı', 'Room name'],
-    ['Malzeme açılımı', 'Material callout'], ['Açılım stili', 'Callout style'], ['Antet ve stil', 'Title block and style'], ['Antet yükle', 'Load title block'], ['Pafta stili', 'Sheet style'], ['Çizim kuralları', 'Drawing rules'], ['Kot planı', 'Level plan'], ['Görünüş', 'Elevation'],
+    ['Malzeme açılımı', 'Material callout'], ['Açılım stili', 'Callout style'], ['Antet ve stil', 'Title block and style'], ['Pafta', 'Sheet'], ['Mahal', 'Room'], ['Açılım', 'Callout'], ['Güncelle', 'Update'], ['Kesit → disiplinler', 'Section → disciplines'], ['3B görünüş', '3D view'], ['Antet yükle', 'Load title block'], ['Pafta stili', 'Sheet style'], ['Çizim kuralları', 'Drawing rules'], ['Kot planı', 'Level plan'], ['Görünüş', 'Elevation'],
   ]);
 })(typeof window !== 'undefined' ? window.C : null);
