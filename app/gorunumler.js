@@ -144,6 +144,8 @@
     return yeni.length;
   };
   const sil = v => { C.doc.ents = C.doc.ents.filter(e => !(v.gv && e.gv === v.gv) && !(e.type === 'kesitisaret' && e.gorunum === v.id)); };
+  /* başka modüllerin (MIMARIPAFTA) kullandığı iç işler: görünüm listesi, kesit üretimi / silme, paftaya koyma */
+  C.gorunumApi = { liste: VL, kesitUret, sil, paftayaKoy, bolgeYeri };
 
   /* ================= KOMUTLAR ================= */
   let harf = 0;
@@ -203,7 +205,7 @@
   /* MALZEME AÇILIM TABLOSU (örnek proje düzeni): "DÖŞEMELER" / "DUVARLAR" başlıkları altında kodlu kutular → Mimari paftası.
      Pafta stilinde ölçüler kural tablosundan (app/cizim-kural.js → MIMARI.acilim.kutu; Çokal R2'den ölçüldü): başlık 4; kod 3,5 (altı çizili, renk 94);
      satır 2,5; sütun aralığı 84; çerçeveli. Eski görünümde: başlık 3,04; kod 2,66; satır 1,9; kutu aralığı 55; satır aralığı 3,2. Yazı stili YZ. */
-  C.acilimTablo = (sessiz) => {
+  C.acilimTablo = (sessiz, opt) => { /* opt.yerlestir === false: tablo üretilir, paftaya konmaz (MIMARIPAFTA kendi düzenine koyar) */
     if (!C.acilimTabloVeri) return null; const G = C.acilimTabloVeri(); if (!G.length) { if (!sessiz) C.warn('Çizimde malzeme açılımı yok (önce KESITPAFTA ile kesit alın ya da MALZEMEACILIM).'); return null; }
     const ps = C.pstil ? C.pstil() : null, st = ps ? ps.yazi : undefined, ol = +(C.doc.set.sonKesitOlcek || 50), k = ol / 1000, ly = 'MALZEME_ACILIM'; C.ensureLayer(ly, 7, 'CONTINUOUS', 25);
     const eski = VL().find(v => v.tip === 'tablo' && v.unite === 'ACILIM'), gv = (eski && eski.gv) || ('T' + Date.now().toString(36)); C.doc.ents = C.doc.ents.filter(e => e.gv !== gv);
@@ -236,7 +238,7 @@
       y = enAlt - 7;
     }
     let v = eski; if (!v) { v = { id: 'G' + Date.now().toString(36), tip: 'tablo', unite: 'ACILIM', ad: 'MALZEME AÇILIMLARI', gv, o, olcek: ol, gruplar: ['Mimari'] }; VL().push(v); } else v.olcek = ol;
-    const Lp = paftayaKoy(v, 'Mimari'); C.changed(); C.emit('layouts');
+    const Lp = opt && opt.yerlestir === false ? null : paftayaKoy(v, 'Mimari'); C.changed(); C.emit('layouts');
     if (!sessiz) C.log(`Malzeme açılım tablosu: ${n} kod (${G.map(g => g.baslik + ' ' + g.kutular.length).join(', ')}) → ${Lp ? Lp.name : 'pafta bulunamadı'} (1/${ol}).`);
     return n;
   };
