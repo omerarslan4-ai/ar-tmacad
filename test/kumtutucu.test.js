@@ -56,14 +56,61 @@ t('Çokal H-H: çıkış kanalı derin, savak kum bölmesi ekseninde, sahanlık 
 });
 console.log(n + ' test geçti (toplam)');
 
-t('Çokal planı: kiriş altı kolonlar, paslanmaz lamel panelleri, yağ çukuru, difüzör düşümleri', () => {
+t('Çokal planı: kiriş altı kolonlar, paslanmaz lamel panelleri, merdiven, su tutucu bant', () => {
   assert.strictEqual(G.kolon.length, 4, 'göz başına 2 kolon'); const k = G.kolon[0]; yakin(k.pts[1][0] - k.pts[0][0], 0.40, 'kolon boyu'); yakin(k.pts[2][1] - k.pts[0][1], 0.20, 'kolon eni = ayırma kirişi'); yakin(k.z0, 96.19, 'kolon altı'); yakin(k.z1, 97.20, 'kolon üstü = kiriş altı');
   const lm = G.lamel.filter(l => l.i === 0); assert.strictEqual(lm.length, 3, 'göz başına 3 lamel paneli'); yakin(lm[0].z1, 97.20, 'lamel üstü'); yakin(lm[0].z0, 96.57, 'lamel altı'); yakin(lm[0].y0, 1.00, 'lamel kum bölmesi yüzünde');
-  const c = G.cukur[0]; yakin(c.x1 - c.x0, 0.40, 'yağ çukuru boyu'); yakin(c.y1 - c.y0, 0.40, 'yağ çukuru eni'); yakin(G.xg1 - c.x1, 0.80, 'çukur çıkış duvarından'); yakin(c.z0, 97.00, 'çukur tabanı');
-  const yb = G.boru.find(b => b.k === 'yag-0'); yakin(yb.p[0], (c.x0 + c.x1) / 2, 'yağ borusu çukur ekseninde');
-  assert.strictEqual(G.dusum.length, 14, 'göz başına 7 düşüm (1,50 m arayla)'); yakin(G.dusum[0].zd, 96.64, 'difüzör ekseni (kum tarafı eğim üstünden 15 cm)'); yakin(G.dusum[1].p[0] - G.dusum[0].p[0], 1.50, 'düşüm aralığı');
-  const E = ekipmanYer(G); assert.strictEqual(E.filter(x => x.tur === 'dusum').length, 14); yakin(E.find(x => x.tur === 'penstok').p[0], G.xD1 - 0.07, 'penstok duvar yüzünde');
+  const E = ekipmanYer(G); yakin(E.find(x => x.tur === 'penstok').p[0], G.xD1 - 0.07, 'penstok duvar yüzünde');
   const m = E.find(x => x.tur === 'merdiven'); yakin(m.pts[1][0], G.xg1, 'merdiven sahanlık başında biter'); yakin(m.usL, G.boy - G.xg1, 'üst sahanlık boyu'); yakin(m.pts[0][1], G.en + 0.50, 'merdiven duvara paralel');
-  const b = G.bantlar.find(x => x.anahtar === 'cikis'); yakin(b.z, 93.55, 'derin çıkış kanalında su tutucu bant'); assert.ok(G.hat.some(h => h.k === 'kum-inis'));
+  const b = G.bantlar.find(x => x.anahtar === 'cikis'); yakin(b.z, 93.55, 'derin çıkış kanalında su tutucu bant');
+});
+
+/* Çokal I-I kesiti ve planı (cm): yağ kanalı iç 40 × 60 (çıkış duvarından), tabanı 97,00, taban 20 (96,80), iç yan duvar 20 (ayırma kirişinin devamı, 96,80 → 97,75),
+   uç duvar 20 (üstü 97,60), önünde 40 cm paslanmaz sıyırma rampası (97,00 → 97,60); SA DN150 SS304L BTK 97,00 dış duvardan, 0,40 dışarıda dirsekle konteynere; duvarda 0,52 konsol (96,73) */
+t('Çokal I-I: yağ toplama kanalı, sıyırma rampası, yağ borusu ve konsol mesnedi', () => {
+  const k = G.yagKanal[0]; yakin(k.x1 - k.x0, 0.60, 'kanal iç boyu'); yakin(G.xg1 - k.x0, 0.60, 'çıkış duvarından'); yakin(k.y1 - k.y0, 0.40, 'kanal iç eni = yağ bölmesi'); yakin(k.zt, 97.00, 'kanal tabanı'); yakin(k.zb, 96.80, 'taban altı'); yakin(k.zu, 97.60, 'uç duvar üstü'); yakin(k.x0 - k.xu, 0.20, 'uç duvar kalınlığı');
+  const yan = G.kutu.find(x => x.k === 'yag-yan'); yakin(yan.z0, 97.00, 'iç yan duvar altı (taban üstü)'); yakin(yan.z1, 97.20, 'iç yan duvar kiriş altına'); yakin(yan.pts[2][1] - yan.pts[0][1], 0.20, 'iç yan duvar = kiriş eni');
+  const tb = G.kutu.find(x => x.k === 'yag-taban'); yakin(tb.pts[2][1] - tb.pts[0][1], 0.60, 'taban eni (yağ + kiriş)'); yakin(tb.pts[2][0] - tb.pts[0][0], 0.80, 'taban boyu (kanal + uç duvar)');
+  const r = G.rampa[0]; yakin(r.b[0] - r.a[0], 0.40, 'rampa boyu'); yakin(r.a[1], 97.00, 'rampa alt ucu'); yakin(r.b[1], 97.60, 'rampa üstü = uç duvar üstü'); yakin(r.b[0], k.xu, 'rampa uç duvara dayanır');
+  assert.ok(!G.cukur, 'eski 40 × 40 paslanmaz çukur kalktı');
+  const yb = G.boru.find(b => b.k === 'yag-0'); yakin(yb.p[0], (k.x0 + k.x1) / 2, 'yağ borusu kanal ortasında'); yakin(yb.z0, 97.00, 'yağ borusu BTK'); assert.strictEqual(yb.dn, 150); yakin(yb.od, 0.1683, 'DN150 dış çapı');
+  const E = ekipmanYer(G), bp = E.find(x => x.anahtar === 'boru-yag-1'); assert.strictEqual(bp.etiket, 'SA DN150 SS304L'); yakin(bp.pts[1][1] - G.en, 0.40, 'dirsek dış yüzden 0,40'); yakin(bp.pts[0][2], bp.pts[1][2], 'yatay çıkış'); assert.ok(bp.pts[2][2] < bp.pts[1][2], 'konteynere iner');
+  const ks = E.find(x => x.anahtar === 'mesk-yag-1'); assert.strictEqual(ks.tip, 'KONSOL'); yakin(ks.Lk, 0.52, 'konsol boyu'); yakin(ks.z, 96.73, 'konsol kotu');
+});
+
+t('duvar geçiş parçaları: giriş, çıkış ve yağ boruları yuvarlak delikte DGP ile kapanır', () => {
+  const E = ekipmanYer(G), D = E.filter(x => x.tur === 'dgp'); assert.strictEqual(D.length, 4, '2 yağ + giriş + çıkış');
+  for (const b of G.boru) { const d = D.find(x => x.anahtar === 'dgp-' + b.k); yakin(d.z, b.z, 'DGP boru ekseninde'); yakin(d.Lw, 0.40, 'duvar kalınlığı'); yakin(d.D, b.od, 'DGP çapı = boru dış çapı');
+    assert.ok(E.find(x => x.anahtar === 'boru-' + b.k), 'duvardan geçen boru parçası: ' + b.k); }
+  const dl = G.kes.filter(k => k.k === 'boru'); assert.strictEqual(dl.length, 3, 'göz gövdesinde 3 boru deliği'); assert.ok(dl.every(k => k.poly.length === 20 && Math.abs(k.d[1]) > 0.4), 'yuvarlak, duvarı boydan geçen delik');
+  assert.strictEqual(G.boru.find(b => b.k === 'giris').cins, 'pe'); assert.strictEqual(G.boru.find(b => b.k === 'cikis').dn, 315, 'çıkış Ø315 HDPE (Çokal: WW DN315 HDPE PN10)');
+});
+
+/* Çokal F-F (cm): başlık CA DN50 SS304 yürüme yolu üstünde mesnette, ekseni duvar yüzünden 20, 98,517 (BTK 98,49); yatay kol 26,6, iniş yürüme yolu kenarından 11,6 dışarıda,
+   97,925'te 45° kırılır (43), duvar yüzünden 3,6'da düşey, difüzör ekseni 96,50. Alt plan: göz başına 4 difüzör takımı, 2,75 aralık, uçlarda 1,375; takım 2,05 m. */
+t('Çokal F-F: hava başlığı yürüme yolunda, düşümler, vanalar ve difüzör takımları', () => {
+  const C2 = geo({ L: 11.0 }); // Çokal göz boyu (plan: 40 + 150 + 40 + 1100 + 40 + 150 + 40 = 1560)
+  const d0 = C2.dusum.filter(d => d.i === 0); assert.strictEqual(d0.length, 4, 'göz başına 4 düşüm'); yakin(d0[0].p[0] - C2.xg0, 1.375, 'ilk düşüm göz başından'); yakin(d0[1].p[0] - d0[0].p[0], 2.75, 'düşüm aralığı'); yakin(C2.xg1 - d0[3].p[0], 1.375, 'son düşüm göz sonundan');
+  const d = d0[0]; yakin(d.zh, 98.517, 'başlık ekseni'); yakin(d.zd, 96.50, 'difüzör ekseni'); yakin(d.a, 0.266, 'yatay kol'); yakin(d.h1, 0.592, '45° kırılmaya düz iniş'); yakin(d.j, 0.43, '45° kayma'); yakin(d.xw, -0.20, 'duvar yüzü başlıktan');
+  yakin(Math.abs(d.p[1] - C2.goz[0].y1), 0.20, 'başlık duvar yüzünden 0,20'); assert.strictEqual(d.s, -1, 'göz 1 düşümü −y yönünde'); assert.strictEqual(C2.dusum.find(x => x.i === 1).s, 1);
+  yakin(d.zh - d.h1 - d.j, 97.495, 'duvar yüzündeki düşey parçanın başı');
+  const h = C2.hat.find(x => x.k === 'hava-0'); assert.strictEqual(h.dn, 50); yakin(h.pts[0][1], -0.875, 'besleme oluk dışında yükselir'); yakin(h.pts[1][2], 99.33, 'duvar üstünde BTK 99,30'); yakin(h.pts[h.pts.length - 1][2], 98.517, 'başlık kotu');
+  yakin(h.pts[0][0], C2.xg0 - 0.15, 'besleme 1 dağıtma–göz duvarında'); yakin(C2.hat.find(x => x.k === 'hava-1').pts[0][0], C2.xg0 - 0.25, 'besleme 2 yanında (0,10 ara)');
+  const ms = C2.mesnet.filter(m => m.anahtar.startsWith('mes-0-')); assert.ok(ms.length >= 5 && ms.every(m => Math.abs(m.z - 98.30) < 1e-6 && Math.abs(m.H - 0.187) < 1e-6), 'başlık mesnetleri yürüme yolunda, 0,187');
+  assert.ok(C2.mesnet.filter(m => m.anahtar.startsWith('mesb-0-')).every(m => Math.abs(m.z - 99.15) < 1e-6), 'besleme mesnetleri duvar üstünde');
+  const E = ekipmanYer(C2), du = E.filter(x => x.tur === 'dusum'); assert.strictEqual(du.length, 8); assert.strictEqual(du[0].aci, 180); assert.strictEqual(E.find(x => x.anahtar === 'boru-hava-0').etiket, 'CA DN50 SS304L');
+  const G1 = geo({ N: 1 }), d1 = G1.dusum[0]; yakin(d1.zh, 99.15 + 0.15 + 0.03015, 'tek gözde başlık dış duvar üstünde'); yakin(d1.j, 0, 'kırılmasız iniş'); yakin(d1.xw, 0.20, 'duvar yüzü başlığın göz tarafında');
+});
+
+t('Çokal plan / F-F: kum seperatörü yapıya paralel, hazne dağıtma tarafında, vida çıkışa doğru', () => {
+  const C2 = geo({ L: 11.0 }), E = ekipmanYer(C2), s = E.find(x => x.tur === 'seperator'); assert.strictEqual(s.aci, -90, 'aile x (vida) yerel +x');
+  yakin(s.p[0] - s.L / 2, C2.xg0 + 0.62, 'hazne başı (Çokal 2,92)'); yakin(s.p[0] + s.L / 2, 7.37, 'vida ucu (Çokal 7,37)'); yakin(s.p[1], -0.875, 'eksen oluk dışında');
+  const kk = E.find(x => x.anahtar === 'kont-kum'); yakin(kk.p[0], 7.68, 'kum konteyneri vida ucunda (Çokal 7,42–7,95)');
+  const ki = C2.hat.find(x => x.k === 'kum-inis'); yakin(ki.pts[0][2], C2.ustOluk.zf, 'oluk tabanından'); yakin(ki.pts[1][2], 97.53, 'BTK 97,45 (DN150)'); assert.strictEqual(ki.kod, 'DR');
+});
+
+t('ray ayrı ekipman; grobeton dolgular işaretli; merdiven üst sahanlığı korkuluklu', () => {
+  const E = ekipmanYer(G), R = E.filter(x => x.tur === 'ray'); assert.strictEqual(R.length, 2); yakin(R[0].L, G.xg1 - 0.15, 'ray boyu'); yakin(R[0].z, 99.15, 'duvar üstünde');
+  assert.deepStrictEqual(G.kutu.filter(k => k.gro).map(k => k.k), ['dagitma-dolgu', 'cikis-dolgu']);
+  const k2 = E.find(x => x.anahtar === 'korkuluk-sah-2'), son = k2.pts[k2.pts.length - 1]; yakin(son[1], G.en + 1.00 - 0.05, 'üst sahanlığın dış kenarı'); yakin(son[0], G.xg1, 'merdiven korkuluğuna bağlanır'); yakin(k2.pts[2][0], G.boy - 0.05, 'sahanlık ucu');
 });
 console.log(n + ' test geçti (son)');

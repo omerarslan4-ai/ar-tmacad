@@ -2,11 +2,12 @@
    1) Kanal tipi penstock (kapak) — üretici çizimi PEN-A-KNL-1200-1400 (Coarse Screen Inlet & Outlet Penstock, CEVAHİR GT1 PS):
       kanal 1200, kapak 1400, kanal derinliği 5400; çerçeve iki yanda perde yuvasına 85 mm gömülü (çerçeve 1370, kapak 1355),
       perde yuvası 1450 × 200, çerçeve platformdan 878 mm yukarı (6278), traversler 1550 aralıkla, Ø48 mil (TR30×6), AUMA aktüatör, AISI 316L.
-   2) Mekanik kaba ızgara — mevcut parametrik ızgaranın (izgara.js) aile hâli: kanal genişliğine ve derinliğine uyar. */
+   2) Mekanik kaba ızgara — mevcut parametrik ızgaranın (izgara.js) aile hâli: kanal genişliğine ve derinliğine uyar.
+   3) Kum tutucu ekipmanı (Çokal T-103): gezer köprü, köprü rayı, difüzör düşümü (F-F), kum seperatörü, boru mesnedi (ayak / konsol), duvar geçiş parçası. */
 (function (C) {
   'use strict';
   const COL = { frame: [0.52, 0.58, 0.64], door: [0.70, 0.73, 0.76], rib: [0.60, 0.64, 0.68], beam: [0.45, 0.51, 0.57], shaft: [0.82, 0.83, 0.85], act: [0.18, 0.36, 0.62], gear: [0.30, 0.32, 0.36], wheel: [0.80, 0.15, 0.12] };
-  const m = v => v / 1000;
+  const m = v => v / 1000, M = C.M;
 
   /* ================= KANAL TİPİ PENSTOCK ================= */
   /* şasi: TAM = çerçeve platforma kadar; KISA = çerçeve açıklık + üst pay kadar, tahrik platformda zemin ayağında, arada uzatma mili.
@@ -181,7 +182,7 @@
   /* ================= KUM TUTUCU EKİPMANI: GEZER KÖPRÜ ve KUM SEPERATÖRÜ (Çokal AAT T-103) ================= */
   /* Gezer köprü: orijin = köprü ortası, ray (dış duvar üstü) kotunda; x = köprü açıklığı (havuz eni), y = yürüme yönü (havuz boyu).
      Üstünde göz başına bir kum pompası (emme borusu kum oluğuna iner), pergel vinç ve yürüme platformu. */
-  const GCOL = { celik: [0.55, 0.60, 0.66], platform: [0.72, 0.74, 0.76], pompa: [0.18, 0.36, 0.62], boru: [0.80, 0.81, 0.83], vinc: [0.90, 0.72, 0.10], tank: [0.62, 0.66, 0.70] };
+  const GCOL = { celik: [0.55, 0.60, 0.66], platform: [0.72, 0.74, 0.76], pompa: [0.18, 0.36, 0.62], boru: [0.80, 0.81, 0.83], vinc: [0.90, 0.72, 0.10], tank: [0.62, 0.66, 0.70], vana: [0.16, 0.30, 0.55], volan: [0.75, 0.12, 0.10], membran: [0.14, 0.14, 0.16], ray: [0.36, 0.38, 0.42] };
   C.aileKaydet({
     id: 'gezer_kopru', ad: 'Gezer köprü — kum tutucu (kum pompalı, yağ sıyırıcılı)', kisaAd: 'GEZER KÖPRÜ', kat: 'Köprü / sıyırıcı', katman: 'MEK_KOPRU', renk: 4, ifc: 'IfcTransportElement',
     aciklama: 'Havalandırmalı kum ve yağ tutucunun dış duvarları üstündeki raylarda yürür. Her gözde bir kum pompası kum oluğundan emer ve duvar üstündeki kum oluğuna basar; dönüşte yağ sıyırıcı yüzeydeki yağı sıyırma rampasına iter.',
@@ -224,28 +225,129 @@
     },
     on: (q, g) => { const l2 = m(q.Ls) / 2, kh = m(q.kh), hk = m(q.hk || 0); g.dik(-l2 - 0.15, 0.10, l2 + 0.15, 0.36, { lw: 35 }); g.dik(-l2, 0.16 + hk, l2, 0.44 + hk, { lw: 35 }); g.dik(-l2, 0.44 + hk, l2, 0.44 + hk + kh, { lw: 13 }); const N = Math.max(1, Math.round(q.N)); for (let i = 0; i < N; i++) { const x = (i - (N - 1) / 2) * m(q.ap); g.cizgi([x, 0.44], [x, -m(q.Hp) + 0.10], { lw: 25 }); } g.olcu([-l2, 0.44 + kh + 0.3], [l2, 0.44 + kh + 0.3], 'h', 0.2, `${q.Ls}`); },
   });
-  /* Difüzör düşümü (kum tutucu havalandırması): orijin = ana hava borusu ekseni üzerinde düşümün başı; y = ana boru / difüzör yönü.
-     Ana borudan T ile ayrılır, izolasyon vanası, düşüm borusu ve ucunda kaba kabarcıklı boru difüzör. */
+  /* boru yolu (aile içi): köşelerde R yarıçaplı dirsek (yaklaşık yay), parçalar silindirle; pts yerel, r boru yarıçapı */
+  const boruYol = (g, pts, r, col, R) => {
+    const P = [pts[0]];
+    for (let i = 1; i + 1 < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i], c = pts[i + 1], u = M.norm(M.sub(a, b)), v = M.norm(M.sub(c, b)), th = Math.acos(Math.max(-1, Math.min(1, M.dot(u, v)))); // iki kol arası açı
+      const t = Math.min(R / Math.tan(th / 2), M.len(M.sub(a, b)) * 0.45, M.len(M.sub(c, b)) * 0.45);
+      if (!(th > 0.05 && th < Math.PI - 0.02) || !(t > 1e-4)) { P.push(b); continue; }
+      const A = M.add(b, M.mul(u, t)), B = M.add(b, M.mul(v, t)), n = 6;
+      for (let k = 0; k <= n; k++) { const s = k / n; P.push(M.add(M.mul(A, (1 - s) * (1 - s)), M.add(M.mul(b, 2 * s * (1 - s)), M.mul(B, s * s)))); } // ikinci derece Bezier ≈ dirsek
+    }
+    P.push(pts[pts.length - 1]);
+    for (let i = 1; i < P.length; i++) g.silindir(P[i - 1], P[i], r, col, 12);
+  };
+  const DNOD = { 15: 21.3, 20: 26.7, 25: 33.4, 32: 42.2, 40: 48.3, 50: 60.3, 65: 73.0, 80: 88.9, 100: 114.3, 125: 141.3, 150: 168.3, 200: 219.1 }; // paslanmaz (ASME B36.19) dış çaplar
+  /* Difüzör düşümü (kum tutucu havalandırması; Çokal T-103 F-F kesiti): orijin = hava başlığı (ana boru) ekseni üzerinde T'nin merkezi;
+     x = başlıktan göze doğru (yatay, duvardan uzaklaşan), y = başlık / difüzör yönü, z yukarı.
+     Başlıktan yatay kol (izolasyon vanası bu kolda, volan yukarı), dirsek, düşey iniş; yürüme yolu çıkmasının altında 45° ile duvara yaklaşır,
+     duvar yüzünde iki kelepçeyle tutulan düşey parça ve ucunda T'li boru difüzör takımı (kum tarafı dolgusunun duvar dibindeki köşesinin hemen üstünde).
+     Çokal: başlık DN50 duvardan 0,20; kol 0,266; iniş yürüme yolu üstünden 0,375 aşağıda 45° kırılır (0,43); difüzör duvardan 0,036, 96,50; takım 2,05 m. */
+  const dusumYol = q => { const a = m(q.a), H = m(q.H), h1 = Math.min(m(q.h1), H), j = Math.min(m(q.j), Math.max(0, H - h1)), P = [[0, 0, 0], [a, 0, 0]]; if (h1 > 1e-3 && j > 1e-3) P.push([a, 0, -h1], [a - j, 0, -h1 - j]); P.push([a - j, 0, -H]); return P; };
+  C.dusumYol = dusumYol;
   C.aileKaydet({
     id: 'difuzor_dusumu', ad: 'Difüzör düşümü — izolasyon vanalı (kum tutucu havalandırması)', kisaAd: 'DİFÜZÖR DÜŞÜMÜ', kat: 'Havalandırma', katman: 'MEK_HAVA', renk: 5, ifc: 'IfcFlowTerminal',
-    aciklama: 'Kum bölmesinin duvarı boyunca giden ana hava borusundan ayrılan düşüm: izolasyon vanası yürüme yolu kotunda elle erişilir, düşüm borusu duvar dibinden iner, ucundaki boru difüzör kum oluğunun üstünde hava verir.',
+    aciklama: "Yürüme yolu üstündeki hava başlığından ayrılan düşüm: izolasyon vanası yürüme yolu kotunda yatay kolda, düşüm borusu yürüme yolu çıkmasının dışından iner, 45° ile duvara yaklaşıp duvar yüzünde kelepçelerle tutulur; ucundaki T'li boru difüzör takımı kum tarafı dolgusunun duvar dibindeki köşesinde hava verir (Çokal T-103 F-F).",
     params: [
-      { k: 'H', ad: 'Düşüm boyu (ana boru ekseni → difüzör ekseni)', d: 2000, min: 300, max: 12000, grup: 'Düşüm' },
-      { k: 'Ld', ad: 'Difüzör boyu', d: 600, min: 200, max: 3000, grup: 'Difüzör' },
-      { k: 'DN', ad: 'Düşüm borusu anma çapı', d: 50, grup: 'Düşüm' },
-      { k: 'hv', ad: 'Vana ekseni (ana borudan aşağı)', d: 250, grup: 'Düşüm' },
+      { k: 'H', ad: 'Düşüm boyu (başlık ekseni → difüzör ekseni)', d: 2017, min: 300, max: 12000, grup: 'Düşüm' },
+      { k: 'a', ad: 'Yatay kol (başlık ekseni → iniş ekseni)', d: 266, min: 0, max: 2000, grup: 'Düşüm' },
+      { k: 'h1', ad: 'Düz iniş (başlık ekseni → 45° kırılma)', d: 592, min: 0, max: 12000, grup: 'Düşüm' },
+      { k: 'j', ad: '45° kırılmanın yatay kayması (duvara doğru)', d: 430, min: 0, max: 2000, grup: 'Düşüm' },
+      { k: 'xw', ad: 'Duvar yüzü (başlık ekseninden, + göze doğru)', d: -200, min: -2000, max: 2000, grup: 'Düşüm' },
+      { k: 'DN', ad: 'Düşüm borusu anma çapı', d: 32, grup: 'Düşüm' },
+      { k: 'av', ad: 'Vana ekseni (başlıktan yatay)', d: 130, grup: 'Düşüm' },
+      { k: 'Ld', ad: 'Difüzör takımı boyu', d: 2050, min: 200, max: 6000, grup: 'Difüzör' },
     ],
-    tipler: [{ ad: 'DİFÜZÖR DÜŞÜMÜ DN50', p: { H: 2000, Ld: 600, DN: 50, hv: 250 } }],
-    liste: q => `DN${q.DN} · izolasyon vanalı · düşüm ${(q.H / 1000).toFixed(2)} m · difüzör ${q.Ld} mm`,
-    plan: (q, g) => { const l2 = m(q.Ld) / 2; g.daire([0, 0], 0.06); g.dik(-0.03, -l2, 0.03, l2, { lw: 18 }); g.cizgi([-0.10, -0.10], [0.10, 0.10], { lw: 25 }); g.cizgi([-0.10, 0.10], [0.10, -0.10], { lw: 25 }); },
+    tipler: [{ ad: 'DİFÜZÖR DÜŞÜMÜ DN32', p: { H: 2017, a: 266, h1: 592, j: 430, xw: -200, DN: 32, av: 130, Ld: 2050 } }],
+    liste: q => `DN${q.DN} · izolasyon vanalı · düşüm ${(q.H / 1000).toFixed(2)} m · difüzör takımı ${q.Ld} mm`,
+    plan: (q, g) => { const P = dusumYol(q), l2 = m(q.Ld) / 2, xd = P[P.length - 1][0], av = m(q.av);
+      g.cizgi([0, 0], [m(q.a), 0], { lw: 35 }); if (Math.abs(xd - m(q.a)) > 1e-3) g.cizgi([m(q.a), 0], [xd, 0], { lw: 25, lt: 'DASHED' });
+      g.cok([[av - 0.05, -0.04], [av + 0.05, 0.04], [av + 0.05, -0.04], [av - 0.05, 0.04]], true, { lw: 25 }); // vana (papyon)
+      g.cizgi([xd, -l2], [xd, l2], { lw: 50, lt: 'DASHED' }); g.dik(xd - 0.03, -0.09, xd + 0.03, 0.09, { lw: 25 }); }, // difüzör takımı (T ortada)
     mesh: (q, g) => {
-      const H = m(q.H), l2 = m(q.Ld) / 2, r = m(q.DN) / 2000 + 0.005, hv = m(q.hv);
-      g.silindir([0, 0, 0], [0, 0, -H], r, GCOL.boru, 12); // düşüm borusu
-      g.kutu(-0.07, 0.07, -0.05, 0.05, -hv - 0.06, -hv + 0.06, GCOL.pompa); g.silindir([0, 0, -hv], [0.20, 0, -hv], 0.015, GCOL.vinc, 8); g.kutu(0.18, 0.22, -0.09, 0.09, -hv - 0.015, -hv + 0.015, GCOL.vinc); // izolasyon vanası + kolu
-      g.silindir([0, -l2, -H], [0, l2, -H], 0.035, GCOL.celik, 12); // boru difüzör
+      const P = dusumYol(q), r = (DNOD[q.DN] || q.DN + 10) / 2000, H = m(q.H), l2 = m(q.Ld) / 2, av = m(q.av), xd = P[P.length - 1][0], xw = m(q.xw);
+      boruYol(g, P, r, GCOL.boru, 0.05);
+      // izolasyon (sürgülü) vanası: flanşlı gövde kolda, kapak ve mil yukarı, volan
+      g.silindir([av - 0.06, 0, 0], [av - 0.05, 0, 0], r + 0.035, GCOL.boru, 14); g.silindir([av + 0.05, 0, 0], [av + 0.06, 0, 0], r + 0.035, GCOL.boru, 14);
+      g.silindir([av - 0.05, 0, 0], [av + 0.05, 0, 0], r + 0.02, GCOL.vana, 14); g.kutu(av - 0.035, av + 0.035, -0.03, 0.03, 0, 0.12, GCOL.vana);
+      g.silindir([av, 0, 0.12], [av, 0, 0.21], 0.006, GCOL.boru, 6); g.silindir([av, 0, 0.21], [av, 0, 0.225], 0.07, GCOL.volan, 16);
+      // duvar kelepçeleri: düşey son parçada, difüzörün 0,12 üstünde ve 45° kırılmanın hemen altında (duvar yüzüne kadar lama)
+      const zs = [-H + 0.12]; if (P.length > 3) zs.push(P[3][2] - 0.07);
+      for (const z of zs) { g.kutu(Math.min(xd, xw), Math.max(xd, xw), -0.02, 0.02, z - 0.004, z + 0.004, GCOL.celik); g.silindir([xd, 0, z - 0.012], [xd, 0, z + 0.012], r + 0.005, GCOL.celik, 12); }
+      // boru difüzör takımı: ortada T, iki yanda membran borular, uç tapaları
+      g.silindir([xd, -0.087, -H], [xd, 0.087, -H], 0.03, GCOL.boru, 14);
+      for (const s of [-1, 1]) { g.silindir([xd, s * 0.087, -H], [xd, s * (l2 - 0.02), -H], 0.032, GCOL.membran, 14); g.silindir([xd, s * (l2 - 0.02), -H], [xd, s * l2, -H], 0.036, GCOL.boru, 14); }
     },
-    on: (q, g) => { const H = m(q.H), l2 = m(q.Ld) / 2; g.cizgi([0, 0], [0, -H], { lw: 35 }); g.dik(-0.07, -m(q.hv) - 0.06, 0.07, -m(q.hv) + 0.06, { lw: 25 }); g.daire([0, -H], 0.035); g.olcu([l2 + 0.2, 0], [l2 + 0.2, -H], 'v', 0.2, `${q.H}`); },
-    yan: (q, g) => { const H = m(q.H), l2 = m(q.Ld) / 2; g.cizgi([0, 0], [0, -H], { lw: 35 }); g.dik(-l2, -H - 0.035, l2, -H + 0.035, { lw: 25 }); },
+    on: (q, g) => { const P = dusumYol(q), H = m(q.H); for (let i = 1; i < P.length; i++) g.cizgi([P[i - 1][0], P[i - 1][2]], [P[i][0], P[i][2]], { lw: 35 }); const xd = P[P.length - 1][0]; g.daire([xd, -H], 0.032); g.olcu([m(q.a) + 0.2, 0], [m(q.a) + 0.2, -H], 'v', 0.2, `${q.H}`); },
+    yan: (q, g) => { const H = m(q.H), l2 = m(q.Ld) / 2; g.cizgi([0, 0], [0, -H], { lw: 35 }); g.dik(-l2, -H - 0.032, l2, -H + 0.032, { lw: 25 }); },
+  });
+  /* Gezer köprü rayı: orijin = rayın başı, ray ekseni üstünde, duvar üstü kotunda; y = ray boyunca (köprünün yürüme yönü).
+     Ayrı malzeme / ayrı kalem (betonun parçası değil): 60 × 70 mm ray, altında sürekli taban lamı. */
+  C.aileKaydet({
+    id: 'kopru_rayi', ad: 'Gezer köprü rayı (duvar üstü)', kisaAd: 'KÖPRÜ RAYI', kat: 'Köprü / sıyırıcı', katman: 'MEK_KOPRU', renk: 4, ifc: 'IfcRail',
+    aciklama: 'Kum tutucunun dış duvarları üstünde gezer köprünün yürüdüğü çelik ray. Boy duvar üstündeki göz uzunluğundan gelir; ray betondan ayrı kalemdir.',
+    params: [
+      { k: 'L', ad: 'Ray boyu', d: 13250, min: 500, max: 200000, grup: 'Ray' },
+      { k: 'B', ad: 'Ray eni', d: 60, grup: 'Ray' },
+      { k: 'H', ad: 'Ray yüksekliği', d: 70, grup: 'Ray' },
+      { k: 'Bt', ad: 'Taban lamı eni', d: 150, grup: 'Ray' },
+      { k: 'tt', ad: 'Taban lamı kalınlığı', d: 10, grup: 'Ray' },
+    ],
+    tipler: [{ ad: 'KÖPRÜ RAYI 60×70', p: { L: 13250, B: 60, H: 70, Bt: 150, tt: 10 } }],
+    liste: q => `${(q.L / 1000).toFixed(2)} m · ${q.B}×${q.H} mm`,
+    bilgi: q => `Ray boyu ${q.L} mm, kesit ${q.B} × ${q.H} mm, taban lamı ${q.Bt} × ${q.tt} mm`,
+    etiketYer: q => [0.25, m(q.L) / 2, 0],
+    plan: (q, g) => { const L = m(q.L), b = m(q.B) / 2; g.dik(-b, 0, b, L, { lw: 25 }); g.cizgi([0, 0], [0, L], { lw: 13, lt: 'CENTER' }); },
+    mesh: (q, g) => { const L = m(q.L), b = m(q.B) / 2, bt = m(q.Bt) / 2, tt = m(q.tt); g.kutu(-bt, bt, 0, L, 0, tt, GCOL.celik); g.kutu(-b, b, 0, L, tt, tt + m(q.H), GCOL.ray); },
+    on: (q, g) => { const b = m(q.B) / 2, bt = m(q.Bt) / 2, tt = m(q.tt); g.dik(-bt, 0, bt, tt, { lw: 25 }); g.dik(-b, tt, b, tt + m(q.H), { lw: 35 }); },
+  });
+  /* Boru mesnedi: orijin = mesnedin oturduğu yüzey (zemin ayağında döşeme üstü, konsolda duvar yüzü), boru ekseni y boyunca.
+     AYAK  : döşeme / duvar üstüne dübelli taban levhası, iki dikme, üstte başlık ve U civata (Çokal F-F: hava başlığı, yürüme yolu üstünde 0,187 m).
+     KONSOL: duvar yüzüne levhayla bağlı yatay köşebent (x = duvardan dışarı), ucunda U civata (Çokal I-I: yağ borusu, 0,52 m). */
+  C.aileKaydet({
+    id: 'boru_mesnet', ad: 'Boru mesnedi — zemin ayağı / duvar konsolu', kisaAd: 'BORU MESNEDİ', kat: 'Boru', katman: 'MEK_MESNET', renk: 8, ifc: 'IfcPipeFitting',
+    aciklama: 'Hava ve proses borularını taşıyan galvaniz çelik mesnet. AYAK: döşeme ya da duvar üstünde, boru altı yüksekliği H. KONSOL: duvar yüzünden çıkan köşebent, boyu Lk, boru konsolun üstünde.',
+    params: [
+      { k: 'tip', ad: 'Mesnet tipi', d: 'AYAK', birim: '', opts: [['AYAK', 'Zemin ayağı'], ['KONSOL', 'Duvar konsolu']], grup: 'Mesnet' },
+      { k: 'H', ad: 'Boru altı yüksekliği (ayakta tabandan, konsolda kol üstünden)', d: 187, min: 0, max: 3000, grup: 'Mesnet' },
+      { k: 'Lk', ad: 'Konsol boyu (duvardan)', d: 520, min: 100, max: 3000, grup: 'Mesnet' },
+      { k: 'D', ad: 'Boru dış çapı', d: 60, min: 10, max: 1200, grup: 'Mesnet' },
+      { k: 'B', ad: 'Başlık eni (boruya dik)', d: 210, grup: 'Mesnet' },
+    ],
+    tipler: [{ ad: 'MESNET AYAK', p: { tip: 'AYAK', H: 187, Lk: 520, D: 60, B: 210 } }],
+    liste: q => q.tip === 'KONSOL' ? `duvar konsolu ${q.Lk} mm · Ø${q.D}` : `zemin ayağı h=${q.H} mm · Ø${q.D}`,
+    etiketYer: () => [0, -0.3, 0],
+    plan: (q, g) => { if (q.tip === 'KONSOL') g.dik(0, -0.025, m(q.Lk), 0.025, { lw: 25 }); else { const b = m(q.B) / 2; g.dik(-b, -0.05, b, 0.05, { lw: 25 }); } },
+    mesh: (q, g) => {
+      const r = m(q.D) / 2, c = GCOL.celik;
+      if (q.tip === 'KONSOL') { const L = m(q.Lk), H = m(q.H), xc = L - Math.max(0.06, r + 0.02); // duvar levhası, köşebent (yatay kol + düşey kanat), boru konsol ucunda
+        g.kutu(0, 0.01, -0.08, 0.08, -0.12, 0.04, c); g.kutu(0, L, -0.025, 0.025, -0.005, 0, c); g.kutu(0, L, -0.025, -0.02, -0.05, 0, c);
+        g.silindir([xc, -0.006, H + r], [xc, 0.006, H + r], r + 0.006, c, 14); return; }
+      const H = m(q.H), b = m(q.B) / 2, hb = Math.min(0.095, H * 0.5); // AYAK
+      g.kutu(-0.082, 0.082, -0.05, 0.05, 0, 0.01, c); for (const s of [-1, 1]) g.kutu(s * 0.046 - 0.004, s * 0.046 + 0.004, -0.03, 0.03, 0.01, H - hb, c);
+      g.kutu(-b, b, -0.04, 0.04, H - hb, H, c); g.silindir([0, -0.006, H + r], [0, 0.006, H + r], r + 0.006, c, 14);
+    },
+    on: (q, g) => { if (q.tip === 'KONSOL') g.dik(0, -0.05, m(q.Lk), 0, { lw: 25 }); else { const b = m(q.B) / 2, H = m(q.H); g.dik(-b, H - 0.095, b, H, { lw: 25 }); g.dik(-0.05, 0, 0.05, H - 0.095, { lw: 18 }); } },
+  });
+  /* Duvar geçiş parçası (DGP): orijin = duvarın ortasında boru ekseni; x = boru ekseni (duvara dik). Kılıf boru + ortada su tutucu flanş (beton içinde),
+     iki yüzde bağlantı flanşı. Boru deliği DGP ile kapanır (açık delik kalmaz). */
+  C.aileKaydet({
+    id: 'duvar_gecis', ad: 'Duvar geçiş parçası — su tutucu flanşlı', kisaAd: 'DUVAR GEÇİŞ PARÇASI', kat: 'Boru', katman: 'MEK_BORU', renk: 8, ifc: 'IfcPipeFitting',
+    aciklama: 'Betonarme duvardan geçen borunun duvarla birlikte dökülen geçiş parçası: kılıf boru, ortada su tutucu (puddle) flanş, iki yüzde bağlantı flanşı. Duvar kalınlığı Lw.',
+    params: [
+      { k: 'D', ad: 'Boru dış çapı', d: 168, min: 20, max: 2000, grup: 'DGP' },
+      { k: 'Lw', ad: 'Duvar kalınlığı', d: 400, min: 100, max: 2000, grup: 'DGP' },
+      { k: 'DN', ad: 'Anma çapı', d: 150, grup: 'DGP' },
+    ],
+    tipler: [{ ad: 'DGP DN150', p: { D: 168, Lw: 400, DN: 150 } }],
+    liste: q => `DN${q.DN} · duvar ${q.Lw} mm`,
+    etiketYer: q => [0, -m(q.D) / 2 - 0.25, 0],
+    plan: (q, g) => { const r = m(q.D) / 2 + 0.005, l = m(q.Lw) / 2 + 0.02, rf = r + 0.05; g.dik(-l, -r, l, r, { lw: 25 }); for (const s of [-1, 1]) g.dik(s * l - 0.01, -rf, s * l + 0.01, rf, { lw: 25 }); },
+    mesh: (q, g) => { const r = m(q.D) / 2 + 0.005, l = m(q.Lw) / 2, rf = r + 0.05, c = GCOL.boru;
+      g.silindir([-l - 0.02, 0, 0], [l + 0.02, 0, 0], r, c, 20); g.silindir([-0.005, 0, 0], [0.005, 0, 0], r + 0.08, c, 20);
+      for (const s of [-1, 1]) g.silindir([s * (l + 0.02) - 0.01, 0, 0], [s * (l + 0.02) + 0.01, 0, 0], rf, c, 20); },
+    on: (q, g) => { const r = m(q.D) / 2 + 0.005, l = m(q.Lw) / 2; g.dik(-l - 0.02, -r, l + 0.02, r, { lw: 25 }); g.dik(-0.005, -r - 0.08, 0.005, r + 0.08, { lw: 18 }); },
   });
   /* Kum seperatörü (kum yıkama / sınıflandırıcı): orijin = taban ortası; x = vida ekseni yönü (boşaltma +x ucunda). */
   C.aileKaydet({

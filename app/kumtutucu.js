@@ -1,23 +1,32 @@
 /* ArıtmaCAD — KUM VE YAĞ TUTUCU (havalandırmalı, gezer köprülü; Çokal AAT T-103 biçimi) çizim varlığı
    Ölçüler metre; ayak izinin sol alt köşesi yerel (0,0); akış +x (dağıtma kanalı x = 0 ucunda, çıkış kanalı öbür uçta).
    Ünite kartı: app/unite-kart.js → K.kumKart (göz sayısı, bölme genişlikleri, su derinliği, boy, kotlar).
-   Düzen (Çokal 1-Çokal_AAT_Kaba-İnce-Giriş-Kum Yağ Tutucu_R3.dwg, plan ve E-E, F-F, G-G, H-H kesitleri):
+   Düzen (Çokal 1-Çokal_AAT_Kaba-İnce-Giriş-Kum Yağ Tutucu_R3.dwg, plan ve E-E, F-F, G-G, H-H, I-I kesitleri):
    - Boyuna: dış duvar · dağıtma kanalı (bD) · duvar · gözler (L) · duvar · çıkış kanalı (bC) · dış duvar.
    - Enine: her göz = yağ bölmesi (bF) + ayırma kirişi (ta) + kum bölmesi (b). Yağ bölmesi dış duvar tarafında: komşu gözler aynalı.
    - Göz tabanı grobeton dolgu: kum oluğu (taban eni bo, derinlik ho, yanları ko açılır) kum bölmesinde ayırma kirişinin dibinde;
      oluğun üstünden duvar diplerine 45° yükselir (kum tarafında b − bo − 2·ko, yağ tarafında bF + ta kadar).
-     Dolgunun altı düz taban plağı (oluk dibinden td aşağıda), kalınlığı tr.
+     Dolgunun altı düz taban plağı (oluk dibinden td aşağıda), kalınlığı tr. Grobeton 3B'de betondan ayrı renkte.
    - Ayırma kirişi (betonarme, su yüzünün lu üstünden lh aşağı) ve altında sac yağ lameli (ls).
    - Gözler arası duvar alçak (zy − yt); üstünde yürüme yolu döşemesi (en yy, üst kotu zy = duvar üstü − 0,85). Dış duvarlar zu kotunda:
-     gezer köprü rayları bunların üstünde.
+     gezer köprü rayları bunların üstünde (ray ayrı ekipman nesnesi: kopru_rayi ailesi).
    - Alt (y = 0) dış duvarın üstünde dışa konsol kum oluğu (iç en ok): kum pompaları buraya basar, oluk kum seperatörüne akar.
    - Dağıtma kanalından her göze kum bölmesi ekseninde kapaklı açıklık (gB × gH, eşik su yüzünden gE aşağıda);
      çıkış duvarında göz başına kum bölmesi ekseninde savak (en sB, kret su yüzünden sv aşağıda).
    - Çıkış kanalı gözlerden derin (H-H: tabanı göz taban plağı üstünden hC aşağıda, 20 cm dolgu); çıkış borusu tabanda, kum oluğu
      tarafındaki yan duvardan çıkar. Kanalın öbür yan duvarı ve üstü yürüme yolu kotunda sahanlık: merdiven zeminden buraya çıkar,
      orta yürüme yolu sahanlığa bağlanır.
-   - Yağ bölmesinin çıkış ucunda sıyırma rampası ve yağ cebi; yağ borusu (dY) dış duvardan yağ konteynerine.
-   - Giriş borusu (dG) dağıtma kanalına yandan, su yüzünün üstünden girer. Gezer köprü rayları iki dış duvar boyunca.
+   - Yağ toplama kanalı (I-I, plan): yağ bölmesinin çıkış ucunda betonarme oluk — iç boy yk (0,60) × yağ bölmesi eni, tabanı su yüzünden
+     yE aşağıda (97,00), taban ve duvarlar ykt (0,20); iç yanı ayırma kirişinin devamı, uç duvarı su yüzünün yU üstünde (97,60).
+     Uç duvarın önünde paslanmaz sıyırma rampası (rB = 0,40) kanal tabanı kotundan uç duvar üstüne yükselir. Yağ borusu (SA DN150)
+     kanal tabanından dış duvarı geçip dirsekle yağ konteynerine iner; duvarda konsol mesnet.
+   - Havalandırma (E-E, F-F, alt plan): blower hattı oluk tarafında yerden yükselir (CA DN50, oluk dışından sepY), dağıtma–göz duvarının üstünden
+     (mesnetli, BTK duvar üstü + 0,15) her gözün başlığına; başlık yürüme yolu üstünde mesnet ayaklarında (duvar yüzünden hb, BTK yürüme yolu + hm).
+     Göz başına L / dp (Çokal 11,00 / 2,75 = 4) düşüm, eşit aralıkla (ilk ve son yarım aralık); her düşümde izolasyon vanası ve 2,05 m difüzör takımı.
+   - Kum seperatörü oluğun dışında, ekseni yapıya paralel: hazne dağıtma tarafında (göz başından sepX), vida çıkış kanalına doğru yükselir,
+     ucunda kum konteyneri; oluğun tabanından DR DN150 iniş borusu hazneye (BTK 97,45).
+   - Duvardan geçen bütün borular (giriş, çıkış, yağ) duvar geçiş parçasıyla (DGP) kapanır; delikler yuvarlak.
+   - Giriş borusu (dG) dağıtma kanalına yandan, su yüzünün üstünden girer.
    Saf geometri (geo, ekipmanYer, su) Node ile denenir: node test/kumtutucu.test.js */
 (function (C) {
   'use strict';
@@ -35,16 +44,25 @@
     gB: 0.60, gH: 0.40, gE: 0.30, // giriş kapağı açıklığı: en, yükseklik, eşik su yüzünden aşağıda
     sv: 0.10, sH: 0.40, sB: 0.90, dT: 0.50, // savak: kret su yüzünden aşağıda, açıklık yüksekliği, en; dağıtma kanalı tabanı su yüzünden aşağıda
     hC: 1.60, cD: 0.20, dC: 0.30, // çıkış kanalı: taban plağı üstü göz taban plağı üstünden aşağıda, dolgu, çıkış borusu çapı
-    dG: 0.40, gU: 0.30, dY: 0.15, yE: 0.45, // giriş borusu çapı ve ekseni su yüzünden yukarıda; yağ borusu çapı, alt kotu su yüzünden aşağıda
-    rL: 0.60, yc: 0.80, yB: 0.40, // sıyırma rampası boyu; yağ çukuru: çıkış duvarından uzaklığı ve boyu (Çokal planı: 40 × 40)
+    dG: 0.40, gU: 0.30, dY: 0.15, yE: 0.45, // giriş borusu çapı ve ekseni su yüzünden yukarıda; yağ borusu anma çapı; yağ kanalı tabanı (= yağ borusu altı) su yüzünden aşağıda
+    yk: 0.60, ykt: 0.20, yU: 0.15, rB: 0.40, // yağ toplama kanalı: iç boy, taban / duvar kalınlığı, uç duvar üstü su yüzünden yukarı; sıyırma rampası boyu (Çokal I-I, plan)
     kc: 0.40, kp: 3.80, // ayırma kirişi altındaki kolonlar: boy (akış yönünde), eksen aralığı (Çokal: 3,40 m lamel paneli + 0,40 kolon)
-    da: 1.50, dL: 0.60, // difüzör düşümleri: aralık, difüzör boyu
+    dp: 2.75, hb: 0.20, hm: 0.187, dE: 0.116, dJ: 0.375, // havalandırma (Çokal F-F, alt plan): düşüm aralığı; başlık duvar yüzünden; başlık mesneti (yürüme yolu → boru altı);
+    //                                                     iniş yürüme yolu kenarından dışarı; 45° kırılma yürüme yolu üstünden aşağıda
+    sepX: 0.62, sepY: 0.275, sepL: 4.45, // kum seperatörü (Çokal plan): hazne başı göz başından; ekseni oluk dışından; boy (hazne + vida)
     mw: 1.00, mb: 0.25, mh: 0.19, // merdiven: en, basamak genişliği, en büyük rıht
-    xs: 0.37, // kum seperatörünün yeri (göz boyunun oranı, dağıtma ucundan)
   };
   const PAR = Object.keys(DEF);
   const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
   const r3 = v => Math.round(v * 1000) / 1000;
+  /* boru dış çapları: PE100 (EN 12201, dış çap anma), paslanmaz (ASME B36.19) — giriş / çıkış / yağ boruları ve delikleri */
+  const PEOD = [110, 125, 140, 160, 180, 200, 225, 250, 280, 315, 355, 400, 450, 500, 560, 630, 710, 800, 900, 1000];
+  const SSOD = { 32: 42.2, 50: 60.3, 65: 73.0, 80: 88.9, 100: 114.3, 125: 141.3, 150: 168.3, 200: 219.1, 250: 273.1, 300: 323.9 };
+  const yakin = (L, v) => L.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
+  const peBoru = d => { const od = yakin(PEOD, d * 1000); return { cins: 'pe', sinif: 'SDR17', dn: od, od: od / 1000, kalite: 'HDPE', ek: ' (PN10)' }; };
+  const ssBoru = d => { const dn = yakin(Object.keys(SSOD).map(Number), d * 1000); return { cins: 'paslanmaz', sinif: '10S', dn, od: SSOD[dn] / 1000, kalite: 'SS304L', ek: '' }; };
+  /* duvardaki yuvarlak boru deliği: (xc, zc) merkezli r yarıçaplı 20-gen, y = ya düzleminden yb'ye */
+  const daireDelik = (xc, zc, r, ya, yb) => ({ k: 'boru', poly: Array.from({ length: 20 }, (_, i) => { const t = 2 * Math.PI * i / 20; return [xc + r * Math.cos(t), ya, zc + r * Math.sin(t)]; }), d: [0, yb - ya, 0] });
 
   function geo(e) {
     const q = {}; e = e || {}; for (const k of PAR) q[k] = e[k] != null && e[k] !== '' ? +e[k] : DEF[k];
@@ -53,8 +71,10 @@
     const zs = q.zs, zt = zs - q.h, zo = zt - q.ho, zr1 = zo - q.td, zr0 = zr1 - q.tr, zu = q.zu, zy = zu - q.yh, zmw = zy - q.yt;
     const ek = Math.max(0, q.b - q.bo - 2 * q.ko), ey = q.bF + q.ta; // 45° eğimlerin yükselmesi: kum tarafı, yağ tarafı
     const zcs = zr1 - q.hC, zcf = zcs + q.cD; // çıkış kanalı: taban plağı üstü, dolgu üstü
-    const G = { q, N, gz, en, boy, xD0, xD1, xg0, xg1, xC0, xC1, zs, zt, zo, zr1, zr0, zu, zy, zmw, zcs, zcf, ek, ey, goz: [], kes: [], kutu: [], kapak: [], savak: [], boru: [], rampa: [], kolon: [], lamel: [], cukur: [], dusum: [], hat: [] };
+    const zkA = zs + q.lu - q.lh; // ayırma kirişi altı
+    const G = { q, N, gz, en, boy, xD0, xD1, xg0, xg1, xC0, xC1, zs, zt, zo, zr1, zr0, zu, zy, zmw, zcs, zcf, zkA, ek, ey, goz: [], kes: [], kutu: [], kapak: [], savak: [], boru: [], rampa: [], kolon: [], lamel: [], yagKanal: [], dusum: [], hat: [], mesnet: [] };
     const delik = [rect(xD0, q.tw, xD1, en - q.tw)];
+    const yb = ssBoru(q.dY); // yağ borusu (SA DN150 SS304L)
     for (let i = 0; i < N; i++) {
       const y0 = q.tw + i * (gz + q.ti), y1 = y0 + gz, alt = i % 2 === 0; // alt: yağ bölmesi küçük y tarafında
       const yag = alt ? [y0, y0 + q.bF] : [y1 - q.bF, y1], ayir = alt ? [y0 + q.bF, y0 + q.bF + q.ta] : [y1 - q.bF - q.ta, y1 - q.bF], kum = alt ? [y0 + q.bF + q.ta, y1] : [y0, y1 - q.bF - q.ta];
@@ -72,44 +92,50 @@
       G.savak.push({ i, x: xg1, y: ysv, B: sB, z: zK });
       G.kes.push({ k: 'savak', pts: rect(xg1 - 0.05, ysv - sB / 2, xC0 + 0.05, ysv + sB / 2), z0: zK, z1: zK + q.sH });
       // ayırma kirişi ve sac lamel
-      G.kutu.push({ k: 'kiris', pts: rect(xg0, ayir[0], xg1, ayir[1]), z0: zs + q.lu - q.lh, z1: zs + q.lu });
+      G.kutu.push({ k: 'kiris', pts: rect(xg0, ayir[0], xg1, ayir[1]), z0: zkA, z1: zs + q.lu });
       // kirişin altında kolonlar (dolgudan kiriş altına) ve kolonlara monte paslanmaz yağ lamelleri (kolonlar arası paneller, kum bölmesi yüzünde)
-      { const nP = Math.max(1, Math.round((q.L + q.kc) / q.kp)), Lp = (q.L - (nP - 1) * q.kc) / nP, zkA = zs + q.lu - q.lh, yl = alt ? ayir[1] : ayir[0] - 0.01;
+      { const nP = Math.max(1, Math.round((q.L + q.kc) / q.kp)), Lp = (q.L - (nP - 1) * q.kc) / nP, yl = alt ? ayir[1] : ayir[0] - 0.01;
         for (let k = 0; k < nP; k++) { const xb = xg1 - k * (Lp + q.kc), xa = xb - Lp; // çıkış ucundan başlayarak
           G.lamel.push({ i, k, x0: xa - (k + 1 < nP ? 0.05 : 0), x1: xb + (k > 0 ? 0.05 : 0), y0: yl, y1: yl + 0.01, z0: zkA - q.ls, z1: zkA });
           if (k + 1 < nP) G.kolon.push({ i, k, pts: rect(xa - q.kc, ayir[0], xa, ayir[1]), z0: zt, z1: zkA }); } }
-      // sıyırma rampası (yağ bölmesinin çıkış ucunda): su altından su üstüne yükselen eğik yüzey, arkasında yağ cebi; cepten yağ borusu dış duvardan çıkar
-      { const xpb = xg1 - q.yc, xpa = xpb - q.yB, xa = xpa - q.rL, zc = zs - q.yE; // rampa → yağ çukuru (paslanmaz hazne) → yağ borusu
-        G.rampa.push({ i, y0: yag[0], y1: yag[1], prof: [[xa, zs - 0.30], [xpa, zs + 0.05], [xpa, zs - 0.30]] });
-        G.cukur.push({ i, x0: xpa, x1: xpb, y0: yag[0], y1: yag[1], z0: zc, z1: zs + 0.05 });
-        const disY = alt ? 0 : en, sg = alt ? -1 : 1, xp = (xpa + xpb) / 2;
-        G.boru.push({ k: 'yag-' + i, p: [xp, disY], yon: [0, sg], d: q.dY, z0: zc, z: zc + q.dY / 2 });
-        G.kes.push({ k: 'boru', pts: rect(xp - q.dY / 2, alt ? -0.05 : en - q.tw - 0.05, xp + q.dY / 2, alt ? q.tw + 0.05 : en + 0.05), z0: zc, z1: zc + q.dY }); }
+      // yağ toplama kanalı (Çokal I-I): yağ bölmesinin çıkış ucunda betonarme oluk; iç yanı ayırma kirişinin aşağı devamı, uç duvarı su üstünde
+      { const zkt = zs - q.yE, zkb = zkt - q.ykt, xk0 = xg1 - q.yk, xu0 = xk0 - q.ykt, zuc = zs + q.yU, yy0 = Math.min(yag[0], ayir[0]), yy1 = Math.max(yag[1], ayir[1]);
+        G.yagKanal.push({ i, x0: xk0, x1: xg1, xu: xu0, y0: yag[0], y1: yag[1], zt: zkt, zb: zkb, zu: zuc });
+        G.kutu.push({ k: 'yag-taban', pts: rect(xu0, yy0, xg1, yy1), z0: zkb, z1: zkt }, { k: 'yag-uc', pts: rect(xu0, yag[0], xk0, yag[1]), z0: zkt, z1: zuc },
+          { k: 'yag-yan', pts: rect(xu0, ayir[0], xg1, ayir[1]), z0: zkt, z1: zkA });
+        // paslanmaz sıyırma rampası: kanal tabanı kotundan uç duvarın üstüne yükselen eğik sac
+        G.rampa.push({ i, y0: yag[0], y1: yag[1], a: [xu0 - q.rB, zkt], b: [xu0, zuc] });
+        // yağ borusu: kanal tabanından (BTK = taban) dış duvarı geçer; duvarda DGP, yuvarlak delik
+        const disY = alt ? 0 : en, sg = alt ? -1 : 1, xp = (xk0 + xg1) / 2, zc = zkt + yb.od / 2;
+        G.boru.push(Object.assign({ k: 'yag-' + i, kod: 'SA', p: [xp, disY], yon: [0, sg], d: yb.od, z0: zkt, z: zc, yw: alt ? q.tw / 2 : en - q.tw / 2 }, yb));
+        G.kes.push(daireDelik(xp, zc, yb.od / 2 + 0.005, alt ? -0.05 : en + 0.05, alt ? q.tw + 0.05 : en - q.tw - 0.05)); }
     }
     delik.push(rect(xC0, q.tw, xC1, en - q.tw));
     G.bolge = { dis: rect(0, 0, boy, en), delik: delik.map(d => d.slice().reverse()) };
     // gözler arası duvarlar alçak; üstlerinde yürüme yolu
     G.yol = [];
-    for (let i = 0; i + 1 < N; i++) { const ya = G.goz[i].y1, yb = ya + q.ti, ym = (ya + yb) / 2;
-      G.kes.push({ k: 'alcak', pts: rect(xg0, ya - 0.001, xg1, yb + 0.001), z0: zmw, z1: zu + 0.05 });
+    for (let i = 0; i + 1 < N; i++) { const ya = G.goz[i].y1, yb2 = ya + q.ti, ym = (ya + yb2) / 2;
+      G.kes.push({ k: 'alcak', pts: rect(xg0, ya - 0.001, xg1, yb2 + 0.001), z0: zmw, z1: zu + 0.05 });
       G.yol.push({ i, pts: rect(xg0, ym - q.yy / 2, xg1, ym + q.yy / 2), z0: zmw, z1: zy, ym }); }
     // çıkış kanalı sahanlığı (yürüme yolu kotunda): üst (y = en) yan duvar ve göz – kanal duvarı bu bölgede alçak; orta yürüme yolu buraya bağlanır
     { const ys = N > 1 ? G.yol[G.yol.length - 1].ym - q.yy / 2 : en - Math.max(1.5, q.tw + 1.1);
       G.kes.push({ k: 'alcak', pts: rect(xg1 - 0.001, ys, boy + 0.05, en + 0.05), z0: zmw, z1: zu + 0.05 });
       G.sahanlik = { pts: rect(xg1, ys, boy, en), z0: zmw, z1: zy, ys }; }
-    // boru delikleri: giriş (dağıtma kanalına üst yan duvardan, su üstünden), çıkış (çıkış kanalı tabanında, kum oluğu tarafındaki yan duvardan)
-    { const xg = (xD0 + xD1) / 2, zg0 = zs + q.gU - q.dG / 2; G.boru.push({ k: 'giris', p: [xg, en], yon: [0, 1], d: q.dG, z0: zg0, z: zs + q.gU });
-      G.kes.push({ k: 'boru', pts: rect(xg - q.dG / 2, en - q.tw - 0.05, xg + q.dG / 2, en + 0.05), z0: zg0, z1: zg0 + q.dG });
-      const xc = (xC0 + xC1) / 2; G.boru.push({ k: 'cikis', p: [xc, 0], yon: [0, -1], d: q.dC, z0: zcf, z: zcf + q.dC / 2 });
-      G.kesAlt = [{ k: 'boru', pts: rect(xc - q.dC / 2, -0.05, xc + q.dC / 2, q.tw + 0.05), z0: zcf, z1: zcf + q.dC }]; }
-    // dağıtma kanalı taban dolgusu, taban plağı
-    G.kutu.push({ k: 'dagitma-dolgu', pts: rect(xD0, q.tw, xD1, en - q.tw), z0: zr1, z1: zs - q.dT });
+    // giriş (dağıtma kanalına üst yan duvardan, su üstünden) ve çıkış (çıkış kanalı tabanında, kum oluğu tarafındaki yan duvardan) boruları: PE, DGP'li yuvarlak delik
+    { const gb = peBoru(q.dG), xg = (xD0 + xD1) / 2, zgz = zs + q.gU;
+      G.boru.push(Object.assign({ k: 'giris', kod: 'WW', p: [xg, en], yon: [0, 1], d: gb.od, z0: zgz - gb.od / 2, z: zgz, yw: en - q.tw / 2 }, gb));
+      G.kes.push(daireDelik(xg, zgz, gb.od / 2 + 0.005, en - q.tw - 0.05, en + 0.05));
+      const cb = peBoru(q.dC), xc = (xC0 + xC1) / 2;
+      G.boru.push(Object.assign({ k: 'cikis', kod: 'WW', p: [xc, 0], yon: [0, -1], d: cb.od, z0: zcf, z: zcf + cb.od / 2, yw: q.tw / 2 }, cb));
+      G.kesAlt = [daireDelik(xc, zcf + cb.od / 2, cb.od / 2 + 0.005, -0.05, q.tw + 0.05)]; }
+    // dağıtma kanalı taban dolgusu (grobeton), taban plağı
+    G.kutu.push({ k: 'dagitma-dolgu', gro: true, pts: rect(xD0, q.tw, xD1, en - q.tw), z0: zr1, z1: zs - q.dT });
     G.taban = { pts: rect(0, 0, xg1, en), z0: zr0, z1: zr1 };
     // çıkış kanalı gözlerden derin: taban plağı üstünün altında kalan duvarlar, kendi taban plağı ve dolgusu
     G.cikisAlt = { dis: rect(xg1, 0, boy, en), delik: [rect(xC0, q.tw, xC1, en - q.tw).slice().reverse()], z0: zcs, z1: zr1 };
     G.tabanC = { pts: rect(xg1, 0, boy, en), z0: zcs - q.tr, z1: zcs };
-    G.kutu.push({ k: 'cikis-dolgu', pts: rect(xC0, q.tw, xC1, en - q.tw), z0: zcs, z1: zcf });
-    // gezer köprü rayları: iki dış duvar ekseninde, yapı boyunca
+    G.kutu.push({ k: 'cikis-dolgu', gro: true, pts: rect(xC0, q.tw, xC1, en - q.tw), z0: zcs, z1: zcf });
+    // gezer köprü rayları: iki dış duvar ekseninde, yapı boyunca (ayrı ekipman nesnesi)
     G.ray = [q.tw / 2, en - q.tw / 2].map(y => ({ y, x0: 0.10, x1: xg1 - 0.05 })); // göz sonunda biter: ötesinde duvar sahanlık kotuna alçalıyor
     // üst kum oluğu (alt dış duvarın dışında konsol): taban + dış duvar + uç duvarları
     { const xa = xg0, xb = xg1 - q.okb, w = q.ok + q.okd, zb = zu - q.okh - q.okt, zf = zu - q.okh;
@@ -122,37 +148,69 @@
       B.push({ anahtar: 'dagitma', pts: [[xD1 + m, m], [xD1 + m, en - m]], closed: false, z: zb }, { anahtar: 'cikis', pts: rect(xg1 + m, m, boy - m, en - m), closed: true, z: zcs + 0.10 });
       for (let i = 0; i + 1 < N; i++) B.push({ anahtar: 'ara-' + i, pts: [[xD1 + m, G.goz[i].y1 + q.ti / 2], [xg1 + m, G.goz[i].y1 + q.ti / 2]], closed: false, z: zb });
       G.bantlar = B; }
-    // havalandırma: her gözde kum bölmesinin duvarı boyunca ana hava borusu; da aralıkla izolasyon vanalı düşümler, ucunda difüzör (kum oluğu üstünde)
-    for (const g of G.goz) { const yw = g.alt ? g.y1 : g.y0, s = g.alt ? -1 : 1, yolVar = N > 1 && (g.alt ? g.i + 1 < N : g.i > 0);
-      const yh = yw + s * (yolVar ? q.yy / 2 - q.ti / 2 + 0.10 : 0.12), zh = yolVar ? zy + 0.20 : zu - 0.30, zd = zt + ek + 0.15, xs0 = xg0 + 0.75, nD = Math.max(1, Math.floor((q.L - 1.5) / q.da) + 1);
-      for (let k = 0; k < nD; k++) G.dusum.push({ i: g.i, k, p: [xs0 + k * q.da, yh], zh, zd, H: zh - zd });
-      G.hat.push({ k: 'hava-' + g.i, r: 0.045, renk: 'hava', pts: [[xD0 + 0.2, yh, zh], [xs0 + (nD - 1) * q.da + 0.15, yh, zh]] }); }
-    // kum seperatörü üst kum oluğunun yanında; oluğun tabanından seperatör haznesine iniş borusu
-    { const sp = [xg0 + q.L * q.xs, -(G.ustOluk.w + 1.10)], zk = q.zg + 0.10, sx = sp[0] - 0.85, zt2 = zk + 1.90;
-      G.sep = { p: sp, zk }; G.hat.push({ k: 'kum-inis', r: 0.08, renk: 'boru', pts: [[sx, -q.ok / 2, G.ustOluk.zf], [sx, -q.ok / 2, zt2 + 0.40], [sx, sp[1], zt2 + 0.40], [sx, sp[1], zt2]] }); }
+    // havalandırma (Çokal E-E, F-F, alt plan): oluk tarafında yerden yükselen besleme, dağıtma–göz duvarı üstünden başlıklara;
+    // başlık yürüme yolu üstünde mesnet ayaklarında, göz başına L / dp düşüm (eşit aralık, uçlarda yarım aralık)
+    { const nD = Math.max(1, Math.round(q.L / q.dp)), pD = q.L / nD, xsD = Array.from({ length: nD }, (_, k) => xg0 + (k + 0.5) * pD);
+      const rH = SSOD[50] / 2000, zF = zu + 0.15 + rH, yR = -(G.ustOluk.w + q.sepY), zd = zt + ek + 0.01, xe = xsD[nD - 1] + 0.185;
+      const nH = G.goz.length;
+      G.goz.forEach((g, hI) => { const yw = g.alt ? g.y1 : g.y0, s = g.alt ? -1 : 1, yolVar = N > 1 && (g.alt ? g.i + 1 < N : g.i > 0);
+        let yh, zh, a, h1, j, xw, zm, hM;
+        if (yolVar) { yh = yw + s * q.hb; zm = zy; hM = q.hm; zh = zy + q.hm + rH; a = q.yy / 2 - q.ti / 2 + q.dE - q.hb; h1 = zh - (zy - q.dJ); j = Math.max(0, a + q.hb - 0.036); xw = -q.hb; }
+        else { yh = yw - s * q.tw / 2; zm = zu; hM = 0.15; zh = zu + 0.15 + rH; a = q.tw / 2 + 0.036; h1 = 0; j = 0; xw = q.tw / 2; } // yürüme yolu yoksa başlık dış duvar üstünde
+        for (let k = 0; k < nD; k++) G.dusum.push({ i: g.i, k, p: [xsD[k], yh], s, zh, zd, H: zh - zd, a, h1, j, xw });
+        const xf = xg0 - q.tw / 2 - (hI - (nH - 1) / 2) * 0.10, pts = [[xf, yR, q.zg], [xf, yR, zF], [xf, yh, zF]];
+        if (Math.abs(zh - zF) > 1e-6) pts.push([xf, yh, zh]); pts.push([xe, yh, zh]);
+        G.hat.push({ k: 'hava-' + g.i, kod: 'CA', cins: 'paslanmaz', sinif: '10S', dn: 50, kalite: 'SS304L', r: rH, renk: 'hava', pts });
+        // başlık mesnetleri: başta, her düşümün 0,30 m ötesinde ve iki düşüm arasının ortasında (yürüme yolunda / duvar üstünde)
+        const xm = [xg0 + 0.30]; for (const x of xsD) { xm.push(x + 0.30); if (x + pD / 2 < xe - 0.10) xm.push(x + pD / 2); }
+        xm.forEach((x, k) => G.mesnet.push({ anahtar: `mes-${g.i}-${k}`, tip: 'AYAK', p: [x, yh], aci: 0, z: zm, H: hM, D: 2 * rH }));
+        // besleme hattı mesnetleri: dağıtma–göz duvarının üstünde (0,15 m ayak), en çok 1,50 m arayla
+        const ya = q.tw / 2, yz = yh - s * 0.30, n = Math.max(1, Math.ceil(Math.abs(yz - ya) / 1.5));
+        for (let k = 0; k <= n; k++) G.mesnet.push({ anahtar: `mesb-${g.i}-${k}`, tip: 'AYAK', p: [xf, ya + (yz - ya) * k / n], aci: -90, z: zu, H: 0.15, D: 2 * rH }); });
+      G.hava = { nD, pD, xsD, zd, yR }; }
+    // kum seperatörü (Çokal plan): oluğun dışında, ekseni yapıya paralel; hazne dağıtma tarafında, vida çıkışa doğru; oluk tabanından iniş borusu hazneye
+    { const x0 = xg0 + q.sepX, ys = -(G.ustOluk.w + q.sepY), zk = q.zg + 0.10, zhz = zk + 1.80, xo = x0 + 0.35, zin = zhz + 0.13, sb = ssBoru(0.15);
+      G.sep = { p: [x0 + q.sepL / 2, ys], zk, L: q.sepL, x0 };
+      G.hat.push({ k: 'kum-inis', kod: 'DR', cins: 'paslanmaz', sinif: '10S', dn: sb.dn, kalite: 'SS304', r: sb.od / 2, renk: 'boru', pts: [[xo, -q.ok / 2, G.ustOluk.zf], [xo, -q.ok / 2, zin], [xo, ys + 0.30, zin], [xo, ys + 0.30, zhz]] }); }
     G.V = N * q.L * (q.b + q.bF) * q.h; // yaklaşık su hacmi
-    G.giris = { p: G.boru.find(b => b.k === 'giris').p, z: zs + q.gU }; G.cikis = { p: G.boru.find(b => b.k === 'cikis').p, z: zcf + q.dC / 2 };
+    G.giris = { p: G.boru.find(b => b.k === 'giris').p, z: G.boru.find(b => b.k === 'giris').z }; G.cikis = { p: G.boru.find(b => b.k === 'cikis').p, z: G.boru.find(b => b.k === 'cikis').z };
     return G;
   }
 
-  /* ekipman yerleri (yerel): giriş kapakları, gezer köprü, kum seperatörü, yağ konteynerleri, yürüme yolu korkulukları */
+  /* ekipman yerleri (yerel): giriş kapakları, gezer köprü ve rayları, kum seperatörü ve konteyneri, yağ konteynerleri, difüzör düşümleri,
+     borular (hava başlıkları, kum iniş, yağ, giriş / çıkış ağızları), boru mesnetleri, duvar geçiş parçaları, merdiven ve korkuluklar */
   function ekipmanYer(G) {
     const q = G.q, out = [];
     for (const k of G.kapak) out.push({ anahtar: 'pen-' + k.i, tur: 'penstok', etiket: String(k.i + 1), p: [k.x - 0.07, k.y], /* duvarın dağıtma kanalı yüzüne monte (duvarın içinde değil) */ aci: 0, z: k.z0, B: k.B, H: k.H, D: G.zu - k.z0, hw: G.zs - k.z0 });
     out.push({ anahtar: 'kopru', tur: 'kopru', p: [G.xg0 + q.L * 0.6, G.en / 2], aci: 0, /* aile x ekseni (açıklık) havuz enine */  z: G.zu, Ls: G.en - q.tw, N: G.N, ap: G.N > 1 ? Math.abs(G.goz[1].yo - G.goz[0].yo) : 1.9, Hp: G.zu - G.zo, hk: Math.max(0.35, G.zy + 1.10 + 0.10 - G.zu - 0.16), xo: q.tw / 2 + q.ok / 2, zo: q.okh - 0.15, yo: G.goz.map(g => g.yo) }); // hk: köprü kirişleri orta yürüme yolu korkuluğunun 10 cm üstünde
-    out.push({ anahtar: 'seperator', tur: 'seperator', p: G.sep.p, aci: 0, z: G.sep.zk });
-    for (const d of G.dusum) out.push({ anahtar: `dusum-${d.i}-${d.k}`, tur: 'dusum', etiket: `${d.i + 1}.${d.k + 1}`, p: d.p, aci: 0, z: d.zh, H: d.H, Ld: q.dL });
-    out.push({ anahtar: 'kont-kum', tur: 'konteyner', etiket: 'KUM', p: [G.xg0 + q.L * q.xs + 2.45, -(G.ustOluk.w + 1.10)], aci: 0, z: q.zg });
-    for (const b of G.boru.filter(b => b.k.startsWith('yag'))) out.push({ anahtar: 'kont-' + b.k, tur: 'konteyner', etiket: 'YAĞ ' + (+b.k.slice(4) + 1), p: [b.p[0], b.p[1] + b.yon[1] * ((b.yon[1] < 0 ? G.ustOluk.w : 0) + 0.85)], aci: 0, z: q.zg });
+    G.ray.forEach((r, k) => out.push({ anahtar: 'ray-' + k, tur: 'ray', etiket: String(k + 1), p: [r.x0, r.y], aci: 0, /* aile y = ray boyu = yerel +x */ z: G.zu, L: r.x1 - r.x0 }));
+    // kum seperatörü: aile x (vida ekseni, boşaltma +x) yerel +x'e (çıkış kanalına doğru) döner → −90°; hazne dağıtma tarafında
+    out.push({ anahtar: 'seperator', tur: 'seperator', p: G.sep.p, aci: -90, z: G.sep.zk, L: G.sep.L });
+    out.push({ anahtar: 'kont-kum', tur: 'konteyner', etiket: 'KUM', p: [G.sep.x0 + G.sep.L + 0.31, G.sep.p[1]], aci: 0, z: q.zg });
+    for (const d of G.dusum) out.push({ anahtar: `dusum-${d.i}-${d.k}`, tur: 'dusum', etiket: `${d.i + 1}.${d.k + 1}`, p: d.p, aci: d.s > 0 ? 0 : 180, /* aile x = göze doğru */ z: d.zh, H: d.H, a: d.a, h1: d.h1, j: d.j, xw: d.xw });
+    for (const h of G.hat) out.push({ anahtar: 'boru-' + h.k, tur: 'boru', pts: h.pts, cins: h.cins, sinif: h.sinif, dn: h.dn, kalite: h.kalite, etiket: `${h.kod} DN${h.dn} ${h.kalite}` });
+    for (const m of G.mesnet) out.push(Object.assign({ tur: 'mesnet' }, m));
+    // duvardan geçen borular: DGP (duvar ortasında, eksen duvara dik) + boru parçası; yağ borusu dirsekle konteynere iner, duvarda konsol mesnet
+    for (const b of G.boru) {
+      const sg = b.yon[1], etk = `${b.kod} ${b.cins === 'pe' ? 'Ø' : 'DN'}${b.dn} ${b.kalite}${b.ek || ''}`;
+      out.push({ anahtar: 'dgp-' + b.k, tur: 'dgp', p: [b.p[0], b.yw], aci: 0, /* aile x = boru ekseni = yerel y */ z: b.z, D: b.od, Lw: q.tw, DN: b.dn });
+      if (b.k.startsWith('yag')) {
+        const i = +b.k.slice(4), dOut = (sg < 0 ? G.ustOluk.w : 0) + 0.40, yOut = b.p[1] + sg * dOut, zK = q.zg + 1.37 + 0.05, yIn = b.p[1] - sg * (q.tw + 0.10);
+        out.push({ anahtar: 'boru-' + b.k, tur: 'boru', pts: [[b.p[0], yIn, b.z], [b.p[0], yOut, b.z], [b.p[0], yOut, zK]], cins: b.cins, sinif: b.sinif, dn: b.dn, kalite: b.kalite, etiket: etk });
+        out.push({ anahtar: 'mesk-' + b.k, tur: 'mesnet', tip: 'KONSOL', p: [b.p[0], b.p[1]], aci: sg > 0 ? 0 : 180, z: b.z0 - 0.27, H: 0.27, Lk: dOut + 0.12, D: b.od });
+        out.push({ anahtar: 'kont-' + b.k, tur: 'konteyner', etiket: 'YAĞ ' + (i + 1), p: [b.p[0], b.p[1] + sg * Math.max(dOut, 0.59)], aci: 90, z: q.zg });
+      } else out.push({ anahtar: 'boru-' + b.k, tur: 'boru', pts: [[b.p[0], b.p[1] - b.yon[1] * (q.tw + 0.10), b.z], [b.p[0], b.p[1] + b.yon[1] * 0.60, b.z]], cins: b.cins, sinif: b.sinif, dn: b.dn, kalite: b.kalite, etiket: etk });
+    }
     for (const y of G.yol) for (const s of [-1, 1]) out.push({ anahtar: `korkuluk-${y.i}-${s > 0 ? 'ust' : 'alt'}`, tur: 'korkuluk', pts: [[G.xg0 + 0.05, y.ym + s * (q.yy / 2 - 0.05)], [G.xg1 + 0.05, y.ym + s * (q.yy / 2 - 0.05)]], z: G.zy });
     // merdiven (anaerobik havuzdaki gibi): üst yan duvara paralel, plaklı betonarme; üst sahanlığı merdivenin parçası ve çıkış kanalı sahanlığına
-    // boydan boya bitişik; korkuluk dış yanda. Sahanlık korkuluğu merdiven sahanlığı ve orta yürüme yolu ağızlarını açık bırakır.
-    const Hm = G.zy - q.zg, S = G.sahanlik, e5 = 0.05;
-    if (Hm > 0.15) { const nr = Math.max(2, Math.ceil(Hm / q.mh - 1e-9)), Lm = (nr - 1) * q.mb, ym = G.en + q.mw / 2;
+    // boydan boya bitişik. Sahanlık korkuluğu merdiven üst sahanlığının dış kenarını ve ucunu da dolaşır (merdiven korkuluğuyla birleşir);
+    // orta yürüme yolu ağzı açık kalır.
+    const Hm = G.zy - q.zg, S = G.sahanlik, e5 = 0.05, mer = Hm > 0.15;
+    if (mer) { const nr = Math.max(2, Math.ceil(Hm / q.mh - 1e-9)), Lm = (nr - 1) * q.mb, ym = G.en + q.mw / 2;
       out.push({ anahtar: 'merdiven', tur: 'merdiven', pts: [[G.xg1 - Lm, ym], [G.xg1, ym]], z0: q.zg, z1: G.zy, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: G.boy - G.xg1, t: q.yt, kork: 'sol' }); }
     const yU = G.yol.length ? G.yol[G.yol.length - 1].ym + q.yy / 2 - e5 : S.ys + e5; // göz tarafı kenarı: yürüme yolu ağzı açık
     if (G.en - e5 - yU > 0.3) out.push({ anahtar: 'korkuluk-sah-1', tur: 'korkuluk', pts: [[G.xg1 + e5, G.en - e5], [G.xg1 + e5, yU]], z: G.zy });
-    out.push({ anahtar: 'korkuluk-sah-2', tur: 'korkuluk', pts: [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, G.en - e5]], z: G.zy });
+    out.push({ anahtar: 'korkuluk-sah-2', tur: 'korkuluk', pts: mer ? [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, G.en + q.mw - e5], [G.xg1, G.en + q.mw - e5]] : [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, G.en - e5]], z: G.zy });
     return out;
   }
   function su(G) {
@@ -176,7 +234,7 @@
   T.kumtutucu = {
     label: 'Kum ve yağ tutucu', ifc: 'IfcTank',
     prims: e => {
-      const G = geo(e), q = G.q, f = C.frame(e.o, e.rot), z = G.zu, out = [], h = tH();
+      const G = geo(e), q = G.q, f = C.frame(e.o, e.rot), z = G.zu, out = [], h = tH(), ek = !!e.ekipman; // ekipman yerleştiyse raylar, borular ve kapaklar kendi nesneleriyle çizilir
       const rd = (() => { let r = ((e.rot || 0) % 360 + 360) % 360; if (r > 90 && r <= 270) r -= 180; return r * Math.PI / 180; })();
       const PL = (pts, c, o) => P(pts.map(p => f.at(p[0], p[1], z)), c, o), T1 = (x, y, s, o, al) => TX(f.at(x, y, z), (o && o.h) || h, s, rd, al || 'M', o);
       for (const r of [G.bolge.dis, ...G.bolge.delik]) out.push(PL(r, true, { lw: 50 }));
@@ -187,15 +245,15 @@
       }
       for (const y of G.yol) out.push(PL(y.pts, true, { lw: 25, color: 8 }));
       out.push(PL(G.sahanlik.pts, true, { lw: 25, color: 8 }));
-      for (const r of G.ray) out.push(L(f.at(r.x0, r.y, z), f.at(r.x1, r.y, z), { lt: 'CENTER', color: 1, lw: 18 }));
-      for (const b of G.boru) out.push(L(f.at(b.p[0], b.p[1], z), f.at(b.p[0] + b.yon[0] * 0.8, b.p[1] + b.yon[1] * 0.8, z), { color: 5, lw: 35 }), T1(b.p[0] + b.yon[0] * 1.0 + 0.25, b.p[1] + b.yon[1] * 1.0, `Ø${Math.round(b.d * 1000)}`, { color: 5, h: h * 0.8 }));
-      for (const r of G.rampa) out.push(PL(rect(r.prof[0][0], r.y0, r.prof[1][0], r.y1), true, { lw: 18, color: 8 }), L(f.at(r.prof[0][0], r.y0, z), f.at(r.prof[1][0], r.y1, z), { lw: 13, color: 8 }));
-      for (const c of G.cukur) out.push(PL(rect(c.x0, c.y0, c.x1, c.y1), true, { lw: 35, color: 4 }), L(f.at(c.x0, c.y0, z), f.at(c.x1, c.y1, z), { lw: 13, color: 4 }), L(f.at(c.x0, c.y1, z), f.at(c.x1, c.y0, z), { lw: 13, color: 4 }));
+      if (!ek) for (const r of G.ray) out.push(L(f.at(r.x0, r.y, z), f.at(r.x1, r.y, z), { lt: 'CENTER', color: 1, lw: 18 }));
+      if (!ek) for (const b of G.boru) out.push(L(f.at(b.p[0], b.p[1], z), f.at(b.p[0] + b.yon[0] * 0.8, b.p[1] + b.yon[1] * 0.8, z), { color: 5, lw: 35 }), T1(b.p[0] + b.yon[0] * 1.0 + 0.25, b.p[1] + b.yon[1] * 1.0, `Ø${Math.round(b.d * 1000)}`, { color: 5, h: h * 0.8 }));
+      for (const r of G.rampa) out.push(PL(rect(r.a[0], r.y0, r.b[0], r.y1), true, { lw: 18, color: 8 }), L(f.at(r.a[0], r.y0, z), f.at(r.b[0], r.y1, z), { lw: 13, color: 8 }));
+      for (const k of G.yagKanal) out.push(PL(rect(k.x0, k.y0, k.x1, k.y1), true, { lw: 35 }), PL(rect(k.xu, k.y0, k.x0, k.y1), true, { lw: 25 })); // yağ toplama kanalı ve uç duvarı
       for (const k of G.kolon) out.push(PL(k.pts, true, { lw: 50 }));
       for (const l of G.lamel) out.push(L(f.at(l.x0, l.y0, z), f.at(l.x1, l.y0, z), { lw: 35, color: 4 }));
-      for (const hh of G.hat) out.push(P(hh.pts.map(p => f.at(p[0], p[1], z)), false, { lw: 35, color: hh.renk === 'hava' ? 5 : 6 }));
+      if (!ek) for (const hh of G.hat) out.push(P(hh.pts.map(p => f.at(p[0], p[1], z)), false, { lw: 35, color: hh.renk === 'hava' ? 5 : 6 }));
       { const u = G.ustOluk; out.push(PL(rect(u.xa, -u.w, u.xb, 0), true, { lw: 35 }), PL(u.ic, true, { lw: 18 }), T1((u.xa + u.xb) / 2, -q.ok / 2, 'KUM OLUĞU', { color: 4, h: h * 0.8 })); }
-      if (!e.ekipman) for (const k of G.kapak) out.push(L(f.at(k.x, k.y - k.B / 2 - 0.05, z), f.at(k.x, k.y + k.B / 2 + 0.05, z), { color: 6, lw: 70 }));
+      if (!ek) for (const k of G.kapak) out.push(L(f.at(k.x, k.y - k.B / 2 - 0.05, z), f.at(k.x, k.y + k.B / 2 + 0.05, z), { color: 6, lw: 70 }));
       out.push(TX(f.at((G.xD0 + G.xD1) / 2, G.en / 2, z), h, 'DAĞITMA KANALI', rd + Math.PI / 2, 'M', { color: 4 }), TX(f.at((G.xC0 + G.xC1) / 2, G.en / 2, z), h, 'ÇIKIŞ KANALI', rd + Math.PI / 2, 'M', { color: 4 }));
       out.push(T1(G.boy / 2, G.en + 1.2, `${G.N} göz × (kum ${f2(q.b)} + yağ ${f2(q.bF)}) × ${f2(q.L)} m · su ${kot(G.zs)} · duvar üstü ${kot(G.zu)} · kum oluğu dibi ${kot(G.zo)} · V = ${M.fmt(G.V, 0)} m³`, { color: 3 }));
       out.push(TX(f.at(G.boy / 2, G.en + 1.2 + h * 5, z), tH(5), `${e.code || ''} ${e.name || 'Kum ve yağ tutucu'}`.trim(), rd, 'C', { color: 2 }));
@@ -203,32 +261,38 @@
     },
     mesh: e => {
       const G = geo(e), f = C.frame(e.o, e.rot), out = [], uy = M.cross([0, 0, 1], f.ux);
+      const Wv = d => [f.ux[0] * d[0] + uy[0] * d[1], f.ux[1] * d[0] + uy[1] * d[1], d[2]]; // yerel yön → dünya
+      const delikB = k => (k.poly ? { pts: k.poly.map(p => f.at(p[0], p[1], p[2])), d: Wv(k.d) } : { pts: k.pts.map(p => f.at(p[0], p[1], k.z0)), d: [0, 0, k.z1 - k.z0] });
       const key = JSON.stringify([G.q, e.o, e.rot]);
       if (!e._ag || e._agK !== key) {
         const ag = triAg(f, bolgeKati(G.bolge, G.zr1, G.zu)); // duvarlar taban plağının üstünden
-        let son = ag; if (C.boslukAg) { try { son = C.boslukAg([ag], G.kes.map(k => ({ pts: k.pts.map(p => f.at(p[0], p[1], k.z0)), d: [0, 0, k.z1 - k.z0] })), [0.74, 0.74, 0.71]); } catch (er) { console.error('kum tutucu boşluk', er); } }
+        let son = ag; if (C.boslukAg) { try { son = C.boslukAg([ag], G.kes.map(delikB), [0.74, 0.74, 0.71]); } catch (er) { console.error('kum tutucu boşluk', er); } }
         e._ag = son; e._agK = key;
       }
       out.push(e._ag);
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
-      for (const g of G.goz) out.push(ext(f.at(G.xg0, 0, 0), uy, f.ux, g.prof, G.q.L)); // grobeton dolgu (kum oluğu ve eğimler): enine kesit boyuna uzatılır
-      for (const k of G.kutu.concat(G.kolon)) out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], k.pts, k.z1 - k.z0));
-      if (C._ins && C._ins.newMesh) { // çelik / paslanmaz parçalar ve borular (kendi renkleriyle): raylar, yağ lamelleri, yağ çukuru, hava ana boruları, kum iniş borusu
-        const cm = C._ins.newMesh(), Wp = p => f.at(p[0], p[1], p[2]), R = { celik: [0.45, 0.48, 0.52], pas: [0.78, 0.80, 0.82], hava: [0.20, 0.45, 0.85], boru: [0.80, 0.81, 0.83] };
+      for (const k of G.kutu.concat(G.kolon)) if (!k.gro || !(C._ins && C._ins.newMesh)) out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], k.pts, k.z1 - k.z0));
+      if (C._ins && C._ins.newMesh) { // kendi renkleriyle: grobeton dolgular (betondan ayrı malzeme), paslanmaz yağ lamelleri ve sıyırma rampası
+        const cm = C._ins.newMesh(), Wp = p => f.at(p[0], p[1], p[2]), R = { pas: [0.78, 0.80, 0.82], gro: [0.80, 0.75, 0.64] };
         const kutu = (x0, x1, y0, y1, z0, z1, col) => { const c8 = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]].map(Wp); C._ins.hexa(cm, c8, col); for (let k = 0; k < 4; k++) cm.edges3.push([c8[k], c8[(k + 1) % 4]], [c8[k + 4], c8[(k + 1) % 4 + 4]], [c8[k], c8[k + 4]]); };
-        const sil = (a, b, r, col, n) => { n = n || 12; const A = Wp(a), B = Wp(b), ax = M.sub(B, A); if (M.len(ax) < 1e-9) return; const u = M.norm(ax), p = M.perp(u), w = M.cross(u, p), v0 = cm.v.length;
-          for (const o of [A, B]) for (let i = 0; i < n; i++) { const t = 2 * Math.PI * i / n; cm.v.push(M.add(o, M.add(M.mul(p, r * Math.cos(t)), M.mul(w, r * Math.sin(t))))); }
-          for (let i = 0; i < n; i++) { const j = (i + 1) % n; cm.f.push([v0 + i, v0 + j, v0 + n + j], [v0 + i, v0 + n + j, v0 + n + i]); cm.fc.push(col, col); } };
-        for (const r of G.ray) kutu(r.x0, r.x1, r.y - 0.03, r.y + 0.03, G.zu, G.zu + 0.07, R.celik);
+        /* profil (y, z) yerel x boyunca x0 → x1 uzatılır; kapaklar earcut ile, yüzler dışa döndürülür */
+        const prizma = (prof, x0, x1, col) => {
+          let A = 0; for (let i = 0; i < prof.length; i++) { const a = prof[i], b = prof[(i + 1) % prof.length]; A += a[0] * b[1] - b[0] * a[1]; } const P2 = A > 0 ? prof : prof.slice().reverse(); // (y, z) düzleminde CCW
+          const yuz = (a, b, c, n) => { const v0 = cm.v.length, nn = M.cross(M.sub(b, a), M.sub(c, a)); cm.v.push(a, b, c); cm.f.push(M.dot(nn, n) >= 0 ? [v0, v0 + 1, v0 + 2] : [v0, v0 + 2, v0 + 1]); cm.fc.push(col); };
+          const E = C.earcutHalkalar ? C.earcutHalkalar([P2]) : null, tris = E ? E.tris.map(t => t.map(i => E.pts[i])) : P2.slice(1, -1).map((p, i) => [P2[0], p, P2[i + 2]]);
+          for (const [x, sx] of [[x0, -1], [x1, 1]]) { const n = Wv([sx, 0, 0]); for (const t of tris) yuz(Wp([x, t[0][0], t[0][1]]), Wp([x, t[1][0], t[1][1]]), Wp([x, t[2][0], t[2][1]]), n); for (let i = 0; i < P2.length; i++) { const a = P2[i], b = P2[(i + 1) % P2.length]; cm.edges3.push([Wp([x, a[0], a[1]]), Wp([x, b[0], b[1]])]); } }
+          for (let i = 0; i < P2.length; i++) { const a = P2[i], b = P2[(i + 1) % P2.length], n = Wv([0, b[1] - a[1], -(b[0] - a[0])]); // CCW çokgende dış normal (dz, −dy)
+            const A1 = Wp([x0, a[0], a[1]]), B1 = Wp([x0, b[0], b[1]]), A2 = Wp([x1, a[0], a[1]]), B2 = Wp([x1, b[0], b[1]]); yuz(A1, B1, B2, n); yuz(A1, B2, A2, n); cm.edges3.push([A1, A2]); } };
+        for (const g of G.goz) prizma(g.prof, G.xg0, G.xg1, R.gro); // göz tabanı grobeton dolgusu (kum oluğu ve 45° eğimler)
+        for (const k of G.kutu) if (k.gro) { const [a, , c] = k.pts; kutu(a[0], c[0], a[1], c[1], k.z0, k.z1, R.gro); } // dağıtma ve çıkış kanalı dolguları
         for (const l of G.lamel) kutu(l.x0, l.x1, l.y0, l.y1, l.z0, l.z1, R.pas);
-        for (const c of G.cukur) { const t = 0.01; kutu(c.x0, c.x1, c.y0, c.y1, c.z0, c.z0 + t, R.pas); kutu(c.x0, c.x0 + t, c.y0, c.y1, c.z0, c.z1, R.pas); kutu(c.x1 - t, c.x1, c.y0, c.y1, c.z0, c.z1, R.pas); kutu(c.x0, c.x1, c.y0, c.y0 + t, c.z0, c.z1, R.pas); kutu(c.x0, c.x1, c.y1 - t, c.y1, c.z0, c.z1, R.pas); }
-        for (const hh of G.hat) for (let i = 1; i < hh.pts.length; i++) sil(hh.pts[i - 1], hh.pts[i], hh.r, R[hh.renk] || R.boru, 14);
-        out.push(cm); }
+        for (const r of G.rampa) { const t = 0.005, c8 = [[r.a[0], r.y0, r.a[1]], [r.b[0], r.y0, r.b[1]], [r.b[0], r.y1, r.b[1]], [r.a[0], r.y1, r.a[1]], [r.a[0], r.y0, r.a[1] + t], [r.b[0], r.y0, r.b[1] + t], [r.b[0], r.y1, r.b[1] + t], [r.a[0], r.y1, r.a[1] + t]].map(Wp); C._ins.hexa(cm, c8, R.pas); for (let k = 0; k < 4; k++) cm.edges3.push([c8[k + 4], c8[(k + 1) % 4 + 4]]); } // eğik paslanmaz sac
+        out.push(cm);
+      } else for (const g of G.goz) out.push(ext(f.at(G.xg0, 0, 0), uy, f.ux, g.prof, G.q.L));
       for (const y of G.yol.concat([G.sahanlik])) out.push(ext(f.at(0, 0, y.z0), f.ux, [0, 0, 1], y.pts, y.z1 - y.z0));
       { const A = triAg(f, bolgeKati({ dis: G.cikisAlt.dis, delik: G.cikisAlt.delik }, G.cikisAlt.z0, G.cikisAlt.z1)); let son = A; // çıkış kanalının derin kısmı (çıkış borusu deliğiyle)
-        if (C.boslukAg) { try { son = C.boslukAg([A], G.kesAlt.map(k => ({ pts: k.pts.map(p => f.at(p[0], p[1], k.z0)), d: [0, 0, k.z1 - k.z0] })), [0.74, 0.74, 0.71]); } catch (er) { console.error('kum tutucu çıkış', er); } } out.push(son); }
+        if (C.boslukAg) { try { son = C.boslukAg([A], G.kesAlt.map(delikB), [0.74, 0.74, 0.71]); } catch (er) { console.error('kum tutucu çıkış', er); } } out.push(son); }
       out.push(ext(f.at(0, 0, G.tabanC.z0), f.ux, [0, 0, 1], G.tabanC.pts, G.tabanC.z1 - G.tabanC.z0));
-      const eksiUy = [-uy[0], -uy[1], -uy[2]]; for (const r of G.rampa) out.push(ext(f.at(0, r.y1, 0), f.ux, eksiUy, r.prof, r.y1 - r.y0)); // sıyırma rampası: boyuna kesit (x, z) enine uzatılır
       return out;
     },
     /* kodlu malzeme açılımları (Çokal T-103 paftası: DUVARLAR DU01 dış duvar, DU02 iç duvar; DÖŞEMELER DÖ01 yürüme döşemesi, DÖ02 göz tabanı, DÖ03 kanal tabanı) */
@@ -250,12 +314,19 @@
   const imza = x => JSON.stringify(x.type === 'aile' ? [x.p, x.rot, x.z, x.par] : [x.pts, x.z0, x.z1]);
   function nesne(e, y) {
     const f = C.frame(e.o, e.rot), un = unum(e), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; };
-    const aile = (fam, par, ad) => { const d = C.AILELER && C.AILELER[fam]; if (!d) return null; const t0 = d.tipler && d.tipler[0]; return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par: Object.assign({}, t0 ? t0.p : {}, par), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad, layer: d.katman || C.doc.cur.layer } }; };
+    const aile = (fam, par, ad) => { const d = C.AILELER && C.AILELER[fam]; if (!d) return null; const t0 = d.tipler && d.tipler[0]; if (d.katman && C.ensureLayer) C.ensureLayer(d.katman, d.renk || 4, 'CONTINUOUS', 25); return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par: Object.assign({}, t0 ? t0.p : {}, par), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad, layer: d.katman || C.doc.cur.layer } }; };
     if (y.tur === 'penstok') return aile('penstock_kanal', { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: 'EL', konum: 'K' }, `SK-${un}/${y.etiket}`);
     if (y.tur === 'kopru') return aile('gezer_kopru', { Ls: mm(y.Ls), N: y.N, ap: mm(y.ap), Hp: mm(y.Hp), hk: mm(y.hk), xo: mm(y.xo), zo: mm(y.zo) }, `GEZER KÖPRÜ T${un}.01`);
-    if (y.tur === 'dusum') return aile('difuzor_dusumu', { H: mm(y.H), Ld: mm(y.Ld) }, `DİFÜZÖR DÜŞÜMÜ T${un}.05 ${y.etiket}`);
+    if (y.tur === 'dusum') return aile('difuzor_dusumu', { H: mm(y.H), a: mm(y.a), h1: mm(y.h1), j: mm(y.j), xw: mm(y.xw) }, `DİFÜZÖR DÜŞÜMÜ T${un}.05 ${y.etiket}`);
+    if (y.tur === 'ray') return aile('kopru_rayi', { L: mm(y.L) }, `GEZER KÖPRÜ RAYI T${un}.01 ${y.etiket}`);
+    if (y.tur === 'mesnet' || y.tur === 'dgp') { const o = y.tur === 'mesnet' ? aile('boru_mesnet', { tip: y.tip, H: mm(y.H), Lk: mm(y.Lk || 0.52), D: mm(y.D) }, `BORU MESNEDİ T${un}.06`) : aile('duvar_gecis', { D: mm(y.D), Lw: mm(y.Lw), DN: y.DN }, `DUVAR GEÇİŞ PARÇASI DN${y.DN}`);
+      if (o) o.props.etk = false; return o; } // planda etiket yazılmaz (çok sayıda; listede ve özelliklerde adıyla görünür)
+    if (y.tur === 'boru') { // hava başlığı, kum iniş, yağ, giriş / çıkış ağızları: gerçek boru nesnesi (katalog dış çapı ve et kalınlığıyla)
+      const b = C.boruOlcu ? C.boruOlcu(y.cins, y.sinif, y.dn) : { cins: y.cins, sinif: y.sinif, dn: y.dn, od: y.dn, t: 3, c: { mat: y.cins } }, lay = 'MEK_BORU_' + C.up(y.cins);
+      if (C.ensureLayer) C.ensureLayer(lay, y.cins === 'pe' ? 4 : 9, 'CONTINUOUS', 25);
+      return { type: 'pipe', props: { pts: y.pts.map(p => [...W2(p), p[2]]), dn: b.dn, od: b.od, t: b.t, cins: b.cins, sinif: b.sinif, mat: b.c.mat, kalite: y.kalite, label: y.etiket, layer: lay } }; }
     if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // anaerobik havuzdaki gibi: plaklı betonarme, üst sahanlık merdivenin parçası
-    if (y.tur === 'seperator') return aile('kum_seperatoru', {}, `KUM SEPERATÖRÜ T${un}.03`);
+    if (y.tur === 'seperator') return aile('kum_seperatoru', { L: mm(y.L) }, `KUM SEPERATÖRÜ T${un}.03`);
     if (y.tur === 'konteyner') return aile('cop_konteyner', {}, `${y.etiket.startsWith('YAĞ') ? 'YAĞ' : 'KUM'} KONTEYNERİ T${un}.04 ${y.etiket}`);
     if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } };
     return null;
@@ -314,5 +385,5 @@
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
     if (pr && !pr[1].some(b => b.cmd === 'KUMTUTUCU')) { pr[1].push({ cmd: 'KUMTUTUCU', t: 'Kum-yağ tutucu', i: 'ctank' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Kum-yağ tutucu', 'Grit and grease chamber'], ['KUM KANALI', 'GRIT CHANNEL'], ['YAĞ KANALI', 'GREASE CHANNEL'], ['KUM OLUĞU', 'GRIT TROUGH'], ['DAĞITMA KANALI', 'DISTRIBUTION CHANNEL'], ['ÇIKIŞ KANALI', 'OUTLET CHANNEL'], ['GEZER KÖPRÜ', 'TRAVELLING BRIDGE'], ['KUM SEPERATÖRÜ', 'GRIT CLASSIFIER']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Kum-yağ tutucu', 'Grit and grease chamber'], ['KUM KANALI', 'GRIT CHANNEL'], ['YAĞ KANALI', 'GREASE CHANNEL'], ['KUM OLUĞU', 'GRIT TROUGH'], ['DAĞITMA KANALI', 'DISTRIBUTION CHANNEL'], ['ÇIKIŞ KANALI', 'OUTLET CHANNEL'], ['GEZER KÖPRÜ', 'TRAVELLING BRIDGE'], ['KUM SEPERATÖRÜ', 'GRIT CLASSIFIER'], ['GEZER KÖPRÜ RAYI', 'BRIDGE RAIL'], ['KÖPRÜ RAYI', 'BRIDGE RAIL'], ['BORU MESNEDİ', 'PIPE SUPPORT'], ['DUVAR GEÇİŞ PARÇASI', 'WALL PENETRATION SLEEVE'], ['DİFÜZÖR DÜŞÜMÜ', 'DIFFUSER DROP'], ['YAĞ KONTEYNERİ', 'GREASE CONTAINER'], ['KUM KONTEYNERİ', 'GRIT CONTAINER'], ['Gezer köprü rayı (duvar üstü)', 'Travelling bridge rail (on wall)'], ['Boru mesnedi — zemin ayağı / duvar konsolu', 'Pipe support — floor stand / wall bracket'], ['Duvar geçiş parçası — su tutucu flanşlı', 'Wall penetration sleeve — with puddle flange'], ['Zemin ayağı', 'Floor stand'], ['Duvar konsolu', 'Wall bracket']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));
