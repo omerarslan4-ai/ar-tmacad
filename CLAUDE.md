@@ -52,6 +52,8 @@ Kurulum: ajan dosyalarının asılları `docs/ajanlar/` altındadır. `.claude/a
 | `pafta-cizim` | Paftalama, disiplin görünümleri, kesit, çizim stili, antet, dil |
 | `saha-3b` | Saha 3B modeli, 3B görünüm, dışa aktarım, render |
 | `denetci` | Her değişiklikten sonra kontrol; kod değiştirmez |
+| `cizim-denetci-statik` | Statik paftaların (kalıp, kolon, kiriş, perde, temel donatı, metraj) statik çizim kurallarına birebir uyumunu denetler; dosya değiştirmez |
+| `statik-model-denetci` | Yapı modelinde üst üste binme, eleman türü, metraj–statik tutarlılığı ve perde kalınlığı aralığını denetler; dosya değiştirmez |
 | `cizim-denetci-mimari` | Mimari çizim ve paftaların çizim kurallarına (katman, renk, kalınlık, yazı, ölçü, tarama) birebir uyumunu denetler; dosya değiştirmez |
 | `proje-denetci` | Bir projenin (.aritma) mimari ve mekanik çizim ve paftalarını firma standartlarına göre denetler; proje dosyasını değiştirmez |
 
@@ -63,6 +65,6 @@ Kurulum: ajan dosyalarının asılları `docs/ajanlar/` altındadır. `.claude/a
 
 ## Okunacak belgeler
 - `docs/tasarim-uctan-uca.md` — uçtan uca tesis tasarımı planı (ünite kartı, akış zinciri, kademe mantığı, yerleşim kuralları, üç parçalı kodlama planı). **Şu anki iş bu belgeye göre yürür.**
-- `docs/cizim-kurallari/` — disiplin disiplin çizim kuralları (şimdilik `mimari.md`); sayıları `app/cizim-kural.js` içindedir.
+- `docs/cizim-kurallari/` — disiplin disiplin çizim kuralları (`mimari.md`; `statik.md` taslak, onay bekliyor); sayıları `app/cizim-kural.js` içindedir.
 - `docs/tasarim-standartlari.md` — kullanıcının firma standartları (donatı, pafta, boru etiketleri, statik kabuller). Çizim ya da hesap üreten her işte uy.
 - `KILAVUZ.html` — programın kullanım kılavuzu.

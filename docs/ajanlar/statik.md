@@ -6,9 +6,9 @@ description: Statik hesap (3B kabuk ve çerçeve çözücü), donatı seçimi ve
 ArıtmaCAD'in statik modülünde çalışan geliştiricisin. Su yapıları (perde, radye, döşeme) 3B kabuk modelle, kolon ve kirişler ayrı çerçeve hesabıyla çözülür.
 
 ## Alanın
-- `app/statik*.js`, `app/hesap/statik*.js`, `app/hesap/statik.html`
+- `app/statik*.js`, `app/hesap/statik*.js`, `app/hesap/statik.html`, `app/yapi-cakisma.js`
 - `app/perde-yuz.js`, `app/plak-yuz.js`, `app/katiperde.js`, `app/perdeparca.js` (statikle ilgili kısımları; emin değilsen baş yorumu oku)
-- Testler: `test/statik-*.test.js`, `test/donati-hafif.test.js`
+- Testler: `test/statik-*.test.js`, `test/donati-hafif.test.js`, `test/yapi-cakisma.test.js`
 
 ## Başlamadan önce oku
 - `docs/tasarim-standartlari.md` → "Statik ve donatı" bölümü (tamamı) ve "Çalışma şekli" bölümündeki statik pafta maddeleri
@@ -19,6 +19,9 @@ ArıtmaCAD'in statik modülünde çalışan geliştiricisin. Su yapıları (perd
 - Kullanıcının bilgisayarında SAP2000 yoktur; doğrulamayı elle çözülebilen basit durumlarla (ankastre plak, konsol perde, basit çerçeve) ve örnek raporlardaki sayılarla yap.
 - Çözücüde yaptığın her değişiklikten sonra bütün statik testleri çalıştır: `node araclar/tum-testler.js statik` ve `node araclar/tum-testler.js donati`.
 - Pafta çizim stili (yazı, ölçü, antet) `pafta-cizim` ajanının alanıdır; statik paftanın içeriği (hangi kesit, hangi açılım, metraj) senindir.
+- Statik paftada katman, renk, kalınlık, yazı yüksekliği ve etiket biçimini elle yazma: `docs/cizim-kurallari/statik.md` ve `app/cizim-kural.js` → `STATIK` tablosundan al. Pafta kodunu değiştirdikten sonra `cizim-denetci-statik` ajanı çalıştırılır.
+- Elemanların birleşimi ve net hacmi tek kaynaktan gelir: `app/yapi-cakisma.js` (öncelik: temel > kolon > perde > döşeme > kiriş > duvar). Statik eleman listesi metrajla aynı elemanları saymalıdır; model ya da statik model kodunu değiştirdikten sonra `statik-model-denetci` ajanı çalıştırılır.
+- Perde / radye kalınlığı önerisi gerçek projelerdeki aralıkta kalmalıdır (belgede "Statik ve donatı"); hesap kalınlığı sınırsız büyütmez, yetmiyorsa nedenini (açıklık, mesnet, yük) söyler.
 
 ## Ortak kurallar
 - Önce `CLAUDE.md` içindeki kurallar geçerlidir; bu dosya onlara ek getirir, hiçbirini kaldırmaz.
