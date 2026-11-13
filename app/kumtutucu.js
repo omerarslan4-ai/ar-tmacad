@@ -219,7 +219,12 @@
     out.push({ anahtar: 'su-cikis', ad: 'Çıkış kanalı', pts: rect(G.xC0, q.tw, G.xC1, G.en - q.tw), zb: G.zcf, maks: G.zs - q.sv - 0.20, min: G.zs - q.sv - 0.40 });
     return out;
   }
-  if (NODE) module.exports = { geo, DEF, ekipmanYer, su };
+  /* ekipman düzeninin sürümü: kayıtta (e.ekSurum) tutulur. Ekipmanı yerleşmiş eski bir çizim açılınca sürüm tutmadığı için ekipman bir kez
+     kendiliğinden yeni düzene geçer (elle taşınanlar korunur). 2: Çokal T-103 düzeltmeleri (yağ kanalı, DGP, hava başlığı, mesnet, ray, seperatör yönü). */
+  const EK_SURUM = 2;
+  /* changeIdle kararı (saf): 'surum' = eski düzen, yenile; 'degisti' = parametre / konum değişti, yenile; 'ilk' = bu oturumda ilk görülüş, anahtarı kaydet; null = bir şey yapma */
+  const ekKarar = (e, k) => { if (!e || e.type !== 'kumtutucu' || !e.ekipman) return null; if (e.ekSurum !== EK_SURUM) return 'surum'; if (e._ekK == null) return 'ilk'; return e._ekK !== k ? 'degisti' : null; };
+  if (NODE) module.exports = { geo, DEF, ekipmanYer, su, ekKarar, EK_SURUM };
   if (!C || !C.T) return;
 
   /* ================= ÇİZİM ================= */
@@ -273,7 +278,7 @@
       out.push(ext(f.at(0, 0, G.taban.z0), f.ux, [0, 0, 1], G.taban.pts, G.taban.z1 - G.taban.z0));
       for (const k of G.kutu.concat(G.kolon)) if (!k.gro || !(C._ins && C._ins.newMesh)) out.push(ext(f.at(0, 0, k.z0), f.ux, [0, 0, 1], k.pts, k.z1 - k.z0));
       if (C._ins && C._ins.newMesh) { // kendi renkleriyle: grobeton dolgular (betondan ayrı malzeme), paslanmaz yağ lamelleri ve sıyırma rampası
-        const cm = C._ins.newMesh(), Wp = p => f.at(p[0], p[1], p[2]), R = { pas: [0.78, 0.80, 0.82], gro: [0.80, 0.75, 0.64] };
+        const cm = C._ins.newMesh(), Wp = p => f.at(p[0], p[1], p[2]), R = { pas: [0.78, 0.80, 0.82], gro: [0.80, 0.75, 0.64], celik: [0.45, 0.48, 0.52], hava: [0.20, 0.45, 0.85], boru: [0.80, 0.81, 0.83] };
         const kutu = (x0, x1, y0, y1, z0, z1, col) => { const c8 = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]].map(Wp); C._ins.hexa(cm, c8, col); for (let k = 0; k < 4; k++) cm.edges3.push([c8[k], c8[(k + 1) % 4]], [c8[k + 4], c8[(k + 1) % 4 + 4]], [c8[k], c8[k + 4]]); };
         /* profil (y, z) yerel x boyunca x0 → x1 uzatılır; kapaklar earcut ile, yüzler dışa döndürülür */
         const prizma = (prof, x0, x1, col) => {
@@ -287,6 +292,12 @@
         for (const k of G.kutu) if (k.gro) { const [a, , c] = k.pts; kutu(a[0], c[0], a[1], c[1], k.z0, k.z1, R.gro); } // dağıtma ve çıkış kanalı dolguları
         for (const l of G.lamel) kutu(l.x0, l.x1, l.y0, l.y1, l.z0, l.z1, R.pas);
         for (const r of G.rampa) { const t = 0.005, c8 = [[r.a[0], r.y0, r.a[1]], [r.b[0], r.y0, r.b[1]], [r.b[0], r.y1, r.b[1]], [r.a[0], r.y1, r.a[1]], [r.a[0], r.y0, r.a[1] + t], [r.b[0], r.y0, r.b[1] + t], [r.b[0], r.y1, r.b[1] + t], [r.a[0], r.y1, r.a[1] + t]].map(Wp); C._ins.hexa(cm, c8, R.pas); for (let k = 0; k < 4; k++) cm.edges3.push([c8[k + 4], c8[(k + 1) % 4 + 4]]); } // eğik paslanmaz sac
+        if (!e.ekipman) { // ekipman yerleştirilmediyse (EKIPMAN=H) raylar, hava başlıkları ve kum iniş borusu gövdenin parçası olarak gösterilir
+          const sil = (a, b, r, col, n) => { n = n || 14; const A = Wp(a), B = Wp(b), ax = M.sub(B, A); if (M.len(ax) < 1e-9) return; const u = M.norm(ax), p = M.perp(u), w = M.cross(u, p), v0 = cm.v.length;
+            for (const o of [A, B]) for (let i = 0; i < n; i++) { const t = 2 * Math.PI * i / n; cm.v.push(M.add(o, M.add(M.mul(p, r * Math.cos(t)), M.mul(w, r * Math.sin(t))))); }
+            for (let i = 0; i < n; i++) { const j = (i + 1) % n; cm.f.push([v0 + i, v0 + j, v0 + n + j], [v0 + i, v0 + n + j, v0 + n + i]); cm.fc.push(col, col); } };
+          for (const r of G.ray) { kutu(r.x0, r.x1, r.y - 0.075, r.y + 0.075, G.zu, G.zu + 0.01, R.celik); kutu(r.x0, r.x1, r.y - 0.03, r.y + 0.03, G.zu + 0.01, G.zu + 0.08, R.celik); }
+          for (const hh of G.hat) for (let i = 1; i < hh.pts.length; i++) sil(hh.pts[i - 1], hh.pts[i], hh.r, R[hh.renk] || R.boru); }
         out.push(cm);
       } else for (const g of G.goz) out.push(ext(f.at(G.xg0, 0, 0), uy, f.ux, g.prof, G.q.L));
       for (const y of G.yol.concat([G.sahanlik])) out.push(ext(f.at(0, 0, y.z0), f.ux, [0, 0, 1], y.pts, y.z1 - y.z0));
@@ -347,11 +358,12 @@
     const f = C.frame(e.o, e.rot), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; }, suM = new Map(C.doc.ents.filter(x => x.type === 'su' && x.bag === e.id).map(x => [x.anahtar, x]));
     if (C.ensureLayer) C.ensureLayer('INS_SU', 150, 'CONTINUOUS', 13);
     for (const s of su(G)) { const props = { pts: s.pts.map(W2), zb: s.zb, zs: s.maks, zsMaks: s.maks, zsMin: s.min, tur: 'atiksu', ad: s.ad, layer: 'INS_SU' }; const x = suM.get(s.anahtar); if (x) { Object.assign(x, props); delete x._c; } else { const z = C.add(C.newEnt('su', Object.assign(props, { bag: e.id, anahtar: s.anahtar }))); delete z.sp; } }
-    e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot, e.code]); delete e._c;
+    e.ekipman = true; e.ekSurum = EK_SURUM; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot, e.code]); delete e._c;
     if (n || g) C.changed && C.changed();
     if (!sessiz) C.log(`✓ ${e.code || ''} kum ve yağ tutucu ekipmanı: ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}.`);
   };
-  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'kumtutucu' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]); if (e._ekK !== k) { if (e._ekK == null) { e._ekK = k; continue; } C.kumtutucuEkipman(e, true); } } });
+  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'kumtutucu' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]), d = ekKarar(e, k);
+    if (d === 'ilk') e._ekK = k; else if (d === 'surum') { C.kumtutucuEkipman(e, true); C.log(`✓ ${e.code || ''} kum ve yağ tutucu ekipmanı yeni düzene geçirildi (yağ kanalı borusu, hava başlığı, mesnetler, duvar geçiş parçaları, raylar; elle taşınanlar korundu).`); } else if (d === 'degisti') C.kumtutucuEkipman(e, true); } });
 
   /* ================= KOMUT ================= */
   /* ünite kartından (K.kumKart): göz sayısı, bölmeler, boy, su derinliği, kotlar ve standart kalınlıklar */
@@ -385,5 +397,5 @@
     const tab = C.ribbon.tabs.find(t => t[0] === 'Arıtma'), pr = tab && tab[1].find(p => p[0] === 'Proses');
     if (pr && !pr[1].some(b => b.cmd === 'KUMTUTUCU')) { pr[1].push({ cmd: 'KUMTUTUCU', t: 'Kum-yağ tutucu', i: 'ctank' }); try { C.ribbon.render(); } catch (err) { } }
   }
-  if (window.DIL) window.DIL.ekle('en', 'English', [['Kum-yağ tutucu', 'Grit and grease chamber'], ['KUM KANALI', 'GRIT CHANNEL'], ['YAĞ KANALI', 'GREASE CHANNEL'], ['KUM OLUĞU', 'GRIT TROUGH'], ['DAĞITMA KANALI', 'DISTRIBUTION CHANNEL'], ['ÇIKIŞ KANALI', 'OUTLET CHANNEL'], ['GEZER KÖPRÜ', 'TRAVELLING BRIDGE'], ['KUM SEPERATÖRÜ', 'GRIT CLASSIFIER'], ['GEZER KÖPRÜ RAYI', 'BRIDGE RAIL'], ['KÖPRÜ RAYI', 'BRIDGE RAIL'], ['BORU MESNEDİ', 'PIPE SUPPORT'], ['DUVAR GEÇİŞ PARÇASI', 'WALL PENETRATION SLEEVE'], ['DİFÜZÖR DÜŞÜMÜ', 'DIFFUSER DROP'], ['YAĞ KONTEYNERİ', 'GREASE CONTAINER'], ['KUM KONTEYNERİ', 'GRIT CONTAINER'], ['Gezer köprü rayı (duvar üstü)', 'Travelling bridge rail (on wall)'], ['Boru mesnedi — zemin ayağı / duvar konsolu', 'Pipe support — floor stand / wall bracket'], ['Duvar geçiş parçası — su tutucu flanşlı', 'Wall penetration sleeve — with puddle flange'], ['Zemin ayağı', 'Floor stand'], ['Duvar konsolu', 'Wall bracket']]);
+  if (window.DIL) window.DIL.ekle('en', 'English', [['Kum-yağ tutucu', 'Grit and grease chamber'], ['KUM KANALI', 'GRIT CHANNEL'], ['YAĞ KANALI', 'GREASE CHANNEL'], ['KUM OLUĞU', 'GRIT TROUGH'], ['DAĞITMA KANALI', 'DISTRIBUTION CHANNEL'], ['ÇIKIŞ KANALI', 'OUTLET CHANNEL'], ['GEZER KÖPRÜ', 'TRAVELLING BRIDGE'], ['KUM SEPERATÖRÜ', 'GRIT CLASSIFIER'], ['GEZER KÖPRÜ RAYI', 'BRIDGE RAIL'], ['KÖPRÜ RAYI', 'BRIDGE RAIL'], ['BORU MESNEDİ', 'PIPE SUPPORT'], ['DUVAR GEÇİŞ PARÇASI', 'WALL PENETRATION SLEEVE'], ['DİFÜZÖR DÜŞÜMÜ', 'DIFFUSER DROP'], ['YAĞ KONTEYNERİ', 'GREASE CONTAINER'], ['KUM KONTEYNERİ', 'GRIT CONTAINER'], ['Gezer köprü rayı (duvar üstü)', 'Travelling bridge rail (on wall)'], ['Boru mesnedi — zemin ayağı / duvar konsolu', 'Pipe support — floor stand / wall bracket'], ['Duvar geçiş parçası — su tutucu flanşlı', 'Wall penetration sleeve — with puddle flange'], ['Zemin ayağı', 'Floor stand'], ['Duvar konsolu', 'Wall bracket'], ['Boru donanımı', 'Pipe accessories'], ['Boru mesnedi', 'Pipe support'], ['Duvar geçiş parçası', 'Wall penetration sleeve'], ['Kum ekipmanı', 'Grit equipment'], ['Konveyör', 'Conveyor'], ['Konteyner', 'Container']]);
 })(typeof window !== 'undefined' ? window.C : (globalThis.C || null));

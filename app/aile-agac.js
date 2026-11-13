@@ -25,7 +25,8 @@
       ['Dozaj pompası'], ['Vidalı / helezon pompa'], ['Diğer pompalar']]],
     ['Kapaklar ve savaklar', [['Penstock / kanal kapağı'], ['Savak'], ['Diğer kapaklar']]],
     ['Izgaralar ve elekler', [['Kaba ızgara'], ['İnce ızgara / elek'], ['Diğer']]],
-    ['Diğer ekipman', [['Mikser'], ['Blower / kompresör'], ['Difüzör'], ['Sıyırıcı / köprü'], ['Dekantör / susuzlaştırma'], ['Tank / depo'], ['Vinç / kaldırma'], ['Ölçüm / enstrüman'], ['Diğer']]],
+    ['Diğer ekipman', [['Mikser'], ['Blower / kompresör'], ['Difüzör'], ['Sıyırıcı / köprü'], ['Kum ekipmanı'], ['Konveyör'], ['Konteyner'], ['Dekantör / susuzlaştırma'], ['Tank / depo'], ['Vinç / kaldırma'], ['Ölçüm / enstrüman'], ['Diğer']]],
+    ['Boru donanımı', [['Boru mesnedi'], ['Duvar geçiş parçası']]],
   ];
   const YOLLAR = []; for (const [a, al] of AGAC) for (const [b, c] of al) { if (c) for (const x of c) YOLLAR.push([a, b, x]); else YOLLAR.push([a, b]); }
   const yk = p => p.join(' › ');
@@ -71,7 +72,7 @@
     if (tur === 'Vana') return ['Vanalar', 'Diğer vanalar'];
     return ['Diğer ekipman', 'Diğer'];
   };
-  const AILEYOL = { dalgic_pompa_ksb_amarexn: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_wilo_supra: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_grundfos: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], penstock_kanal: ['Kapaklar ve savaklar', 'Penstock / kanal kapağı'], dalgic_mikser: ['Diğer ekipman', 'Mikser'], kaba_izgara: ['Izgaralar ve elekler', 'Kaba ızgara'], gezer_kopru: ['Diğer ekipman', 'Köprü / sıyırıcı'], difuzor_dusumu: ['Diğer ekipman', 'Havalandırma'], kum_seperatoru: ['Diğer ekipman', 'Kum ekipmanı'], bant_konveyor: ['Diğer ekipman', 'Konveyör'], cop_konteyner: ['Diğer ekipman', 'Konteyner'] };
+  const AILEYOL = { dalgic_pompa_ksb_amarexn: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_wilo_supra: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], dalgic_pompa_grundfos: ['Pompalar', 'Dalgıç pompa', 'Islak tip'], penstock_kanal: ['Kapaklar ve savaklar', 'Penstock / kanal kapağı'], dalgic_mikser: ['Diğer ekipman', 'Mikser'], kaba_izgara: ['Izgaralar ve elekler', 'Kaba ızgara'], gezer_kopru: ['Diğer ekipman', 'Sıyırıcı / köprü'], kopru_rayi: ['Diğer ekipman', 'Sıyırıcı / köprü'], difuzor_dusumu: ['Diğer ekipman', 'Difüzör'], kum_seperatoru: ['Diğer ekipman', 'Kum ekipmanı'], bant_konveyor: ['Diğer ekipman', 'Konveyör'], cop_konteyner: ['Diğer ekipman', 'Konteyner'], boru_mesnet: ['Boru donanımı', 'Boru mesnedi'], duvar_gecis: ['Boru donanımı', 'Duvar geçiş parçası'] }; // her yol AGAC'ta bulunmalı (yoksa ağaçta görünmez)
 
   /* ---------------- öğeleri topla ---------------- */
   const dnOf = d => d.dn || (C.parseBlockName ? C.parseBlockName(d.name).dn : null) || null;

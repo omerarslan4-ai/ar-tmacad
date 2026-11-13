@@ -85,7 +85,7 @@ t('duvar geçiş parçaları: giriş, çıkış ve yağ boruları yuvarlak delik
   assert.strictEqual(G.boru.find(b => b.k === 'giris').cins, 'pe'); assert.strictEqual(G.boru.find(b => b.k === 'cikis').dn, 315, 'çıkış Ø315 HDPE (Çokal: WW DN315 HDPE PN10)');
 });
 
-/* Çokal F-F (cm): başlık CA DN50 SS304 yürüme yolu üstünde mesnette, ekseni duvar yüzünden 20, 98,517 (BTK 98,49); yatay kol 26,6, iniş yürüme yolu kenarından 11,6 dışarıda,
+/* Çokal F-F (cm): başlık CA DN50 SS304L (plan ve E-E etiketi; F-F'de yalnız "CA DN50 SS304" yazıyor — çizimde tutarsız, kullanıcıya soruldu) yürüme yolu üstünde mesnette, ekseni duvar yüzünden 20, 98,517 (BTK 98,49); yatay kol 26,6, iniş yürüme yolu kenarından 11,6 dışarıda,
    97,925'te 45° kırılır (43), duvar yüzünden 3,6'da düşey, difüzör ekseni 96,50. Alt plan: göz başına 4 difüzör takımı, 2,75 aralık, uçlarda 1,375; takım 2,05 m. */
 t('Çokal F-F: hava başlığı yürüme yolunda, düşümler, vanalar ve difüzör takımları', () => {
   const C2 = geo({ L: 11.0 }); // Çokal göz boyu (plan: 40 + 150 + 40 + 1100 + 40 + 150 + 40 = 1560)
@@ -106,6 +106,16 @@ t('Çokal plan / F-F: kum seperatörü yapıya paralel, hazne dağıtma tarafın
   yakin(s.p[0] - s.L / 2, C2.xg0 + 0.62, 'hazne başı (Çokal 2,92)'); yakin(s.p[0] + s.L / 2, 7.37, 'vida ucu (Çokal 7,37)'); yakin(s.p[1], -0.875, 'eksen oluk dışında');
   const kk = E.find(x => x.anahtar === 'kont-kum'); yakin(kk.p[0], 7.68, 'kum konteyneri vida ucunda (Çokal 7,42–7,95)');
   const ki = C2.hat.find(x => x.k === 'kum-inis'); yakin(ki.pts[0][2], C2.ustOluk.zf, 'oluk tabanından'); yakin(ki.pts[1][2], 97.53, 'BTK 97,45 (DN150)'); assert.strictEqual(ki.kod, 'DR');
+});
+
+/* eski düzende kaydedilmiş çizim (ekSurum yok): açılışta bir kez yenilenir; yenilendikten sonra yalnız değişince */
+t('eski kayıt: ekipman düzeni sürümü tutmayınca bir kez yenilenir', () => {
+  const { ekKarar, EK_SURUM } = require('../app/kumtutucu.js');
+  const eski = { type: 'kumtutucu', ekipman: true, da: 1.5, rL: 0.6, yc: 0.8, yB: 0.4, xs: 0.37, ekAnahtar: ['pen-0', 'dusum-0-6'] }; // f82b848 / 38ba0f4 öncesi kayıt biçimi
+  assert.strictEqual(ekKarar(eski, 'k'), 'surum', 'eski kayıt yenilenir (_ekK boş olsa da)');
+  const yeni = Object.assign({}, eski, { ekSurum: EK_SURUM }); assert.strictEqual(ekKarar(yeni, 'k'), 'ilk'); yeni._ekK = 'k'; assert.strictEqual(ekKarar(yeni, 'k'), null); assert.strictEqual(ekKarar(yeni, 'k2'), 'degisti');
+  assert.strictEqual(ekKarar({ type: 'kumtutucu', ekipman: false }, 'k'), null, 'ekipmansız çizim kendiliğinden ekipman almaz');
+  const Ge = geo(eski); assert.strictEqual(Ge.dusum.length, 8, 'eski da = 1,50 okunmaz: göz başına L / 2,75'); assert.ok(Ge.yagKanal.length === 2 && !Ge.cukur);
 });
 
 t('ray ayrı ekipman; grobeton dolgular işaretli; merdiven üst sahanlığı korkuluklu', () => {
