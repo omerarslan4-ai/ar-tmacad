@@ -78,6 +78,14 @@
         '1-20': { yaziStili: 'OL 20', yaziMm: 3, ondalik: 0, tik: 3, uzatmaBosluk: 4, uzatmaTasma: 2.5, cizgiTasma: 2 },
       },
     },
+    /* ÖLÇÜ YERLEŞİMİ (kâğıt mm) — Çokal R2 paftalarındaki 2.224 doğrusal ölçüden ölçüldü (13.11.2026).
+       genel (1/50, "50" stili): sıralar 5 mm arayla; uzatma çizgisi ölçülen noktadan değil ölçü çizgisinin 1 mm berisinden başlar,
+       ölçü çizgisini 4,1 mm aşar (toplam 5,1 mm); ölçü çizgisi tiki 0,5 mm aşar; parça ölçüler içte, toplam ölçü en dış sırada.
+       detay (1/25 ve büyük, "1-20" stili): sıralar 6,5 – 7,5 mm arayla (program 7); uzatma çizgisi ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar; ölçü çizgisi taşması 1 mm. */
+    olcuYeri: {
+      genel: { siraAraligi: 5, uzatmaSabit: 1, uzatmaBosluk: 0, uzatmaTasma: 4.1, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3 },
+      detay: { siraAraligi: 7, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
+    },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
     /* katman → izin verilen tarama desenleri (karar 8: kesit taraması DASH ya da SOLID; AR-SAND / ANSI36 / ANSI31 kullanılmaz) */
     /* kesilen betonun taraması: örneklerde DASH, ölçek 0,50, açı 0 (cm çizim, 1/50) → kâğıtta satır aralığı 0,32 mm; programdaki açıklama ölçeği 0,1 */

@@ -323,7 +323,7 @@
           if (Math.abs(dx) < 1e-3 && Math.abs(dy) > 0.05 && (fnd.has(lp) ? false : true)) xs.push(A[0]);
           if (Math.abs(dy) < 1e-3 && Math.abs(dx) > 0.05) zs.push(A[1]); }
         const uniq = (v, tol) => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > tol) o.push(x); return o; };
-        const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), dd = C.annoH(7), zb = z0 - (gb || 0);
+        const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), psD = C.pstil && C.pstil() && C.pstil().dim ? C.pstil().dim() : null, dd = C.annoH((psD && psD.sira) || 7), /* ölçü sıra aralığı pafta stilinden (kural tablosu) */ zb = z0 - (gb || 0);
         const dim = (k, a, b, p) => { C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; };
         if (XS.length > 2) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, zb - dd]);
         dim('h', [x0, z0], [x1, z0], [0, zb - dd * (XS.length > 2 ? 2 : 1)]);

@@ -4,7 +4,8 @@
    Değerler kâğıt üzerindeki mm'dir (örnek çizim birimi cm; 1/50'de 10 birim = 2 mm, 1/20'de 6 birim = 3 mm).
      Yazı   : "YZ" stili — turkce.shx, genişlik çarpanı 0,70; ölçü yazısı "OL" (0,75) ve detay ölçeğinde "OL 20" (0,80) — değerler app/cizim-kural.js tablosundan (ekranda çizgi fontla çizilir; AutoCAD'e aynı stil adı ve font yazılır);
               genel yazı 2 mm, eleman kodları 2,5 mm. Aks ve kesit harfleri "ARIAL" stili — Arial Bold (arialbd.ttf).
-     Ölçü   : eğik tik, yazı 2 mm (1/25 ve daha büyük ölçekte 3 mm), OL / OL 20 stili; uzatma çizgisi boşluğu 2, taşması 1,25, ölçü çizgisi taşması 1 mm.
+     Ölçü   : eğik tik, yazı 2 mm (1/25 ve daha büyük ölçekte 3 mm), OL / OL 20 stili; uzatma çizgisi, taşmalar ve sıra aralığı kural tablosundan (olcuYeri):
+              1/50'de sıralar 5 mm arayla, uzatma çizgisi ölçü çizgisinin 1 mm berisinden başlayıp 4,1 mm aşar; detayda ölçülen noktadan başlar.
      Kot    : yarı dolu üçgen + zemin çizgisi, dikme ve üstü çizgili yazı (YZ), "+" işareti yazılmaz (99.15).
      Aks    : balon çapı 12 mm, harf 5 mm Arial Bold; çizgi noktalı – kesikli, 0,13.
      Kesit  : işaret dairesi çapı 10 mm, harf 5 mm Arial Bold, dolu ok; başlık altı tek çizgili "F-F KESİTİ" (4 mm; 1/25 ve büyükte 5 mm), altında "ÖL:1/20" (3 mm).
@@ -13,9 +14,11 @@
 (function (C) {
   'use strict';
   const buyuk = () => ((C.doc && C.doc.set && C.doc.set.anno) || 50) <= 25; // 1/25, 1/20 … detay ölçekleri
+  /* ölçü yerleşimi kural tablosundan (app/cizim-kural.js → olcuYeri); tablo yoksa eski değerler */
+  const oy = () => { const O = C.cizimKural && C.cizimKural.MIMARI.olcuYeri; return O ? (buyuk() ? O.detay : O.genel) : { uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, uzatmaSabit: 0, siraAraligi: 7 }; };
   const COKAL = {
     ad: 'Çokal AAT paftaları', yazi: 'YZ', kalin: 'ARIAL', yaziH: 2.0, kodH: 2.5,
-    dim: () => ({ exo: 2.0, exe: 1.25, dle: 1.0, tik: true, th: buyuk() ? 3.0 : 2.0, ah: 2.0, st: buyuk() ? 'OL 20' : 'OL' }),
+    dim: () => { const Y = oy(); return ({ exo: Y.uzatmaBosluk, exe: Y.uzatmaTasma, dle: Y.cizgiTasma, exf: Y.uzatmaSabit, sira: Y.siraAraligi, tik: true, th: buyuk() ? 3.0 : 2.0, ah: 2.0, st: buyuk() ? 'OL 20' : 'OL' }); },
     kot: { stil: 'cokal', th: 2.0, arti: false },
     aks: { bp: 6, th: 5, st: 'ARIAL', lt: 'DASHDOT', lw: 13 },
     kesit: { r: 5, th: 5, st: 'ARIAL' },

@@ -98,8 +98,23 @@ Beş dosyada ortak olanlar:
 **Karar 5 — ölçü stili tanımı esas dosyadan alınır:** 1-Kaba-İnce-Giriş-Kum Yağ Tutucu_R3. Oradaki `1-20` stili: eğik tik 3, uzatma boşluğu 4, uzatma taşması 2,5, ölçü çizgisi taşması 2, yazı `OL 20` 6 birim (3 mm), ondalık 0.
 Başka dosyalarda aynı adlı stilin değerleri farklıdır; onlar esas alınmaz.
 
-**Henüz ölçülmedi — ölçülendirme yerleri.** İlk ölçü sırasının çizimden uzaklığı, sıralar arası aralık, kaç sıra ölçü verildiği (parça ölçü + toplam ölçü),
-hangi elemanların ölçülendirildiği (perde kalınlığı, açıklık, aks arası, kot). Bunlar bir sonraki adımda ölçülecek; okuyucu şu an bunu güvenilir çıkarmıyor.
+### Ölçülendirme yöntemi (ölçü yerleri)
+Kullanıcı kararı (13.11.2026): **ölçülendirme yönteminin ölçütü Çokal R2 çizimleridir.** Aşağıdaki değerler o çizimlerdeki 2.224 doğrusal ölçüden ölçüldü (kâğıt üstü mm); sayılar `app/cizim-kural.js` → `olcuYeri` içindedir.
+
+| | 1/50 çizimler ("50" stili) | Detaylar, 1/25 ve büyük ("1-20" stili) |
+| --- | --- | --- |
+| Ölçü sıraları arası | **5 mm** (159 aralığın 112'si; kalanlar 5,5 – 6) | 6,5 – 7,5 mm (program 7 kullanır) |
+| Sıra sayısı | 1, 2 ya da 3 (yalnız 2 yerde 4) | aynı |
+| Toplam ölçü | **en dış sırada** (104 yığının 98'i); parça ölçüler içte | aynı |
+| Uzatma çizgisi | ölçülen noktaya kadar inmez: ölçü çizgisinin **1 mm** berisinden başlar, ölçü çizgisini **4,1 mm** aşar (toplam 5,1 mm; 1.950 çizginin 1.950'si) | ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar |
+| Ölçü çizgisinin tiki aşması | 0,5 mm | 1 mm |
+| Ölçü türü | hizalı (aligned), eğik tik | aynı |
+
+Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kullanır (13.11.2026).
+
+**Örneklerde tek bir değer çıkmayan, kullanıcıya sorulanlar:**
+- İlk (iç) ölçü sırasının çizime uzaklığı: örneklerde 6 mm ile 77 mm arasında değişiyor (en sık 14 mm ve 34 – 35 mm); sabit bir kural görünmüyor. Program şimdilik ilk sırayı en dış beton çizgisinden 5 mm uzağa koyar.
+- Neyin ölçülendirileceği (perde kalınlığı, açıklık, aks arası, döşeme kalınlığı, toplam) ve planlarda ölçü sıralarının hangi kenarlara konacağı henüz çıkarılmadı.
 
 ## 4. Kot, aks, kesit işaretleri
 - Kot işareti **`CK_TR1` bloğu** ile konur (**Karar 7**; örneklerde 5 dosyada 287 adet). `KOT101` bloğu kullanılmaz. Katman `Kot`, yazı YZ 2 mm.
@@ -165,7 +180,7 @@ Program katmanı → çizim katmanı:
 - Ölçüler AutoCAD'e çizgi + yazı olarak gidiyor (gerçek ölçü nesnesi ve "50" / "1-20" ölçü stili değil).
 - Kot işareti `CK_TR1` bloğu olarak değil, çizgi + yazı olarak gidiyor.
 - Çizim birimi metre (örnekler santimetre).
-- Ölçülendirme yerleri (sıra uzaklığı, sıra aralığı) henüz ölçülmedi.
+- Ölçülendirme: sıra aralığı ve uzatma çizgisi kurala bağlandı; ilk sıranın çizime uzaklığı ve neyin ölçülendirileceği henüz kurala bağlı değil (bölüm 3).
 
 Denetim (Konya terfi inşaat modeli, A-A kesiti + 1,20 kotu planı, 5.376 nesne, 13.11.2026): katman adı, renk, çizgi tipi, kalınlık, yazı stili ve yazı boyu hatasız; kalan 5 hata yukarıdaki tarama desenleri.
 `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50 --birim m`
