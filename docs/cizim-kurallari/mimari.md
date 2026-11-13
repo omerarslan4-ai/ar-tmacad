@@ -3,7 +3,7 @@
 Bu belge Ömer Bey'in örnek çizimlerinden **ölçülerek** çıkarıldı; tahmin içermez. Örneklerin birbirini tutmadığı sekiz noktada kullanıcı 12.11.2026'da karar verdi (aşağıda "Karar" diye işaretli).
 Çizen ajanlar (`pafta-cizim`) buna göre çizer, `cizim-denetci-mimari` ajanı programın çıktısını buna göre denetler.
 Sayıların programın okuduğu hâli `app/cizim-kural.js` içindeki `MIMARI` tablosudur; bu belge ile o tablo aynı şeyi söylemelidir.
-Denetim: `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --kagit` (programın pafta çıktısı) ya da `--olcek 50` (model uzayı, cm).
+Denetim: `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50 --birim m` (programın çıktısı; model metre), `--olcek 50` (model santimetre, örnek çizimler) ya da `--kagit` (her şey kâğıt ölçüsünde).
 
 **Kaynak (12.11.2026 okundu):** Çokal AAT R2 seti, `test-proje/R2/` —
 1-Kaba-İnce-Giriş-Kum Yağ Tutucu_R3, 3-Anaerobik_R3, 7-Çökeltme Havuzu_R2, 8-Geri Devir Terfi Merkezi_R2, 12-Çamur Yoğunlaştırma Tankı_R3.
@@ -120,11 +120,55 @@ hangi elemanların ölçülendirildiği (perde kalınlığı, açıklık, aks ar
 Not: örneklerde `Tarama` katmanında AR-SAND, ANSI36 ve ANSI31 de kullanılmış. Kullanıcı 12.11.2026'da kesinleştirdi: kesit taraması **DASH ya da SOLID**; AR-SAND, ANSI36 ve ANSI31 kullanılmaz.
 **Doğrulanacak:** DASH ile SOLID arasındaki ayrım (hangisi hangi malzeme için). Kesinleşene kadar program kesilen betonu DASH ile tarar (örneklerde en sık kullanılan).
 
-## 6. Programın bugünkü durumu (fark)
-Programın mimari pafta üreten kodunda geçen katman adları: `YAZI`, `ZEMIN`, `EKSEN`, `KOT`, `AKS_BLOK`, `KESIT_OLCU`, `DETAY_OLCU`, `KESIT_POZ`, `K3_BETON_CIZGI`, `MALZEME_ACILIM`, `MAHAL_LISTESI`.
-Yukarıdaki tablodaki katmanların (`Beton`, `Ongor`, `Arkagor`, `Korkuluk`, `Kesit_Cizgisi`, `ÖL`, `Mim_Yazi25` …) **hiçbiri kullanılmıyor.**
-Yazı ve ölçü biçimi (`PAFTASTIL`) Çokal'a göre ayarlı; katman adı, rengi, çizgi tipi ve kalınlığı ayarlı değil. Ayrıca `PAFTASTIL` içinde `YZ` genişliği 0,75; Karar 4'e göre 0,70 olmalı.
-**Sıradaki iş:** pafta çizen kodun katmanlarını `app/cizim-kural.js` tablosuna bağlamak ve programın pafta çıktısını denetim aracından geçirmek.
+## 6. Programda uygulanışı (13.11.2026)
+Program içeride kendi katman adlarıyla çalışmaya devam eder (eski proje dosyaları bozulmasın diye); kural üç yerde uygulanır (`app/cizim-kural-uygula.js`, eşleme tablosu `app/cizim-kural.js` → `esleme`, `tipKatman`):
+
+1. **AutoCAD çıktısı (2B DXF / disiplin dosyaları):** katman adları bu belgedeki adlara çevrilir, katman tablosuna buradaki renk / çizgi tipi / kalınlık yazılır, nesneler bunları katmandan alır.
+2. **Ekran:** yeni üretilen kesit, görünüş, ölçü, kot, aks, yazı ve tarama katmanları buradaki renk, çizgi tipi ve kalınlıkla açılır. Açık bir çizimin eski katmanları için komut: `CIZIMKURAL`. Model katmanlarının (`INS_…`) ekrandaki rengine dokunulmaz.
+3. **Tarama:** kesilen beton DASH (ölçek 0,50 / açı 0; kâğıtta satır aralığı 0,32 mm) ile taranır.
+
+Program katmanı → çizim katmanı:
+
+| Programdaki katman | Çizim katmanı |
+| --- | --- |
+| `KESIT`, `KESIT_<eleman>` (perde, temel, döşeme, kiriş, kolon), planda `INS_PERDE`, `INS_KOLON`, `INS_TEMEL…` | `Beton` |
+| aynı katmanlardaki kesikli çizgiler | `Beton_Kesik` |
+| `GORUNEN`, `GORUNEN_<eleman>`, görünüş (cephe) çizgileri, planda döşeme / kiriş | `Ongor` (kesikliyse `Arkagor`) |
+| `…_KORKULUK`, `…_MERDIVEN`, `…_TRETUVAR`, `…_GROBETON`, `…_SU`, `…SU_TUTUCU_BANT` | `Korkuluk`, `Merdiven`, `Tretuvar`, `Grobeton`, `Su`, `Sututucu` |
+| `…_TARAMA` | `Tarama` (AR-CONC deseni `Grobeton`) |
+| `OLCU`, `KESIT_OLCU`, `DETAY_OLCU` ve bütün ölçüler | `ÖL` |
+| `KOT`, `…_KOT` ve bütün kot işaretleri | `Kot` |
+| `AKS`, `…_AKS` | `Aks` |
+| `KESIT_ISARET` | `Kesit_Cizgisi` |
+| `ZEMIN` | `ZMN` |
+| `YAZI`, `MAHAL_LISTESI`, eleman etiketleri | `Mim_Yazi25` |
+| görünüş başlığı ("A-A KESİTİ") | `Yazi30` (altındaki ölçek satırı `Mim_Yazi25`) |
+| `MALZEME_ACILIM` | `YZ` |
+| `MAHAL_ADI` | `MAHAL İSİM` |
+| antet ve pafta çerçevesi | `ANTET` (pafta yazıları `YAZI GENEL`, pafta penceresi çerçevesi `Defpoints`) |
+| `ARAZI` | `Toprak` |
+| kapak detayı (`DETAY_KAPAK`, `DETAY_BETON`, `YAZI_KAPAK`) | `Sac_Kapak`, `Beton`, `Mim_Yazi25` |
+| statik (`STA_…`), bina tesisatı (`MT_…`), kazı (`KAZI…`), saha (`SAHA_…`) katmanları | çevrilmez, kendi adıyla kalır |
+| boru, pompa, vana, ekipman, poz balonu, boru ekseni | `Mekanik`, `Mek_Yazi`, `Boru_Eksen` (mekanik kuralları kesinleşince güncellenecek) |
+
+**Kabuller (örneklerde karşılığı bulunmadığı için; kullanıcı doğrulayacak):**
+- Kat seviyesi çizgisi ve yazısı (`SEVIYE`) → `ZMN` (YZ, 2,5 mm).
+- Kesilen tuğla / gazbeton duvarın dış hattı da `Beton` katmanına gider (örneklerde ayrı duvar katmanı yok). Planda parapet ve temel de `Beton` sayılır.
+- Kesilen elemanın içindeki ince tarama çizgileri (plan sembolü) → `Tarama`.
+- Çeviri yalnız Mimari ve Genel pafta gruplarının çıktısına ve tek dosyalık 2B çıktıya uygulanır; Statik, Mekanik ve Elektrik dosyalarına dokunulmaz.
+- Yalıtım, kaplama, dolgu, kapı / pencere ve çatı örtüsü çizgileri → `Ongor` (ince çizgi).
+- Beton olmayan kesilen parçalar (korkuluk, doğrama, merdiven profili) → **SOLID** tarama.
+- 2 mm'den küçük eleman etiketleri (eğim yazısı, "Yağmur borusu" …) çıktıda 2 mm'ye çıkarılır; stili olmayan yazılar `YZ` yazılır.
+
+**Henüz kurala uymayanlar:**
+- Tuğla duvar, dolgu, tretuvar katmanları (kaplama, harç, stabilize, bordür) hâlâ kendi desenleriyle taranıyor (AR-BRSTD, GRAVEL, AR-SAND, ANSI31, ANSI37). Kural "DASH ya da SOLID" dediği için denetim bunları hata sayıyor; hangi malzemenin hangi desenle taranacağı kullanıcıya soruldu.
+- Ölçüler AutoCAD'e çizgi + yazı olarak gidiyor (gerçek ölçü nesnesi ve "50" / "1-20" ölçü stili değil).
+- Kot işareti `CK_TR1` bloğu olarak değil, çizgi + yazı olarak gidiyor.
+- Çizim birimi metre (örnekler santimetre).
+- Ölçülendirme yerleri (sıra uzaklığı, sıra aralığı) henüz ölçülmedi.
+
+Denetim (Konya terfi inşaat modeli, A-A kesiti + 1,20 kotu planı, 5.376 nesne, 13.11.2026): katman adı, renk, çizgi tipi, kalınlık, yazı stili ve yazı boyu hatasız; kalan 5 hata yukarıdaki tarama desenleri.
+`node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50 --birim m`
 
 ## 7. Mekanik katmanlar (aynı dosyalarda görüldü; `mekanik.md` için not)
 `Mekanik` (94; 0,25 – 0,40), `Mek_Ince` (190 / 94; 0,15), `Mek_Kesik` (HIDDEN), `Mek_Yazi` (31; 0,25), `Mek_Marka` (130), `Boru_Celik` (4; 0,30), `Boru_Celik_Kesik` (HIDDEN),

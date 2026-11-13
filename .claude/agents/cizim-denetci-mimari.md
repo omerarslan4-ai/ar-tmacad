@@ -17,7 +17,8 @@ Kod yazmaz, düzeltmez, dosya değiştirmez, commit atmazsın. Bash'i yalnız ok
 1. **Kuralları oku:** `docs/cizim-kurallari/mimari.md` ve `app/cizim-kural.js`. Belge ile tablo arasında fark var mı bak (katman sayısı, renk, kalınlık, yazı yükseklikleri).
 2. **Denetlenecek çizimi bul:** sana bir DXF verildiyse onu kullan. Verilmediyse hangi çizimin denetleneceğini sor; tahmin etme. DWG verildiyse önce DXF'e çevrilmesi gerekir (ODA File Converter); çeviremiyorsan bunu yaz ve dur.
 3. **Aracı çalıştır:**
-   - Programın pafta çıktısı (kâğıt ölçüsünde, 1 birim = 1 mm): `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --kagit`
+   - Programın 2B çıktısı (model metre; ölçek paftanın ölçeği): `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50 --birim m`
+   - Her şey kâğıt ölçüsündeyse (1 birim = 1 mm): `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --kagit`
    - Model uzayında tek ölçekli çizim (birim cm): `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50`
    - Ayrıntı gerekiyorsa: `node araclar/cizim-oku.js <dosya.dxf>` (katman katman nesne, yazı, ölçü, tarama dökümü).
 4. **Aracın bakamadıklarına kendin bak** (dökümden ve gerekirse çizen koddan):

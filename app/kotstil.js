@@ -73,7 +73,7 @@
     const ps = C.pstil ? C.pstil() : null, pk = ps && ps.kot; // pafta çizim stili (pafta-stil.js): örnek projedeki kot işareti ve yazı stili
     const st = pk ? (kotStyle(), ps.yazi) : kotStyle(), tag = arr => arr.map(pr => pr.k === 'T' ? Object.assign(pr, { st }) : pr);
     const sty = pk ? pk.stil : C.kotStil();
-    if (e.pk || sty === 'klasik') return tag(p0(e));
+    if (e.pk || sty === 'klasik') { const r = tag(p0(e)); if (e.pk && pk) for (const pr of r) if (pr.k === 'T') pr.h = C.annoH(pk.th); return r; } // plan kotu yazısı da pafta stilindeki boyda
     const th = C.annoH(pk ? pk.th : C.doc.set.textH), s = Math.max(C.annoH(2.5), th * 1.25), p = M.p3(e.p), z = p[2], f = e.ters ? -1 : 1;
     const txt = (e.txt ? e.txt + ' ' : '') + C.fmtKot(e.v), tw = C.measureText(C.txL ? C.txL(txt) : txt, th, C.textStyle(st));
     const hw = s * 0.5, yt = p[1] + s, A = [p[0] - hw, yt, z], B = [p[0] + hw, yt, z], out = [];

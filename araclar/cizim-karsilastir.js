@@ -2,9 +2,10 @@
    Bir çizimin profilini (araclar/cizim-oku.js) disiplinin kural tablosuyla (app/cizim-kural.js) karşılaştırır ve
    uymayan her şeyi sayıyla listeler: kural dışı katman, yanlış renk / çizgi tipi / kalınlık, katmandan alınmayan özellik,
    yanlış yazı stili ya da yüksekliği, ölçü biçimi, kot bloğu, tarama deseni.
-   Kullanım:  node araclar/cizim-karsilastir.js mimari <dosya.dxf> [--kagit | --olcek 50]
+   Kullanım:  node araclar/cizim-karsilastir.js mimari <dosya.dxf> [--kagit | --olcek 50] [--birim m]
      --kagit : çizim kâğıt ölçüsünde (1 birim = 1 mm; programın pafta çıktısı)
      --olcek : model uzayı tek ölçekli (birim cm; 1/50'de 10 birim = 2 mm). Verilmezse kural tablosundaki bütün ölçekler kabul edilir.
+     --birim m : model uzayı metre (ArıtmaCAD'in kendi çıktısı; 1/50'de 0,10 birim = 2 mm). Verilmezse santimetre.
    Çıkış kodu: 0 = UYGUN, 1 = UYGUN DEĞİL.
    Saf kısım: denetle(profil, kural, secenek) → { sonuc, bulgular, ozet } (test/cizim-karsilastir.test.js). */
 'use strict';
@@ -19,8 +20,8 @@ function denetle(P, kural, o) {
   o = o || {}; const B = [], ekle = (duzey, konu, yer, mesaj) => B.push({ duzey, konu, yer, mesaj });
   const atlanan = { baskaDisiplin: [], sistem: [] }, kat = k => kural.katmanlar[k];
   // kâğıt yüksekliği (mm) → kabul edilen çizim yükseklikleri
-  const carpan = o.kagit ? [1] : (o.olcek ? [o.olcek / 10] : kural.olcekler.map(n => n / 10));
-  const yukUyar = (h, liste) => liste.some(m => carpan.some(c => Math.abs(h - m * c) <= Math.max(0.03, m * c * 0.02)));
+  const bb = o.birim === 'm' ? 1000 : 10, carpan = o.kagit ? [1] : (o.olcek ? [o.olcek / bb] : kural.olcekler.map(n => n / bb));
+  const tol0 = o.birim === 'm' && !o.kagit ? 0.0003 : 0.03, yukUyar = (h, liste) => liste.some(m => carpan.some(c => Math.abs(h - m * c) <= Math.max(tol0, m * c * 0.02)));
 
   /* 1–3. katmanlar */
   for (const [ad, u] of Object.entries(P.kullanim)) {
@@ -96,6 +97,6 @@ module.exports = { denetle, rapor };
 if (require.main === module) {
   const a = process.argv.slice(2), kural = KR.disiplin(a[0]), f = a[1], oi = a.indexOf('--olcek');
   if (!kural || !f) { console.log('Kullanım: node araclar/cizim-karsilastir.js mimari <dosya.dxf> [--kagit | --olcek 50]'); process.exit(2); }
-  const R = denetle(oku(fs.readFileSync(f, 'utf8')), kural, { kagit: a.includes('--kagit'), olcek: oi >= 0 ? +a[oi + 1] : 0 });
+  const R = denetle(oku(fs.readFileSync(f, 'utf8')), kural, { kagit: a.includes('--kagit'), olcek: oi >= 0 ? +a[oi + 1] : 0, birim: a.includes('--birim') ? a[a.indexOf('--birim') + 1] : 'cm' });
   console.log(rapor(R, kural, path.basename(f))); process.exit(R.hata ? 1 : 0);
 }

@@ -12,7 +12,7 @@ const fs = require('fs');
 function* ciftler(metin) {
   let i = 0; const n = metin.length;
   const satir = () => { if (i >= n) return null; let j = metin.indexOf('\n', i); if (j < 0) j = n; let s = metin.slice(i, j); i = j + 1; if (s.charCodeAt(s.length - 1) === 13) s = s.slice(0, -1); return s; };
-  for (;;) { const a = satir(); if (a == null) return; const b = satir(); if (b == null) return; yield [parseInt(a, 10), b]; }
+  for (;;) { const a = satir(); if (a == null) return; const b = satir(); if (b == null) return; yield [parseInt(a, 10), b.indexOf('\\U+') < 0 ? b : b.replace(/\\U\+([0-9A-Fa-f]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))]; } // \U+00D6 → Ö (AutoCAD'in DXF kaçışı)
 }
 const say = (o, k, n) => { o[k] = (o[k] || 0) + (n == null ? 1 : n); };
 const yuv = (v, b) => Math.round(v / b) * b;
@@ -34,7 +34,7 @@ function oku(metin) {
     say(u.renk, e[62] == null ? 'katmandan' : e[62] === 0 ? 'bloktan' : String(e[62]));
     say(u.cizgiTipi, e[6] == null ? 'katmandan' : e[6]); say(u.kalinlik, e[370] == null || e[370] === -1 ? 'katmandan' : String(e[370]));
     if (e.t === 'TEXT' || e.t === 'MTEXT' || e.t === 'ATTRIB') {
-      const st = e[7] || 'Standard', h = yuv(+e[40] || 0, 0.01), y = P.yazilar[kat] || (P.yazilar[kat] = {}); say(y, st + ' | ' + h);
+      const st = e[7] || 'Standard', h = yuv(+e[40] || 0, (+e[40] || 0) < 1 ? 0.0001 : 0.01), y = P.yazilar[kat] || (P.yazilar[kat] = {}); say(y, st + ' | ' + h);
     } else if (e.t === 'DIMENSION') {
       const st = e[3] || 'Standard', o = P.olculer[st] || (P.olculer[st] = { adet: 0, katman: {}, tur: {}, uzaklik: {}, elleYazi: 0 });
       o.adet++; say(o.katman, kat); const tur = (e[70] || 0) & 7; say(o.tur, ['dönük / yatay / düşey', 'hizalı', 'açı', 'çap', 'yarıçap', 'açı (3 nokta)', 'ordinat'][tur] || String(tur));

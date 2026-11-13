@@ -80,9 +80,75 @@
     },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
     /* katman → izin verilen tarama desenleri (karar 8: kesit taraması DASH ya da SOLID; AR-SAND / ANSI36 / ANSI31 kullanılmaz) */
+    /* kesilen betonun taraması: örneklerde DASH, ölçek 0,50, açı 0 (cm çizim, 1/50) → kâğıtta satır aralığı 0,32 mm; programdaki açıklama ölçeği 0,1 */
+    kesitTarama: { desen: 'DASH', aci: 0, kagitOlcek: 0.1, yerine: ['ANSI31', 'ANSI36', 'AR-SAND'],
+      diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
+    /* nesne türü → çizim katmanı (katman adından önce gelir) */
+    tipKatman: { baslik: 'Yazi30', kot: 'Kot', dim: 'ÖL', aks: 'Aks', kesitisaret: 'Kesit_Cizgisi', seviyecizgi: 'ZMN' },
+    yaziKatmani: 'Mim_Yazi25',                            // çizgi katmanına düşen yazılar (eleman etiketleri) buraya alınır
+    /* mimari paftada görünen başka disiplin katmanları (örneklerden; kuralları mekanik belgesinde kesinleşecek) ve AutoCAD'in basılmayan katmanı */
+    digerKatman: {
+      'Mekanik': { renk: 94, tip: 'Continuous', kal: 0.25 }, 'Mek_Yazi': { renk: 31, tip: 'Continuous', kal: 0.25 }, 'Boru_Eksen': { renk: 242, tip: 'DASHDOT', kal: 0.15 },
+      'Sac_Kapak': { renk: 251, tip: 'Continuous', kal: 0.15 }, 'Defpoints': { renk: 7, tip: 'Continuous', kal: null },
+    },
+    /* PROGRAM KATMANI → ÇİZİM KATMANI. Program içeride kendi katman adlarıyla çalışır (KESIT_PERDE, GORUNEN_DOSEME, KESIT_OLCU …);
+       AutoCAD çıktısında ve ekrandaki renk / çizgi tipi / kalınlıkta örnek çizimlerin katmanı kullanılır. Sıra önemlidir: ilk uyan geçerlidir. null = eşleme yok. */
+    esleme: [
+      [/^PAFTA_PENCERE/, 'Defpoints'],
+      [/^(PAFTA_ANTET|PFT_CERCEVE|PFT_TABLO|PFT_BASLIK)$/, 'ANTET'], [/^(PAFTA_YAZI|PFT_YAZI)$/, 'YAZI GENEL'],
+      [/^(KESIT_DUZLEMI|KAZI.*|STA_.*|STATIK.*|DONATI.*|MT_.*|AC_.*|SAHA_.*|PENCERE|DETAY|PAFTA_INDEKS)$/, null], // başka disiplinin ve programın kendi yardımcı katmanları (PENCERE: pafta penceresi çerçevesi)
+      [/(^|_)OLCU$/, 'ÖL'], [/(^|_)KOT$/, 'Kot'], [/(^|_)AKS(_BLOK)?$/, 'Aks'], [/^KESIT_ISARET$/, 'Kesit_Cizgisi'],
+      [/(^|_)(BORU_YAZI|POZ(_IST)?)$/, 'Mek_Yazi'], [/(^|_)EKSEN$/, 'Boru_Eksen'], [/^DETAY_KAPAK/, 'Sac_Kapak'],
+      [/(^|_)(MEK|BORU|POMPA|VANA|EKIPMAN|IZGARA|BLOWER|MIKSER|DIFUZOR)(_|$)/, 'Mekanik'],
+      [/^(ZEMIN|SEVIYE)$/, 'ZMN'], [/^ARAZI$/, 'Toprak'],            // SEVIYE: kat seviyesi çizgisi ve yazısı — KABUL
+      [/SU_TUTUCU_BANT/, 'Sututucu'],
+      [/(^|_)TARAMA(_|$).*GROBETON|GROBETON.*(^|_)TARAMA(_|$)/, 'Grobeton'], [/(^|_)TARAMA(_|$)/, 'Tarama'],
+      [/(^|_)KORKULUK(_|$)/, 'Korkuluk'], [/(^|_)MERDIVEN(_|$)/, 'Merdiven'], [/(^|_)TRETUVAR(_|$)/, 'Tretuvar'], [/(^|_)GROBETON(_|$)/, 'Grobeton'], [/(^|_)SU$/, 'Su'],
+      [/(^|_)(YALITIM|KAPLAMA|DOLGU)(_|$)/, 'Ongor'],        // ince katmanlar (yalıtım, kaplama, dolgu): örneklerde ayrı katmanı yok — KABUL
+      [/(^|_)(KAPI|PENCERE|CATI)$/, 'Ongor'],               // doğrama ve çatı örtüsü: kesilse de ince çizgi — KABUL
+      [/^GORUNUS_.*_KESIT(_|$)/, 'Ongor'],                 // görünüşte (cephe) kesilen yok: çizgiler görünüş çizgisidir
+      [/(^|_)KESIT(_|$)/, 'Beton'], [/(^|_)GORUNEN(_|$)/, 'Ongor'], [/(^|_)GIZLI(_|$)/, 'Arkagor'],
+      [/^DETAY_BETON$/, 'Beton'],
+      [/^(YAZI|YAZI_KAPAK|MAHAL_LISTESI)$/, 'Mim_Yazi25'], [/^MALZEME_ACILIM$/, 'YZ'], [/^MAHAL_ADI$/, 'MAHAL İSİM'],
+      /* plan: model elemanlarının kendi katmanları (planda kesilenler Beton, üstten görünenler Ongor) */
+      [/^(INS_(PERDE|KOLON|DUVAR.*|TEMEL.*|PARAPET|AYAK_DUVARI)|BETON|DUVAR)$/, 'Beton'],
+      [/^INS_(DOSEME|CATI_DOSEMESI|KIRIS|PENCERE|KAPI|CATI)$/, 'Ongor'],
+    ],
     tarama: { 'Tarama': ['DASH', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
   };
   K.disiplin = ad => K[String(ad || '').toLocaleUpperCase('en').replace('İ', 'I')] || null;
   /* katmanın kuralı; yoksa null. es: eski ad verildiyse standart adı da döner */
   K.katman = (kural, ad) => kural.katmanlar[ad] || null;
+  /* program katmanının çizim katmanı (yoksa null). Zaten çizim katmanıysa kendisi döner. */
+  K.esle = (kural, ad) => { if (!ad || !kural.esleme) return null; if (kural.katmanlar[ad]) return ad; const u = String(ad); for (const [re, h] of kural.esleme) if (re.test(u)) return h; return null; };
+  K.tanim = (kural, hedef) => kural.katmanlar[hedef] || (kural.digerKatman || {})[hedef] || null;
+  /* tanımın program katmanı biçimi: { color, lt, lw (1/100 mm) } */
+  K.ozellik = t => ({ color: t.renk, lt: String(t.tip || 'Continuous').toUpperCase(), lw: t.kal == null ? -1 : Math.round(t.kal * 100) });
+  const KESIKLI = /^(HIDDEN|DASHED)$/;
+  /* ÇIKTI EŞLEMESİ (saf): kayitlar = [{ st: { layer, color, lt, lw } }], katmanlar = { ad: { name, color, lt, lw, on, lock } }.
+     Eşlenen her kaydın katmanı çizim katmanına çevrilir, renk / çizgi tipi / kalınlık katmandan alınır (karar 3); nesne elle kesikli çizgi tipi
+     taşıyorsa Beton → Beton_Kesik, Ongor → Arkagor. Kullanılmayan eski katmanlar tablodan düşer. Döner: { eslenen, eslenmeyen: [ad…] } */
+  K.ciktiUygula = (kural, kayitlar, katmanlar, o) => {
+    let eslenen = 0; const yok = new Set(), kullanilan = new Set(['0']), TK = kural.tipKatman || {}, YK = kural.yazi || {};
+    for (const r of kayitlar) { const st = r && r.st; if (!st) continue;
+      let h = K.esle(kural, st.layer); if (h && r.tip && TK[r.tip] && kural.katmanlar[h]) h = TK[r.tip];
+      const yazi = r.pr && r.pr.k === 'T';
+      if (h && yazi) { const mm = o && o.mm ? o.mm(r) : null;
+        if (r.tip === 'baslik' && mm != null && mm < 3.5) h = kural.yaziKatmani;                                    // başlığın altındaki ölçek satırı
+        else if (kural.katmanlar[h] && !kural.katmanlar[h].serbest && !YK[h] && h !== kural.olcu.katman) h = kural.yaziKatmani; // çizgi katmanındaki yazı
+        const yr = YK[h]; if (yr && yr.stil && !yr.stil.includes(r.pr.st)) r.pr = Object.assign({}, r.pr, { st: yr.stil[0] });
+        if (yr && yr.mm && mm != null && mm < Math.min(...yr.mm) - 0.05) r.pr = Object.assign({}, r.pr, { h: r.pr.h * Math.min(...yr.mm) / mm }); }  // en küçük yazı boyunun altındaki etiketler o boya çıkarılır        // yazı stili kuraldaki stil
+      if (h === 'Tarama' && r.kind === 'hatch' && r.e && (kural.tarama.Grobeton || []).includes(r.e.pat)) h = 'Grobeton';   // beton deseni (AR-CONC) grobeton katmanında
+      if (!h) { if (st.layer !== '0') yok.add(st.layer); kullanilan.add(st.layer); continue; }
+      if (KESIKLI.test(String(st.lt || '').toUpperCase())) h = h === 'Beton' ? 'Beton_Kesik' : h === 'Ongor' ? 'Arkagor' : h;
+      else if (h === 'Beton' && r.kind !== 'hatch' && st.lw != null && st.lw >= 0 && st.lw <= 20) h = 'Tarama';   // kesilen elemanın içindeki ince tarama çizgileri (plan sembolü)
+      const t = K.tanim(kural, h), kurali = kural.katmanlar[h];
+      if (!katmanlar[h]) katmanlar[h] = Object.assign({ name: h, on: true, lock: false }, t ? K.ozellik(t) : { color: 7, lt: 'CONTINUOUS', lw: -1 });
+      if (st.layer !== h) eslenen++;
+      st.layer = h; kullanilan.add(h);
+      if (kurali && !kurali.serbest) { st.color = 256; st.lt = 'BYLAYER'; st.lw = -1; }
+    }
+    for (const n of Object.keys(katmanlar)) if (!kullanilan.has(n)) delete katmanlar[n];
+    return { eslenen, eslenmeyen: [...yok].sort() };
+  };
 })(typeof window !== 'undefined' ? window.C : (globalThis.C = globalThis.C || {}));

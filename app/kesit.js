@@ -274,7 +274,7 @@
     if ((R.loops.length || R.equip.length) && pat !== 'YOK' && pat !== 'H' && C.T.hatch) {
       if (R.loops.length) nH = C.secHatches(R, W, g => LH(g.lk), pat, false);
       const eqG = new Map(); for (const lp of R.equip) { const k = lp.lk || ''; if (!eqG.has(k)) eqG.set(k, []); eqG.get(k).push(lp); }
-      for (const [k, eqs] of eqG) C.add(C.newEnt('hatch', { loops: eqs.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), pat: 'ANSI37', sc: 0.5, ang: 0, ann: true, orig: [0, 0], layer: LH(k || null) }));
+      for (const [k, eqs] of eqG) C.add(C.newEnt('hatch', { loops: eqs.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), ...(C.ekipTarama ? C.ekipTarama() : { pat: 'ANSI37', sc: 0.5 }), ang: 0, ann: true, orig: [0, 0], layer: LH(k || null) }));
     }
     // su tutucu bant profili (I tipi): şerit + iki yanda dişler + ortada boş bulb
     if (bants.length) {

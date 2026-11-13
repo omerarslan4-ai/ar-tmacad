@@ -8,7 +8,7 @@
   /* ---- metin kodlama ---- */
   const enc = s => String(s).replace(/°/g, '%%d').replace(/±/g, '%%p').replace(/Ø/g, '%%c').replace(/[^\x20-\x7e]/g, ch => '\\U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0'));
   const dec = s => String(s).replace(/\\U\+([0-9A-Fa-f]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/%%[dD]/g, '°').replace(/%%[pP]/g, '±').replace(/%%[cC]/g, 'Ø').replace(/%%%/g, '%').replace(/%%[uUoO]/g, '');
-  const nameSafe = s => enc(String(s)).replace(/[<>\/\\":;?*|=,`]/g, '_');
+  const nameSafe = s => enc(String(s).replace(/[<>\/\\":;?*|=,`]/g, '_')); // önce yasak karakterler, sonra kodlama (Ö, İ … \U+ kaçışı bozulmasın)
   const fx = v => { if (!isFinite(v)) v = 0; const s = (Math.abs(v) < 1e-12 ? 0 : v).toFixed(10).replace(/\.?0+$/, ''); return s === '-0' ? '0' : s; };
 
   /* ---- polyface yüzleri (görünmez kenar bilgisiyle) ---- */
@@ -110,9 +110,9 @@
       if (!C.layer(e.layer)) continue;
       if (opts.plain) { // AutoCAD'e sade çıktı: blok / ArıtmaCAD verisi yok — 2B: çizgi, yazı, tarama · 3B: yüzey ağları
         if (opts.plain === '3b') { const ms = C.meshes(e); if (ms) for (const d of ms) body.push({ kind: 'mesh', d, st: { layer: e.layer, color: e.color === 256 || e.color == null ? 256 : e.color, lt: 'BYLAYER', lw: -1 } }); continue; }
-        if (e.type === 'hatch') { body.push({ kind: 'hatch', e, sc: annoSc(e), st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
-        if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
-        for (const r of primRecs(e, e.layer)) body.push({ kind: 'prim', ...r }); continue;
+        if (e.type === 'hatch') { body.push({ kind: 'hatch', e, tip: 'hatch', sc: annoSc(e), st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
+        if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, tip: 'leader', st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
+        for (const r of primRecs(e, e.layer)) body.push({ kind: 'prim', ...r, tip: e.type }); continue; // tip: çizim kuralı eşlemesi için (başlık, kot, ölçü …)
       }
       if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
       if (e.type === 'blk') {
@@ -172,6 +172,8 @@
     const hLM = PSL.length ? nh() : null, hLD = PSL.length ? nh() : null;
     if (PSL.length) { for (const [n, c, on] of [['PAFTA_ANTET', 7, true], ['PAFTA_YAZI', 7, true], ['PAFTA_PENCERE', 8, true], ['PAFTA_PENCERE_GIZLI', 8, false]]) if (!layers[n]) layers[n] = { name: n, color: c, lt: 'CONTINUOUS', lw: -1, on, lock: false };
       for (const P of PSL) for (const it of P.items) if (!layers[it.st.layer]) addLayer(it.st.layer); }
+    /* çizim kuralı: 2B çıktıda program katmanları örnek çizimlerin katmanlarına çevrilir (app/cizim-kural-uygula.js) */
+    if (opts.plain === '2b' && C.cizimKuralCikti) { try { C.cizimKuralCikti({ body, blocks, PSL, layers, usedLt, opts }); } catch (er) { console.error(er); } }
     /* --- HEADER --- */
     g(0, 'SECTION'); g(2, 'HEADER');
     g(9, '$ACADVER'); g(1, r12 ? 'AC1009' : 'AC1015');
@@ -217,7 +219,7 @@
     }
     g(0, 'ENDTAB');
     { const S = Object.values(C.styles ? C.styles() : { Standard: { name: 'Standard', font: 'Arial', h: 0, wf: 1, obl: 0 } });
-      tbl('STYLE', S.length); for (const y of S) { rec('STYLE', 'AcDbTextStyleTableRecord'); g(2, nameSafe(y.name)); g(70, 0); g(40, fx(y.h || 0)); g(41, fx(y.wf || 1)); g(50, fx(y.obl || 0)); g(71, 0); g(42, 2.5); g(3, C.fontFile ? C.fontFile(y.font) : 'arial.ttf'); g(4, '');
+      tbl('STYLE', S.length); for (const y of S) { rec('STYLE', 'AcDbTextStyleTableRecord'); g(2, nameSafe(y.name)); g(70, 0); g(40, fx(y.h || 0)); g(41, fx(y.wf || 1)); g(50, fx(y.obl || 0)); g(71, 0); g(42, 2.5); g(3, y.bold && /^arial$/i.test(y.font || '') ? 'arialbd.ttf' : C.fontFile ? C.fontFile(y.font) : 'arial.ttf'); g(4, '');
         if (!r12 && !/\.shx$/i.test(C.fontFile ? C.fontFile(y.font) : '')) { g(1001, 'ACAD'); g(1000, y.font); g(1071, (y.italic ? 0x1000000 : 0) | (y.bold ? 0x2000000 : 0) | 34); } }
       g(0, 'ENDTAB'); }
     tbl('VIEW', 0); g(0, 'ENDTAB');

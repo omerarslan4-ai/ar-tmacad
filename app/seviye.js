@@ -184,7 +184,7 @@
   T.seviyecizgi = {
     label: 'Seviye çizgisi',
     prims: e => {
-      const lv = C.svGet(e.sid), out = []; if (!lv) return out; const y = e.y0 + lv.z, th = C.annoH(2.2), st = C.styles && C.styles().KOT ? { st: 'KOT' } : {};
+      const lv = C.svGet(e.sid), out = []; if (!lv) return out; const y = e.y0 + lv.z, ps = C.pstil ? C.pstil() : null, th = C.annoH(ps ? ((C.cizimKural && C.cizimKural.MIMARI.yazi.ZMN.mm[0]) || 2.5) : 2.2), st = ps ? { st: ps.yazi } : (C.styles && C.styles().KOT ? { st: 'KOT' } : {}); // pafta stilinde: YZ, 2,5 mm (zemin kotu yazısı kuralı)
       const top = lv.toprak, col = top ? { color: 30 } : {};
       if (top) {
         const segs = [[e.x0, e.ix0 != null ? e.ix0 : e.x0], [e.ix1 != null ? e.ix1 : e.x1, e.x1]];
