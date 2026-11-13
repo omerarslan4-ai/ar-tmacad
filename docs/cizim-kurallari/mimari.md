@@ -137,13 +137,15 @@ Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile ar
 | Duvar (DU) | çizgi yatay; duvarın içinden çıkar, kod duvarın sağında, çizginin ucundan 1,3 mm sonra başlar (çizgi boyu örneklerde 7,5 – 12 mm; programda duvar yüzünden 4,5 mm taşar) |
 | Döşeme (DÖ) | çizgi "L": döşemeden 12 – 17 mm dik çıkar (programda 12), 2,3 mm yatay döner, kod ondan sonra yazılır |
 | Sayı | kod her elemana ayrı yazılır: kesilen her duvar parçası (toprak altı DU01, toprak üstü DU02 ayrı) ve her döşeme parçası bir kod alır (terfi: 4 kesitte 31 kod; ön arıtma: 79) |
-Çatı örtüsü (makas, kiremit) döşeme sayılmaz, kod almaz. Pencere / kapı kod almaz.
+Çatı örtüsü (makas, kiremit), merdiven ve rampa döşeme sayılmaz, kod almaz. Pencere / kapı kod almaz, açılıma satır olarak da yazılmaz.
+
+**Örnekle henüz tutmayanlar (AutoCAD nesne türü):** örnekte yazı genişliği 0,75 (programda YZ stili 0,70 — Karar: YZ 0,70); açılım kutusu tek parça çok satırlı yazı, alt çizgi yazının içinde, çerçeve ve kod çizgisi tek parça çoklu çizgi; programda bunlar ayrı yazı ve ayrı çizgilerdir. Örnekte duvar kodu duvarın sağında da solunda da olabilir, döşeme kodu aşağıda da olabilir; program hep sağa / yukarı koyar. Örneklerde başlık "DÖSEMELER" yazılmış; programda "DÖŞEMELER".
 
 **Paftadaki açılım çerçevesi:**
 | Özellik | Değer |
 | --- | --- |
 | Düzen | çerçeve içinde üstte **DÖŞEMELER**, altta **DUVARLAR**; kodlar soldan sağa yan yana |
-| Başlık | YZ 4 mm, altı çizili, katman `Yazi25` |
+| Başlık | YZ 4 mm, altı çizili, **renk 94**, katman `Yazi25` |
 | Kod | 3,5 mm (satırın 1,4 katı), altı çizili, **renk 94**, katman `Yazi25` |
 | Satırlar | 2,5 mm, başında tire, büyük harf; satır aralığı ≈ 4,2 mm |
 | Sütun aralığı | 84 mm (örneklerde 74 – 84) |

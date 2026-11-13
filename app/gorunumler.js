@@ -218,7 +218,7 @@
       const ty = (x, yy, s, h, renk) => { const e = tx(x, yy, s, h, renk); e.layer = lyY; return e; }, cz = (x0, y0, x1, y1, renk, kat) => { ln(x0, y0, x1, y1, renk); const e = C.doc.ents[C.doc.ents.length - 1]; e.layer = kat || lyY; if (kat) e.lw = 25; };
       let gTop = 0, sonKutu = 0, enAlt = 0, sut = 1;
       for (const g of G) { const yB = gTop - Kt.baslikAlt, yK = gTop - Kt.kutuAlt; sonKutu = yK; enAlt = yK; sut = Math.max(sut, g.kutular.length);
-        ty(Kt.kenar + 2.6, yB, g.baslik, Kt.baslikMm); cz(Kt.kenar + 2.6, yB - 0.9, Kt.kenar + 2.6 + gen(g.baslik, Kt.baslikMm), yB - 0.9);
+        ty(Kt.kenar + 2.6, yB, g.baslik, Kt.baslikMm, Kt.baslikRenk); cz(Kt.kenar + 2.6, yB - 0.9, Kt.kenar + 2.6 + gen(g.baslik, Kt.baslikMm), yB - 0.9, Kt.baslikRenk);
         g.kutular.forEach((kt, i) => { const x = Kt.kenar + i * Kt.sutun; let yy = yK - Kt.kodMm;
           ty(x, yy, kt.kod, Kt.kodMm, Kt.kodRenk); cz(x, yy - 0.8, x + gen(kt.kod, Kt.kodMm), yy - 0.8, Kt.kodRenk); yy -= Kt.kodAralik;
           for (const s of kt.satir) K.kaydir(s, Kt.satirHarf).forEach((parca, j) => { if (j === 0) ty(x, yy, '-', Kt.satirMm); ty(x + Kt.girinti, yy, parca, Kt.satirMm); yy -= Kt.satirAralik; });

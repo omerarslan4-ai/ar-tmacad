@@ -101,7 +101,7 @@
                kod 3,5 mm altı çizili renk 94; satırlar 2,5 mm, tireli; yazılar Yazi25, çerçeve Mim_Yazi25 katmanında. */
     acilim: {
       etiket: { katman: 'Mim_Yazi25', yaziMm: 2.5, cizgiRenk: 243, bosluk: 1.3, duvarTasma: 4.5, dosemeDik: 12, dosemeYatay: 2.3 },
-      kutu: { yaziKatman: 'Yazi25', cerceveKatman: 'Mim_Yazi25', baslikMm: 4, kodMm: 3.5, kodRenk: 94, satirMm: 2.5, satirAralik: 4.2, kodAralik: 5.8,
+      kutu: { yaziKatman: 'Yazi25', cerceveKatman: 'Mim_Yazi25', baslikMm: 4, baslikRenk: 94, kodMm: 3.5, kodRenk: 94, satirMm: 2.5, satirAralik: 4.2, kodAralik: 5.8,
         girinti: 4, sutun: 84, kenar: 3.6, baslikAlt: 12, kutuAlt: 15.6, grupBosluk: 6, satirHarf: 40 },
     },
     /* katmandan bağımsız kalan nesne renkleri (örnek çizimlerde de nesnede yazılıdır) */

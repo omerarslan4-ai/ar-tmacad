@@ -328,7 +328,7 @@
     const th = tH(), lsp = th * 1.75, W = q => [m.q0[0] + q[0], m.q0[1] + q[1], 0], runs = new Map();
     const span = m.ub[2] - m.ub[0], step = Math.max(0.1, span / 160);
     /* pafta stili (Çokal R2): kod her elemana ayrı yazılır — kesilen her duvar parçası (toprak altı / üstü ayrı) ve her döşeme parçası bir kod alır */
-    const cokal = !!(C.pstil && C.pstil() && C.acilimEtiketKural), son = new Map();
+    const cokal = !!(C.pstil && C.pstil() && C.acilimEtiketKural), son = new Map(), DOSEME_DEGIL = /^(çatı|merdiven|katı|rampa)$/i; /* malzemesi olmayan model adları: döşeme katmanı sayılmaz */
     const note = (sig, o) => { if (cokal) { const A = son.get(sig) || []; son.set(sig, A); /* aynı katmanlaşmanın kesintisiz süren parçası (eğimli çatıda kot yavaş değişir) */
         let l = A.find(q => o.s - q.s <= step * 1.6 && (o.zt == null || Math.abs(o.zt - q.zt) < 0.3)); if (!l) { l = { i: A.length }; A.push(l); } l.s = o.s; l.zt = o.zt; sig += '#' + l.i; }
       const r = runs.get(sig); if (!r) runs.set(sig, Object.assign({ s0: o.s, s1: o.s, n: 1, ornek: [[o.s, o.zt]] }, o)); else { r.s1 = o.s; r.n++; r.ornek.push([o.s, o.zt]); } };
@@ -336,11 +336,12 @@
       const x = m.a[0] + m.u[0] * s + m.n[0] * 0.004, y = m.a[1] + m.u[1] * s + m.n[1] * 0.004, st = vStack(x, y, m.gb || 0); if (!st.length) continue;
       for (const w of st.filter(isWall)) { const z = (Math.max(w.zb, 0) + w.zt) / 2 > w.zb ? (Math.max(w.zb, 0) + w.zt) / 2 : (w.zt + w.zb) / 2;
         const zL = !cokal ? [z] : [w.zb < -0.3 ? (w.zb + Math.min(w.zt, 0)) / 2 : null, w.zt > 0.3 ? (Math.max(w.zb, 0) + w.zt) / 2 : null].filter(q => q != null); if (cokal && !zL.length) zL.push(z);
-        zL.forEach((zz, i) => { const r = probeAt(m, W([s, zz])); if (r && r.mode === 'duvar' && r.lines.length && !(cokal && r.lines.every(q => /pencere|kap[ıi]/i.test(q)))) note('D|' + r.lines.join('|') + (cokal ? '|' + (zz < 0 ? 'alt' : 'ust') + Math.round(w.zb * 2) : ''), { s, z: zz, r, kind: 'duvar' }); }); }
+        zL.forEach((zz, i) => { let r = probeAt(m, W([s, zz])); if (r && cokal) r = Object.assign({}, r, { lines: r.lines.filter(q => !/pencere|kap[ıi]/i.test(q)) }); /* pencere / kapı kod almaz, açılıma satır olarak da yazılmaz */
+          if (r && r.mode === 'duvar' && r.lines.length) note('D|' + r.lines.join('|') + (cokal ? '|' + (zz < 0 ? 'alt' : 'ust') + Math.round(w.zb * 2) : ''), { s, z: zz, r, kind: 'duvar' }); }); }
       const fl = st.filter(it => !isWall(it)), used = new Set();
       for (const it of fl) { if (used.has(it)) continue; const ch = chainV(fl, (it.zt + it.zb) / 2); ch.forEach(q => used.add(q)); if (!ch.length || (!cokal && ch.length < 2 && !ch.some(q => q.k !== 'yapi'))) continue;
-        const lines = dedupe(ch.map(q => q.ad).filter(ad => !(cokal && /^çatı$/i.test(String(ad).trim())))); if (!lines.length) continue; /* çatı örtüsü (makas, kiremit) döşeme katmanı değildir */
-        const ust = cokal ? (ch.find(q => !/^çatı$/i.test(String(q.ad).trim())) || ch[0]) : ch[0]; /* kod, çatı örtüsünün değil döşemenin üstüne konur */
+        const lines = dedupe(ch.map(q => q.ad).filter(ad => !(cokal && DOSEME_DEGIL.test(String(ad).trim())))); if (!lines.length) continue; /* çatı örtüsü (makas, kiremit) döşeme katmanı değildir */
+        const ust = cokal ? (ch.find(q => !DOSEME_DEGIL.test(String(q.ad).trim())) || ch[0]) : ch[0]; /* kod, çatı örtüsünün değil döşemenin üstüne konur */
         note('Y|' + lines.join('|'), { s, z: (ust.zt + ch[ch.length - 1].zb) / 2, zt: ust.zt, r: { lines }, kind: 'doseme' }); }
     }
     let cand = [...runs.values()];
@@ -351,7 +352,7 @@
       const Ek = C.acilimEtiketKural(), mmk = C.annoH(1); let n = 0;
       for (const cd of cand.slice(0, 60)) { const duvar = cd.kind === 'duvar'; if (!duvar && cd.s1 - cd.s0 < 1) continue;
         const hedef = cd.s0 + (cd.s1 - cd.s0) * 0.35, or = duvar ? null : cd.ornek.reduce((b, q) => (Math.abs(q[0] - hedef) < Math.abs(b[0] - hedef) ? q : b)); /* eğimli döşemede kodun konduğu yerdeki üst kot */
-        const sx = duvar ? cd.s : or[0], zt = duvar ? 0 : or[1], za = duvar ? cd.z : zt - 0.005, a = W([sx, za]);
+        const sx = duvar ? (cd.s0 + cd.s1) / 2 : or[0], /* duvarda çizgi duvarın ortasından çıkar */ zt = duvar ? 0 : or[1], za = duvar ? cd.z : zt - 0.005, a = W([sx, za]);
         const p = duvar ? W([cd.s1 + step / 2 + Ek.duvarTasma * mmk, za]) : W([sx + Ek.dosemeYatay * mmk, zt + Ek.dosemeDik * mmk]);
         C.add(C.newEnt('acilim', { a, p, lines: cd.r.lines, tur: cd.kind, side: 1, src: { k: m.nm, s: sx, z: za }, dis: 'Mimari', layer: ensL('MALZEME_ACILIM') })); n++; }
       C.changed(); return n; }
