@@ -24,6 +24,15 @@
     komb: P.kombVars(),
     tas: { phiMin: 12, sMax: 0.20, wmax: 0.10, rhoMin: 0.002, FSk: 1.10, mesh: 0.25, kenarZarf: true, azalt: false, olcek: 50 },
   });
+  /* Modelden gelen geometri (d.geo: Lx, Ly, kalınlıklar, kAlt, kUst …) pencere girdisine (S.geo) uygulanır — statik.html › modelUygula.
+     Zemin / su / YAS kotları pencerenin girdisidir: yapının kot aralığının dışındaysa (ör. örnek değerler) perde üst kotu farkı kadar kaydırılır. */
+  P.modelKotUygula = (S, d) => {
+    const g = S.geo, n = d.geo, dz = n.kUst - g.kUst;
+    if (!(g.kZemin >= n.kAlt && g.kZemin <= n.kUst + 3)) { g.kZemin = +(g.kZemin + dz).toFixed(3); g.kSu = +(g.kSu + dz).toFixed(3); if (g.kYAS != null) g.kYAS = +(g.kYAS + dz).toFixed(3); }
+    if (g.kSu > n.kUst) g.kSu = +(n.kUst - 0.3).toFixed(3);
+    S.geo = Object.assign({}, g, n);
+    return [];
+  };
   P.CASES = ['G', 'Q', 'Hs', 'Ht', 'Qs', 'YAS', 'EHt', 'EHs', 'EQs', 'E_YAS'];
   P.CASE_AD = { G: 'Zati yükler', Q: 'Hareketli yükler', Hs: 'Yapı içi hidrostatik su itkisi', Ht: 'Statik toprak itkisi', Qs: 'Sürşarj yanal itkisi', YAS: 'Yeraltı suyu (yanal + kaldırma)', EHt: 'Depremde toprak itkisi artışı', EHs: 'Depremde hidrodinamik su itkisi', EQs: 'Depremde sürşarj itkisi', E_YAS: 'Depremde yeraltı suyu itkisi' };
   /* kombinasyonlar: TS 500 7.4 / TBDY 2018 4.4 — deprem içeren kombinasyonlarda yük katsayıları 1.0 */
@@ -376,6 +385,7 @@
   P.KALINLIK = { basamak: [0.20, 0.25, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80], doseme: [0.15, 0.20, 0.25, 0.30], perdeMin: 0.25, inceOran: 18, kalinOran: 9.5, radyeEk: 2 };
   const basUst = (v, L) => { const b = (L || P.KALINLIK.basamak).find(x => x >= v - 1e-6); return b == null ? (L || P.KALINLIK.basamak).slice(-1)[0] : b; };   // v'yi karşılayan ilk basamak
   const basSonra = (t, L) => (L || P.KALINLIK.basamak).find(x => x > t + 1e-6);                                                                                // bir üst basamak (yoksa undefined)
+  P.kalinlikBasamak = { ust: basUst, sonra: basSonra };   // 3B kabuk önerisi (statik-kabuk-arayuz.js › P.kabukOnerHesap) aynı basamakları kullanır
   /* perde yüksekliği H (m) → dış perde için kabul edilen kalınlık aralığı */
   P.perdeKalinlikAraligi = H => { const K = P.KALINLIK, min = basUst(Math.max(K.perdeMin, H / K.inceOran)); return { H, min, max: Math.max(min, basUst(H / K.kalinOran)) }; };
   P.kalinlikSinir = S => { const g = S.geo, K = P.KALINLIK, H = Math.max(0.5, (+g.kUst || 0) - (+g.kAlt || 0) - (+g.hr || 0)), p = P.perdeKalinlikAraligi(H);
@@ -385,16 +395,24 @@
   /* kabuk (3B) modelinde bir kalınlık adımı — aynı firma basamakları ve aralıkları: M = { walls, radye, dosemeler }, Y = [{ tur: 'perde'|'radye'|'doseme', i }]
      (yetersiz gruplar). Her perde yüksekliğine göre en az max(25, H/18) basamağına çekilir; yetersiz eleman bir basamak büyür,
      üst sınırdaysa büyümez ve `sinir`e yazılır. Radye en kalın perdenin en çok iki basamak üstü, döşeme 15 – 30 cm. */
-  P.kabukKalinlikAdim = (M, Y) => {
-    const K = P.KALINLIK, cm = v => Math.round(v * 100), log = [], sinir = [], rUst = M.radye ? M.radye.kAlt + M.radye.t : null;
+  P.kabukSinir = M => {   // kabuk modelinde eleman eleman kalınlık sınırları: { perde: [{H, min, max}] (M.walls sırasıyla), radyeMax, dosemeMax }
+    const K = P.KALINLIK, W = M.walls || [], rUst = M.radye ? M.radye.kAlt + M.radye.t : null;
     const H = w => Math.max(0.5, (+w.zt || 0) - (rUst != null ? rUst : (w.zb != null ? +w.zb : (+w.zt || 0) - 3)));
+    const perde = W.map(w => P.perdeKalinlikAraligi(H(w))), disT = Math.max(0, ...W.filter(w => w.tip === 'dis').map(w => w.t));
+    W.forEach((w, i) => { if (w.tip === 'ic' && disT > 0) perde[i] = Object.assign({}, perde[i], { max: Math.min(perde[i].max, Math.max(disT, w.t)) }); }); // ara perde dış perdeden kalın olmaz
+    let rMax = Math.max(0.40, ...W.map(w => w.t)); for (let i = 0; i < K.radyeEk; i++) rMax = basSonra(rMax) || rMax;
+    return { perde, radyeMax: rMax, dosemeMax: K.doseme.slice(-1)[0] };
+  };
+  P.kabukKalinlikAdim = (M, Y) => {
+    const K = P.KALINLIK, cm = v => Math.round(v * 100), log = [], sinir = [];
+    const A0 = P.kabukSinir(M).perde, H = w => A0[(M.walls || []).indexOf(w)].H;
     let degisti = false;
-    (M.walls || []).forEach(w => { const A = P.perdeKalinlikAraligi(H(w)); if (w.t < A.min - 1e-6) { w.t = A.min; degisti = true; log.push(`${w.ad} → ${cm(w.t)} (H ${H(w).toFixed(2)} m için en az)`); } });
+    (M.walls || []).forEach((w, i) => { const A = A0[i]; if (w.t < A.min - 1e-6 && A.min <= A.max + 1e-9) { w.t = A.min; degisti = true; log.push(`${w.ad} → ${cm(w.t)} (H ${H(w).toFixed(2)} m için en az)`); } });
     const yap = new Set();
     for (const y of Y) { const k = y.tur + y.i; if (yap.has(k)) continue; yap.add(k);
-      if (y.tur === 'perde') { const w = M.walls[y.i]; if (!w) continue; const A = P.perdeKalinlikAraligi(H(w)), n = basSonra(w.t);
+      if (y.tur === 'perde') { const w = M.walls[y.i]; if (!w) continue; const A = P.kabukSinir(M).perde[y.i], n = basSonra(w.t);
         if (n != null && n <= A.max + 1e-9) { w.t = n; degisti = true; log.push(`${w.ad} → ${cm(n)}`); } else sinir.push(`${w.ad} ${cm(w.t)} cm üst sınırda (H ${H(w).toFixed(2)} m için en çok ${cm(A.max)} cm): kalınlık artırılmadı — donatıyı sıklaştırın ya da ara mesnet (bölme perdesi, payanda, kiriş) ekleyin.`); }
-      else if (y.tur === 'radye' && M.radye) { const r = M.radye; let mx = Math.max(0.40, ...(M.walls || []).map(w => w.t)); for (let i = 0; i < K.radyeEk; i++) mx = basSonra(mx) || mx;
+      else if (y.tur === 'radye' && M.radye) { const r = M.radye, mx = P.kabukSinir(M).radyeMax;
         const n = basSonra(r.t); if (n != null && n <= mx + 1e-9) { r.kAlt = +(r.kAlt - (n - r.t)).toFixed(3); r.t = n; degisti = true; log.push(`radye → ${cm(n)}`); } else sinir.push(`Radye ${cm(r.t)} cm üst sınırda (en çok ${cm(mx)} cm): kalınlık artırılmadı.`); }
       else if (y.tur === 'doseme') { const d = (M.dosemeler || [])[y.i]; if (!d) continue; const n = basSonra(d.t, K.doseme);
         if (n != null) { d.t = n; degisti = true; log.push(`${d.ad} → ${cm(n)}`); } else sinir.push(`${d.ad} ${cm(d.t)} cm üst sınırda (en çok ${cm(K.doseme.slice(-1)[0])} cm): kalınlık artırılmadı — ara kiriş ya da mesnet ekleyin.`); } }

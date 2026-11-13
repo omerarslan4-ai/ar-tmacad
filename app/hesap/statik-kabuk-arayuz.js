@@ -233,7 +233,7 @@
   try { const sec = FORM.find(x => /^Tasarım ayarları/.test(x[0])); if (sec && !sec[2].some(f => f.k === 'tas.kmesh')) { sec[2].push(F('tas.kmesh', 'Kabuk ağ aralığı — oval hazne (m, 0 = otomatik)'), F('tas.dH', 'Oval hazne iç perde su seviyesi farkı ΔH (m)')); if (S && S.tas) { if (S.tas.kmesh == null) S.tas.kmesh = 0; if (S.tas.dH == null) S.tas.dH = 0.3; } buildForm(); } } catch (er) { console.warn(er); }
   const onizle0 = window.onizle, hepsi0 = window.hepsi, model0 = window.modelUygula;
   window.modelUygula = function (d) {
-    if (d && d.kabuk) { const kAlt = d.kabuk.radye.kAlt; model0.call(this, Object.assign({}, d, { kabuk: undefined })); S.kabuk = d.kabuk; S.mod = 'kabuk'; S.suYapisi = false; S.icRef = null; if (d.kabuk.wmax > 0) S.tas.wmax = d.kabuk.wmax; /* yapıya özgü çatlak sınırı (anaerobik: 0,20 mm — firma standardı) */ { const ov = S.kabukOv || {}; let n = 0; const uy = (k, o) => { const v = ov[k]; if (!v || !o) return; if (Math.abs(o.t - v.t0) < 0.004) { if (k[0] === 'R') o.kAlt = +(o.kAlt - (v.t - o.t)).toFixed(3); o.t = v.t; n++; } else if (Math.abs(o.t - v.t) < 0.004) delete ov[k]; else delete ov[k]; }; d.kabuk.walls.forEach(w => uy('W' + w.id, w)); uy('R' + d.kabuk.radye.id, d.kabuk.radye); (d.kabuk.dosemeler || []).forEach(x => uy('D' + x.id, x)); S.kabukOv = ov; if (n) S._ovMsg = `${n} elemanda önerilen (modele henüz yansıtılmamış) kalınlık kullanılıyor.`; } /* dikdörtgen akışı (kalınlık yansıtma, eşitleme) devre dışı */ if (S.tas.dH == null) S.tas.dH = 0.3; save(); onizle(); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info"><b>3B kabuk model</b>: ${d.kabuk.walls.length} perde (${d.kabuk.walls.filter(w => w.tip === 'dis').length} dış), radye ${f2(area(d.kabuk.radye.pts), 1)} m² (alt kot ${f2(kAlt)}). Hesap 3B kabuk sonlu eleman modeliyle yapılır (SAP2000 shell benzeri).</div>`); return; }
+    if (d && d.kabuk) { const kAlt = d.kabuk.radye.kAlt; model0.call(this, Object.assign({}, d, { kabuk: undefined })); S.kabuk = d.kabuk; S.mod = 'kabuk'; S.suYapisi = false; S.icRef = null; if (d.kabuk.wmax > 0) S.tas.wmax = d.kabuk.wmax; /* yapıya özgü çatlak sınırı (anaerobik: 0,20 mm — firma standardı) */ { const q = P.kabukOvUygula(d.kabuk, S.kabukOv || {}); S.kabukOv = q.ov; S._ovMsg = [q.n ? `${q.n} elemanda önerilen (modele henüz yansıtılmamış) kalınlık kullanılıyor.` : '', q.atilan.length ? `Önceki oturumdan kalan, firma kalınlık aralığının dışındaki öneriler yok sayıldı ve silindi: ${q.atilan.join(', ')}.` : ''].filter(Boolean).join(' ') || null; } /* dikdörtgen akışı (kalınlık yansıtma, eşitleme) devre dışı */ if (S.tas.dH == null) S.tas.dH = 0.3; save(); onizle(); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info"><b>3B kabuk model</b>: ${d.kabuk.walls.length} perde (${d.kabuk.walls.filter(w => w.tip === 'dis').length} dış), radye ${f2(area(d.kabuk.radye.pts), 1)} m² (alt kot ${f2(kAlt)}). Hesap 3B kabuk sonlu eleman modeliyle yapılır (SAP2000 shell benzeri).${S._ovMsg ? '<br>' + esc(S._ovMsg) : ''}</div>`); return; }
     if (d && !d.hata) { S.mod = 'dik'; delete S.kabuk; }
     if (d && d.hata) { // model alınamadı: eski (önceki) yapı ekranda kalmasın
       const vardi = kabukMu(); S.mod = 'dik'; delete S.kabuk; R = null; window._KR = null; save();
@@ -289,20 +289,63 @@
   };
 
   /* ---------- kabuk modunda Kalınlık öner / Kalınlıkları modele yansıt ---------- */
-  const yetersizler = r => { const out = []; for (const t of r.tasarim) { if (t.katman.some(k => !k.sec || !k.sec.ok) || !t.kesme.ok) out.push(t.grup); } return out; };
-  P.kabukOner = (ilerle) => {
-    const log = [], h0 = S.tas.kmesh; let r = null, sinir = [];
-    try { S.tas.kmesh = Math.max(+h0 || 0, 0.8); // denemelerde kaba ağ (hızlı)
-      // firma kalınlık basamakları ve perde yüksekliğine bağlı aralık (P.kabukKalinlikAdim, docs/tasarim-standartlari.md)
-      for (let it = 0; it < 12; it++) { r = P.kabukHesap(S);
-        const Y = yetersizler(r).map(g => { const e = r.AG.els[g.ids[0]]; return g.tur === 'radye' ? { tur: 'radye', i: 0 } : g.tur === 'doseme' ? { tur: 'doseme', i: +e.grp.slice(1) } : { tur: 'perde', i: e.wi }; });
-        const a = P.kabukKalinlikAdim(S.kabuk, Y); log.push(...a.log); sinir = a.sinir;
-        if (!a.degisti) break; if (ilerle) ilerle(it); }
-    } finally { S.tas.kmesh = h0; }
-    // aynı adlı (birleşik) son değerleri özetle
+  const cmY = v => String(Math.round(v * 1000) / 10).replace('.', ',');
+  const yetersizler = r => r.tasarim.filter(t => t.katman.some(k => !k.sec || !k.sec.ok) || !t.kesme.ok);
+  /* üst sınırdaki eleman neden yetmiyor — kullanıcıya düz Türkçe (kesme mi, eğilme / çatlak mı, serbest üst kenar mı, yerel tepe mi) */
+  const nedenYaz = (t, r, S1) => {
+    const g = t.grup, n = [];
+    if (!t.kesme.ok) n.push(`kesme kuvveti betonun tek başına taşıdığından büyük (Vd = ${f2(t.kesme.Vd, 0)} kN/m, sınır ${f2(Math.min(t.kesme.Vcr, t.kesme.Vmax), 0)} kN/m; bu hesapta kesme donatısı yok)`);
+    const kt = t.katman.filter(k => !k.sec || !k.sec.ok);
+    if (kt.length) { const k = kt.slice().sort((a, b) => (b.M + 0.3 * b.N) - (a.M + 0.3 * a.N))[0];
+      n.push(`${k.yon.replace(/^M\d\d \((.*)\)$/, '$1')} donatıda ${k.yuz} yüzde eğilme${k.N > 1 ? ' + çekme' : ''} için uygun donatı bulunamadı (M = ${f2(k.M, 0)} kNm/m${k.N > 1 ? `, N = ${f2(k.N, 0)} kN/m` : ''}; çatlak sınırı ${f2(S1.tas.wmax, 2)} mm)`); }
+    if (g.tur === 'dis' || g.tur === 'ic') { const w = r.AG.W[r.AG.els[g.ids[0]].wi]; if (w && w.ustSerbest > 0.5) n.push(w.ustOran < 0.05 ? `üst kenarı boydan boya serbest (${f2(w.boy, 1)} m; döşeme / kiriş tutmuyor, perde konsol çalışıyor)` : `üst kenarının ${f2(w.ustSerbest, 1)} m'si serbest (o kısımda döşeme yok, perde konsol çalışıyor)`); }
+    if (t.yerel && t.yerel.length) n.push(`ayrıca ${t.yerel.length} tekil noktada yerel tepe var (kalınlık gerekçesi sayılmadı)`);
+    return n.join('; ');
+  };
+  /* Kalınlık önerisi (saf: S0 değişmez). Her tur: hesap → yetersiz elemanlar → P.kabukKalinlikAdim (statik-motor.js; firma basamakları,
+     perde yüksekliğine bağlı aralık, eleman başına turda en çok bir basamak). Üst sınırda da yetmeyen eleman kalınlaştırılmaz;
+     hangi elemanda neden yetmediği (kesme / eğilme-çatlak / serbest üst kenar / yerel tepe) `sinir` listesinde düz Türkçe bildirilir.
+     Dönen: { kabuk (yeni kalınlıklar), log, sinir, r (son hesap, kaba ağ), yeterli } */
+  const grupNo = (r, t) => { const g = t.grup, e = r.AG.els[g.ids[0]]; return g.tur === 'radye' ? { tur: 'radye', i: 0 } : g.tur === 'doseme' ? { tur: 'doseme', i: +e.grp.slice(1) } : { tur: 'perde', i: e.wi }; };
+  P.kabukOnerHesap = (S0, o) => {
+    o = o || {}; const S2 = JSON.parse(JSON.stringify(S0)), M = S2.kabuk, B = P.kalinlikBasamak, log = [];
+    S2.tas.kmesh = Math.max(+S2.tas.kmesh || 0, o.kabaAg == null ? 0.8 : +o.kabaAg); // denemelerde kaba ağ (hızlı)
+    let r = null; const maxTur = o.maxTur || 12;
+    for (let it = 0; it <= maxTur; it++) {
+      r = P.kabukHesap(S2, o.ilerle); if (it === maxTur) break;
+      const a = P.kabukKalinlikAdim(M, yetersizler(r).map(t => grupNo(r, t))); log.push(...a.log);
+      if (!a.degisti) break;
+    }
+    // sınır iletileri son hesaba göre: hâlâ yetersiz olup bir üst basamağı aralık dışında kalan elemanlar
+    const L = P.kabukSinir(M), sinir = [];
+    for (const t of yetersizler(r)) { const q = grupNo(r, t); let ad, tNow, max, ek = '', L2 = null;
+      if (q.tur === 'radye') { ad = 'Radye'; tNow = M.radye.t; max = L.radyeMax; ek = 'en kalın perdenin iki basamak üstü, '; }
+      else if (q.tur === 'doseme') { const d = M.dosemeler[q.i]; if (!d) continue; ad = `${d.ad} döşemesi`; tNow = d.t; max = L.dosemeMax; L2 = P.KALINLIK.doseme; }
+      else { const w = M.walls[q.i]; if (!w) continue; ad = `${w.ad} perdesi`; tNow = w.t; max = L.perde[q.i].max; ek = `${f2(L.perde[q.i].H)} m yüksekliğindeki perde için `; }
+      const n = B.sonra(tNow, L2); if (n != null && n <= max + 1e-9) continue;       // daha büyüyebilir (tur sınırı): sınır iletisi değil
+      sinir.push(`${ad} ${cmY(tNow)} cm ile kalınlık üst sınırında (${ek}en çok ${cmY(max)} cm): daha fazla kalınlaştırılmadı. Yetmeyen: ${nedenYaz(t, r, S2) || 'kesit'}. Çözüm kalınlık değil — perde üstünü döşeme / kirişle tutun, ara mesnet (payanda, bölme perdesi, kolon) ekleyin ya da donatıyı sıklaştırın / kesme donatısı koyun.`); }
     const son = new Map(); log.forEach(x => { const [a, b] = x.split(' → '); son.set(a, b.split(' ')[0]); });
-    if (S.kabuk.radye) S.geo.kAlt = S.kabuk.radye.kAlt; save();
-    return [...son.entries()].map(([a, b]) => `${a} ${b} cm`).concat([...new Set(sinir)].map(s => '⚠ ' + s));
+    return { kabuk: M, log: [...son.entries()].map(([a, b]) => `${a} ${b} cm`), sinir, r, yeterli: !yetersizler(r).length };
+  };
+  /* pencere: öneriyi S.kabuk'a uygular (modele yazmaz — "Kalınlıkları modele yansıt") */
+  P.kabukOner = (ilerle) => {
+    const o = P.kabukOnerHesap(S, { ilerle }), M = S.kabuk;
+    o.kabuk.walls.forEach((w, i) => { if (M.walls[i]) M.walls[i].t = w.t; }); M.radye.t = o.kabuk.radye.t; M.radye.kAlt = o.kabuk.radye.kAlt; (o.kabuk.dosemeler || []).forEach((d, i) => { if (M.dosemeler && M.dosemeler[i]) M.dosemeler[i].t = d.t; });
+    if (M.radye) S.geo.kAlt = M.radye.kAlt; save();
+    const out = o.log.slice(); out.sinir = o.sinir; return out;
+  };
+  /* önceki oturumlardan kalan (modele yansıtılmamış) kalınlık önerileri: yalnız firma aralığındaki ve basamaktaki değerler yeniden uygulanır;
+     aralık dışındaki eski kayıtlar (ör. 5 cm adımlı eski önerinin 80 – 150 cm'lik perdeleri) silinir. K = d.kabuk (değişir), ov = S.kabukOv (değişir) */
+  P.kabukOvUygula = (K, ov) => {
+    ov = ov || {}; let n = 0; const atilan = [], bas = (t, L) => (L || P.KALINLIK.basamak).some(b => Math.abs(b - t) < 0.004);
+    const uy = (k, o, max, L, ad) => { const v = ov[k]; if (!v || !o) return;
+      if (Math.abs(o.t - v.t0) >= 0.004) { delete ov[k]; return; }                                  // modeldeki kalınlık değişmiş (yansıtılmış ya da elle): kayıt geçersiz
+      if (!(v.t <= max() + 0.004) || !bas(v.t, L) || !(v.t > o.t)) { atilan.push(`${ad} ${cmY(v.t)} cm`); delete ov[k]; return; }
+      if (k[0] === 'R') o.kAlt = +(o.kAlt - (v.t - o.t)).toFixed(3); o.t = v.t; n++; };
+    K.walls.forEach((w, i) => uy('W' + w.id, w, () => P.kabukSinir(K).perde[i].max, null, w.ad || 'Perde'));
+    uy('R' + K.radye.id, K.radye, () => P.kabukSinir(K).radyeMax, null, 'radye');
+    (K.dosemeler || []).forEach(x => uy('D' + x.id, x, () => P.kabukSinir(K).dosemeMax, P.KALINLIK.doseme, x.ad || 'Döşeme'));
+    return { n, atilan, ov };
   };
   const kabukYansit = () => {
     if (!kabukMu()) return false; const M = S.kabuk;
@@ -321,7 +364,7 @@
     const bO = $('#bOner'); if (bO) { const f0 = bO.onclick; bO.onclick = function () { if (!kabukMu()) return f0 && f0.apply(this, arguments);
       const b = $('#busy'); if (b) { b.style.display = 'flex'; b.textContent = 'Kalınlıklar deneniyor (kaba ağ)…'; }
       setTimeout(() => { let log = []; const t0 = new Map(); (S.kabuk.walls || []).forEach(w => { if (w.id != null) t0.set('W' + w.id, w.t); }); if (S.kabuk.radye && S.kabuk.radye.id != null) t0.set('R' + S.kabuk.radye.id, S.kabuk.radye.t); (S.kabuk.dosemeler || []).forEach(d => { if (d.id != null) t0.set('D' + d.id, d.t); });
-        atlaTazele = true; try { log = P.kabukOner(); const ov = S.kabukOv || {}; (S.kabuk.walls || []).forEach(w => { const k = 'W' + w.id; if (t0.has(k) && Math.abs(t0.get(k) - w.t) > 0.004) ov[k] = { t: w.t, t0: (ov[k] && ov[k].t0) || t0.get(k) }; }); if (S.kabuk.radye && t0.has('R' + S.kabuk.radye.id) && Math.abs(t0.get('R' + S.kabuk.radye.id) - S.kabuk.radye.t) > 0.004) ov['R' + S.kabuk.radye.id] = { t: S.kabuk.radye.t, t0: t0.get('R' + S.kabuk.radye.id) }; (S.kabuk.dosemeler || []).forEach(d => { const k = 'D' + d.id; if (t0.has(k) && Math.abs(t0.get(k) - d.t) > 0.004) ov[k] = { t: d.t, t0: t0.get(k) }; }); S.kabukOv = ov; save(); hepsi(null); } catch (er) { console.error(er); alert(er.message); } finally { atlaTazele = false; } if (b) b.style.display = 'none'; const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">Kalınlık önerisi: ${log.length ? esc(log.join(' · ')) : 'değişiklik yok (tüm elemanlar yeterli ya da üst sınırda)'}. Modele uygulamak için <b>Kalınlıkları modele yansıt</b>.</div>`); }, 40); }; }
+        atlaTazele = true; try { log = P.kabukOner(); const ov = S.kabukOv || {}; (S.kabuk.walls || []).forEach(w => { const k = 'W' + w.id; if (t0.has(k) && Math.abs(t0.get(k) - w.t) > 0.004) ov[k] = { t: w.t, t0: (ov[k] && ov[k].t0) || t0.get(k) }; }); if (S.kabuk.radye && t0.has('R' + S.kabuk.radye.id) && Math.abs(t0.get('R' + S.kabuk.radye.id) - S.kabuk.radye.t) > 0.004) ov['R' + S.kabuk.radye.id] = { t: S.kabuk.radye.t, t0: t0.get('R' + S.kabuk.radye.id) }; (S.kabuk.dosemeler || []).forEach(d => { const k = 'D' + d.id; if (t0.has(k) && Math.abs(t0.get(k) - d.t) > 0.004) ov[k] = { t: d.t, t0: t0.get(k) }; }); S.kabukOv = ov; save(); hepsi(null); } catch (er) { console.error(er); alert(er.message); } finally { atlaTazele = false; } if (b) b.style.display = 'none'; const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">Kalınlık önerisi: ${log.length ? esc(log.join(' · ')) + '. Modele uygulamak için <b>Kalınlıkları modele yansıt</b>.' : 'değişiklik yok (tüm elemanlar yeterli ya da kalınlık üst sınırında).'}</div>` + (log.sinir || []).map(u => `<div class="msg">${esc(u)}</div>`).join('')); }, 40); }; }
     const bK = $('#bKal'); if (bK) { const f1 = bK.onclick; bK.onclick = function () { if (kabukYansit()) return; return f1 && f1.apply(this, arguments); }; }
   }, 0);
 

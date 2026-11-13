@@ -174,9 +174,15 @@
     // döşemeler altındaki perdelerin üst kotu = döşeme orta düzlemi
     const pip = (q, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
     const dos = (M.dosemeler || []).map(d => ({ ...d, zm: d.zt - d.t / 2 }));
-    // döşeme kenarı çoğunlukla perde iç yüzündedir: perde ekseni döşeme poligonunun dışında kalır — perde yarı kalınlığı (+10 cm) kadar yakınlık yeterli
-    const polyUz = (q, poly) => { let m = Infinity; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; m = Math.min(m, projSeg(q, a, b).d); } return m; };
-    const dosta = (q, d0, w) => pip(q, d0.pts) || polyUz(q, d0.pts) <= w.t / 2 + 0.1;
+    // döşeme kenarı çoğunlukla perde iç yüzündedir: perde ekseni döşeme poligonunun dışında kalır
+    /* yakınlık yalnız perdeye dik yönde aranır: perde ekseninden yarı kalınlık (+10 cm) içe / dışa kayınca döşemenin içine giriyorsa bağlıdır.
+       (Eski kural "poligona uzaklık" idi: döşemenin bittiği köşeden sonra perde boyunca yarı kalınlık kadar ileri düğümleri de aynı köşe
+       noktasına bağlıyor, köşede tekil membran kuvveti üretiyordu — Konya terfi galeri döşemesi köşesi, 70 cm perdede 5500 kN/m.) */
+    const perdeDik = (q, w) => { let bd = Infinity, n = [0, 0]; const m = w.kapali ? w.P.length : w.P.length - 1;
+      for (let i = 0; i < m; i++) { const a = w.P[i], b = w.P[(i + 1) % w.P.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1e-9) continue; const d = projSeg(q, a, b).d; if (d < bd) { bd = d; n = [-(b[1] - a[1]) / L, (b[0] - a[0]) / L]; } }
+      return n; };
+    const dosta = (q, d0, w) => { if (pip(q, d0.pts)) return true; const n = perdeDik(q, w), r = w.t / 2 + 0.1;
+      for (const k of [1, -1, 0.5, -0.5]) if (pip([q[0] + n[0] * r * k, q[1] + n[1] * r * k], d0.pts)) return true; return false; };
     const segOrnek = w => { const out = []; const n = w.kapali ? w.P.length : w.P.length - 1; for (let i = 0; i < n; i++) { const a = w.P[i], b = w.P[(i + 1) % w.P.length]; for (let k = 0; k <= 10; k++) out.push([a[0] + (b[0] - a[0]) * k / 10, a[1] + (b[1] - a[1]) * k / 10]); } return out; };
     for (const w of W) { const d = dos.find(d0 => Math.abs(d0.zt - w.zt) < d0.t + 0.05 && segOrnek(w).some(p => dosta(p, d0, w))); w.ztm = d ? d.zm : w.zt; w.dos = d || null; }
     // kot seviyeleri

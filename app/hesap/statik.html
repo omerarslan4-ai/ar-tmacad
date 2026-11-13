@@ -344,10 +344,7 @@ function modelUygula(d) {
   if (!d) return;
   if (d.hata) { $('#pMsg').innerHTML = `<div class="msg bad">Modelden alınamadı: ${d.hata}</div>`; return; }
   if (d.geo) {
-    const g = S.geo, n = d.geo, dz = n.kUst - g.kUst;
-    if (!(g.kZemin >= n.kAlt && g.kZemin <= n.kUst + 3)) { g.kZemin = +(g.kZemin + dz).toFixed(3); g.kSu = +(g.kSu + dz).toFixed(3); if (g.kYAS != null) g.kYAS = +(g.kYAS + dz).toFixed(3); }
-    if (g.kSu > n.kUst) g.kSu = +(n.kUst - 0.3).toFixed(3);
-    S.geo = { ...g, ...n }; S.koken = d.koken; S.suYapisi = true;
+    P.modelKotUygula(S, d); S.koken = d.koken; S.suYapisi = true; // kotlar: statik-motor.js (saf fonksiyon)
   } else S.suYapisi = false;
   if (d.cerceve) { // önceki yük girdileri eleman kimliğine göre korunur
     const o = S.cer || {}, gq = new Map((o.dosemeler || []).map(x => [x.id, x])), gd = new Map((o.kirisler || []).map(x => [x.id, x]));
