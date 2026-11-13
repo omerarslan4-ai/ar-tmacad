@@ -23,6 +23,22 @@ const OLCU = {
   },
 };
 
+/* ---------- Konya statik değerleri (13.11.2026; yer: Konya merkez 37,87 K / 32,48 D, kesin yer verilmedi) ----------
+   TBDY 2018 Tablo 2.1 / 2.2 yerel zemin katsayıları ZD sınıfı için doğrusal ara değerle. Zemin değerleri Konya ovası killi zemini için
+   kabul (zemin etüdü yok); geri dolgu itkisi Çokal'daki gibi (φ 30, Ka Coulomb). */
+const ara = (x, xs, ys) => { if (x <= xs[0]) return ys[0]; for (let i = 1; i < xs.length; i++) if (x <= xs[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (x - xs[i - 1]) / (xs[i] - xs[i - 1]); return ys[ys.length - 1]; };
+const FS_ZD = Ss => ara(Ss, [0.25, 0.5, 0.75, 1.0, 1.25, 1.5], [1.6, 1.4, 1.2, 1.1, 1.0, 1.0]);
+const F1_ZD = S1 => ara(S1, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6], [2.4, 2.2, 2.0, 1.9, 1.8, 1.7]);
+const KONYA_DEPREM = (() => {
+  const Ss = 0.367, S1 = 0.117, FS = FS_ZD(Ss), F1 = F1_ZD(S1), SDS = +(Ss * FS).toFixed(3), SD1 = +(S1 * F1).toFixed(3);
+  return {
+    Ss, S1, FS: +FS.toFixed(3), F1: +F1.toFixed(3), SDS, SD1, zs: 'ZD', dd: 'DD-2',
+    ayar: { SDS, SD1, R: 8, D: 3, I: 1, n: 0.3, guseP: 55, guseG: 5 },             // çerçeve: R 8 D 3, BKS 3; 5 t vinç (Çokal ile aynı)
+    zemin: { g: 18, gs: 20, phi: 30, dR: 0.667, K: 'KA', kw: 19620, sig: 196, q: 5 }, // qt 20 t/m², k 2000 t/m³
+    dep: { yon: 'TBDY2018', SDS, r: 1.5, I: 1, yontem: 'MO', eYAS: true },
+  };
+})();
+
 /* ---------- belge kurucu ---------- */
 function yeniBelge() {
   const K = OLCU.kot;
@@ -32,6 +48,9 @@ function yeniBelge() {
       anno: 50, ltscale: 0.1, textH: 2.5, dimTextH: 2.5, dimArrow: 2.5, dimDec: 2, dimTick: false, lwdisp: true, name: 'Konya İsale Terfi Merkezi',
       // koordinat yok (çizim yerel koordinatlı); Konya için TM3 DOM 33° hazır, yalnız mode değiştirilir
       geo: { mode: 'none', lat0: 37.87, lon0: 32.48, rot: 0, cm: 33, k0: 1, fe: 500000, fn: 0, zone: 36 },
+      // statik deprem ayarı (kullanıcı "Konya değerlerini sen oluştur" dedi, 13.11.2026): Konya merkez, DD-2, ZD (zemin raporu yok, güvenli taraf)
+      // Ss 0,367 / S1 0,117 (AFAD TDTH okumasından: ZC'de SDS 0,477, SD1 0,175) → ZD: Fs 1,506, F1 2,366 → SDS 0,553, SD1 0,277
+      statikAyar: Object.assign({}, KONYA_DEPREM.ayar),
       seviye: {
         abs0: ABS0, toprak: z(K.toprak), aktif: 'Lkonyazemin',
         list: [
@@ -184,7 +203,7 @@ function uret() {
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, say } };
 }
 
-module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, GUSE, guse, uret };
+module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, GUSE, guse, KONYA_DEPREM, FS_ZD, F1_ZD, uret };
 
 if (require.main === module) {
   const cikti = process.argv[2] || path.join(__dirname, '..', 'test-proje', 'konya', 'Konya-terfi-insaat.aritma');
