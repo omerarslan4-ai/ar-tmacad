@@ -103,6 +103,7 @@ Kullanıcı kararı (13.11.2026): **ölçülendirme yönteminin ölçütü Çoka
 
 | | 1/50 çizimler ("50" stili) | Detaylar, 1/25 ve büyük ("1-20" stili) |
 | --- | --- | --- |
+| İlk sıranın çizime uzaklığı | **14 mm**, çizimin en dış çizgisinden; tretuvar varsa **tretuvarın dışından** (kullanıcı kararı 13.11.2026; çizime göre revize edilecek) | aynı |
 | Ölçü sıraları arası | **5 mm** (159 aralığın 112'si; kalanlar 5,5 – 6) | 6,5 – 7,5 mm (program 7 kullanır) |
 | Sıra sayısı | 1, 2 ya da 3 (yalnız 2 yerde 4) | aynı |
 | Toplam ölçü | **en dış sırada** (104 yığının 98'i); parça ölçüler içte | aynı |
@@ -113,8 +114,7 @@ Kullanıcı kararı (13.11.2026): **ölçülendirme yönteminin ölçütü Çoka
 Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kullanır (13.11.2026).
 
 **Örneklerde tek bir değer çıkmayan, kullanıcıya sorulanlar:**
-- İlk (iç) ölçü sırasının çizime uzaklığı: örneklerde 6 mm ile 77 mm arasında değişiyor (en sık 14 mm ve 34 – 35 mm); sabit bir kural görünmüyor. Program şimdilik kesitte alttaki ilk sırayı en dış beton çizgisinden 5 mm, soldaki ilk sırayı 8 mm uzağa koyar.
-- Bu yerleşim yalnız mimari ölçülere uygulanır; statik, mekanik ve bina tesisatı ölçüleri eski hâliyle çizilir (onların kuralı ayrıca çıkarılacak).
+- İlk ölçü sırasının çizime uzaklığı örneklerde 6 – 77 mm arasında değişiyordu; kullanıcı 14 mm ve "tretuvarın dışı" dedi (yukarıdaki tablo).
 - Neyin ölçülendirileceği (perde kalınlığı, açıklık, aks arası, döşeme kalınlığı, toplam) ve planlarda ölçü sıralarının hangi kenarlara konacağı henüz çıkarılmadı.
 
 ## 4. Kot, aks, kesit işaretleri

@@ -325,11 +325,14 @@
         const uniq = (v, tol) => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > tol) o.push(x); return o; };
         const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), psD = C.pstil && C.pstil() && C.pstil().dim ? C.pstil().dim() : null, dd = C.annoH((psD && psD.sira) || 7), /* ölçü sıra aralığı pafta stilinden (kural tablosu) */ zb = z0 - (gb || 0);
         const dim = (k, a, b, p) => { C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; };
-        if (XS.length > 2) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, zb - dd]);
-        dim('h', [x0, z0], [x1, z0], [0, zb - dd * (XS.length > 2 ? 2 : 1)]);
-        if (ZS.length > 2) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [x0 - dd * 1.6, 0]);
-        dim('v', [x0, z0], [x0, z1], [x0 - dd * (ZS.length > 2 ? 2.6 : 1.6), 0]);
-        dimBot = zb - dd * (XS.length > 2 ? 2 : 1) - dd * 0.6; void zF;
+        /* ilk sıranın yeri: pafta stilinde çizimin en dış çizgisinden (tretuvar dahil) ilk mm uzakta (kural tablosu → olcuYeri.ilkSira); eski görünümde betondan bir sıra aralığı */
+        let yA = zb - dd, xA = x0 - dd * 1.6;
+        if (psD && psD.ilk) { let ax = x0, az = zb; for (const lp of R.loops) { if (lp.lk === 'KORKULUK') continue; for (const q of lp) { ax = Math.min(ax, q[0]); az = Math.min(az, q[1]); } } yA = az - C.annoH(psD.ilk); xA = ax - C.annoH(psD.ilk); }
+        if (XS.length > 2) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, yA]);
+        dim('h', [x0, z0], [x1, z0], [0, yA - (XS.length > 2 ? dd : 0)]);
+        if (ZS.length > 2) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);
+        dim('v', [x0, z0], [x0, z1], [xA - (ZS.length > 2 ? dd : 0), 0]);
+        dimBot = yA - (XS.length > 2 ? dd : 0) - dd * 0.6; void zF;
       }
     }
     // mekanik poz balonları (POZNO ile aynı numaralar)
