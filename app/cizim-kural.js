@@ -139,7 +139,68 @@
     ],
     tarama: { 'Tarama': ['DASH', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
   };
-  K.disiplin = ad => K[String(ad || '').toLocaleUpperCase('en').replace('İ', 'I')] || null;
+  /* ---------- STATİK (Çokal AAT R1 statik paftaları: havalandırma havuzu, çamur susuzlaştırma binası, blower binası, geri devir terfi;
+     13.11.2026'da ölçüldü — TASLAK: dört örnekte aynı olan değerler yazıldı, örneklerin birbirini tutmadığı yerler belgede "açık sorular"da) ---------- */
+  K.STATIK = {
+    ad: 'Statik', belge: 'docs/cizim-kurallari/statik.md', birim: 'cm', taslak: true,
+    olcekler: [50, 100, 20],                              // 1/20 detay 1/50 uzayında 2,5 kat büyütülür (ölçü stili "20", DIMLFAC 0,4)
+    katmanlar: {
+      'DN': { renk: 7, tip: 'Continuous', kal: 0.53, ne: 'Donatı çizgisi, kesitte çubuk noktası, etriye' },
+      'DN1': { renk: 3, tip: 'Continuous', kal: 0.15, ne: 'Donatı etiketi, poz balonu, gösterge çizgisi' },
+      'ÖL': { renk: 147, tip: 'Continuous', kal: 0.15, ne: 'Ölçüler' },
+      'KOT': { renk: 3, tip: 'Continuous', kal: 0.15, ne: 'Kot işareti ve yazısı' },
+      'AX': { renk: 17, tip: 'ACAD_ISO04W100', kal: 0.09, ne: 'Aks çizgisi, balonu ve harfi' },
+      'KS': { renk: 133, tip: 'CENTER2', kal: 0.15, ne: 'Kesit çizgisi, kesit dairesi ve harfi' },
+      'BE': { renk: 6, tip: 'Continuous', kal: 0.40, ne: 'Kesilen beton dış hattı (kalıp çizgisi)' },
+      'BK': { renk: 12, tip: 'HIDDEN', kal: 0.20, ne: 'Betonun gizli kenarı' },
+      'ÖN': { renk: 9, tip: 'Continuous', kal: 0.15, ne: 'Ön görünüş çizgileri' },
+      'AG': { renk: 8, tip: 'HIDDEN', kal: 0.13, ne: 'Arka görünüş / gizli kenar' },
+      'TR': { renk: 136, tip: 'Continuous', kal: 0.09, ne: 'Kesit taraması' },
+      'TP': { renk: 36, tip: 'Continuous', kal: 0.20, ne: 'Toprak / dolgu' },
+      'GR': { renk: 223, tip: 'Continuous', kal: 0.15, ne: 'Grobeton' },
+      'YZ': { renk: 7, tip: 'Continuous', kal: 0.15, ne: 'Genel yazı, başlık, ölçek, eleman adı' },
+      'Yazi25': { renk: 7, tip: 'Continuous', kal: 0.25, ne: 'Malzeme açıklamaları' },
+      'KR': { renk: 80, tip: 'Continuous', kal: 0.30, ne: 'Kalıp planında kiriş kenarı, kiriş adı ve boyutu' },
+      'DSM': { renk: 4, tip: 'Continuous', kal: 0.20, ne: 'Döşeme kenarı, taraması, adı' },
+      'HTL': { renk: 244, tip: 'Continuous', kal: 0.25, ne: 'Hatıl' },
+      'ST': { renk: 2, tip: 'Continuous', kal: 0.13, ne: 'Su tutucu bant' },
+      'S-METRAJ': { renk: 7, tip: 'Continuous', kal: null, ne: 'Donatı metraj tablosu', serbest: true },
+      'GNY': { renk: 7, tip: 'Continuous', kal: 0.15, ne: 'Genel notlar, damga', serbest: true },
+      'ANTET': { renk: 7, tip: 'Continuous', kal: 0.25, ne: 'Antet', serbest: true },
+      'Antet Ince': { renk: 7, tip: 'Continuous', kal: 0.15, ne: 'Antet ince çizgi', serbest: true },
+      'Antet Kalın': { renk: 7, tip: 'Continuous', kal: 0.40, ne: 'Antet kalın çizgi', serbest: true },
+    },
+    esAd: {}, kodluAile: /^$/,                            // açık soru: kiriş açılımındaki uzun adlı katman ailesi ("Etriye", "Donatı Çizgi" …)
+    sistem: /^(0|Defpoints)$/i,
+    baskaDisiplin: /^(Mek_|Mekanik$|MEK_|Boru|Mim_|BASLIK_TITLE|GENEL SEMBOL_|S-METRAJ_)/,
+    katmandan: false,                                     // örneklerde donatı yazılarının anlamı elle verilen renkle ayrılır (açık soru 10)
+    /* donatı etiketi parçalarının rengi (bina paftaları; DN1 katmanında elle renk) */
+    etiketRenk: { donati: 3, boy: 2, poz: 6, parcaBoy: 5, konum: 4, gosterge: 103 },
+    yaziStilleri: { 'YZ': { font: 'turkce.shx', gen: 0.70 }, 'ARIAL': { font: 'arialbd.ttf', gen: 1 }, 'TÜRKÇE': { font: 'ARIALN.TTF', gen: 1 }, 'DN1_BOT': { font: 'ARIALN.TTF', gen: 1 } },
+    yazi: {
+      'DN1': { stil: ['DN1_BOT', 'YZ'], mm: [1.5, 1.6, 2, 2.5] },   // etiket, boy, poz 2; parça boyu / konum 1,6; çap başlığı 2,5
+      'YZ': { stil: null, mm: [2, 2.4, 3, 4, 5] },                 // eleman adı 2; ölçek 2,4 – 3; detay başlığı 4; ana başlık 5 (altı çizili)
+      'KR': { stil: null, mm: [2, 4] }, 'DSM': { stil: null, mm: [2] }, 'HTL': { stil: null, mm: [2] }, 'Yazi25': { stil: ['YZ'], mm: [2] },
+      'KOT': { stil: null, mm: [2] }, 'AX': { stil: ['ARIAL'], mm: [5] }, 'KS': { stil: null, mm: [2.5, 3, 5] },
+    },
+    olcu: {
+      katman: 'ÖL', uc: ['_ArchTick', 'PCDIM_TICK'], ustte: true, hizali: true, yaziStili: ['OL', 'YZ', 'OL 20', 'OL_100', 'Ölçü Yazı'], birim: 'cm',
+      stiller: { '50': { yaziMm: 2, ondalik: 2 }, '20': { yaziMm: 2, carpan: 0.4 }, '100': { yaziMm: 2 }, 'BEAM': { yaziMm: 2, carpan: 0.4 } },
+    },
+    kot: { blok: 'CK_TR1', yasakBlok: [], katman: 'KOT' },
+    kesitTarama: { desen: 'ANSI36', kagitOlcek: 25 },     // kesilen beton (cm çizim, 1/50)
+    tarama: { 'TR': ['ANSI36'], 'DSM': ['ANSI33'], 'GR': ['AR-CONC'], 'TP': ['GRAVEL', 'AR-SAND'], 'DN': ['ANSI31'], 'KS': ['SOLID'], 'KOT': ['SOLID'], 'DN1': ['SOLID'], 'GNY': ['SOLID'] },
+    /* işaret boyutları (kâğıt mm) */
+    isaret: { pozBalonCap: 4, aksHarf: 5, kesitHarf: 5, kesitDaireCap: 10, baslik: 5, detayBaslik: 4, olcekYazi: 3, olcekRenk: 32, olcekBicim: 'ÖL:1/{n}' },
+    /* PROGRAM KATMANI → ÇİZİM KATMANI (statik pafta üreticileri STA_* katmanlarıyla çalışır) */
+    esleme: [
+      [/^STA_(3B_.*)$/, null],
+      [/^STA_KALIP$/, 'BE'], [/^STA_GIZLI$/, 'BK'], [/^STA_(DONATI|ETRIYE)$/, 'DN'], [/^STA_(POZ|ETIKET)$/, 'DN1'], [/^STA_OLCU$/, 'ÖL'], [/^STA_AKS$/, 'AX'],
+      [/^STA_KESIT$/, 'KS'], [/^STA_KOT$/, 'KOT'], [/^STA_(YAZI|BASLIK)$/, 'YZ'], [/^STA_TARAMA$/, 'TR'], [/^STA_(TABLO.*)$/, 'S-METRAJ'], [/^STA_CERCEVE$/, 'ANTET'],
+      [/^STA_ZEMIN$/, 'TP'], [/^STA_BANT$/, 'ST'], [/^STA_KIRIS$/, 'KR'], [/^STA_DOSEME$/, 'DSM'], [/^STA_GORUNEN$/, 'ÖN'],
+    ],
+  };
+  K.disiplin = ad =>K[String(ad || '').toLocaleUpperCase('en').replace('İ', 'I')] || null;
   /* katmanın kuralı; yoksa null. es: eski ad verildiyse standart adı da döner */
   K.katman = (kural, ad) => kural.katmanlar[ad] || null;
   /* program katmanının çizim katmanı (yoksa null). Zaten çizim katmanıysa kendisi döner. */
