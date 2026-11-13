@@ -149,15 +149,16 @@ function uret() {
   const dB = perde('INS_DUVAR_TUGLA', [[0, 10], [1970, 10]], { tb: 0.2, tt: 0.2, z0: zD, h: +(K.kirisAltBoyuna - K.galeriUst).toFixed(2), malz: 'tugla', ad: 'Cephe duvarı B' });
   const dA = perde('INS_DUVAR_TUGLA', [[0, 790], [1970, 790]], { tb: 0.2, tt: 0.2, z0: zD, h: +(K.kirisAltBoyuna - K.galeriUst).toFixed(2), malz: 'tugla', ad: 'Cephe duvarı A' });
   const d1 = perde('INS_DUVAR_TUGLA', [[10, 20], [10, 780]], { tb: 0.2, tt: 0.2, z0: zD, h: +(K.kirisAltEnine - K.galeriUst).toFixed(2), malz: 'tugla', ad: 'Cephe duvarı 1' });
-  const d5 = perde('INS_DUVAR_TUGLA', [[1960, 0], [1960, 800]], { tb: 0.2, tt: 0.2, z0: zD, h: +(K.kirisAltEnine - K.galeriUst).toFixed(2), malz: 'tugla', ad: 'Cephe duvarı 5 (giriş)' });
+  const d5 = perde('INS_DUVAR_TUGLA', [[1960, 20], [1960, 780]], { tb: 0.2, tt: 0.2, z0: zD, h: +(K.kirisAltEnine - K.galeriUst).toFixed(2), malz: 'tugla', ad: 'Cephe duvarı 5 (giriş)' });
   const dK = perde('INS_DUVAR_TUGLA', [[380, 20], [380, 780]], { tb: 0.2, tt: 0.2, z0: zD, h: +(K.catiDoseme - 0.15 - K.galeriUst).toFixed(2), malz: 'tugla', ad: 'Kumanda odası bölme duvarı' });
   for (const x of ALT_PENCERE) { acik(dB, x, Object.assign({}, P1)); acik(dA, x, Object.assign({ yon: 'R' }, P1)); }
   for (const x of [190, 325]) acik(dB, x, Object.assign({}, P1));                         // kumanda odası pencereleri
   for (const x of UST_PENCERE) { const o = { w: 3.0, hh: 0.6, par: +(209.81 - K.galeriUst).toFixed(2), lento: false }; acik(dB, x, Object.assign({}, o)); acik(dA, x, Object.assign({ yon: 'R' }, o)); }
   const kapiH = +(K.mimariZemin + 2.5 - K.galeriUst).toFixed(2);                          // 250 cm kapı, bitmiş zeminden
-  acik(d5, 120, { kind: 'kapi', w: 1.0, hh: kapiH, par: 0, kTip: 'C', kasa: 0.05, yon: 'L' });                         // K1 100/250 çelik kapı
-  acik(d5, 405, { kind: 'kapi', w: 3.0, hh: +(K.kirisAltEnine - K.galeriUst).toFixed(2), par: 0, kTip: 'S', pnl: 0.5, ray: true, yon: 'L', lento: false }); // SEK1 300/470 seksiyonel kapı
-  acik(d5, 626, Object.assign({ yon: 'L' }, P1));
+  // d5 duvarı y = 20'den başlar (köşede A / B cephe duvarlarıyla üst üste binmesin): boşluk konumları duvar başından
+  acik(d5, 100, { kind: 'kapi', w: 1.0, hh: kapiH, par: 0, kTip: 'C', kasa: 0.05, yon: 'L' });                         // K1 100/250 çelik kapı
+  acik(d5, 385, { kind: 'kapi', w: 3.0, hh: +(K.kirisAltEnine - K.galeriUst).toFixed(2), par: 0, kTip: 'S', pnl: 0.5, ray: true, yon: 'L', lento: false }); // SEK1 300/470 seksiyonel kapı
+  acik(d5, 606, Object.assign({ yon: 'L' }, P1));
   acik(dK, 105, { kind: 'kapi', w: 1.3, hh: kapiH, par: 0, kTip: 'C', kasa: 0.05, kanat: 2, yon: 'R' });             // K2 130/250
   acik(dK, 440, { w: 2.1, hh: 1.5, par: +(206.41 - K.galeriUst).toFixed(2), yon: 'R' });                       // P3 210/150 kumanda odası gözetleme penceresi
 

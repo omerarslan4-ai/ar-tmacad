@@ -756,6 +756,8 @@
   const CAT = e => (RANK(e) === 0 ? 'Temel' : { 1: 'Kolon', 2: 'Perde', 3: 'Döşeme', 4: 'Kiriş', 5: 'Duvar', 6: 'Dolgu' }[RANK(e)]);
   /* her eleman için düşülecek (minha) hacim ve hangi elemanlarla çakıştığı */
   C.insMinha = (ents) => {
+    // tek kaynak: app/yapi-cakisma.js (ham geometri + birleşim önceliği; pencere / kapı ve İT/ÇEK boşlukları da düşülür) — metraj ve statik aynı net parçaları kullanır
+    if (C.yapiCakisma) { const N = C.yapiCakisma.net(ents || C.doc.ents, { canli: e => C.lyLive(e.layer) }), r2 = new Map(); for (const [id, m] of N) r2.set(id, { gross: m.brut, net: m.net, minha: m.minha, pairs: m.kesen, cat: m.ad, yeni: true }); return r2; }
     const L = (ents || C.doc.ents).filter(e => RANK(e) < 9 && C.lyLive(e.layer)).map((e, i) => ({ e, i, r: RANK(e), pr: prismsOf(e) }));
     L.sort((a, b) => a.r - b.r || a.i - b.i);
     const res = new Map();
@@ -768,9 +770,10 @@
   };
   C.addCommand(['INSCAKISMA', 'CAKISMA', 'MINHA'], 'Taşıyıcı elemanların birbirine girdiği hacimleri (minha) listeler; olağan dışı çakışmaları (perde∩perde, kiriş∩kiriş, döşeme∩döşeme, duvar∩betonarme) seçer', async () => {
     const MN = C.insMinha(), byId = new Map(C.doc.ents.map(e => [e.id, e])), odd = []; let n = 0, tot = 0;
-    for (const [id, m] of MN) { if (m.minha < 5e-4) continue; n++; tot += m.minha; const e = byId.get(id), ks = Object.keys(m.pairs); C.log(`${m.cat} #${id}: brüt ${m.gross.toFixed(3)} − minha ${m.minha.toFixed(3)} = net ${m.net.toFixed(3)} m³ (${ks.map(k => `${k} ${m.pairs[k].toFixed(3)}`).join(', ')})`); if (ks.includes(m.cat) || m.cat === 'Duvar') odd.push(e); }
+    for (const [id, m] of MN) { if (m.minha < 5e-4) continue; n++; tot += m.minha; const e = byId.get(id), ks = Object.keys(m.pairs); C.log(`${m.cat} #${id}: brüt ${m.gross.toFixed(3)} − minha ${m.minha.toFixed(3)} = net ${m.net.toFixed(3)} m³ (${ks.map(k => `${k} ${m.pairs[k].toFixed(3)}`).join(', ')})`); if (!m.yeni && (ks.includes(m.cat) || m.cat === 'Duvar')) odd.push(e); }
+    if (C.yapiCakisma) { const ids = new Set(); for (const c of C.yapiCakisma.cakisma(C.doc.ents, { canli: e => C.lyLive(e.layer) }).cift) if (c.sinif === 'hata') { ids.add(c.a); ids.add(c.b); } for (const id of ids) { const e = byId.get(id); if (e) odd.push(e); } }
     if (!n) { C.log('Çakışan eleman yok: hiçbir hacim iki kez sayılmıyor.'); return; }
-    C.log(`${n} elemanda toplam ${tot.toFixed(3)} m³ minha — INSMETRAJ bunları düşer.${odd.length ? ` ${odd.length} olağan dışı çakışma seçildi (aynı tür elemanlar ya da duvar betonarmeye giriyor): kontrol edin.` : ''}`);
+    C.log(`${n} elemanda toplam ${tot.toFixed(3)} m³ minha — INSMETRAJ bunları düşer.${odd.length ? ` ${odd.length} eleman aynı türden başka bir elemanla üst üste biniyor (seçildi): modeli düzeltin.` : ''}`);
     if (odd.length) { C.sel = odd; C.emit('selection'); }
   });
   /* ---------- SIKIŞTIRILMIŞ DOLGU: perdelerle çevrili iç alanı radye / temel üstünden döşeme altına (yoksa perde üstüne) kadar doldurur ---------- */
@@ -821,11 +824,11 @@
     const by = {}, add = (cls, k, v) => { const o = by[cls] || (by[cls] = {}); o[k] = (o[k] || 0) + v; };
     let kalip = 0, duvarA = 0, nP = 0, nK = 0, dolguV = 0;
     const MN = C.insMinha(), brut = {}, minha = {}, pairT = {}, mOf = e => { const m = MN.get(e.id); if (!m) return 0; for (const [k, v] of Object.entries(m.pairs)) { const key = `${m.cat} ∩ ${k}`; pairT[key] = (pairT[key] || 0) + v; } return m.minha; };
-    const addN = (cls, k, v, e) => { const d = Math.min(v, mOf(e)); brut[k] = (brut[k] || 0) + v; minha[k] = (minha[k] || 0) + d; add(cls, k, v - d); };
+    const addN = (cls, k, v, e, ek) => { const m = MN.get(e.id); if (m && m.yeni) { mOf(e); brut[k] = (brut[k] || 0) + m.gross + (ek || 0); minha[k] = (minha[k] || 0) + m.minha; add(cls, k, m.net + (ek || 0)); return; } /* yeni: ham geometri − birleşim minhası (ek: kolon gusesi gibi prizma dışı hacim) */ const d = Math.min(v, mOf(e)); brut[k] = (brut[k] || 0) + v; minha[k] = (minha[k] || 0) + d; add(cls, k, v - d); };
     for (const e of C.doc.ents) {
       if (!C.lyLive(e.layer) && e.type !== 'acik') continue;
       if (e.type === 'perde') { if ((e.malz || 'beton') === 'beton') { addN(e.beton || 'C30/37', e.temel || e.kicker ? 'Temel' : 'Perde', perdeVol(e), e); if (!e.temel) kalip += perdeKalip(e); } else { const F = faceOffs(e), tm = Math.max(0.01, (F.tb + F.tt) / 2), dA = mOf(e) / tm; duvarA += Math.max(0, perdeKalip(e) / 2 - dA); minha.Duvar = (minha.Duvar || 0) + dA; } }
-      else if (e.type === 'kolon') addN(e.beton || 'C30/37', 'Kolon', kolonVol(e), e);
+      else if (e.type === 'kolon') addN(e.beton || 'C30/37', 'Kolon', kolonVol(e), e, guseVol(e));
       else if (e.type === 'kiris') addN(e.beton || 'C30/37', 'Kiriş', kirisVol(e), e);
       else if (e.type === 'plak') addN(e.beton || 'C30/37', e.kind === 'radye' ? 'Temel' : 'Döşeme', plakVol(e), e);
       else if (e.type === 'temel') addN(e.beton || 'C30/37', 'Temel', (+e.bx || 1.5) * (+e.by || 1.5) * (+e.t || 0.6), e);

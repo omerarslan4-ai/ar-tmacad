@@ -20,6 +20,15 @@
 - Kalıp planında gereken her yerde ek kesit alınır (kolonlardan, ara döşemelerden ve üzerine oturan perdelerden).
 - Statik rapor ve paftalar (kalıp, donatı, perde detayları, metraj tabloları, DSİ antet) firmanın standart biçimini izler (örnek: ÇOKAL AAT statik rapor ve paftaları).
 
+### Eleman birleşimleri ve minha (13.11.2026)
+- Yapı elemanları eksenden eksene çizilebilir; birleşimde hangisinin bütün kalacağını program belirler. Öncelik sırası: temel / radye > kolon > betonarme perde > döşeme > kiriş > tuğla (dolgu) duvar > sıkıştırılmış dolgu. Önceliği yüksek eleman bütün kalır, öbürü birleşimde kesilir.
+  - Kiriş kolon ve perde yüzünde biter (temiz açıklık). Kirişin döşeme kalınlığı içindeki kısmı döşemeye sayılır; kiriş gövdesi döşeme altından ölçülür. (Kiriş / döşeme sırası kullanıcı onayı bekliyor — bkz. açık sorular.)
+  - Tuğla duvar kolonlar arasında ve kiriş altında kalır; betonarme perdeye girmez.
+  - Döşeme kolon izinden delinir.
+- Boşluklar (minha) elemanın kendi hacminden düşülür: pencere, kapı, döşeme ve perdedeki geçişler, kanal ve kaide yuvaları.
+- Aynı hacim iki kez sayılmaz: metraj (`INSMETRAJ`), çakışma dökümü (`INSCAKISMA`) ve statik hesaba giden eleman listesi aynı net parçaları kullanır (`app/yapi-cakisma.js`).
+- Aynı türden iki elemanın üst üste binmesi (perde–perde, döşeme–döşeme, duvar–duvar, aynı doğrultuda kiriş–kiriş) birleşim değil model hatasıdır; program bunu düzeltmez, gösterir.
+
 ## Paftalama ve çizim
 - Statik çizimler Tasarım (model) alanına değil Statik disiplin pafta grubuna gider. Bir kez alınan kesit tüm disiplin paftalarında (Mimari, Mekanik, Statik, Elektrik) kendiliğinden görünür.
 - Disiplin paftalarında 3B perspektif görünüş bulunur; beton içindeki donatı 3B'de yalnız Statik disiplininde görünür.
