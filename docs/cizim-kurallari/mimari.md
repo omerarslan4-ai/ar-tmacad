@@ -120,6 +120,9 @@ Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kull
 **Neyin ölçülendirileceği (kullanıcı kuralı, 13.11.2026):** ölçü, mimari olarak ne varsa onu gösterir — **duvar / perde, pencere / kapı, döşeme, boşluk**. Her kenarı ölçen, bir şey ifade etmeyen zincir verilmez.
 Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile aralarındaki boşluklar; düşey zincirde temel ve döşeme kalınlıkları, aralarındaki yükseklikler ve sol dış duvardaki pencere / kapı boşlukları; her iki yönde en dışta toplam ölçü. Merdiven basamağı, kiriş kenarı, pah, korkuluk ölçülmez.
 
+**Yapının içindeki ölçüler (kullanıcı, 13.11.2026: "yapının içinden de R2'deki gibi ölçü verilebilir"):** Çokal R2'de 1/50 ölçülerin yaklaşık üçte biri yapının içindedir (ör. Kaba-İnce: 211 iç / 396 dış) ve çoğu zincir değil tek ölçüdür: hacmin net genişliği (480, 500, 600, 1100 cm) ve net yüksekliği (365, 500, 600, 870 cm), yanında duvar / döşeme kalınlıkları (20, 30, 40 cm).
+Program kesitte her kat aralığında, kesilen iki duvar arasındaki her hacim için bir net genişlik ve bir net yükseklik ölçüsü koyar. **Kabul:** yatay ölçü döşemeden 25 mm yukarıda, düşey ölçü soldaki duvardan 12 mm içeride (örneklerde sabit bir yer çıkmadı; çizime göre revize edilecek).
+
 ## 4. Kot, aks, kesit işaretleri
 - Kot işareti **`CK_TR1` bloğu** ile konur (**Karar 7**; örneklerde 5 dosyada 287 adet). `KOT101` bloğu kullanılmaz. Katman `Kot`, yazı YZ 2 mm.
 - Aks: daire + harf (ARIAL, 5 mm), çizgi tipi ACAD_ISO04W100, kalınlık 0,13, renk 17.

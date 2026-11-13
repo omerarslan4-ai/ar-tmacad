@@ -61,4 +61,15 @@ t('kesitte yalnız mimari elemanlar ölçülür: duvar yüzleri (yatay), döşem
   assert.deepStrictEqual(u(r.xs), [0, 0.3, 5.7, 6]);                    // perde 30 · boşluk 540 · perde 30; merdiven ve kiriş yok
   assert.deepStrictEqual(u(r.zs), [-0.5, 0, 1, 2.2, 3, 3.2]);           // radye 50 · parapet 100 · pencere 120 · 80 · döşeme 20
 });
+t('yapının içinde: her hacmin net genişliği ve net yüksekliği (R2: 480 / 500 / 600 gibi tek ölçüler)', () => {
+  const kutu = (lk, x0, z0, x1, z1) => ({ lk, pts: [[x0, z0], [x1, z0], [x1, z1], [x0, z1]] });
+  // radye 50, iki dış perde 30, ortada 20'lik duvar, üstte 20'lik döşeme: iki hacim (net 300 ve 220 genişlik, net 300 yükseklik)
+  const r = K.kesitIcOlculer([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 3), kutu('DUVAR_TUGLA', 3.3, 0, 3.5, 3), kutu('PERDE', 5.7, 0, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2), kutu('MERDIVEN', 4, 0, 4.3, 0.17)], 0.05);
+  const h = r.filter(d => d.k === 'h'), v = r.filter(d => d.k === 'v'), yv = x => Math.round(x * 100) / 100;
+  assert.deepStrictEqual(h.map(d => yv(d.b[0] - d.a[0])), [3, 2.2]);                 // net genişlikler
+  assert.deepStrictEqual(v.map(d => yv(d.b[1] - d.a[1])), [3, 3]);                   // net yükseklikler
+  assert.deepStrictEqual(h.map(d => yv(d.p[1])), [1.25, 1.25]);                      // döşemeden 25 mm yukarıda (1/50: 1,25 m)
+  assert.deepStrictEqual(v.map(d => yv(d.p[0])), [0.9, 4.1]);                        // sol duvardan 12 mm içeride (0,60 m)
+  assert.deepStrictEqual(K.kesitIcOlculer([kutu('TEMEL_RADYE', 0, -0.5, 6, 0), kutu('PERDE', 0, 0, 0.3, 3)], 0.05), []); // üstü açık tek duvar: iç ölçü yok
+});
 console.log(`\n${n} test geçti.`);

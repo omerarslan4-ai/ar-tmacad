@@ -333,6 +333,7 @@
         dim('h', [x0, z0], [x1, z0], [0, yA - (XS.length > 2 ? dd : 0)]);
         if (ZS.length > 2) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);
         dim('v', [x0, z0], [x0, z1], [xA - (ZS.length > 2 ? dd : 0), 0]);
+        if (psD && C.cizimKural && C.cizimKural.kesitIcOlculer) for (const q of C.cizimKural.kesitIcOlculer(LPD.map(lp => ({ lk: lp.lk || '', pts: lp })), C.annoH(1))) dim(q.k, q.a, q.b, q.p); /* yapının içinde: her hacmin net genişliği ve net yüksekliği (R2'deki gibi) */
         dimBot = yA - (XS.length > 2 ? dd : 0) - dd * 0.6; void zF;
       }
     }

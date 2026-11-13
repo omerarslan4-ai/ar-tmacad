@@ -147,6 +147,25 @@
     if (D.length) { const xm = Math.min(...D.map(d => d.x0)); for (const d of D) if (d.x0 - xm < 0.6) zs.push(d.z0, d.z1); } // sol dış duvar: pencere / kapı boşluğu duvarı parçalara böler
     return { xs, zs };
   };
+  /* YAPININ İÇİNDEKİ ÖLÇÜLER (kullanıcı 13.11.2026: "yapının içinden de R2'deki gibi ölçü verilebilir"). Çokal R2'de 1/50 ölçülerin
+     yaklaşık üçte biri yapının içindedir ve çoğu tek ölçüdür: hacmin net genişliği (480, 500, 600 …) ve net yüksekliği (365, 500, 600 …).
+     Her kat aralığında, kesilen iki duvar arasındaki her hacim için bir net genişlik (yatay) ve bir net yükseklik (düşey) ölçüsü üretir.
+     mm: kâğıtta 1 mm'nin modeldeki boyu. Yerler KABUL: yatay ölçü döşemeden 25 mm yukarıda, düşey ölçü sol duvardan 12 mm içeride.
+     Döner: [{ k: 'h' | 'v', a, b, p }] (kesit koordinatı [x, z]). */
+  K.kesitIcOlculer = (halkalar, mm) => {
+    const B = []; for (const h of halkalar || []) { if (!h.pts || !h.pts.length) continue; let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const q of h.pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); } B.push({ lk: String(h.lk || ''), x0, x1, z0, z1 }); }
+    const dos = B.filter(b => DOSEME.test(b.lk) && b.x1 - b.x0 >= 1.5), duv = B.filter(b => DUVAR.test(b.lk) && !DOSEME.test(b.lk));
+    const birles = (v, tol) => { v.sort((a, b) => a[0] - b[0]); const o = []; for (const q of v) { const l = o[o.length - 1]; if (l && q[0] <= l[1] + tol) l[1] = Math.max(l[1], q[1]); else o.push(q.slice()); } return o; };
+    const K2 = birles(dos.map(b => [b.z0, b.z1]), 0.02), out = [], e = mm || 0.05;
+    for (let i = 1; i < K2.length; i++) { const zA = K2[i - 1][1], zB = K2[i][0], H = zB - zA; if (H < 1.2) continue; const zM = (zA + zB) / 2;
+      const W = birles(duv.filter(b => b.z0 < zM && b.z1 > zM).map(b => [b.x0, b.x1]), 0.02);
+      for (let j = 1; j < W.length; j++) { const xA = W[j - 1][1], xB = W[j][0], L = xB - xA; if (L < 0.8) continue;
+        const yH = zA + Math.min(H * 0.5, 25 * e); out.push({ k: 'h', a: [xA, yH - e], b: [xB, yH - e], p: [xA, yH] });
+        const xV = xA + Math.min(L * 0.5, 12 * e), alt = dos.some(b => Math.abs(b.z1 - zA) < 0.03 && b.x0 <= xV && b.x1 >= xV), ust = dos.some(b => Math.abs(b.z0 - zB) < 0.03 && b.x0 <= xV && b.x1 >= xV);
+        if (alt && ust) out.push({ k: 'v', a: [xV + e, zA], b: [xV + e, zB], p: [xV, zA] }); } }
+    return out;
+  };
   const KESIKLI = /^(HIDDEN|DASHED)$/;
   /* ÇIKTI EŞLEMESİ (saf): kayitlar = [{ st: { layer, color, lt, lw } }], katmanlar = { ad: { name, color, lt, lw, on, lock } }.
      Eşlenen her kaydın katmanı çizim katmanına çevrilir, renk / çizgi tipi / kalınlık katmandan alınır (karar 3); nesne elle kesikli çizgi tipi
