@@ -331,7 +331,7 @@
         if (psD && psD.ilk) { let ax = x0, az = zb; for (const lp of R.loops) { if (lp.lk === 'KORKULUK') continue; for (const q of lp) { ax = Math.min(ax, q[0]); az = Math.min(az, q[1]); } } yA = az - C.annoH(psD.ilk); xA = ax - C.annoH(psD.ilk); }
         /* pafta stili (kullanıcı 13.11.2026): ölçüler yapının içinden zincir olarak verilir; dışarıda yalnız toplam boy ve toplam yükseklik kalır */
         const icO = psD && C.cizimKural && C.cizimKural.kesitIcOlculer ? C.cizimKural.kesitIcOlculer(LPD.map(lp => ({ lk: lp.lk || '', pts: lp })), C.annoH(1), (C.cizimKural.MIMARI.olcuYeri || {}).genel) : [];
-        const disH = !icO.length && XS.length > 2, disV = !icO.length && ZS.length > 2;
+        const disH = !icO.length && XS.length > 2, disV = (!icO.length || icO.eksikDusey) && ZS.length > 2; /* üstü açık hacim varsa dıştaki düşey zincir de çizilir */
         if (disH) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, yA]);
         dim('h', [x0, z0], [x1, z0], [0, yA - (disH ? dd : 0)]);
         if (disV) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);

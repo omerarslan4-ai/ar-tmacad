@@ -179,15 +179,17 @@
       const W = birles(duv.filter(b => Math.min(b.z1, zB) - Math.max(b.z0, zA) > 0.005).map(b => [b.x0, b.x1]), 0.02); if (W.length < 2) continue;
       const yH = zA + Math.min(H * 0.5, Y.icYatay * e), X = tek(W.reduce((a, w) => a.concat(w), []));
       for (let j = 1; j < X.length; j++) out.push({ k: 'h', a: [X[j - 1], yH - e], b: [X[j], yH - e], p: [X[j - 1], yH] });
-      for (let j = 1; j < W.length; j++) { const xA = W[j - 1][1], xB = W[j][0], L = xB - xA; if (L < 0.8) continue; const d = Math.min(L * 0.5, Y.icDusey * e);
+      for (let j = 1; j < W.length; j++) { const xA = W[j - 1][1], xB = W[j][0], L = xB - xA; if (L < 0.8) continue; const d = Math.min(L * 0.5, Y.icDusey * e); let tamam = false;
         const bos = (kenar, yuz, zA1, zB1) => { const o = []; for (const b of duv) if (Math.abs(b[kenar] - yuz) < 0.03) for (const z of [b.z0, b.z1]) if (z > zA1 + 0.05 && z < zB1 - 0.05) o.push(z); return o; };
         const sagda = !bos('x1', xA, zA, zB).length && bos('x0', xB, zA, zB).length > 0; /* boşluk (pencere / kapı) yalnız sağ duvardaysa zincir sağ duvarın yanına konur */
         for (const xV of sagda ? [xB - d, (xA + xB) / 2, xA + d] : [xA + d, (xA + xB) / 2, xB - d]) { const ic = b => b.x0 <= xV && b.x1 >= xV;
           const alt = dos.filter(b => ic(b) && b.z1 <= zM).sort((p, q) => q.z1 - p.z1)[0], ust = dos.filter(b => ic(b) && b.z0 >= zM).sort((p, q) => p.z0 - q.z0)[0]; if (!alt || !ust) continue;
-          const Z = [alt.z0, alt.z1, ust.z0, ust.z1];
+          const Z = [alt.z0, alt.z1, ust.z0]; if (i === K2.length - 1) Z.push(ust.z1); /* ara döşemenin kalınlığı yalnız üst katın zincirinde ölçülür (iki kez yazılmaz) */
+          tamam = true;
           Z.push(...(sagda ? bos('x0', xB, alt.z1, ust.z0) : bos('x1', xA, alt.z1, ust.z0)));
           const T = tek(Z); for (let q = 1; q < T.length; q++) out.push({ k: 'v', a: [xV + e, T[q - 1]], b: [xV + e, T[q]], p: [xV, T[q - 1]] });
-          break; } } }
+          break; }
+        if (!tamam) out.eksikDusey = true; /* üstü açık hacim: düşey zincir kurulamadı → dıştaki düşey zincir kalır (kesit.js) */ } }
     return out;
   };
   const KESIKLI = /^(HIDDEN|DASHED)$/;

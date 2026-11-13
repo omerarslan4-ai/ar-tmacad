@@ -340,7 +340,8 @@
       const fl = st.filter(it => !isWall(it)), used = new Set();
       for (const it of fl) { if (used.has(it)) continue; const ch = chainV(fl, (it.zt + it.zb) / 2); ch.forEach(q => used.add(q)); if (!ch.length || (!cokal && ch.length < 2 && !ch.some(q => q.k !== 'yapi'))) continue;
         const lines = dedupe(ch.map(q => q.ad).filter(ad => !(cokal && /^çatı$/i.test(String(ad).trim())))); if (!lines.length) continue; /* çatı örtüsü (makas, kiremit) döşeme katmanı değildir */
-        note('Y|' + lines.join('|'), { s, z: (ch[0].zt + ch[ch.length - 1].zb) / 2, zt: ch[0].zt, r: { lines }, kind: 'doseme' }); }
+        const ust = cokal ? (ch.find(q => !/^çatı$/i.test(String(q.ad).trim())) || ch[0]) : ch[0]; /* kod, çatı örtüsünün değil döşemenin üstüne konur */
+        note('Y|' + lines.join('|'), { s, z: (ust.zt + ch[ch.length - 1].zb) / 2, zt: ust.zt, r: { lines }, kind: 'doseme' }); }
     }
     let cand = [...runs.values()];
     // başka bir açılımın içinde kalan (alt küme) katmanlaşmalar atlanır

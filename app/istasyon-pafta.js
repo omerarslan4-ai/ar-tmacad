@@ -128,6 +128,7 @@
 
   /* kesit açılımlarını kesitin iki yanında, ölçü ve kotların dışında, üst üste binmeden sırala */
   const acilimDuzen = (gv, km, sc = 50) => {
+    if (C.pstil && C.pstil() && C.acilimEtiketKural) return; /* pafta stili (Çokal R2): kodlar elemanın yanında kalır, her parça kendi kodunu taşır (mimari.js → autoSection) */
     let A = C.doc.ents.filter(e => e.gv === gv && e.type === 'acilim'); if (!A.length) return;
     const seen = new Set(); if (km) C.doc.ents = C.doc.ents.filter(e => { if (e.gv !== gv || e.type !== 'acilim') return true; const k = (e.lines || []).join('|') + '|' + (e.a[0] < km.q0[0] + (km.ub[0] + km.ub[2]) / 2); if (seen.has(k)) return false; seen.add(k); return true; });
     A = C.doc.ents.filter(e => e.gv === gv && e.type === 'acilim');
