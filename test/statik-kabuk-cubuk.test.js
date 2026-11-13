@@ -74,4 +74,11 @@ t('döşeme kenarı perde iç yüzünde (perde ekseni poligon dışında) olsa d
   assert.ok(wm < 0.01, `döşeme sehimi ${wm} m — döşeme perdeye bağlanmamış (havada)`);
 });
 
+t('döşemenin bittiği yerden sonra perde boyunca ilerideki üst düğümler döşeme köşesine bağlanmaz (köşede tekil kuvvet olmasın)', () => {
+  const M = kutu(false, false); M.walls.forEach(w => { w.t = 0.7; }); M.dosemeler[0].pts = [[0.35, 0.35], [6, 0.35], [6, 1.5], [0.35, 1.5]];
+  const AG = P.kabukAg(M, { h: 0.25 }), zt = M.dosemeler[0].zt - M.dosemeler[0].t / 2;
+  const ust = AG.ties.map(t => AG.nodes[t.s]).filter(p => Math.abs(p[1]) < 1e-6 && Math.abs(p[2] - zt) < 1e-6);
+  assert.ok(ust.length > 10, 'P1 üstü döşemeye bağlı olmalı'); assert.ok(ust.every(p => p[0] <= 6 + 1e-6), 'x > 6 m (döşeme bitti) düğüm bağlanmış: ' + ust.filter(p => p[0] > 6).map(p => p[0].toFixed(2)).join(' '));
+});
+
 console.log(`\n${n} test geçti.`);
