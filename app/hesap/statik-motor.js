@@ -382,6 +382,25 @@
     let rMax = Math.max(0.40, g.tw); for (let i = 0; i < K.radyeEk; i++) rMax = basSonra(rMax) || rMax;
     return { H, perde: p, radyeMax: rMax, dosemeMax: K.doseme.slice(-1)[0] }; };
 
+  /* kabuk (3B) modelinde bir kalınlık adımı — aynı firma basamakları ve aralıkları: M = { walls, radye, dosemeler }, Y = [{ tur: 'perde'|'radye'|'doseme', i }]
+     (yetersiz gruplar). Her perde yüksekliğine göre en az max(25, H/18) basamağına çekilir; yetersiz eleman bir basamak büyür,
+     üst sınırdaysa büyümez ve `sinir`e yazılır. Radye en kalın perdenin en çok iki basamak üstü, döşeme 15 – 30 cm. */
+  P.kabukKalinlikAdim = (M, Y) => {
+    const K = P.KALINLIK, cm = v => Math.round(v * 100), log = [], sinir = [], rUst = M.radye ? M.radye.kAlt + M.radye.t : null;
+    const H = w => Math.max(0.5, (+w.zt || 0) - (rUst != null ? rUst : (w.zb != null ? +w.zb : (+w.zt || 0) - 3)));
+    let degisti = false;
+    (M.walls || []).forEach(w => { const A = P.perdeKalinlikAraligi(H(w)); if (w.t < A.min - 1e-6) { w.t = A.min; degisti = true; log.push(`${w.ad} → ${cm(w.t)} (H ${H(w).toFixed(2)} m için en az)`); } });
+    const yap = new Set();
+    for (const y of Y) { const k = y.tur + y.i; if (yap.has(k)) continue; yap.add(k);
+      if (y.tur === 'perde') { const w = M.walls[y.i]; if (!w) continue; const A = P.perdeKalinlikAraligi(H(w)), n = basSonra(w.t);
+        if (n != null && n <= A.max + 1e-9) { w.t = n; degisti = true; log.push(`${w.ad} → ${cm(n)}`); } else sinir.push(`${w.ad} ${cm(w.t)} cm üst sınırda (H ${H(w).toFixed(2)} m için en çok ${cm(A.max)} cm): kalınlık artırılmadı — donatıyı sıklaştırın ya da ara mesnet (bölme perdesi, payanda, kiriş) ekleyin.`); }
+      else if (y.tur === 'radye' && M.radye) { const r = M.radye; let mx = Math.max(0.40, ...(M.walls || []).map(w => w.t)); for (let i = 0; i < K.radyeEk; i++) mx = basSonra(mx) || mx;
+        const n = basSonra(r.t); if (n != null && n <= mx + 1e-9) { r.kAlt = +(r.kAlt - (n - r.t)).toFixed(3); r.t = n; degisti = true; log.push(`radye → ${cm(n)}`); } else sinir.push(`Radye ${cm(r.t)} cm üst sınırda (en çok ${cm(mx)} cm): kalınlık artırılmadı.`); }
+      else if (y.tur === 'doseme') { const d = (M.dosemeler || [])[y.i]; if (!d) continue; const n = basSonra(d.t, K.doseme);
+        if (n != null) { d.t = n; degisti = true; log.push(`${d.ad} → ${cm(n)}`); } else sinir.push(`${d.ad} ${cm(d.t)} cm üst sınırda (en çok ${cm(K.doseme.slice(-1)[0])} cm): kalınlık artırılmadı — ara kiriş ya da mesnet ekleyin.`); } }
+    return { degisti, log, sinir };
+  };
+
   /* kalınlık önerisi: yetersiz (ya da donatı oranı %1'i geçen) eleman bir üst kalınlık basamağına çıkarılır, yeniden hesaplanır.
      Her eleman grubu turda en çok bir basamak büyür ve firma aralığını (P.kalinlikSinir) aşmaz; üst sınırda da yetmiyorsa kalınlık
      büyütülmez, neden yetmediği `sinir` listesinde bildirilir (çözüm kalınlık değil: donatı, ara mesnet, açıklık). */

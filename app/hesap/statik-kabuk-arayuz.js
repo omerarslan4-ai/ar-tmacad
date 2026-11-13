@@ -291,18 +291,18 @@
   /* ---------- kabuk modunda Kalınlık öner / Kalınlıkları modele yansıt ---------- */
   const yetersizler = r => { const out = []; for (const t of r.tasarim) { if (t.katman.some(k => !k.sec || !k.sec.ok) || !t.kesme.ok) out.push(t.grup); } return out; };
   P.kabukOner = (ilerle) => {
-    const log = [], h0 = S.tas.kmesh; let r = null;
+    const log = [], h0 = S.tas.kmesh; let r = null, sinir = [];
     try { S.tas.kmesh = Math.max(+h0 || 0, 0.8); // denemelerde kaba ağ (hızlı)
-      for (let it = 0; it < 10; it++) { r = P.kabukHesap(S); const Y = yetersizler(r); if (!Y.length) break; let deg = false;
-        for (const g of Y) { if (g.tur === 'radye') { if (S.kabuk.radye.t < 2.0) { S.kabuk.radye.t = +(S.kabuk.radye.t + 0.05).toFixed(3); S.kabuk.radye.kAlt = +(S.kabuk.radye.kAlt - 0.05).toFixed(3); deg = true; log.push(`radye → ${Math.round(S.kabuk.radye.t * 100)}`); } }
-          else if (g.tur === 'doseme') { const k = +r.AG.els[g.ids[0]].grp.slice(1), d = S.kabuk.dosemeler[k]; if (d && d.t < 0.8) { d.t = +(d.t + 0.05).toFixed(3); deg = true; log.push(`${d.ad} → ${Math.round(d.t * 100)}`); } }
-          else { const wi = r.AG.els[g.ids[0]].wi, w = S.kabuk.walls[wi]; if (w && w.t < 1.5) { w.t = +(w.t + 0.05).toFixed(3); deg = true; log.push(`${w.ad} → ${Math.round(w.t * 100)}`); } } }
-        if (!deg) break; if (ilerle) ilerle(it); }
+      // firma kalınlık basamakları ve perde yüksekliğine bağlı aralık (P.kabukKalinlikAdim, docs/tasarim-standartlari.md)
+      for (let it = 0; it < 12; it++) { r = P.kabukHesap(S);
+        const Y = yetersizler(r).map(g => { const e = r.AG.els[g.ids[0]]; return g.tur === 'radye' ? { tur: 'radye', i: 0 } : g.tur === 'doseme' ? { tur: 'doseme', i: +e.grp.slice(1) } : { tur: 'perde', i: e.wi }; });
+        const a = P.kabukKalinlikAdim(S.kabuk, Y); log.push(...a.log); sinir = a.sinir;
+        if (!a.degisti) break; if (ilerle) ilerle(it); }
     } finally { S.tas.kmesh = h0; }
     // aynı adlı (birleşik) son değerleri özetle
-    const son = new Map(); log.forEach(x => { const [a, b] = x.split(' → '); son.set(a, b); });
+    const son = new Map(); log.forEach(x => { const [a, b] = x.split(' → '); son.set(a, b.split(' ')[0]); });
     if (S.kabuk.radye) S.geo.kAlt = S.kabuk.radye.kAlt; save();
-    return [...son.entries()].map(([a, b]) => `${a} ${b} cm`);
+    return [...son.entries()].map(([a, b]) => `${a} ${b} cm`).concat([...new Set(sinir)].map(s => '⚠ ' + s));
   };
   const kabukYansit = () => {
     if (!kabukMu()) return false; const M = S.kabuk;
