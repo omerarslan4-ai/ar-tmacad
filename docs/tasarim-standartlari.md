@@ -47,7 +47,7 @@
 - Mimari paftalama otomatiktir (14.11.2026): kesit yerleri belirlenince program planları, kesitleri, görünüşleri, mahal listesini, kapı / pencere / korkuluk detaylarını ve çatı planı, çatı kesiti, çatı detay paftasını kendisi hazırlar ve en uygun şekilde paftalara yerleştirir. Öbür disiplinlerin paftalamasını kullanıcı kendi birimi içinde yapar.
 - Tasarım (model) alanında üretilen plan, kesit ve görünüşler disipline göre ayrı bölgelere konur (14.11.2026): Mimari bir bölgede, Mekanik, Elektrik, Statik kendi bölgelerinde; her bölgenin başında disiplin adı yazılır, bölgeler modelin dışında ve birbirine karışmaz.
 - Paftalamada kâğıt idareli kullanılır (14.11.2026): görünümler en az pafta sayısıyla, paftaya sığdığı kadar sıkı yerleştirilir (ör. alınan bütün kesitler tek paftaya); yeni paftaya ancak sığmadığında geçilir.
-- Kapı ve pencereler ebatlarına göre tip numarası alır (projedeki gibi; aynı ebat aynı numara) ve numara plan ile kesitlerde yazılır.
+- Kapı ve pencereler ebatlarına göre tip numarası alır (projedeki gibi; aynı ebat aynı numara); numara plan, kesit ve görünüşlerde yazılır ve doğrama bu üç çizimde de detay paftasındaki tip detayına uygun çizilir (kanat bölümleri, açılış, kasa, denizlik) — 14.11.2026.
 - Kiriş ile döşeme monolitik tek beton olarak modellenir ve çizilir (aralarında çizgi yok); çatı döşemesi ve zemin döşemesi dahil.
 - Pencere / kapı duvarı parçalara bölmez; duvar tek eleman kalır.
 - Kesitlerde çatı soluk çizilmez (14.11.2026): kesit düzleminin kestiği çatı elemanları (çatı döşemesi, makas / aşık / mertek, kaplama ve örtü) kesilen eleman çizgisiyle (kalın), arkada görünenler görünüş çizgisiyle (`Ongor`) çizilir.
