@@ -408,6 +408,7 @@
           Object.assign(ae, { dims: false, extp: S.extp }); delete ae._c; } } catch (er) { console.error('kesit aks ölçüsü', er); } } }
     /* korkuluk oklu açıklaması (firma kuralı 14.11.2026; Çokal İdari): ölçü, kot ve etiketlerden sonra — onlara ve kesilen betona binmez */
     if (kv.MIMARI === 'E' && kv.YAZI !== 'H' && C.korkulukOkKesit) { try { C.korkulukOkKesit({ a, u, n, depth, W, inU, i0, zAt }); } catch (er) { console.error('korkuluk oku', er); } }
+    if (kv.MIMARI === 'E' && kv.YAZI !== 'H' && C.catiOkKesit) { try { C.catiOkKesit({ a, u, n, depth, W, inU, i0, zAt }); } catch (er) { console.error('çatı oku', er); } } // çatı elemanları oklu açıklama (Çokal çatı kesitleri gibi)
     for (const pl of chain(axes, 1e-4)) C.add(C.newEnt('pline', { pts: pl.map(W), closed: false, layer: 'EKSEN', lt: 'CENTER' }));
     for (const en of ends) C.add(C.newEnt('circle', { c: W(en.c), r: en.r, layer: LV(en.lk) }));
     if (!(C.seviyeKesit && C.seviyeKesit(W, ub)) && ub[1] < 5 && ub[3] > -5) { // kat seviyeleri varsa seviye çizgileri + toprak çizgisi; mutlak kotlu yapıda (0,00 uzaksa) 0 çizgisi çizilmez

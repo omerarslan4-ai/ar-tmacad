@@ -349,7 +349,7 @@
     const cati = ents.find(e => e.type === 'cati');
     { const gv = gorunus({ kind: 'view', dir: 'UST', hatch: 'YOK', title: 'ÇATI PLANI' }); catiR.plan = gv;
       if (gv) { const W = sonW; try {
-        if (cati) { let prs = []; try { prs = C.T.cati && C.T.cati.prims ? C.T.cati.prims(cati) : (C.catiPlanSembol ? C.catiPlanSembol(cati) : []); } catch (er) { prs = C.catiPlanSembol ? C.catiPlanSembol(cati) : []; } for (const pr of prs) primEnt(pr, W, gv, 'GORUNEN_CATI'); } // Çokal İdari ÇATI PLANI: iskelet (aşık, mertek, dikme, kuşaklama) etiketli, eğim okları, oluk, iniş borusu
+        if (cati) { let prs = []; try { prs = C.catiPlanCizim ? C.catiPlanCizim(cati) : C.T.cati && C.T.cati.prims ? C.T.cati.prims(cati) : (C.catiPlanSembol ? C.catiPlanSembol(cati) : []); } catch (er) { prs = C.catiPlanSembol ? C.catiPlanSembol(cati) : []; } for (const pr of prs) primEnt(pr, W, gv, 'GORUNEN_CATI'); } // Çokal İdari ÇATI PLANI: iskelet (aşık, mertek, dikme, kuşaklama) etiketli, eğim okları, oluk, iniş borusu
         if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, zmax + 1, ents);
         for (const v of kes) kesitIsaretiPlana(gv, W, v);
         catiR.W = W; baslikAlta(gv); asagi(gv); } catch (er) { console.error('çatı planı', er); } } }
@@ -386,6 +386,7 @@
           C.doc.ents = C.doc.ents.filter(e => !at.has(e.id));
           if (v.gv && yeni.length) { st.gvs.push(v.gv); catiR.kesitler.push(v); asagi(v.gv); if (catiR.plan && catiR.W) kesitIsaretiPlana(catiR.plan, catiR.W, v, nm); }
         }
+        if (catiR.plan && catiR.W) { try { if (C.catiKotPlan) C.catiKotPlan(catiR.plan, catiR.W, cati); if (C.catiOkPlan) C.catiOkPlan(catiR.plan, catiR.W, cati); } catch (er) { console.error('çatı planı okları', er); } } // kesit işaretlerinden sonra: oklar onlara binmez
         if (catiR.plan) baslikAlta(catiR.plan); catiR.kesit = catiR.kesitler.length ? catiR.kesitler[0].gv : null;
       } catch (er) { console.error('çatı kesiti', er); }
       // DETAY-A (saçak) ve DETAY-B (mahya), 1/10 — cati.js; katmanlar kural tablosundaki adlara (kesilen → Beton, ince → Ongor)

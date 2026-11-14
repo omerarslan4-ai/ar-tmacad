@@ -179,4 +179,28 @@ t('siluet: tek kutu eğik bakışta dış hattı verir (eski davranış)', () =>
   assert.strictEqual(S.length, 6); // izometrik kübün altıgen dış hattı
 });
 
+/* Çokal 10-İdari Bina_R2 çatı paftası ÇKL-AAT-İB-03 (ÇATI PLANI, A'-A', B'-B'; 6-Blower çatı kesiti) oklu açıklama yazıları */
+t('çatı oklu açıklama yazısı: Çokal biçimi (ebat küçükten büyüğe, iki satırlılar)', () => {
+  assert.deepStrictEqual(A.catiUyeYazisi('Mertek', 0.05, 0.10, 'kesit'), ['Mertek 5x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Aşık', 0.10, 0.10, 'kesit'), ['Aşık 10x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Duvar aşığı', 0.10, 0.10, 'plan'), ['D. Aşığı 10x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Dikme', 0.10, 0.10, 'kesit'), ['Dikme 10x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Dikme', 0.10, 0.10, 'plan'), ['Dikme', '10x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Kuşaklama', 0.05, 0.10, 'plan'), ['Kuşaklama', '2x5x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Yastık', 0.10, 0.025, 'kesit'), ['Yastık 2.5x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Mahya aşığı', 0.10, 0.12, 'kesit'), ['Mahya Aşığı 10x12']);
+  assert.deepStrictEqual(A.catiKatmanYazisi({ tur: 'alt', key: 'tahta18', t: 0.018 }), ['Kaplama Tahtası', '1.8x10']);
+  assert.deepStrictEqual(A.catiKatmanYazisi({ tur: 'su', key: 'bitum', t: 0.006 }), ['Bitümlü Örtü İle Su Yalıtımı']);
+  assert.deepStrictEqual(A.ikiSatir('EPS Dolgulu Renkli Sac Galvaniz Panel (5 cm)'), ['EPS Dolgulu Renkli Sac', 'Galvaniz Panel (5 cm)']);
+  assert.deepStrictEqual(A.olukYazisi(155), ['DN155 Çinko Yağmur Oluğu']);
+  assert.deepStrictEqual(A.inisBorusuYazisi(120), ['DN120 Çinko Yağmur', 'İniş Borusu']);
+});
+t('oklu açıklama yeri: delikli bölge (çatı kaplama bandı dış + iç çevre, aynı katman) içi boş sayılır', () => {
+  const dis = [[0, 0], [20, 0], [20, 10], [0, 10]], ic = [[1, 1], [19, 1], [19, 9], [1, 9]];
+  const r = A.okluAciklamaYeri({ adaylar: [[10, 2]], w: 3, h: 0.5, L: 1.5, aci: 60, alanlar: [{ pts: dis, a: 1e6, g: 'KESIT_CATI' }, { pts: ic, a: 1e6, g: 'KESIT_CATI' }] });
+  assert.ok(r.maliyet < 1, 'bandın içindeki boşluğa yazılabilir: ' + r.maliyet);
+  const r2 = A.okluAciklamaYeri({ adaylar: [[10, 2]], w: 3, h: 0.5, L: 1.5, aci: 60, alanlar: [{ pts: dis, a: 1e6 }, { pts: ic, a: 1e6 }] });
+  assert.ok(r2.maliyet >= 1e6, 'g yoksa eski davranış');
+});
+
 console.log(`\n${n} test geçti.`);

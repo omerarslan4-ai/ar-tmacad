@@ -76,6 +76,10 @@
 
     /* --- varlıkları önce ara listeye çevir (bloklar dahil) --- */
     const blocks = []; // {name, hBR, ents:[...]}
+    /* içi boş ok ucu (leader okt 'bos'): AutoCAD'in _ClosedBlank bloğu (Çokal 10-İdari Bina_R2'deki tanım: üç çizgi, (-1, ±1/6) → (0, 0), katman 0, renk ByBlock);
+       LEADER'da DSTYLE geçersiz kılması DIMLDRBLK (341) bu bloğun kaydına bağlanır */
+    let bosOkBR = null; const bosOk = () => { if (bosOkBR) return bosOkBR; bosOkBR = nh(); const st = { layer: '0', color: 0, lt: 'BYBLOCK', lw: -2 }, L2 = (a, b) => ({ kind: 'prim', pr: C.prim.L([a[0], a[1], 0], [b[0], b[1], 0]), st });
+      blocks.push({ name: '_ClosedBlank', hBR: bosOkBR, items: [L2([-1, 1 / 6], [0, 0]), L2([0, 0], [-1, -1 / 6]), L2([-1, 1 / 6], [-1, -1 / 6])] }); return bosOkBR; };
     const body = []; // model uzayı
     /* veri kayıtları (paftalar, arazi kotları, büyük nesneler): boş AC_VERI bloğunun eklemesine XDATA olarak (AutoCAD çok parçalı XDATA'lı POINT'i açmıyor) */
     let veriBlk = null; const dataRec = (layer, xd) => { if (!veriBlk) { veriBlk = { name: 'AC_VERI', hBR: nh(), items: [] }; blocks.push(veriBlk); } return { kind: 'insert', name: 'AC_VERI', ip: [0, 0, 0], st: { layer, color: 256, lt: 'BYLAYER', lw: -1 }, xd }; };
@@ -116,10 +120,10 @@
       if (opts.plain) { // AutoCAD'e sade çıktı: blok / ArıtmaCAD verisi yok — 2B: çizgi, yazı, tarama · 3B: yüzey ağları
         if (opts.plain === '3b') { const ms = C.meshes(e); if (ms) for (const d of ms) body.push({ kind: 'mesh', d, st: { layer: e.layer, color: e.color === 256 || e.color == null ? 256 : e.color, lt: 'BYLAYER', lw: -1 } }); continue; }
         if (e.type === 'hatch') { body.push({ kind: 'hatch', e, tip: 'hatch', sc: annoSc(e), st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
-        if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, tip: 'leader', st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
+        if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, tip: 'leader', okBR: e.okt === 'bos' ? bosOk() : null, st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
         for (const r of primRecs(e, e.layer)) body.push({ kind: 'prim', ...r, tip: e.type }); continue; // tip: çizim kuralı eşlemesi için (başlık, kot, ölçü …)
       }
-      if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
+      if (e.type === 'leader' && !r12) { body.push({ kind: 'leader', e, okBR: e.okt === 'bos' ? bosOk() : null, st: { layer: e.layer, color: e.color, lt: 'BYLAYER', lw: e.lw } }); continue; }
       if (e.type === 'blk') {
         const def = (C.doc.blocks || {})[e.ref];
         if (!def) continue;
@@ -329,7 +333,7 @@
       else if (it.kind === 'leader') { // gerçek AutoCAD LEADER: ok boyu DSTYLE geçersiz kılmasıyla (DIMASZ = 41, DIMSCALE = 40)
         const e = it.e, pts = e.pts.map(M.p3); head('LEADER', 'AcDbLeader', it.st, owner); g(3, 'Standard'); g(71, 1); g(72, 0); g(73, 3); g(74, 1); g(75, 0); g(40, 0); g(41, 0); g(76, pts.length);
         pts.forEach(q => { g(10, fx(q[0])); g(20, fx(q[1])); g(30, fx(q[2] || 0)); });
-        g(1001, 'ACAD'); g(1000, 'DSTYLE'); g(1002, '{'); g(1070, 41); g(1040, fx(+e.asz || 0.1)); g(1070, 40); g(1040, 1); g(1070, 147); g(1040, fx((+e.asz || 0.1) * 0.5)); g(1002, '}'); }
+        g(1001, 'ACAD'); g(1000, 'DSTYLE'); g(1002, '{'); g(1070, 41); g(1040, fx(+e.asz || 0.1)); g(1070, 40); g(1040, 1); g(1070, 147); g(1040, fx((+e.asz || 0.1) * 0.5)); if (it.okBR) { g(1070, 341); g(1005, it.okBR); } g(1002, '}'); } // 341 DIMLDRBLK: içi boş ok (_ClosedBlank)
       else if (it.kind === 'hatch') {
         const e = it.e, d = it.sc && it.sc !== doc.set.anno && C.withAnno ? C.withAnno(it.sc, () => C.hatchDxfDef(e)) : C.hatchDxfDef(e), solid = d.solid;
         head('HATCH', 'AcDbHatch', it.st, owner); g(10, 0); g(20, 0); g(30, 0); g(210, 0); g(220, 0); g(230, 1);

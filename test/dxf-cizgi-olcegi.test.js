@@ -76,4 +76,22 @@ t('Mimari ekran desenleri (_M) DXF\'e hiç gitmez: katman HIDDEN_M → HIDDEN; �
   K.pstil = () => ({}); delete K.doc.layers.GORUNEN_GIZLI;
 });
 
+/* oklu açıklama (leader): içi boş ok (okt 'bos') AutoCAD'de _ClosedBlank — Çokal 10-İdari Bina_R2: MULTILEADER oku blok A0A2F816 = _ClosedBlank,
+   üç çizgi (-1, 1/6) → (0, 0) → (-1, -1/6) → (-1, 1/6). Öbür leader'lar eskisi gibi (DIMLDRBLK yok, dolu ok). */
+t('io_dxf: içi boş oklu LEADER → _ClosedBlank bloğu + DSTYLE 341 (DIMLDRBLK); dolu oklu LEADER değişmez', () => {
+  const L0 = kur(); L0.M.p3 = q => [q[0], q[1], q[2] || 0]; L0.prim = { L: (a, b) => ({ k: 'L', a, b }) };
+  L0.T.leader = { prims: () => [] }; const bb0 = L0.bbox; L0.bbox = e => e.pts ? [0, 0, 1, 1] : bb0(e);
+  L0.doc.layers.YZ = { name: 'YZ', color: 7, lt: 'CONTINUOUS', lw: 20, on: true };
+  L0.doc.ents.push({ id: 10, type: 'leader', layer: 'YZ', pts: [[0, 0, 0], [0.16, 0.28, 0], [1, 0.28, 0]], asz: 0.06, okt: 'bos', color: 256, lw: -1 });
+  const txt = L0.dxfWrite({ plain: '2b' }), L = txt.split(/\r?\n/).map(q => q.trim());
+  const br = L.findIndex((q, i) => q === '_ClosedBlank' && L[i - 1] === '2' && L.slice(Math.max(0, i - 14), i).includes('BLOCK_RECORD')); assert.ok(br > 0, 'blok kaydı');
+  const h = L[L.slice(0, br).lastIndexOf('BLOCK_RECORD') + 2]; // kaydın tutamacı (kod 5)
+  const ld = L.indexOf('LEADER'), x = L.slice(ld, ld + 80); const k = x.indexOf('341'); assert.ok(k > 0 && x[k - 1] === '1070' && x[k + 1] === '1005' && x[k + 2] === h, 'DIMLDRBLK → _ClosedBlank (' + h + ')');
+  const bl = L.findIndex((q, i) => q === '_ClosedBlank' && L[i - 1] === '2' && L.slice(Math.max(0, i - 16), i).includes('BLOCK') && !L.slice(Math.max(0, i - 16), i).includes('BLOCK_RECORD'));
+  assert.ok(bl > 0, 'blok tanımı'); const end = L.indexOf('ENDBLK', bl); assert.strictEqual(L.slice(bl, end).filter(q => q === 'LINE').length, 3, 'üç çizgi');
+  const L1 = kur(); L1.M.p3 = q => [q[0], q[1], q[2] || 0]; L1.prim = { L: (a, b) => ({ k: 'L', a, b }) }; L1.T.leader = { prims: () => [] }; const bb1 = L1.bbox; L1.bbox = e => e.pts ? [0, 0, 1, 1] : bb1(e);
+  L1.doc.ents.push({ id: 11, type: 'leader', layer: 'AKS', pts: [[0, 0, 0], [1, 1, 0]], asz: 0.1, color: 256, lw: -1 });
+  const t1 = L1.dxfWrite({ plain: '2b' }); assert.ok(!/_ClosedBlank/.test(t1), 'dolu okta blok yok'); const L1s = t1.split(/\r?\n/).map(q => q.trim()), i1 = L1s.indexOf('LEADER'); assert.ok(i1 > 0 && !L1s.slice(i1, i1 + 60).includes('341'));
+});
+
 console.log(`\n${n} test geçti.`);
