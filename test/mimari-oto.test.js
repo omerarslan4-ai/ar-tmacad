@@ -118,4 +118,30 @@ t('ölçü çakışması: 5 mm arayla iki sıra çakışmaz, 2 mm arayla çakı�
   assert.deepStrictEqual(A.olcuCakisma([o('d', [0, 0], [0, 40], [50, 0]), yat('y1', 0, 100, 10)]).length, 1);   // yatay ölçünün yazısı (x 50) düşey çizginin üstünde
 });
 
+/* kullanıcı bildirimi 14.11.2026: "2 ayrı oda olduğundan 1 kesit daha alması gerekiyordu". Konya'da kumanda odası bölme duvarında K2 130/250 kapısı var
+   (araclar/konya-terfi-uret.js: dK x = 3,80, s = 1,05 → y 0,60 … 1,90); plan kesit kotunda (kat + 1 m) kapı boşluğu odaları birleştiriyordu.
+   Zemin kaplaması ve mahal adı yok: mahaller yalnız duvarlardan bulunur. */
+const KONYA_KAPILI = [R(0, 0, 19.7, 0.3), R(0, 7.7, 19.7, 8), R(0, 0, 0.4, 8), R(19.3, 0, 19.7, 8), R(3.7, 0.3, 3.9, 0.6), R(3.7, 1.9, 3.9, 7.7)];
+for (const x of [0.25, 4.75, 9.25, 13.75, 19.45]) for (const y of [0.25, 7.75]) KONYA_KAPILI.push(R(x - 0.25, y - 0.25, x + 0.25, y + 0.25));
+const K2 = { c: [3.8, 1.25], u: [0, 1], w: 1.3, t: 0.2 };
+t('kapı boşluğu kapalı sayılır: kapılı bölme duvarıyla Konya yine 2 mahal (boşluk açık kalsaydı 1)', () => {
+  assert.strictEqual(A.mahalBul(KONYA_KAPILI, [0, 0, 19.7, 8], { h: 0.1 }).length, 1);
+  const M = A.mahalBul(KONYA_KAPILI.concat(A.acikIzleri([K2])), [0, 0, 19.7, 8], { h: 0.1 });
+  assert.strictEqual(M.length, 2); assert.ok(M[1].bb[2] <= 3.75, 'kumanda odası x ≤ 3,7');
+});
+t('kaplamasız Konya: 1 uzun + büyük hacim (montaj holü) + kumanda odası = 3 kesit', () => {
+  const M = A.mahalBul(KONYA_KAPILI.concat(A.acikIzleri([K2])), [0, 0, 19.7, 8], { h: 0.1 });
+  const K = A.kesitYerleri({ bb: [0, 0, 19.7, 8], mahaller: M, aciklar: [{ c: [3.8, 1.25], w: 1.3, d: 'y' }] });
+  assert.deepStrictEqual(K.map(h => h.tur), ['uzun', 'buyuk', 'oda']);
+  assert.ok(K[2].v > 0.4 && K[2].v < 3.7, 'oda kesiti kumanda odasından: x = ' + K[2].v);
+});
+t('eski çalıştırmadan kalan 2 kesit (uzun + montaj holü) korunur, eksik oda kesiti eklenir; kesit zaten varsa eklenmez', () => {
+  const M = A.mahalBul(KONYA_KAPILI.concat(A.acikIzleri([K2])), [0, 0, 19.7, 8], { h: 0.1 });
+  const K = A.kesitYerleri({ bb: [0, 0, 19.7, 8], mahaller: M });
+  const eski = [{ a: [-1.5, 4], b: [21.2, 4] }, { a: [11.5, -1.5], b: [11.5, 9.5] }];
+  const ek = A.eksikKesitler(K, eski, M, [0, 0, 19.7, 8]); assert.deepStrictEqual(ek.map(h => h.tur), ['oda']);
+  assert.deepStrictEqual(A.eksikKesitler(K, eski.concat([{ a: [2, -1.5], b: [2, 9.5] }]), M, [0, 0, 19.7, 8]), []);
+  assert.strictEqual(A.eksikKesitler(K, [], M, [0, 0, 19.7, 8]).length, 3);
+});
+
 console.log(`\n${n} test geçti.`);

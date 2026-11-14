@@ -305,20 +305,23 @@
     if (kes.length && kes.every(v => v.kaynak === 'MIMARIPAFTA')) { for (const v of kes) { G.sil(v); const i = VL.indexOf(v); if (i >= 0) VL.splice(i, 1); for (const L of C.doc.layouts || []) if (L.vps) L.vps = L.vps.filter(q => q.gorunum !== v.id); } kes = [];
       C.doc.layouts = (C.doc.layouts || []).filter(L => !(L.kesitPaftasi && !L.mimPafta && !(L.vps || []).length)); } // boşalan disiplin kesit paftaları
     let kesitBilgi = null;
-    if (!kes.length) {
+    if (kes.length) for (const v of kes) { const gv = v.gv; G.sil(v); v.gv = gv; if (v.kaynak === 'MIMARIPAFTA') v.olcek = SC; try { await G.kesitUret(v); } catch (er) { console.error(er); } } // bütün kesitler (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler — eski aksız içerik paftada kalmaz
+    {
       const kul = new Set(C.doc.ents.filter(e => e.type === 'kesitisaret').map(e => e.name).concat(VL.map(v => v.nm)));
       const sGr = (C.doc.set.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']).filter(g => !/GENEL/i.test(g));
-      /* kesit yerleri (firma kuralı 14.11.2026): uzun kesit bütün mahallerden, kısa kesitler büyük hacimden ve odalardan; doğramadan geçer, kolon / kiriş üstünde değil */
+      /* kesit yerleri (firma kuralı 14.11.2026): uzun kesit bütün mahallerden, kısa kesitler büyük hacimden ve odalardan; doğramadan geçer, kolon / kiriş üstünde değil.
+         Var olan (kullanıcının aldığı) kesitler korunur; kuralı sağlamayan eksik varsa (ör. bir oda hiçbir kısa kesitte yok) yalnız eksik hatlar eklenir */
       let hatlar = null; try { if (C.mimariKesitYerleri) { kesitBilgi = C.mimariKesitYerleri(ents, bbDis, katlar.map(k => k.z)); hatlar = kesitBilgi.hatlar; } } catch (er) { console.error('kesit yerleri', er); }
-      if (!hatlar || !hatlar.length) hatlar = kesitHatlari(bb);
-      for (const h of hatlar) {
+      if (!kes.length && (!hatlar || !hatlar.length)) hatlar = kesitHatlari(bb);
+      if (kes.length && hatlar && C.mimariOtoApi && C.mimariOtoApi.eksikKesitler) hatlar = C.mimariOtoApi.eksikKesitler(hatlar, kes.map(v => ({ a: v.a, b: v.b })), kesitBilgi ? kesitBilgi.mahaller : [], bbDis);
+      for (const h of hatlar || []) {
         let nm = h.nm; for (let c = 65; kul.has(nm) && c < 91; c++) nm = String.fromCharCode(c); kul.add(nm);
         const v = { id: 'G' + Date.now().toString(36) + nm, tip: 'kesit', kaynak: 'MIMARIPAFTA', ad: `${nm}-${nm} KESİTİ`, nm, a: h.a, b: h.b, sp: h.sp, depth: h.depth, yer: [X0, Yc], olcek: SC, gruplar: sGr };
         let n = 0; try { n = await G.kesitUret(v); } catch (er) { console.error('mimari kesit', er); }
         if (!n) continue; if (h.mahaller) v.mahaller = h.mahaller; VL.push(v); kes.push(v); asagi(v.gv);
         for (const g of sGr) if (!/MIMAR/i.test(g)) G.paftayaKoy(v, g); // standart: bir kez alınan kesit bütün disiplin paftalarında
       }
-    } else for (const v of kes) { const gv = v.gv; G.sil(v); v.gv = gv; if (v.kaynak === 'MIMARIPAFTA') v.olcek = SC; try { await G.kesitUret(v); } catch (er) { console.error(er); } } // bütün kesitler (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler — eski aksız içerik paftada kalmaz
+    }
     try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
     /* kesit işaretleri planlarda (her planda bütün kesitler; Çokal R2) */
     for (const p of planlar) { try { for (const v of kes) kesitIsaretiPlana(p.gv, p.W, v); baslikAlta(p.gv); } catch (er) { console.error('plan kesit işareti', er); } }

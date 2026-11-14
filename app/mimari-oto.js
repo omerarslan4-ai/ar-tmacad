@@ -157,6 +157,27 @@
     for (const h of out) { h.mahaller = kesen(h.d, h.v).map(m => m.ad); h.aciklar = AC.filter(a => a.d !== h.d && Math.abs(h.v - (h.d === 'x' ? a.c[1] : a.c[0])) <= a.w / 2).length; }
     return out;
   };
+  /* mahal bulmada kapı / pencere boşlukları kapalı sayılır (kullanıcı 14.11.2026: Konya kumanda odası montaj holüne kapıyla açılıyor, ayrı oda sayılmalı).
+     aciklar: [{ c: [x, y] duvar ekseninde orta, u: duvar doğrultusu, w: genişlik, t: duvar kalınlığı (m) }] → engel dörtgenleri (her yanda 2 cm taşar) */
+  const acikIzleri = aciklar => (aciklar || []).map(a => { const u = a.u, n = [-u[1], u[0]], hw = a.w / 2 + 0.02, ht = (a.t || 0.2) / 2 + 0.02, P = (s, t) => [a.c[0] + u[0] * s + n[0] * t, a.c[1] + u[1] * s + n[1] * t];
+    return [P(-hw, -ht), P(hw, -ht), P(hw, ht), P(-hw, ht)]; });
+  /* kesit hattı (a, b) mahalden geçiyor mu (mahal kutusu her yandan 10 cm içeride) */
+  const kesitKeser = (h, m) => { const [x0, y0, x1, y1] = [m.bb[0] + 0.1, m.bb[1] + 0.1, m.bb[2] - 0.1, m.bb[3] - 0.1]; if (x1 <= x0 || y1 <= y0) return false;
+    let t0 = 0, t1 = 1; const p = h.a, dx = h.b[0] - p[0], dy = h.b[1] - p[1];
+    for (const [pp, qq] of [[-dx, p[0] - x0], [dx, x1 - p[0]], [-dy, p[1] - y0], [dy, y1 - p[1]]]) { if (Math.abs(pp) < 1e-12) { if (qq < 0) return false; continue; } const t = qq / pp; if (pp < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t); if (t0 > t1) return false; } return true; };
+  /* var olan kesitler (kullanıcının aldıkları) korunur; firma kuralını sağlamak için eksik olan hatlar eklenir (14.11.2026):
+     uzun doğrultuda kesit yoksa uzun kesit; her mahal kısa doğrultudaki bir kesitte görünmeli (büyük hacim ve odalar).
+     hatlar: kesitYerleri çıktısı (uzun, buyuk, oda, ek), mevcut: [{ a, b }], mahaller: [{ bb }], bb: yapı. Döner: eklenecek hatlar */
+  const eksikKesitler = (hatlar, mevcut, mahaller, bb) => {
+    const L = hatlar || [], V = mevcut || [], M = mahaller || []; if (!V.length) return L.slice();
+    const uzunX = bb ? bb[2] - bb[0] >= bb[3] - bb[1] : true, yon = h => Math.abs(h.b[0] - h.a[0]) >= Math.abs(h.b[1] - h.a[1]) ? 'x' : 'y', uz = uzunX ? 'x' : 'y';
+    const out = [], kisaGoren = new Set(); let uzunVar = V.some(h => yon(h) === uz);
+    for (const h of V) if (yon(h) !== uz) M.forEach((m, i) => { if (kesitKeser(h, m)) kisaGoren.add(i); });
+    for (const h of L) { const d = h.d || yon(h);
+      if (d === uz) { if (!uzunVar) { out.push(h); uzunVar = true; } continue; }
+      const yeni = M.map((m, i) => i).filter(i => !kisaGoren.has(i) && kesitKeser(h, M[i])); if (!yeni.length) continue;
+      out.push(h); yeni.forEach(i => kisaGoren.add(i)); }
+    return out; };
 
   /* ---------- 4) GÖRÜNÜŞTE İÇ ELEMANLAR ---------- */
   /* ogeler: [{ id, type, bb: [x0, y0, z0, x1, y1, z1] }]. Dış zarf: düşey elemanların (perde, duvar, kolon) plan kutusu.
@@ -218,7 +239,7 @@
   /* görünüşün zemin kotu: tretuvarın oturduğu zemin (zg) en düşüğü; yoksa "toprak / zemin" adlı seviye; yoksa null (kırpılmaz) */
   const zeminKotu = (ogeler, seviyeler) => { const t = (ogeler || []).filter(e => e.type === 'tretuvar' && isFinite(+e.zg)).map(e => +e.zg);
     if (t.length) return Math.min(...t); const s = (seviyeler || []).find(q => /toprak|tabii zemin|zemin kotu/i.test(String(q.ad || q.id || ''))); return s && isFinite(+s.z) ? +s.z : null; };
-  const api = { tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  const api = { tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
@@ -237,9 +258,10 @@
   const dogramalar = ents => {
     const I = C._ins, out = []; if (!I || !I.hostFrame) return out;
     for (const e of ents || C.doc.ents) { if (e.type !== 'acik' || e.gv || !C.layer(e.layer).on) continue; const H = I.hostFrame(e); if (!H) continue; const { h, sf, F } = H, s = +e.s || 0, mid = (F.lB + F.rB) / 2;
-      out.push({ e, id: e.id, kind: e.kind === 'kapi' ? 'kapi' : (e.kind === 'panjur' ? 'panjur' : 'pencere'), kTip: e.kTip, w: +e.w || 1, h: +e.hh || (e.kind === 'kapi' ? 2.1 : 1.2), par: +e.par || 0, kanat: +e.kanat || 1, malzeme: e.malzeme || e.mal,
+      const kapi = e.kind === 'kapi', par = kapi ? 0 : (+e.par || 0.9); // 3B ağıyla aynı (insaat.js T.acik.mesh): kapı eşiği duvar altında, pencere parapeti verilmemişse 0,90
+      out.push({ e, id: e.id, kind: kapi ? 'kapi' : (e.kind === 'panjur' ? 'panjur' : 'pencere'), kTip: e.kTip, w: +e.w || 1, h: +e.hh || (kapi ? 2.1 : 1.4), par, kanat: +e.kanat || 1, malzeme: e.malzeme || e.mal, el: e.el, side: e.yon === 'R' ? F.rB : F.lB, s0: s - (+e.w || 1) / 2,
         duvar: Math.abs(F.rB - F.lB) || 0.2, yon: e.yon, pnl: e.pnl,
-        c: [sf.a[0] + sf.u[0] * s + sf.nn[0] * mid, sf.a[1] + sf.u[1] * s + sf.nn[1] * mid], u: [sf.u[0], sf.u[1]], nn: [sf.nn[0], sf.nn[1]], z0: (+h.z0 || 0) + (+e.par || 0), host: h }); }
+        c: [sf.a[0] + sf.u[0] * s + sf.nn[0] * mid, sf.a[1] + sf.u[1] * s + sf.nn[1] * mid], u: [sf.u[0], sf.u[1]], nn: [sf.nn[0], sf.nn[1]], mid, z0: (+h.z0 || 0) + par, host: h }); }
     return out;
   };
   /* doğrama detay paftası için tip listesi: [{ kod, tur, w, h, parapet, adet, kanat, malzeme, ids, etiket, baslik }] (cm) */
@@ -329,9 +351,11 @@
   /* KESİT YERLERİ modelden: mahaller (kat kotlarında düşey elemanlarla çevrili bölgeler), doğramalar, kolonlar, kirişler.
      Döner: { hatlar (kesitYerleri), mahaller } */
   C.mimariKesitYerleri = (ents, bb, katZ) => {
-    const V = ents.filter(e => /^(perde|kolon|wall|duvar)$/.test(e.type)), B3 = new Map(V.map(e => [e, bbox3(e)])), odalar = [];
-    for (const z of (katZ && katZ.length ? katZ : [0])) { const zc = z + 1.0, eng = [];
-      for (const e of V) { const b = B3.get(e); if (!b || b[2] > zc || b[5] < zc) continue; let t; try { t = C.entTris(e); } catch (er) { continue; } const P = t.pos; for (let i = 0; i < P.length; i += 9) eng.push([[P[i], P[i + 1]], [P[i + 3], P[i + 4]], [P[i + 6], P[i + 7]]]); }
+    const V = ents.filter(e => /^(perde|kolon|wall|duvar)$/.test(e.type)), B3 = new Map(V.map(e => [e, bbox3(e)])), odalar = [], DG = dogramalar(ents);
+    for (const z of (katZ && katZ.length ? katZ : [0])) { const zc = z + 1.0, eng = [], ustteki = new Set();
+      for (const e of V) { const b = B3.get(e); if (!b || b[2] > zc || b[5] < zc) continue; ustteki.add(e.id); let t; try { t = C.entTris(e); } catch (er) { continue; } const P = t.pos; for (let i = 0; i < P.length; i += 9) eng.push([[P[i], P[i + 1]], [P[i + 3], P[i + 4]], [P[i + 6], P[i + 7]]]); }
+      /* kapı / pencere boşlukları kapalı sayılır: kapıyla birbirine açılan odalar (Konya: kumanda odası – montaj holü) ayrı mahaldir */
+      eng.push(...acikIzleri(DG.filter(d => ustteki.has(d.host.id)).map(d => ({ c: d.c, u: d.u, w: d.w, t: d.duvar }))));
       for (const m of mahalBul(eng, bb, { h: 0.1 })) { if (odalar.some(o => ['0', '1', '2', '3'].every(i => Math.abs(o.bb[i] - m.bb[i]) < 0.3))) continue; m.z = z; odalar.push(m); } }
     /* üst kattaki odaları kapsayan alt kat hacmi (ör. pompa haznesi) ayrı mahal sayılmaz: kesitler üst kattaki odalara göre seçilir */
     const kes = (p, o) => Math.max(0, Math.min(p.bb[2], o.bb[2]) - Math.max(p.bb[0], o.bb[0])) * Math.max(0, Math.min(p.bb[3], o.bb[3]) - Math.max(p.bb[1], o.bb[1]));
