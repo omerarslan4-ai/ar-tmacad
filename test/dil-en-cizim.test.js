@@ -83,6 +83,35 @@ dene('statik penceresi (DIL.t): numaralı notlar ve poz etiketleri', () => {
   assert.strictEqual(DIL.t('10 – Zeminde betona zararlı kimyasal maddelerin bulunması durumunda TS 3440\'a göre önlem alınacaktır.'), '10 – If chemicals harmful to concrete are present in the soil, measures shall be taken according to TS 3440.');
   assert.strictEqual(DIL.t('101,102 Ø12/25 dış yatay'), '101,102 Ø12/25 outer face horizontal');
 });
+/* denetim 14.11.2026: satır parçası girdileri ('satir'), kısa kelimeler, harf biçimi, ondalık virgül, pafta adı öneki */
+dene('bölünmüş not parçası metin içinde uygulanmıyor ("olacaktır." → "structures." değil)', () => {
+  for (const s of ['Beton sınıfı C30/37 olacaktır.', 'Kalıp ilgililere bilgi verilecektir.']) { assert(!/structures|relevant parties/.test(tx(s)), 'C.txL: ' + tx(s)); assert(!/structures|relevant parties/.test(DIL.t(s)), 'DIL.t: ' + DIL.t(s)); }
+  assert.strictEqual(tx('olacaktır.'), 'structures.'); assert.strictEqual(DIL.t('olacaktır.'), 'structures.'); // eski aktarımın satırı (tam satır)
+});
+dene('kısa kelimeler: yalnız tam satır ya da sayının ardında', () => {
+  const B = [['Düz çatı', 'Flat roof'], ['DÜZ ÇATI', 'FLAT ROOF'], ['alt yapı', 'infrastructure'], ['taban kotu', 'base level'], ['Taban kotu', 'Base level'], ['üst', 'top'], ['alt', 'bottom'],
+    ['+3.90 üst', '+3.90 top'], ['34 ad. Ø25', '34 pcs Ø25'], ['58Ø12/10 L=670  alt X', '58Ø12/10 L=670  bottom X'], ['28 düz + 799 yay R=201', '28 straight + 799 arc R=201']];
+  const yanlis = B.filter(([t, e]) => tx(t) !== e).map(([t, e]) => `${t} → ${tx(t)} ≠ ${e}`); assert(!yanlis.length, yanlis.join('; '));
+  assert(!/pcs/.test(tx('Proje ad.')), tx('Proje ad.')); assert(!/bottom/.test(tx('Proje alt başlığı')), tx('Proje alt başlığı'));
+});
+dene('harf biçimi kaynak kelimeye uyar (C.txL ve DIL.t)', () => {
+  assert.strictEqual(tx('Oda adı'), 'Room name'); assert.strictEqual(tx('Duvar'), 'Wall'); assert.strictEqual(tx('duvar'), 'wall'); assert.strictEqual(tx('DUVAR'), 'WALL');
+  assert.strictEqual(tx('Tavan'), 'Ceiling'); assert.strictEqual(tx('Oda'), 'Room'); assert.strictEqual(DIL.t('Oda adı'), 'Room name');
+  assert.strictEqual(DIL.harf('Duvar', 'wall'), 'Wall'); assert.strictEqual(DIL.harf('duvar', 'Wall'), 'wall'); assert.strictEqual(DIL.harf('ODA', 'Room'), 'ROOM'); assert.strictEqual(DIL.harf('Oda', 'ROOM', true), 'Room'); assert.strictEqual(DIL.harf('mss', 'mWC'), 'mWC');
+});
+dene('ondalık virgül yalnız ondalık sayıda (poz listeleri aynen)', () => {
+  assert.strictEqual(tx('101,102'), '101,102'); assert.strictEqual(tx('1,2,3'), '1,2,3'); assert.strictEqual(tx('11,12 Ø12/25'), '11,12 Ø12/25');
+  assert.strictEqual(tx('31,8 cm'), '31.8 cm'); assert.strictEqual(tx('2,50'), '2.50'); assert.strictEqual(tx('Toplam kalınlık 31,8 cm'), 'Total thickness 31.8 cm');
+});
+dene('pafta adı öneki ayrı çevrilir', () => {
+  assert.strictEqual(tx('MİM-01 ZEMİN KAT PLANI'), 'ARC-01 GROUND FLOOR PLAN'); assert.strictEqual(tx('MİMARİ-02 KESİTLER'), 'ARCHITECTURAL-02 SECTIONS');
+  assert.strictEqual(tx('MİMARİ-01 KAT PLANLARI, KESİTLER'), 'ARCHITECTURAL-01 FLOOR PLANS, SECTIONS'); assert.strictEqual(tx('MİM-03'), 'ARC-03');
+});
+dene('statik GENEL NOTLAR bölünmeden önce bütün cümle çevriliyor (Türkçe harf kalmıyor)', () => {
+  const ds = fs.readFileSync(path.join(KOK, 'app/hesap/statik-pafta-dsi.js'), 'utf8'), m = /P\.NOTLAR_DSI = \[([\s\S]*?)\];/.exec(ds); assert(m, 'NOTLAR_DSI yok');
+  const N = new Function('return [' + m[1] + '];')().map((n, i) => `${i + 1} – ` + n.replace('{BETON}', 'C30/37').replace('{CELIK}', 'B 420C').replace('{LB}', '50'));
+  const kalan = N.map(n => DIL.t(n)).filter(s => TRH.test(s)); assert(!kalan.length, kalan.length + ' not Türkçe kaldı:\n      ' + kalan.join('\n      '));
+});
 
 console.log(`${sayi - hata}/${sayi} geçti`);
 if (hata) process.exit(1);

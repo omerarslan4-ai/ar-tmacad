@@ -70,25 +70,44 @@
      bu tablodaki (EN) ve kullanıcının ÇEVİRİ tablosundaki karşılıklar önceliklidir */
   const dilEN = () => { try { const z = typeof window !== 'undefined' && window.DIL && window.DIL.sz && window.DIL.sz.en; return z || null; } catch (e) { return null; } };
   const dilTam = () => { const z = dilEN(), o = {}; if (z && z.tam) for (const [k, v] of z.tam) if (k && v != null && !k.includes('#')) o[k] = v; return o; };
-  const dilKalip = t => { const z = dilEN(); if (!z || !z.sab) return null; for (const p of z.sab) { if (!p.tam) continue; const m = t.match(p.tam); if (m) { let i = 0; return p.en.replace(/\{(\d)\}|#/g, (x, d) => (d ? (m[+d] || '') : (m[++i] != null ? m[i] : ''))); } } return null; };
+  const dold = (en, m) => { let i = 0; return en.replace(/\{(\d)\}|#/g, (x, d) => (d ? (m[+d] || '') : (m[++i] != null ? m[i] : ''))); };
+  const dilKalip = t => { const z = dilEN(); if (!z || !z.sab) return null; for (const p of z.sab) { if (!p.tam) continue; const m = t.match(p.tam); if (m) return dold(p.en, m); } return null; };
+  /* metin içi '#' kalıpları (ortak sözlükte 'ic' türü: "# üst" → "# top", "# ad." → "# pcs"): sayının hemen ardındaki kısa kelimeler */
+  const dilIc = s => { const z = dilEN(); if (!z || !z.sab) return s; for (const p of z.sab) { if (!p.icZ || !p.ic) continue; p.ic.lastIndex = 0; if (!p.ic.test(s)) continue; p.ic.lastIndex = 0; s = s.replace(p.ic, (...m) => dold(p.en, m)); } return s; };
   const lowTR = s => s.toLocaleLowerCase('tr'), upTR = s => s.toLocaleUpperCase('tr');
   let LOW = null, PHR = null;
   const build = () => {
-    const user = (C.doc && C.doc.set && C.doc.set.ceviri) || {};
-    const all = Object.assign({}, dilTam(), EN, user); LOW = new Map(); for (const [k, v] of Object.entries(all)) LOW.set(lowTR(k.trim()), v);
-    const keys = Object.keys(all).filter(k => k.length >= 3).sort((a, b) => b.length - a.length);
+    const user = (C.doc && C.doc.set && C.doc.set.ceviri) || {}, z = dilEN(), satir = (z && z.satir) || new Set();
+    const all = Object.assign({}, dilTam(), EN, user); LOW = new Map(); for (const [k, v] of Object.entries(all)) LOW.set(lowTR(k.trim()), { v, B: k === upTR(k) && /\p{L}/u.test(k) });
+    /* 'satir' türü girdiler (bölünmüş not parçaları, "üst" / "alt" gibi kısa kelimeler) yalnız satırın tamamı eşleşince: metin içi aramaya girmez */
+    const keys = Object.keys(all).filter(k => k.length >= 3 && !(satir.has(k) && !(k in EN) && !(k in user))).sort((a, b) => b.length - a.length);
     PHR = keys.length ? new RegExp('(?<![\\p{L}\\p{N}])(' + keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\p{L}])', 'giu') : null;
   };
   const cache = new Map();
   C.langReset = () => { LOW = null; cache.clear(); };
-  const caseLike = (src, en) => (src === upTR(src) && /\p{L}/u.test(src)) ? en.toUpperCase() : en;
+  /* harf biçimi kaynak yazıya göre (dil.js DIL.harf ile aynı): tümü büyük → BÜYÜK; ilk harf büyük → Başlık; küçük → küçük (kısaltma kalır).
+     B: sözlük anahtarı büyük harfli ("ODA" → "ROOM"): karışık harfli metinde karşılık küçültülüp uyarlanır ("Oda" → "Room", "ROOM" değil) */
+  const caseLike = (src, en, B) => {
+    if (!/\p{L}/u.test(src)) return en; if (src === upTR(src)) return en.toUpperCase();
+    if (B && en === en.toUpperCase()) en = en.toLowerCase();
+    const i = src.search(/\p{L}/u), j = en.search(/\p{L}/u); if (j < 0) return en; const c = en.charAt(j), n2 = en.charAt(j + 1);
+    if (src.charAt(i) !== lowTR(src.charAt(i))) return en.slice(0, j) + c.toUpperCase() + en.slice(j + 1);
+    if (n2 && /\p{Lu}/u.test(n2)) return en; return en.slice(0, j) + c.toLowerCase() + en.slice(j + 1);
+  };
+  /* ondalık virgül → nokta yalnız ondalık sayıda: tek virgül, virgülden sonra 1–3 basamak; poz listeleri ("101,102", "1,2,3", "11,12 Ø12/25") aynen */
+  const ondalik = o => o.replace(/(?<![\d.,])(\d+),(\d{1,3})(?![\d,])/g, (m, a, b, i, str) => ((a.length >= 3 && b.length === 3) || /^\s*\d*Ø/.test(str.slice(i + m.length)) ? m : a + '.' + b));
+  const TRH = /[ÇĞİÖŞÜçğıöşü]/;
   const line1 = s => {
     const t = s.trim(); if (!t) return s;
-    const ex = LOW.get(lowTR(t)); if (ex != null) return s.replace(t, caseLike(t, ex));
+    const ex = LOW.get(lowTR(t)); if (ex != null) return s.replace(t, caseLike(t, ex.v, ex.B));
+    /* pafta adı / no öneki ("MİM-01 ZEMİN KAT PLANI", "MİMARİ-02 KESİTLER, GÖRÜNÜŞLER"): önek ayrı, kalanı ayrı çevrilir */
+    { const m = /^(MİMARİ|MİM)-(\d+)(\s+)(\S.*)$/u.exec(t); if (m) { let r = line1(m[4]); if (TRH.test(r) && m[4].includes(',')) r = m[4].split(/,\s*/).map(q => line1(q)).join(', ');
+      return s.replace(t, (m[1] === 'MİM' ? 'ARC' : 'ARCHITECTURAL') + '-' + m[2] + m[3] + r); } }
     for (const [rx, fn] of RX) { const m = rx.exec(t) || rx.exec(upTR(t)); if (m) return s.replace(t, caseLike(t, fn(...m).replace(/\b(\w)-\1\b/, '$&'))); }
     { const k = dilKalip(t); if (k != null) return s.replace(t, k); } // ortak sözlüğün sayı yer tutuculu kalıpları ("# ALÜMİNYUM PENCERE", "(# ADET)" …)
-    let o = PHR ? s.replace(PHR, w => { const v = LOW.get(lowTR(w)); return v == null ? w : caseLike(w, v); }) : s;
-    o = o.replace(/(\d),(\d)/g, '$1.$2').replace(/\bKot\b/g, 'Level');
+    let o = dilIc(s);
+    o = PHR ? o.replace(PHR, w => { const v = LOW.get(lowTR(w)); return v == null ? w : caseLike(w, v.v, v.B); }) : o;
+    o = ondalik(o).replace(/\bKot\b/g, 'Level').replace(/(?<=\s)PLANI(?=\s*$)/u, 'PLAN'); /* "ZEMİN KAT PLANI" → GROUND FLOOR PLAN */
     return o;
   };
   C.lang = () => (C.doc && C.doc.set && C.doc.set.lang) || 'tr';

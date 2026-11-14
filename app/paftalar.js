@@ -98,12 +98,14 @@
     h += `<div class="lt add" data-a="addgrp" title="Yeni grup (disiplin) ekle">+</div>`;
     const g = activeG;
     if (g) {
-      h += `<div class="sep"></div><div class="sub">` + inGrp(g).map(o => `<div class="lt ${!model && o.i === C.layoutIdx ? 'on' : ''}" data-a="lay" data-i="${o.i}" title="${esc(o.L.name)} — ${o.L.size === 'OZEL' ? 'özel' : o.L.size} · çift tık: yeniden adlandır, sağ tık: menü">${esc(o.L.name)}</div>`).join('')
+      h += `<div class="sep"></div><div class="sub">` + inGrp(g).map(o => `<div class="lt ${!model && o.i === C.layoutIdx ? 'on' : ''}" data-a="lay" data-i="${o.i}" title="${esc(adG(o.L))} — ${o.L.size === 'OZEL' ? 'özel' : o.L.size} · çift tık: yeniden adlandır, sağ tık: menü">${esc(adG(o.L))}</div>`).join('')
         + `<div class="lt add" data-a="addlay" data-g="${esc(g)}" title="${esc(g)} grubuna yeni pafta">+ Pafta</div></div>`;
     }
     bar.innerHTML = h;
   }
   C.renderLayBar = render;
+  /* sekmede gösterilen ad: proje dili İngilizce iken çevrilir (C.txL); kayıtlı ad (L.name) Türkçe kalır, yeniden adlandırma onu düzenler */
+  function adG(L) { return C.txL ? C.txL(L.name) : L.name; }
 
   let clk = null;
   bar.addEventListener('click', e => {

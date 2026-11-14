@@ -37,7 +37,7 @@
   new ResizeObserver(() => { plan.resize(); map.resize(); lay.resize(); if (!v3.failed) v3.resize(); }).observe($('#views'));
   function fillLayouts() {
     const ls = C.doc.layouts || []; C.layoutIdx = Math.min(C.layoutIdx || 0, Math.max(0, ls.length - 1));
-    $('#layoutSel').innerHTML = ls.map((L, i) => `<option value="${i}" ${i === C.layoutIdx ? 'selected' : ''}>${esc(L.name)} — ${L.size === 'OZEL' ? (L.pw + '×' + L.ph) : L.size}</option>`).join('');
+    $('#layoutSel').innerHTML = ls.map((L, i) => `<option value="${i}" ${i === C.layoutIdx ? 'selected' : ''}>${esc(C.txL ? C.txL(L.name) : L.name)} — ${L.size === 'OZEL' ? (L.pw + '×' + L.ph) : L.size}</option>`).join('');
     lay.dirty = true;
   }
   $('#layoutSel').onchange = e => { C.layoutIdx = +e.target.value; C.layoutSel = null; lay.zoomExtents(); renderProps(); };

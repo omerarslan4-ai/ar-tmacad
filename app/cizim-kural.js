@@ -91,6 +91,9 @@
       genel: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaIc: 4.1, uzatmaDis: 1, uzatmaBosluk: 0, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
       detay: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
     },
+    /* ÇAKIŞMA GİDERME kayma sınırları (kâğıt mm; MIMARIPAFTA → mimari-oto.js cakismaCoz, denetim 14.11.2026): ölçü sırası çizgisine dik en çok 16 mm
+       (Bekçi A-A çakışma 0), kot yatayda 12, açılım kodu 10, doğrama numarası düşeyde 8 mm; enCok: bir öğenin toplam kayması en çok 16 mm. KABUL — örnek çizimde ölçülmedi */
+    cakismaKayma: { olcu: 16, kot: 12, acilim: 10, dogramaNo: 8, enCok: 16 },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
     /* ÇİZGİ TİPİ — kâğıtta görünen desen (mm), ölçekten bağımsız (14.11.2026, Çokal R2'den hesaplandı): örnekler cm çizilmiş, $LTSCALE 20,
        $CELTSCALE 1, $PSLTSCALE 0 (k1, k5, k6) / 1 (k10); nesne çizgi tipi ölçeği en sık Aks 0,125, Arkagor / Beton_Kesik 2, Kesit_Cizgisi 1, ZMN 2.

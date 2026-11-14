@@ -214,7 +214,7 @@
     ['X yönü — Alt (açıklık)', 'X direction — Bottom (span)'], ['X yönü — Üst (mesnet)', 'X direction — Top (support)'], ['Y yönü — Alt (açıklık)', 'Y direction — Bottom (span)'], ['Y yönü — Üst (mesnet)', 'Y direction — Top (support)'],
     ['X yönü — Alt', 'X direction — Bottom'], ['X yönü — Üst', 'X direction — Top'], ['Y yönü — Alt', 'Y direction — Bottom'], ['Y yönü — Üst', 'Y direction — Top'], ['X yönü', 'X direction'], ['Y yönü', 'Y direction'],
     ['Alt (açıklık)', 'Bottom (span)'], ['Üst (mesnet)', 'Top (support)'], ['Düşey + (dış)', 'Vertical + (outer)'], ['Düşey − (iç)', 'Vertical − (inner)'], ['Yatay + (dış)', 'Horizontal + (outer)'], ['Yatay − (iç)', 'Horizontal − (inner)'],
-    ['Dış yüz', 'Outer face'], ['İç yüz', 'Inner face'], ['Yüz #', 'Face #'], ['gövde — döşemeye kıvrık', 'body — bent into slab'], ['döşemeye kıvrık', 'bent into slab'], ['temel filizi', 'foundation starter'], ['gövde', 'body'],
+    ['Dış yüz', 'Outer face'], ['İç yüz', 'Inner face'], ['Yüz #', 'Face #'], ['gövde — döşemeye kıvrık', 'main — bent into slab'], ['döşemeye kıvrık', 'bent into slab'], ['temel filizi', 'foundation starter'], ['gövde', 'main'],
     ['orta (derz üstüne bindirmeli)', 'middle (lapped above joint)'], ['üst (döşemeye kadar)', 'top (up to slab)'], ['tek parça (filizsiz, gönyeli)', 'single piece (no starter, with bends)'], ['boşlukta kesik', 'cut at opening'],
     ['Boşluk ilave düşey', 'Opening trimmer vertical'], ['Boşluk ilave yatay', 'Opening trimmer horizontal'], ['Boşluk köşe 45°', 'Opening corner 45°'], ['Boşluk ilave', 'Opening trimmer'], ['iki yüz', 'both faces'],
     /* perde adları */
@@ -317,5 +317,19 @@
     ['Denetim', 'Checks'], ['Çakışma denetimi', 'Clash check'], ['Geçiş delikleri', 'Penetrations'], ['Pafta listesi', 'Sheet list'],
     ['MEKANİK — ISI YALITIMI', 'MECHANICAL — THERMAL INSULATION'], ['MEKANİK — ISITMA TESİSATI', 'MECHANICAL — HEATING'], ['MEKANİK — SOĞUTMA TESİSATI', 'MECHANICAL — COOLING'], ['MEKANİK — HAVALANDIRMA', 'MECHANICAL — VENTILATION'], ['MEKANİK — SIHHİ TESİSAT', 'MECHANICAL — PLUMBING'],
     ['ISI YALITIM PROJESİ', 'THERMAL INSULATION DESIGN'], ['ISITMA TESİSATI PROJESİ', 'HEATING DESIGN'], ['SOĞUTMA TESİSATI PROJESİ', 'COOLING DESIGN'], ['HAVALANDIRMA PROJESİ', 'VENTILATION DESIGN'], ['SIHHİ TESİSAT PROJESİ', 'PLUMBING DESIGN'],
+  ]);
+})();
+/* KESİT VE MİMARİ PAFTA İLETİLERİ (gorunumler.js KESITPAFTA, mimari-pafta.js MIMARIPAFTA — 14.11.2026) */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['Modelden mimari kesit al ve Mimari paftasına yerleştir (yalnız mimari kesit alınır; statik / mekanik / elektrik kesiti üretilmez). Model değişince GORUNUMGUNCELLE.', 'Take an architectural section from the model and place it on the Architecture sheet (only architectural sections are taken; no structural / mechanical / electrical section is generated). When the model changes: GORUNUMGUNCELLE.'],
+    ['Pafta ölçeği 1:', 'Sheet scale 1:'],
+    ['üretildi (# nesne) ve Mimari paftasına yerleştirildi', 'generated (# objects) and placed on the Architecture sheet'], ["Tasarım'da görmek: GORUNUSGOSTER.", 'To view in Design: GORUNUSGOSTER.'],
+    ['Yalnız mimari kesit (kullanıcı kararı): # disiplin kesit penceresi, # Statik / Mekanik / Elektrik kesit görünümü kaldırıldı', 'Architectural sections only (user decision): # discipline section viewports and # Structural / Mechanical / Electrical section views removed'],
+    ['; boşalan otomatik kesit paftaları silindi:', '; emptied automatic section sheets deleted:'],
+    ['Hiçbir paftada kullanılmayan # eski kesit / kot planı silindi (# nesne, plandaki işaretleri dahil; geri almak için U):', 'Deleted # old sections / level plans not used on any sheet (# objects, incl. their plan marks; U to undo):'],
+    ['Oda adı', 'Room name'], ['Oda', 'Room'], ['ZEMİN KAT PLANI', 'GROUND FLOOR PLAN'], ['KAT PLANI', 'FLOOR PLAN'], ['BODRUM KAT PLANI', 'BASEMENT PLAN'],
   ]);
 })();

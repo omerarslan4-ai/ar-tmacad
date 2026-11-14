@@ -3,6 +3,12 @@
    - Her disiplin kendi sözlüğünü ekler:  DIL.ekle('en', 'English', [[türkçe, çeviri], ...], { kelime: çeviri })
        · '#' sayı yer tutucusudur (12, 2.50, -3, 1992 …); çeviride '#' sırayla, {1} {2} … numarayla doldurulur.
        · Önce tam eşleşme, sonra metin içi ifade eşleşmesi (uzundan kısaya), en son tek kelime sözlüğü denenir.
+       · Girdi türü (çiftin 3. öğesi ya da DIL.ekle'nin 5. bağımsız değişkeni { tur }):
+           'satir' → yalnız satırın tamamı eşleşince (bölünmüş not parçaları "olacaktır.", riskli kısa kelimeler "üst", "alt");
+                     metin içinde hiç uygulanmaz (C.txL de uyar: z.satir kümesi).
+           'ic'    → '#' kalıbı çizim çevirisinde (C.txL) de metin içinde uygulanır ("# üst" → "# top": "+3.90 üst", "L=670  alt X").
+       · Harf biçimi (D.harf): karşılık kaynak yazının biçimine uyar — tümü büyük → BÜYÜK, ilk harf büyük → Başlık, küçük → küçük;
+         büyük harfli anahtarın karşılığı ("ODA" → "ROOM") karışık harfli metinde küçültülerek uyarlanır ("Oda" → "Room").
    - DIL.t(metin) → seçili dile çevirir (Türkçe seçiliyse metni aynen döndürür).
    - DIL.cevirDom(kök), DIL.cevirSpec(çizim listesi) yardımcıları; DIL.dinle(fn) dil değişince çağrılır. */
 (function () {
@@ -22,14 +28,28 @@
   const kac = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const rx = (a, tam) => { const src = a.split('#').map(kac).join(NUM); return tam ? new RegExp('^' + src + '$', 'u') : new RegExp('(?<![' + HARF + '])' + src + '(?![' + HARF + '])', 'gu'); };
   const ust = s => s.toLocaleUpperCase('tr');
-  D.ekle = (k, ad, ciftler, kelimeler) => {
+  /* harf biçimi: src kaynak yazı (eşleşen parça), en karşılık, B anahtar büyük harfli mi */
+  D.harf = (src, en, B) => {
+    src = String(src); en = String(en); if (!/\p{L}/u.test(src)) return en;
+    if (src === ust(src)) return en.toUpperCase();
+    if (B && en === en.toUpperCase()) en = en.toLowerCase();
+    const i = src.search(/\p{L}/u), j = en.search(/\p{L}/u); if (j < 0) return en;
+    const c = en.charAt(j), n2 = en.charAt(j + 1);
+    if (src.charAt(i) !== src.charAt(i).toLocaleLowerCase('tr')) return en.slice(0, j) + c.toUpperCase() + en.slice(j + 1);
+    if (n2 && /\p{Lu}/u.test(n2)) return en; /* kısaltma (EPS, PE, mWC) olduğu gibi */
+    return en.slice(0, j) + c.toLowerCase() + en.slice(j + 1);
+  };
+  D.ekle = (k, ad, ciftler, kelimeler, sec) => {
     const z = D.sz[k] = D.sz[k] || { tam: new Map(), sab: [], kel: new Map() }; D.diller[k] = ad || D.diller[k] || k;
-    const bir = (a, b) => {
+    if (!z.satir) z.satir = new Set();
+    const bir = (a, b, tur) => {
       if (!a || b == null) return;
-      if (a.includes('#')) z.sab.push({ n: a.length, tam: rx(a, true), ic: rx(a, false), en: b });
-      else { if (!z.tam.has(a)) z.tam.set(a, b); z.sab.push({ n: a.length, ic: rx(a, false), en: b, duz: true }); }
+      if (a.includes('#')) z.sab.push({ n: a.length, tam: rx(a, true), ic: tur === 'satir' ? null : rx(a, false), en: b, icZ: tur === 'ic' });
+      else if (tur === 'satir') { if (!z.tam.has(a)) { z.tam.set(a, b); z.satir.add(a); } }
+      else { if (!z.tam.has(a)) z.tam.set(a, b); z.satir.delete(a); z.sab.push({ n: a.length, ic: rx(a, false), en: b, duz: true }); }
     };
-    for (const [a, b] of ciftler || []) { bir(a, b); const A = ust(a); if (A !== a && a.length > 3 && a.length <= 70) bir(A, b.toUpperCase()); }
+    const tur0 = sec && sec.tur;
+    for (const c of ciftler || []) { const [a, b] = c, tur = c[2] || tur0; bir(a, b, tur); const A = ust(a); if (A !== a && a.length > 3 && a.length <= 70) bir(A, b.toUpperCase(), tur); }
     z.sab.sort((x, y) => y.n - x.n);
     for (const [a, b] of Object.entries(kelimeler || {})) z.kel.set(a.toLocaleLowerCase('tr'), b);
     cache.clear();
@@ -43,9 +63,9 @@
     if (r == null) for (const p of z.sab) { if (!p.tam) continue; const m = c.match(p.tam); if (m) { r = doldur(p.en, m); break; } }
     if (r == null) {
       r = c;
-      for (const p of z.sab) { p.ic.lastIndex = 0; if (!p.ic.test(r)) continue; p.ic.lastIndex = 0; r = r.replace(p.ic, (...m) => (p.duz ? p.en : doldur(p.en, m))); }
+      for (const p of z.sab) { if (!p.ic) continue; p.ic.lastIndex = 0; if (!p.ic.test(r)) continue; p.ic.lastIndex = 0; r = r.replace(p.ic, (...m) => (p.duz ? D.harf(m[0], p.en) : doldur(p.en, m))); }
       r = r.replace(/\p{L}+/gu, w => { const lw = w.toLocaleLowerCase('tr'), t = z.kel.get(lw); if (t == null) return w; if (!TRH.test(w) && w.length < 3) return w;
-        return w.length > 1 && w === ust(w) ? t.toUpperCase() : /^\p{Lu}/u.test(w) ? t.charAt(0).toUpperCase() + t.slice(1) : t; });
+        return w.length > 1 && w === ust(w) ? t.toUpperCase() : D.harf(w, t); });
     }
     return bas + r + son;
   };
