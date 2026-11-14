@@ -53,5 +53,22 @@ const v0 = (gruplar, ek) => Object.assign({ id: 'G1', tip: 'kesit', nm: 'A', a: 
     assert.deepStrictEqual(kuyruk.map(q => q.filter(x => /=/.test(x)).join(' ')), ['MIMARI=E']);
     assert.strictEqual(once(G.gvOf(v, 'Statik')), st0); assert.strictEqual(once(G.gvOf(v, 'Mekanik')), mk0); assert.notStrictEqual(once(G.gvOf(v, 'Mimari')), mi0);
   });
+  await t('eski .aritma (gvD yok) Mimari + Statik ortak kesit: eksik Statik görünümü bir kez üretilir, Statik penceresi ona bağlanır; Mimari görünümü ve elle işaretli görünüm değişmez', async () => {
+    const { C, G, kuyruk } = kur(); const v = v0(['Mimari', 'Statik']); C.doc.set.gorunumler = [v];
+    await G.kesitUret(v, 'MIMARI'); delete v.gvD; // eski dosya: yalnız ana (Mimari) görünüm
+    for (const g of ['Mimari', 'Statik']) G.paftayaKoy(v, g);
+    const vp = g => C.doc.layouts.flatMap(L => L.vps).find(q => q.disiplin === g);
+    assert.strictEqual(vp('Statik').gvOnly, v.gv, 'önce: Statik penceresi Mimari içeriği gösteriyor');
+    const mi0 = C.doc.ents.filter(e => e.gv === v.gv).map(e => e.id).join();
+    assert.deepStrictEqual(Array.from(G.eksikTurler(v)), ['DUZ']);
+    kuyruk.length = 0; assert.strictEqual(await G.eksikleriTamamla(), 1);
+    assert.deepStrictEqual(kuyruk.map(q => q.filter(x => /=/.test(x)).join(' ')), [''], 'Statik: eski KESITAL (anahtarsız)');
+    assert.ok(v.gvD && v.gvD.DUZ); assert.strictEqual(vp('Statik').gvOnly, v.gvD.DUZ); assert.strictEqual(vp('Mimari').gvOnly, v.gv);
+    assert.strictEqual(C.doc.ents.filter(e => e.gv === v.gv).map(e => e.id).join(), mi0, 'Mimari görünümüne dokunulmaz');
+    assert.strictEqual(C.doc.ents.filter(e => e.type === 'kesitisaret').length, 1, 'tek plan işareti');
+    kuyruk.length = 0; assert.strictEqual(await G.eksikleriTamamla(), 0); assert.strictEqual(kuyruk.length, 0, 'ikinci açılışta yeniden üretilmez');
+    assert.deepStrictEqual(Array.from(G.eksikTurler(v0(['Mimari', 'Mekanik'], { id: 'G2', gv: 'Vx', elle: true }))), [], 'elle düzeltilmiş görünüm');
+    assert.deepStrictEqual(Array.from(G.eksikTurler(v0(['Statik'], { gv: 'Vy' }))), [], 'tek disiplinli kesit');
+  });
   console.log(`\n${n} test geçti.`);
 })().catch(e => { console.error(e); process.exit(1); });

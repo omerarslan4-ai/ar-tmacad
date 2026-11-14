@@ -1,6 +1,14 @@
 /* ArıtmaCAD — 3B modelden istenen yerden kesit / görünüş üretme */
 (function (C) {
   'use strict';
+  /* ---- saf kısım (Node: node test/kesit-ahsap.test.js) ---- */
+  /* dörtgen kesit (eş doğrultulu ara noktalar atılır) → iki köşegen; dörtgen değilse çapraz yok */
+  const ahsapCapraz = lp => { const n = lp.length, K = [];
+    for (let i = 0; i < n; i++) { const a = lp[(i - 1 + n) % n], b = lp[i], c = lp[(i + 1) % n], cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]), l = Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]); if (l > 0 && Math.abs(cr) / l > 0.05) K.push(b); }
+    if (K.length !== 4) return []; const kenar = i => Math.hypot(K[(i + 1) % 4][0] - K[i][0], K[(i + 1) % 4][1] - K[i][1]);
+    return Math.max(kenar(0), kenar(1)) <= 0.35 ? [[K[0], K[2]], [K[1], K[3]]] : []; }; // yalnız enine kesit (≤ 35 cm); boyuna kesilen tahta (kuşaklama, göğüsleme) çaprazsız
+  if (typeof module !== 'undefined' && module.exports) module.exports = { ahsapCapraz };
+  if (!C) return;
   const M = C.M;
   /* segment listesini uç uca ekleyerek çoklu çizgilere birleştir */
   const chain = (segs, tol) => {
@@ -159,11 +167,6 @@
   /* Çokal pafta stilinde (PAFTASTIL COKAL) taramalar örnek projedeki gibidir: desen, açı, ölçek kural tablosundan (app/cizim-kural.js → MIMARI.kesitTarama;
      kullanıcı kararı 14.11.2026). Tabloda karşılığı olmayan malzeme (null) ve eski görünüm (PAFTASTIL KLASIK) aşağıdaki program desenleriyle taranır. */
   const kuralTarama = mat => { try { const K = C.cizimKural; if (!K || !K.kesitTaramaSec || !(C.pstil && C.pstil())) return null; const s = K.kesitTaramaSec(K.MIMARI, mat); if (!s || !(C.HATCH_PATTERNS || {})[s.pat]) return null; return { pat: s.pat, ang: s.ang, sc: s.sc, ann: s.ann }; } catch (e) { return null; } };
-  /* dörtgen kesit (eş doğrultulu ara noktalar atılır) → iki köşegen; dörtgen değilse çapraz yok */
-  const ahsapCapraz = lp => { const n = lp.length, K = [];
-    for (let i = 0; i < n; i++) { const a = lp[(i - 1 + n) % n], b = lp[i], c = lp[(i + 1) % n], cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]), l = Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]); if (l > 0 && Math.abs(cr) / l > 0.05) K.push(b); }
-    if (K.length !== 4) return []; const kenar = i => Math.hypot(K[(i + 1) % 4][0] - K[i][0], K[(i + 1) % 4][1] - K[i][1]);
-    return Math.max(kenar(0), kenar(1)) <= 0.35 ? [[K[0], K[2]], [K[1], K[3]]] : []; }; // yalnız enine kesit (≤ 35 cm); boyuna kesilen tahta (kuşaklama, göğüsleme) çaprazsız
   C.ahsapCapraz = ahsapCapraz;
   C.secHatchSpec = (mat, base, plan) => {
     const kt = mat !== 'K' && kuralTarama(mat || 'B'); if (kt) return kt;
@@ -389,7 +392,7 @@
         if (C.pstil && C.pstil() && C.cizimKural && C.cizimKural.kesitOlcuNoktalari) { const r = C.cizimKural.kesitOlcuNoktalari(LPD.map(lp => ({ lk: lp.lk || '', pts: lp }))); if (r.xs.length || r.zs.length) { xs.length = 0; zs.length = 0; xs.push(...r.xs); zs.push(...r.zs); } } /* pafta stili: yalnız mimari elemanlar ölçülür (duvar, boşluk, döşeme) */
         const uniq = (v, tol) => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > tol) o.push(x); return o; };
         const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), psD = C.pstil && C.pstil() && C.pstil().dim ? C.pstil().dim() : null, dd = C.annoH((psD && psD.sira) || 7), /* ölçü sıra aralığı pafta stilinden (kural tablosu) */ zb = z0 - (gb || 0);
-        const dimV = new Set(), dim = (k, a, b, p) => { const key = [k, ...a, ...b, ...p].map(v => typeof v === 'number' ? v.toFixed(3) : v).join('|'); if (yeniDuzen) { if (dimV.has(key)) return; dimV.add(key); } C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; }; // aynı ölçü iki kez yazılmaz
+        const dimV = new Set(), dim = (k, a, b, p) => { const key = [k, ...a, ...b, ...p].map(v => typeof v === 'number' ? v.toFixed(3) : v).join('|'); if (dimV.has(key)) return; dimV.add(key); C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; }; // aynı ölçü iki kez yazılmaz
         /* ilk sıranın yeri: pafta stilinde çizimin en dış çizgisinden (tretuvar dahil) ilk mm uzakta (kural tablosu → olcuYeri.ilkSira); eski görünümde betondan bir sıra aralığı */
         let yA = zb - dd, xA = x0 - dd * 1.6;
         /* bu kesitte daha önce konan yazı ve kotlar (kesit koordinatı): dış ölçü sırası bunların dışına, iç zincirler bunların üstüne binmez */
@@ -404,7 +407,7 @@
         dim('h', [x0, z0], [x1, z0], [0, yA - (disH ? dd : 0)]);
         if (disV) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);
         dim('v', [x0, z0], [x0, z1], [xA - (disV ? dd : 0), 0]);
-        for (const q of (yeniDuzen && C.mimariOtoApi && C.mimariOtoApi.icZincirSadele ? C.mimariOtoApi.icZincirSadele(icO) : icO)) dim(q.k, q.a, q.b, q.p); // aynı düşey ölçü iki kez yazılmaz (denetim 14.11.2026, B-B)
+        for (const q of (C.mimariOtoApi && C.mimariOtoApi.icZincirSadele ? C.mimariOtoApi.icZincirSadele(icO) : icO)) dim(q.k, q.a, q.b, q.p); // aynı düşey ölçü iki kez yazılmaz (denetim 14.11.2026, B-B) — hata düzeltmesi: bütün disiplinlerde (Mimari, Statik, proses)
         dimBot = yA - (disH ? dd : 0) - dd * 0.6; void zF;
         /* doğrama numarası (daire + kod) iç yatay ölçü zincirine binmesin: binerse zincirin üstüne kaydırılır */
         { const yeni = C.doc.ents.slice(i0), hD = yeni.filter(e => e.type === 'dim' && e.k === 'h' && e.p), mm1 = C.annoH(1);
@@ -447,4 +450,4 @@
     C.log(`${nm}-${nm} kesiti üretildi: ${R.loops.length} yapı kesit sınırı + ${R.equip.length} ekipman (tek parça), ${nV} görünen çizgi${nA ? `, ${nA} aks` : ''}${nT ? `, ${nT} kapı / pencere numarası` : ''}${nK ? `, ${nK} yüzey kotu (kapatmak: KESITAL KOT=H)` : ''}${nD ? `, ${nD} ölçü (kapatmak: KESITAL OLCU=H)` : ''}${nH ? `, ${nH} malzeme grubu ayrı tarandı (${C.pstil && C.pstil() ? `desenler örnek projedeki gibi (beton ANSI36, tuğla AR-B816, grobeton AR-CONC, dolgu AR-SAND), grobeton ${gb * 100} cm${gb ? '' : ' yok'}; taramasız: KESITAL T=YOK` : `betonarme ${pat}, döşeme/kiriş ters yön, duvar tuğla, grobeton ${gb * 100} cm${gb ? '' : ' yok'}; desen: KESITAL T=AR-CONC ya da T=YOK`}; sonradan taramaya çift tıklayın)` : ''}. Gizli çizgiler ayıklanmaz.`);
     letter++;
   });
-})(window.C);
+})(typeof window !== 'undefined' ? window.C : null);

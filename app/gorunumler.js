@@ -172,9 +172,19 @@
     return top;
   };
   const silTur = (v, tur) => { const T = turler(v), ana = tur === T[0], g = ana ? v.gv : (v.gvD || {})[tur]; if (!g) return; C.doc.ents = C.doc.ents.filter(e => e.gv !== g && !(ana && e.type === 'kesitisaret' && e.gorunum === v.id)); }; // yalnız o türün görünümü (ana türde plan işareti de: yeniden üretilir)
+  /* pafta pencereleri kendi disiplininin görünümünü göstersin (gvOnly) ve ortalansın */
+  const pencereBagla = v => { for (const L of C.doc.layouts || []) for (const vp of L.vps || []) if (vp.gorunum === v.id) { const g2 = gvOf(v, vp.disiplin || L.grp); vp.gvOnly = g2; const ents = C.doc.ents.filter(e => e.gv === g2 && e.type !== 'kesitisaret'); const bb = C.extents(ents); if (bb) { vp.cx = (bb[0] + bb[2]) / 2; vp.cy = (bb[1] + bb[3]) / 2; } } };
+  /* eski .aritma (disiplin türleri öncesi): ortak kesitin (ör. Mimari + Statik) yalnız ana görünümü var (gvD yok) → Statik / Mekanik pencereleri ana türün
+     (Mimari) içeriğini gösterir. Eksik türler bir kez üretilir; ana görünüm (kullanıcının elle düzelttiği içerik olabilir) ve var olan türler değişmez.
+     v.elle = true işaretli görünüme dokunulmaz. Döner: üretilecek türler */
+  const eksikTurler = v => { if (!v || v.tip !== 'kesit' || !v.gv || v.elle || !v.a || !v.b) return []; const T = turler(v); return T.slice(1).filter(k => !(v.gvD || {})[k]); };
+  const eksikTurUret = async v => { let n = 0; for (const k of eksikTurler(v)) { try { if (await kesitUret(v, k)) n++; } catch (er) { console.error('eksik disiplin görünümü', er); } } if (n) pencereBagla(v); return n; };
+  const eksikleriTamamla = async () => { let n = 0; for (const v of VL().slice()) n += await eksikTurUret(v); return n; };
   const sil = v => { const G = new Set(tumGv(v)); C.doc.ents = C.doc.ents.filter(e => !(e.gv && G.has(e.gv)) && !(e.type === 'kesitisaret' && e.gorunum === v.id)); };
   /* başka modüllerin (MIMARIPAFTA) kullandığı iç işler: görünüm listesi, kesit üretimi / silme, paftaya koyma */
-  C.gorunumApi = { liste: VL, kesitUret, sil, paftayaKoy, bolgeYeri, disTur, turler, gvOf, tumGv, silTur };
+  C.gorunumApi = { liste: VL, kesitUret, sil, paftayaKoy, bolgeYeri, disTur, turler, gvOf, tumGv, silTur, eksikTurler, eksikTurUret, eksikleriTamamla, pencereBagla };
+  /* proje açılınca eski ortak kesitlerin eksik disiplin görünümleri bir kez üretilir */
+  if (C.on) C.on('doc', () => { if (!VL().some(v => eksikTurler(v).length)) return; setTimeout(async () => { try { const n = await eksikleriTamamla(); if (n) { C.changed(); C.emit('layouts'); C.log(`${n} eski ortak kesite disiplin görünümü eklendi (Statik / Mekanik pencereleri artık kendi görünümlerini gösterir).`); } } catch (er) { console.error(er); } }, 0); });
 
   /* ================= KOMUTLAR ================= */
   let harf = 0;
@@ -308,7 +318,7 @@
     for (const v of list) {
       const gv = v.gv; sil(v); v.gv = gv;
       try { if (await kesitUret(v)) n++; } catch (er) { console.error(er); C.warn(v.ad + ': ' + er.message); }
-      for (const L of C.doc.layouts || []) for (const vp of L.vps) if (vp.gorunum === v.id) { const g2 = gvOf(v, vp.disiplin || L.grp); vp.gvOnly = g2; const ents = C.doc.ents.filter(e => e.gv === g2 && e.type !== 'kesitisaret'); const bb = C.extents(ents); if (bb) { vp.cx = (bb[0] + bb[2]) / 2; vp.cy = (bb[1] + bb[3]) / 2; } }
+      pencereBagla(v);
     }
     C.changed(); C.emit('layouts'); C.log(`${n} kesit modelden yeniden üretildi; bağlı tüm disiplin paftaları güncellendi.`);
   });
