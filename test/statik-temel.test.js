@@ -44,6 +44,24 @@ t('zımbalama dışmerkezliği e = M_pd / V_pd (TS 500 8.3.1): My = 100 kNm (1,4
   yak(zb.Vpd, Vpd, 1e-6); yak(zb.gam, 1 / (1 + 1.5 * (140 / Vpd) / 0.84), 1e-9);
 });
 
+t('genel taban (çarpım atalet momenti): 45° dönük 0,6 × 10 m şerit, N 500, e 0,05 → 125 kN/m²; e 0,20 (kısmi temas) → 333,3; L radye 10 × 10 kol 2, N 1000, My 1000 → 56,27', () => {
+  const c = Math.SQRT1_2, u = [c, c], nn = [-c, c], serit = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [a * 5 * u[0] + b * 0.3 * nn[0], a * 5 * u[1] + b * 0.3 * nn[1]]);
+  const K = P.cokgenKesit(serit); yak(K.A, 6, 1e-9); assert.ok(Math.abs(K.Ixy) > 10, 'dönük şeritte Ixy ≠ 0');
+  // σ = N/A·(1 + 6e/B) = 500/6·1,5 = 125 ; kısmi: 2N / (3·L·(B/2 − e)) = 1000 / (3·10·0,1) = 333,3
+  yak(P.temasGerilme(serit, 500, -500 * 0.05 * nn[1], 500 * 0.05 * nn[0]).smax, 125, 0.01);
+  const r2 = P.temasGerilme(serit, 500, -500 * 0.2 * nn[1], 500 * 0.2 * nn[0]); yak(r2.smax, 1000 / 3, 0.005 * 1000 / 3); yak(r2.temas, 0.5, 0.01);
+  // L radye: A 36, merkez (3,222; 3,222), Ix = Iy = 314,22, Ixy = −177,78 → σmaks köşe (10; 2) = 1000/36 + [1000·314,22·6,778 − 1000·(−177,78)·(−1,222)] / (314,22² − 177,78²)
+  const Lp = [[0, 0], [10, 0], [10, 2], [2, 2], [2, 10], [0, 10]], KL = P.cokgenKesit(Lp); yak(KL.Ixy, -1600 / 9, 1e-9); yak(KL.Ix, 2828 / 9, 1e-9);
+  const D = KL.Ix * KL.Iy - KL.Ixy ** 2, el = 1000 / 36 + (1000 * KL.Ix * (10 - KL.xc) - (1000 * KL.Ixy) * (2 - KL.yc)) / D; yak(el, 56.27, 0.01);
+  yak(P.temasGerilme(Lp, 1000, 0, 1000).smax, el, 1e-9);
+  // döndürülmüş tekil temel (eksenlere göre 30°): yön bağımsızlık — kendi ekseninde e = 0,2 ile aynı σ
+  const S = tekilS(); S.temel.tekil[0].rot = 30; const a = 30 * Math.PI / 180, RC = RCf(0); RC.kolonlar[0].tabanYuk.G = [0, 0, -1000, -0.2 * 1050 * Math.sin(a), 0.2 * 1050 * Math.cos(a), 0];
+  yak(P.temelHesap(S, RC).temeller[0].zem[0].smax, 1050 / 4 * (1 + 6 * 0.2 / 2), 0.5);
+});
+t('kısmi temasta zımbalama q_net gerçek temas dağılımından: kolon temas dışında kalınca q_net = 0, Vpd = Nd', () => {
+  const zb = P.temelHesap(tekilS(), RCf(800)).temeller[0].zimb[0]; yak(zb.qn, 0, 1e-9); yak(zb.Vpd, zb.Nd, 1e-9);
+});
+
 t('temel yoksa hesap yapılmaz, uyarı verilir; kolon temelin dışındaysa söylenir', () => {
   const S = tekilS(); S.temel = null; const T = P.temelHesap(S, RCf(0)); assert.ok(!T.ok && /temel/.test(T.uyar[0]));
   const S2 = tekilS(), RC = RCf(0); RC.kolonlar[0].x = 5; const T2 = P.temelHesap(S2, RC); assert.ok(T2.uyar.some(u => /altında temel bulunamadı/.test(u)));

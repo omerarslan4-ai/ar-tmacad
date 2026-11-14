@@ -382,7 +382,9 @@
   };
   C._statikTemelOku = temelOku;
   // statik penceresinden projeye kayıtlı statik ayarı yazar (yapı türü, alt yapı üst kotu …) — C.doc.set.statikAyar
-  C._statikAyarYaz = o => { C.doc.set = C.doc.set || {}; const A = C.doc.set.statikAyar = Object.assign({}, C.doc.set.statikAyar || {});
+  // ayrı bir geri alma adımıdır (C.begin): önceki bir değişiklik geri alınınca kayıt sessizce silinmez; bu kaydın kendisi U ile geri alınabilir
+  C._statikAyarYaz = o => { C.doc.set = C.doc.set || {}; const A0 = C.doc.set.statikAyar || {}; if (Object.entries(o || {}).every(([k, v]) => JSON.stringify(v == null ? undefined : v) === JSON.stringify(A0[k]))) return A0;
+    if (C.begin) C.begin(); const A = C.doc.set.statikAyar = Object.assign({}, A0);
     for (const [k, v] of Object.entries(o || {})) { if (v == null) delete A[k]; else A[k] = v; } if (C.changed) C.changed(); return A; };
   // statik penceresi için 3B kabuk modeli (perde eksenleri, radye, döşemeler, kotlar)
   C.statikKabukModel = () => {

@@ -66,6 +66,25 @@ t('perde ayağı (kicker, temelle birlikte dökülür) temeldir — metrajla ayn
   yak(D.top.Perde, 3.42, 1e-3, 'Bekçi perde (temel perdesi hariç)'); yak(D.top.Temel, 20.184 + 0.36 + 0.04, 1e-3, 'radye + perde ayağı (temel > kolon: kolon izleri temelde)'); yak(D.top.Kolon, 1.404 - 0.032, 1e-3);
 });
 
+t('radye üstü yük yalnız hazne içinden: dış perdelerin dışındaki (radye çıkıntısı üstü) dolgu toprak yükünde (Ht), iki kez sayılmaz — su yapısı', () => {
+  const ents = [{ type: 'plak', kind: 'radye', pts: [[-1, -1], [9, -1], [9, 6], [-1, 6]], t: 0.4, zt: 0.4 },
+    ...[[[0, 0], [8, 0]], [[8, 0], [8, 5]], [[8, 5], [0, 5]], [[0, 5], [0, 0]]].map(pts => ({ type: 'perde', pts, closed: false, tb: 0.3, tt: 0.3, egim: 'R', hiza: 'O', ofs: 0, malz: 'beton', z0: 0.4, h: 4 })),
+    { type: 'dolgu', pts: [[0.15, 0.15], [7.85, 0.15], [7.85, 4.85], [0.15, 4.85]], za: 0.4, zb: 0.9, malz: 'kum' },          // iç dolgu (hazne tabanı)
+    { type: 'dolgu', pts: [[-1, -1], [9, -1], [9, -0.15], [-1, -0.15]], za: 0.4, zb: 1.4, malz: 'kum' }]                       // dış dolgu (radye çıkıntısı üstü)
+    .map((e, i) => Object.assign({ id: i + 1, layer: '0' }, e));
+  const { d: dh } = O.modelCevir({ ents, layers: {}, set: {} }), Sh = O.uygula(P.ornekSaray(), JSON.parse(JSON.stringify(dh)));
+  assert.strictEqual(Sh.yapi.tur, 'su'); assert.strictEqual(dh.temel.ek.filter(e => e.tur === 'dolgu').length, 2);
+  const RY = P.radyeUstYuk(Sh); assert.strictEqual(RY.length, 1, 'yalnız iç dolgu'); yak(RY[0].V, 7.7 * 4.7 * 0.5, 1e-6); yak(RY[0].pG, Sh.zemin.g * 0.5, 1e-9);
+});
+
+t('statik ayar kaydı (yapı türü, zemin) ayrı bir geri alma adımıdır; aynı değer yeniden yazılınca adım açılmaz', () => {
+  const C = O.modelCevir(O.konyaDoc()).C, b0 = C.begin; let n = 0; C.begin = () => { n++; };
+  try { C._statikAyarYaz({ yapiTuru: 'su' }); assert.strictEqual(n, 1); assert.strictEqual(C.doc.set.statikAyar.yapiTuru, 'su');
+    C._statikAyarYaz({ yapiTuru: 'su' }); assert.strictEqual(n, 1, 'değişiklik yok: adım açılmaz');
+    C._statikAyarYaz({ yapiTuru: null }); assert.strictEqual(n, 2); assert.ok(!('yapiTuru' in C.doc.set.statikAyar)); }
+  finally { C.begin = b0; }
+});
+
 t('alt yapı üst kotunda (−0,26) kotla bölme: kolonların alt kısmı alt yapıda, alt + üst = net', () => {
   const B = P.netHacimBol(d.hacim, -0.26);
   yak(B.altTop + B.ustTop, d.hacim.net, 0.01); yak(B.alt.Kolon, 10 * 0.25 * 6.5, 0.01); yak(B.ust.Kolon, 10 * 0.25 * 4.7, 0.01);

@@ -27,10 +27,13 @@
      çerçevesinde mesnet; ağırlığı perde boyunca alt yapı perdesinin üstüne yük olarak — P.ustPerdeYuk) */
   P.altYapiKabuk = (K, kot) => Object.assign({}, K, { kirisler: (K.kirisler || []).filter(k => +k.zt <= kot + TOL), dosemeler: (K.dosemeler || []).filter(d => +d.zt <= kot + TOL),
     walls: (K.walls || []).map(w => (+w.zt > kot + TOL ? Object.assign({}, w, { zt: kot, ztUst: +w.zt }) : w)) });
-  P.ustPerdeYuk = (K, gc) => { const out = [];
-    for (const w of (K.walls || [])) { if (!(w.ztUst > w.zt)) continue; const q = gc * w.t * (w.ztUst - w.zt), n = w.kapali ? w.pts.length : w.pts.length - 1;
+  /* perdenin kotun üstündeki kısmı: ağırlığı (G) ve deprem ataletinin çerçeveye girmeyen alt yarısı (rijit kabul, kh·W/2, kütle merkezi
+     kotun h/4 üstünde — çerçeve kat ağırlığına perdenin üst yarısı girer, o kısım kiriş mesnedi tepkileriyle gelir) alt yapı perdesinin üstüne */
+  P.ustPerdeYuk = (K, gc, kh) => { const out = []; kh = +kh || 0;
+    for (const w of (K.walls || [])) { if (!(w.ztUst > w.zt)) continue; const hU = w.ztUst - w.zt, q = gc * w.t * hU, n = w.kapali ? w.pts.length : w.pts.length - 1;
       for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(L)); if (L < 1e-6) continue;
-        for (let k = 0; k < m; k++) { const u = (k + 0.5) / m, z0 = [0, 0, 0, 0, 0, 0]; out.push({ id: null, no: `${w.ad || 'Perde'} üst kısmı`, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: w.zt, F: { G: [0, 0, -q * L / m, 0, 0, 0], Q: z0, 'EX+': z0, 'EX-': z0, 'EY+': z0, 'EY-': z0 } }); } } }
+        for (let k = 0; k < m; k++) { const u = (k + 0.5) / m, z0 = [0, 0, 0, 0, 0, 0], W = q * L / m, Fe = kh * W / 2, EX = [Fe, 0, 0, 0, 0, 0], EY = [0, Fe, 0, 0, 0, 0];
+          out.push({ id: null, no: `${w.ad || 'Perde'} üst kısmı`, perdeUst: w.ad || 'Perde', x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: w.zt + hU / 4, F: { G: [0, 0, -W, 0, 0, 0], Q: z0, 'EX+': EX, 'EX-': EX, 'EY+': EY, 'EY-': EY } }); } } }
     return out; };
 
   /* kolon ayağı tepkileri (alt yapıya etkiyen yük, global): [{ id, no, x, y, z, F: { G, Q, 'EX+', 'EX-', 'EY+', 'EY-' } }] — [Fx Fy Fz Mx My Mz]
@@ -72,7 +75,7 @@
     const cer = P.ustYapiCer(S.cer, kot);
     if (cer && ((cer.kolonlar || []).length || (cer.kirisler || []).length) && P.cerceveHesap) {
       const Su = Object.assign({}, S, { cer, suYapisi: false }); RC = P.cerceveHesap(Su); T = P.kolonTepki(RC); }
-    const K = P.altYapiKabuk(S.kabuk, kot), UP = P.ustPerdeYuk(K, (S.mal && S.mal.gc) || 25); K.kolonYuk = P.kabukKolonYuku(T.concat(UP));
+    const K = P.altYapiKabuk(S.kabuk, kot), UP = P.ustPerdeYuk(K, (S.mal && S.mal.gc) || 25, P.itki ? (P.itki(S) || {}).kh : 0); K.kolonYuk = P.kabukKolonYuku(T.concat(UP));
     return { S: Object.assign({}, S, { kabuk: K }), RC, T, UP, kot, cer };
   };
 
@@ -99,6 +102,8 @@
       h += `<tr><th class="l">Toplam</th><th>${f(-tG[2], 1)}</th><th>${f(tG[0], 1)}</th><th>${f(tG[1], 1)}</th><th colspan="2"></th><th>${f(-tQ[2], 1)}</th><th>${f(tQ[0], 1)}</th><th>${f(tQ[1], 1)}</th><th colspan="2"></th><th>${f(-tX[2], 1)}</th><th>${f(tX[0], 1)}</th><th>${f(tX[1], 1)}</th><th colspan="2"></th><th>${f(-tY[2], 1)}</th><th>${f(tY[0], 1)}</th><th>${f(tY[1], 1)}</th><th colspan="2"></th></tr></table>`;
       const yt = D && D.cer3B && D.cer3B.yukTop; if (yt) h += `<p>Denge: üst yapıya uygulanan düşey yük G = ${f(-yt.G, 1)} kN, Q = ${f(-yt.Q, 1)} kN; kolon ayağı tepkileri toplamı G = ${f(-tG[2], 1)} kN, Q = ${f(-tQ[2], 1)} kN. Deprem tepkileri toplamı ${f(Math.hypot(tX[0], tX[1]), 1)} / ${f(Math.hypot(tY[0], tY[1]), 1)} kN = taban kesme kuvveti.</p>`;
     } else h += `<p>Üst yapıda kolon yok: alt yapıya aktarılan kolon tepkisi yok.</p>`;
+    const up = [...new Set((IA.UP || []).map(q => q.perdeUst))];
+    if (up.length) h += `<p><b>Not:</b> alt yapı üst kotunun üstüne çıkan perdelerin (${esc(up.join(', '))}) üst kısmı bu hesapta tasarlanmadı: üst yapı çerçevesinde yalnız kiriş mesnedidir. Ağırlığı ve deprem ataletinin çerçeveye girmeyen alt yarısı (kh·W/2) alt yapı perdesinin üstüne yük olarak, üst yarısının ataleti kiriş mesnedi tepkileriyle aktarılmıştır. Üst yapı perdesi ayrıca tasarlanmalıdır.</p>`;
     return h;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

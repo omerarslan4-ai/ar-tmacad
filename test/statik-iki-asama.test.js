@@ -81,6 +81,8 @@ t('üst yapısında perde olan yapı: kotun üstüne çıkan perde kabukta kotta
   const tG = -P.tepkiToplam(I.T, 'G')[2]; yak(tG, -D3.yukTop.G, 1e-3 * tG, 'kolon + perde mesnet tepkileri = üst yapı G');
   const tX = P.tepkiToplam(I.T, 'EX+'); yak(tX[0], D3.yon.X.Vt, 1e-3 * D3.yon.X.Vt, 'deprem tepkileri toplamı = taban kesmesi');
   const Wust = gc * 0.3 * 8 * 3; yak(-I.UP.reduce((s, q) => s + q.F.G[2], 0), Wust, 1e-6, 'perde üst kısmı ağırlığı');
+  const kh = P.itki(S1).kh; assert.ok(kh > 0); yak(I.UP.reduce((s, q) => s + q.F['EX+'][0], 0), kh * Wust / 2, 1e-6, 'perde üst kısmının çerçeveye girmeyen ataleti (kh·W/2)');
+  assert.ok(/üst kısmı bu hesapta tasarlanmadı/.test(P.ikiAsamaRapor(I)), 'raporda açık not');
   const r = P.kabukHesap(I.S), AG = r.AG, kz = S1.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
   let yay = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) yay += -kz * trib[i] * r.U.G[i * 6 + 2];
   let Wk = 0; for (const e of AG.els) Wk += gc * e.t * e.A; for (const b of AG.bars) Wk += gc * b.s.A * b.L;
