@@ -44,6 +44,12 @@
 - Boru etiketlerinde genel malzeme adı yerine malzeme kalitesi yazılır (ör. SS304, SS304L, SS316, SS316L; "PASLANMAZ" değil). Tüm boru tipleri için geçerli.
 - Ünite numaraları ünite eklenip çıkarıldıkça yeniden numaralanır.
 - Çizim, pafta ve raporlar için dil seçeneği vardır ve tüm disiplinlere uygulanır.
+- Mimari paftalama otomatiktir (14.11.2026): kesit yerleri belirlenince program planları, kesitleri, görünüşleri, mahal listesini, kapı / pencere / korkuluk detaylarını ve çatı planı, çatı kesiti, çatı detay paftasını kendisi hazırlar ve en uygun şekilde paftalara yerleştirir. Öbür disiplinlerin paftalamasını kullanıcı kendi birimi içinde yapar.
+- Kapı ve pencereler ebatlarına göre tip numarası alır (projedeki gibi; aynı ebat aynı numara) ve numara plan ile kesitlerde yazılır.
+- Kiriş ile döşeme monolitik tek beton olarak modellenir ve çizilir (aralarında çizgi yok); çatı döşemesi ve zemin döşemesi dahil.
+- Pencere / kapı duvarı parçalara bölmez; duvar tek eleman kalır.
+- Plan ve kesitlerde aks çizgileri ve aks başlıkları bulunur; ölçüler örnek projelerdeki gibi akslar üzerinden verilir.
+- Görünüşlerde bina içindeki merdivenler (ve dışarıdan görünmeyen iç elemanlar) çizilmez.
 
 ## Proses ve ünite tasarımı
 - Izgara yapısı: kanal derinliği ≈ su derinliği + yaklaşık 1 m hava payı; temel kotu arazi kotundan türer; baypas kanalı zorunlu.
