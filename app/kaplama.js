@@ -90,12 +90,14 @@
     for (let i = 0; i < q.length; i++) {
       const a = q[i], b = q[(i + 1) % q.length], Ls = M.dist2(a, b); if (Ls < 1e-6) continue; const u = [(b[0] - a[0]) / Ls, (b[1] - a[1]) / Ls], n = [-u[1] * sgn, u[0] * sgn];
       const hs = [];
-      for (const o of ops) { const H = I_().hostFrame(o); if (!H) continue; const c = [H.sf.a[0] + H.sf.u[0] * (+o.s || 0), H.sf.a[1] + H.sf.u[1] * (+o.s || 0)], t = (c[0] - a[0]) * u[0] + (c[1] - a[1]) * u[1], d = Math.abs((c[0] - a[0]) * n[0] + (c[1] - a[1]) * n[1]); if (t < 0 || t > Ls || d > Math.max(H.F.tb, H.F.tt) + 0.2 || Math.abs(H.sf.u[0] * n[0] + H.sf.u[1] * n[1]) > 0.2) continue; const w = +o.w || 1, za = (+H.h.z0 || 0) + (o.kind === 'kapi' ? 0 : (+o.par || 0.9)), hh = +o.hh || (o.kind === 'kapi' ? 2.1 : 1.4); hs.push({ s0: Math.max(0, t - w / 2), s1: Math.min(Ls, t + w / 2), za: Math.max(za, +e.z0 || 0), zb: za + hh }); }
+      for (const o of ops) { const H = I_().hostFrame(o); if (!H) continue; const c = [H.sf.a[0] + H.sf.u[0] * (+o.s || 0), H.sf.a[1] + H.sf.u[1] * (+o.s || 0)], t = (c[0] - a[0]) * u[0] + (c[1] - a[1]) * u[1], d = Math.abs((c[0] - a[0]) * n[0] + (c[1] - a[1]) * n[1]); if (t < 0 || t > Ls || d > Math.max(H.F.tb, H.F.tt) + 0.2 || Math.abs(H.sf.u[0] * n[0] + H.sf.u[1] * n[1]) > 0.2) continue; const w = +o.w || 1, za = (+H.h.z0 || 0) + (o.kind === 'kapi' ? 0 : (+o.par || 0.9)), hh = +o.hh || (o.kind === 'kapi' ? 2.1 : 1.4); hs.push({ s0: Math.max(0, t - w / 2), s1: Math.min(Ls, t + w / 2), za: Math.max(za, +e.z0 || 0), zb: za + hh, td: Math.abs(H.F.rB - H.F.lB) || +H.F.tb || 0.2, kind: o.kind || 'pencere' }); }
       const ht = Array.isArray(e.ht) && e.ht[out.length] != null ? +e.ht[out.length] : (+e.h || 3);
       out.push({ a, b, u, n, L: Ls, ht, hs: hs.filter(h => h.s1 > h.s0 + 0.01 && h.zb > h.za + 0.01).sort((x, y) => x.s0 - y.s0) });
     }
     return miterLoop(out);
   };
+  /* söve dönüşünün derinliği (duvar yüzünden kasaya, m): pencere kasası dış yüzden 3 cm içeride ve 7 cm derin; kapı ve seksiyonel kapıda 0 */
+  const sove = (o, side) => (o.kind === 'kapi' || /sek|panjur/i.test(o.kind || '') ? 0 : side === 'DIS' ? 0.03 : Math.max(0, (o.td || 0.2) - 0.10));
   const tSum = e => (e.kind === 'zemin' ? ((+e.zbt || 0) + (+e.xps || 0) + (+e.sap || 0) + (+e.kt || 0)) / 100 : e.kind === 'duvar' ? Math.max(0.005, ((SIVA[e.siva] || SIVA.yok).t + Math.max((BIT[e.kap] || BIT.yok).t, (BIT[e.ub] || BIT.yok).t)) / 100) : 0.01);
   /* metraj kalemleri: [ad, birim, miktar] */
   const qty = e => {
@@ -108,7 +110,8 @@
       if (+e.sup > 0) out.push([`Süpürgelik (${e.sup} cm)`, 'm', perim(e.pts)]);
     } else if (e.kind === 'duvar') {
       const z0 = +e.z0 || 0, h = +e.h || 3, kh = +e.kh > 0 && +e.kh < h ? +e.kh : h; let Aall = 0, Alo = 0;
-      for (const w of wallEdges(e)) { const hw = w.ht, kw = Math.min(kh, hw); Aall += w.L * hw; Alo += w.L * kw; for (const o of w.hs) { const oz = Math.max(0, Math.min(o.zb, z0 + hw) - Math.max(o.za, z0)); Aall -= (o.s1 - o.s0) * oz; Alo -= (o.s1 - o.s0) * Math.max(0, Math.min(o.zb, z0 + kw) - Math.max(o.za, z0)); } }
+      for (const w of wallEdges(e)) { const hw = w.ht, kw = Math.min(kh, hw); Aall += w.L * hw; Alo += w.L * kw; for (const o of w.hs) { const oz = Math.max(0, Math.min(o.zb, z0 + hw) - Math.max(o.za, z0)); Aall -= (o.s1 - o.s0) * oz; Alo -= (o.s1 - o.s0) * Math.max(0, Math.min(o.zb, z0 + kw) - Math.max(o.za, z0));
+          const sv = sove(o, e.side), oz2 = Math.max(0, Math.min(o.zb, z0 + hw) - Math.max(o.za, z0)), Ay = sv * (2 * oz2 + (o.s1 - o.s0) * (o.kind === 'kapi' ? 1 : 2)); Aall += Ay; Alo += Ay; } } // söve dönüşü (yanaklar, lento altı, denizlik üstü)
       const sd = e.side === 'DIS' ? ' (dış cephe)' : ' (iç)';
       if (e.siva && e.siva !== 'yok') out.push([(SIVA[e.siva] || SIVA.kaba).ad + sd, 'm²', Aall]);
       if (e.kap && e.kap !== 'yok') out.push([(BIT[e.kap] || BIT.plastik).ad + sd, 'm²', Alo]);
@@ -122,6 +125,7 @@
     return out;
   };
   C.kaplamaMetraj = () => { const m = new Map(); for (const e of C.doc.ents) { if (e.type !== 'kaplama' || !C.lyLive(e.layer)) continue; for (const [ad, br, v] of qty(e)) { const k = ad + '|' + br; m.set(k, (m.get(k) || 0) + v); } } return [...m.entries()].map(([k, v]) => { const [ad, br] = k.split('|'); return [ad, br, v]; }); };
+  C.kaplamaSove = sove; // test ve 2B çizim için
   T.kaplama = {
     label: 'Kaplama', ifc: 'IfcCovering',
     prims: e => {
@@ -146,7 +150,12 @@
         for (const w of wallEdges(e)) {
           const zt = z0 + w.ht;
           const box = (s0, s1, za, zb) => { if (s1 - s0 < 1e-4 || zb - za < 1e-4) return; const parts = kh > za && kh < zb ? [[za, kh], [kh, zb]] : [[za, zb]]; for (const [z1, z2] of parts) { const col = z2 <= kh + 1e-6 ? cLo : cHi, o0 = +e.o0 || 0, Pp = (s, o, z) => { const q = mP(w, s, o + o0); return [q[0], q[1], z]; }; I_().hexa(out, [Pp(s0, 0, z1), Pp(s1, 0, z1), Pp(s1, t, z1), Pp(s0, t, z1), Pp(s0, 0, z2), Pp(s1, 0, z2), Pp(s1, t, z2), Pp(s0, t, z2)], col); } };
-          let s = 0; for (const o of w.hs) { const za = Math.max(o.za, z0), zb = Math.min(o.zb, zt); if (zb <= za) continue; box(s, o.s0, z0, zt); box(o.s0, o.s1, z0, za); box(o.s0, o.s1, zb, zt); s = o.s1; } box(s, w.L, z0, zt);
+          let s = 0; for (const o of w.hs) { const za = Math.max(o.za, z0), zb = Math.min(o.zb, zt); if (zb <= za) continue; box(s, o.s0, z0, zt); box(o.s0, o.s1, z0, za); box(o.s0, o.s1, zb, zt); s = o.s1;
+            /* SÖVE DÖNÜŞÜ (kullanıcı isteği 14.11.2026): sıva / boya boşluğun yanaklarına, lento altına ve denizlik üstüne döner, doğrama kasasına kadar
+               (pencere kasası dış yüzden 3 cm içeride, 7 cm derin — mimari-detay.js dograma22): iç yüzde derinlik duvar − 10 cm, dış yüzde 3 cm. Kapıda kasa duvar boyunca: dönüş yok */
+            const sov = sove(o, e.side); if (sov > 0.005) { const R = (s0, s1, z1, z2, col) => { if (s1 - s0 < 1e-4 || z2 - z1 < 1e-4) return; const o0 = +e.o0 || 0, Pp = (ss, oo, z) => { const q = mP(w, ss, oo + o0); return [q[0], q[1], z]; }; I_().hexa(out, [Pp(s0, -sov, z1), Pp(s1, -sov, z1), Pp(s1, t, z1), Pp(s0, t, z1), Pp(s0, -sov, z2), Pp(s1, -sov, z2), Pp(s1, t, z2), Pp(s0, t, z2)], col); };
+              const cz = z => (z <= kh + 1e-6 ? cLo : cHi); R(o.s0, Math.min(o.s1, o.s0 + t), za, zb, cz(za)); R(Math.max(o.s0, o.s1 - t), o.s1, za, zb, cz(za)); R(o.s0, o.s1, Math.max(za, zb - t), zb, cz(zb)); if (o.kind !== 'kapi') R(o.s0, o.s1, za, Math.min(zb, za + t), cz(za)); } }
+          box(s, w.L, z0, zt);
         }
       } else {
         const b = TB[e.bit] || TB.boya, zc = +e.zc || 3;

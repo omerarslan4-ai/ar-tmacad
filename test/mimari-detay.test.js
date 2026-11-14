@@ -118,4 +118,15 @@ t('detay paftasında doğrama çizgileri DETAY_DOGRAMA (→ Kapi_Pencere), duvar
   assert.ok(r.items.filter(it => it.k === 'H').length > 0, 'taramalar duruyor');
 });
 
+t('söve dönüşü: pencerede iç / dış sıva yanakta ve lento altında doğrama kasasına kadar döner (L); kapıda yüzde biter', () => {
+  const P = tip('P2', 'P', 220, 125), K = tip('K1', 'K', 110, 210), y = (q, v) => Math.abs(q - v) < 1e-9;
+  const L11 = of(D.dograma11(P, { duvar: true }), 'L'), td = 0.2, py = 0, pi = td;
+  assert.ok(L11.some(q => y(q.a[0], 0.02) && y(q.b[0], 0.02) && y(q.a[1], pi + 0.02) && y(q.b[1], 0.10)), '1-1 iç yanak sıvası x = 2 cm, iç yüzden kasaya (py + 10 cm)');
+  assert.ok(L11.some(q => y(q.a[0], 0.02) && y(q.a[1], py - 0.02) && y(q.b[1], 0.03)), '1-1 dış yanak sıvası kasaya (py + 3 cm)');
+  assert.ok(L11.some(q => y(q.a[1], pi + 0.02) && y(q.b[1], pi + 0.02) && y(q.b[0], 0.02)), 'iç yüz sıvası yanağa döner');
+  const Lk = of(D.dograma11(K, { duvar: true }), 'L'); assert.ok(!Lk.some(q => y(q.a[0], 0.02) && y(q.b[0], 0.02)), 'kapıda yanak dönüşü yok');
+  const L22 = of(D.dograma22(P, { duvar: true, yazi: false }), 'L'), H = 1.25;
+  assert.ok(L22.filter(q => y(q.a[1], H - 0.02) && y(q.b[1], H - 0.02)).length === 2, '2-2 lento altında iç ve dış sıva dönüşü');
+});
+
 console.log(`\n${n} test geçti.`);
