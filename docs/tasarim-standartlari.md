@@ -37,7 +37,7 @@
 - Aynı türden iki elemanın üst üste binmesi (perde–perde, döşeme–döşeme, duvar–duvar, aynı doğrultuda kiriş–kiriş) birleşim değil model hatasıdır; program bunu düzeltmez, gösterir.
 
 ## Paftalama ve çizim
-- Statik çizimler Tasarım (model) alanına değil Statik disiplin pafta grubuna gider. Bir kez alınan kesit tüm disiplin paftalarında (Mimari, Mekanik, Statik, Elektrik) kendiliğinden görünür.
+- Statik çizimler Tasarım (model) alanına değil Statik disiplin pafta grubuna gider. Kesit alma (KESITAL / KESITPAFTA / MIMARIPAFTA) yalnız Mimari kesiti üretir; Statik, Mekanik ve Elektrik için ayrı kesit görünümü üretilmez, kesit öbür disiplin paftalarına kendiliğinden konmaz (14.11.2026; eskiden "bir kez alınan kesit tüm disiplin paftalarında görünür" idi). Statik ve mekanik modüllerin kendi ürettiği kesitler (DSİ statik paftaları, Y-Y yalıtım kesiti) bundan ayrıdır.
 - Disiplin paftalarında 3B perspektif görünüş bulunur; beton içindeki donatı 3B'de yalnız Statik disiplininde görünür.
 - Antet: çizimin değil, kullanıcının programa yüklediği kendi anteti kullanılır.
 - Pafta ölçeği bina ebatına göre seçilir (14.11.2026): plan ve kesitler önce 1/50 ile A0 ya da A1 paftaya yerleştirilir; sığıyorsa 1/50 kalır. Çizim paftada çok küçük kalıyorsa (1/50'de kullanılabilir alanın eninin ve boyunun %40'ından küçük; kullanıcı onayı 14.11.2026) 1/25, A0'a sığmayacak kadar büyükse 1/100 verilir. (Eski kural: terfi istasyonu mimari/mekanik plan ve kesitlerinde 1/25 — artık bu seçimin "çok küçük kalıyor" durumu.) Pafta sayısı kendiliğinden ayarlanır.
