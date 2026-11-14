@@ -209,7 +209,10 @@
     const inU = q => q[0] > -2 && q[0] < Lc + 2;
     /* gizli çizgi (Mimari kesit; kullanıcı 14.11.2026: "kesitlerde en yakın olan gözüksün"): arkada görünen kenarlar z-tamponla (gorunus.js projectModel, kesit düzleminden ileri);
        doğrama ağı yalnız örter (cam opak), çizgisi tip detayından. Öbür disiplinlerin KESITAL'ı eskisi gibi (gizli çizgi ayıklanmaz) */
-    const hlr = kv.MIMARI === 'E' && C.projectModel ? { ents: [], kenarsiz: new Set() } : null;
+    /* disiplin (gorunumler.js → kesitUret): MIMARI=E Mimari kesit (gizli çizgi + doğrama detayı + aks zinciri, oklar); GIZLI=E Mekanik / Elektrik kesiti
+       (firma kuralı 14.11.2026: arkadaki doğrama ve eleman örtülür — yalnız z-tampon); ikisi de yoksa Statik / proses KESITAL'ı: eski davranış */
+    const yeniDuzen = kv.MIMARI === 'E' || kv.GIZLI === 'E';
+    const hlr = yeniDuzen && C.projectModel ? { ents: [], kenarsiz: new Set() } : null;
     for (const e of C.doc.ents) {
       if (!C.layer(e.layer).on || e.type === 'sheet') continue;
       if (e.type === 'acik' && kv.MIMARI === 'E' && C.dogramaCizKesit) { if (hlr) { hlr.ents.push(e); hlr.kenarsiz.add(e.id); } continue; } // Mimari kesit: doğrama 3B ağından değil, tip detayından (2-2 kesiti / görünüş) çizilir
@@ -340,7 +343,15 @@
       const maliyet = (x, y, f) => { let b; try { b = C.bbox({ type: 'kot', p: W([x, y]), v: +y.toFixed(3), txt: '', layer: 'KOT', ters: f < 0 }); } catch (er) { return Infinity; } if (!b || !isFinite(b[0])) return Infinity;
         const q = [b[0] - o0[0], b[1] - o0[1], b[2] - o0[0], b[3] - o0[1]], yb = Math.max(q[1], y + 0.005); // işaret ucu yüzeyde: kutunun altı yüzeyin hemen üstünden
         let c = 0; for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) c += ortu([q[0] + (q[2] - q[0]) * i / 8, yb + (q[3] - yb) * j / 4]); /* kesilen betona değen nokta başına 1e6, öbür kesilen parçaya 1e3 (yer yoksa en az değen) */ for (const sx of aksS) if (sx > q[0] && sx < q[2]) c += 100; for (const sg of cizgi) if (kesisir(sg, [q[0], yb, q[2], q[3]])) c++; return c; };
-      for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m);
+      /* Statik / proses KESITAL'ı (disiplin anahtarı yok): eski yerleşim — yazı kutusu kesilen çevreye değiyorsa önce öbür yana, sonra yüzey boyunca */
+      const ks = C.annoH(2.5), kw = C.annoH(16), kutuBos = (x, y, f) => { const a0 = f > 0 ? x - ks * 0.6 : x - kw, a1 = f > 0 ? x + kw : x + ks * 0.6, b0 = y + ks * 0.15, b1 = y + ks * 2.2;
+        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 2; j++) if (covered([a0 + (a1 - a0) * i / 6, b0 + (b1 - b0) * j / 2])) return false; return true; };
+      if (!yeniDuzen) for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m);
+        let f0 = m[0] < (ub[0] + ub[2]) / 2 ? -1 : 1, x = m[0], yer = null; const adim = Math.max(0.1, (m.x1 - m.x0) / 12);
+        for (const dx of [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * adim).flatMap(d => [d, -d])]) { const xx = m[0] + dx; if (xx < m.x0 + 0.02 || xx > m.x1 - 0.02) continue; for (const f of [f0, -f0]) if (kutuBos(xx, m[1], f)) { yer = { x: xx, f }; break; } if (yer) break; }
+        if (yer) { x = yer.x; f0 = yer.f; }
+        C.add(C.newEnt('kot', Object.assign({ p: W([x, m[1]]), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, f0 < 0 ? { ters: true } : {}))); nK++; }
+      if (yeniDuzen) for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m);
         const f00 = m[0] < (ub[0] + ub[2]) / 2 ? -1 : 1, adim = Math.max(0.1, (m.x1 - m.x0) / 12); let en = null;
         for (const dx of [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * adim).flatMap(d => [d, -d])]) { const xx = m[0] + dx; if (xx < m.x0 + 0.02 || xx > m.x1 - 0.02) continue;
           for (const f of [f00, -f00]) { const c = maliyet(xx, m[1], f) + Math.abs(dx) * 0.01; if (!en || c < en.c) en = { x: xx, f, c }; } if (en && en.c < 0.5) break; }
@@ -366,7 +377,7 @@
         if (C.pstil && C.pstil() && C.cizimKural && C.cizimKural.kesitOlcuNoktalari) { const r = C.cizimKural.kesitOlcuNoktalari(LPD.map(lp => ({ lk: lp.lk || '', pts: lp }))); if (r.xs.length || r.zs.length) { xs.length = 0; zs.length = 0; xs.push(...r.xs); zs.push(...r.zs); } } /* pafta stili: yalnız mimari elemanlar ölçülür (duvar, boşluk, döşeme) */
         const uniq = (v, tol) => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > tol) o.push(x); return o; };
         const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), psD = C.pstil && C.pstil() && C.pstil().dim ? C.pstil().dim() : null, dd = C.annoH((psD && psD.sira) || 7), /* ölçü sıra aralığı pafta stilinden (kural tablosu) */ zb = z0 - (gb || 0);
-        const dimV = new Set(), dim = (k, a, b, p) => { const key = [k, ...a, ...b, ...p].map(v => typeof v === 'number' ? v.toFixed(3) : v).join('|'); if (dimV.has(key)) return; dimV.add(key); C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; }; // aynı ölçü iki kez yazılmaz
+        const dimV = new Set(), dim = (k, a, b, p) => { const key = [k, ...a, ...b, ...p].map(v => typeof v === 'number' ? v.toFixed(3) : v).join('|'); if (yeniDuzen) { if (dimV.has(key)) return; dimV.add(key); } C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; }; // aynı ölçü iki kez yazılmaz
         /* ilk sıranın yeri: pafta stilinde çizimin en dış çizgisinden (tretuvar dahil) ilk mm uzakta (kural tablosu → olcuYeri.ilkSira); eski görünümde betondan bir sıra aralığı */
         let yA = zb - dd, xA = x0 - dd * 1.6;
         /* bu kesitte daha önce konan yazı ve kotlar (kesit koordinatı): dış ölçü sırası bunların dışına, iç zincirler bunların üstüne binmez */

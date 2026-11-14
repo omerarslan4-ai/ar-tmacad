@@ -71,10 +71,10 @@ t('başlık boyları kural tablosunda: görünüş 4 mm, kesit 5 mm, ölçek sat
   globalThis.C = globalThis.C || {}; require('../app/cizim-kural.js');
   assert.deepStrictEqual(globalThis.C.cizimKural.MIMARI.baslik, { gorunusMm: 4, kesitMm: 5, olcekMm: 3 });
   const fs = require('fs'), path = require('path'), sv = fs.readFileSync(path.join(__dirname, '..', 'app', 'seviye.js'), 'utf8');
-  assert.ok(/const fz = v => .*'-'\)/.test(sv) && !/const fz = v => .*'−'/.test(sv), 'seviye yazısı normal tire');
-  // Çokal aks ölçü zinciri yalnız Mimari kesitlerde: disiplin kesiti Mimari ise KESITAL'e MIMARI=E gider, kesit.js zinciri bu anahtarla çizer
-  const gr = fs.readFileSync(path.join(__dirname, '..', 'app', 'gorunumler.js'), 'utf8'), ks = fs.readFileSync(path.join(__dirname, '..', 'app', 'kesit.js'), 'utf8');
-  assert.ok(/'MIMARI=E'/.test(gr) && /kv\.MIMARI === 'E'/.test(ks));
+  // seviye yazısı: seviye.js'teki fz işlevinin kendisi çalıştırılır (kaynak metin araması değil, davranış)
+  const m = /const fz = (v => [^\n]*?);\s*\/\//.exec(sv); assert.ok(m, 'fz bulunamadı'); const fz = eval(m[1]);
+  assert.strictEqual(fz(-2.91), '-2.91'); assert.strictEqual(fz(1.2), '+1.20'); assert.strictEqual(fz(0), '±0.00'); assert.ok(!/−/.test(fz(-5.9)), 'normal tire');
+  // Mimari / Mekanik / Statik kesit anahtarları (MIMARI=E, GIZLI=E): davranış testi test/gorunum-disiplin.test.js
 });
 
 /* kullanıcı 14.11.2026 (MİMARİ-04 ekran görüntüsü): "paftayı gereksiz uzatmışsın; DETAY-B'yi DETAY-A'nın altına alabilirsin".

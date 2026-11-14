@@ -278,8 +278,11 @@
   const kesitIsaretTemizle = () => { const G = C.gorunumApi; if (!G) return 0; const VL = G.liste().filter(v => v.tip === 'kesit'), tut = new Set(), n0 = C.doc.ents.length;
     for (const v of VL) { let m = C.byId(v.isaret); if (!m || m.type !== 'kesitisaret') m = C.doc.ents.find(e => e.type === 'kesitisaret' && !e.planIsaret && e.name === v.nm && v.a && Math.hypot(e.a[0] - v.a[0], e.a[1] - v.a[1]) < 0.05);
       if (m) { delete m.gv; m.gorunum = v.id; v.isaret = m.id; tut.add(m.id); } }
-    const adlar = new Set(VL.map(v => v.nm));
-    C.doc.ents = C.doc.ents.filter(e => !(e.type === 'kesitisaret' && !e.planIsaret && !tut.has(e.id) && adlar.has(e.name) && (/^K/.test(e.gv || '') || (e.gorunum && !VL.some(v => v.id === e.gorunum)) || (e.canli && !e.gv && !e.gorunum)))); // yetim: geçici gv'de, bağlı görünümü silinmiş ya da canlı yenilemeden kalmış bağsız kopya
+    /* yalnız Mimari kesitlerinin (MIMARIPAFTA'nın ürettiği / Mimari grubuna gönderilmiş) yetim kopyaları silinir; tek başına alınmış KESITAL işareti
+       (canlı, görünümsüz) ancak aynı adlı Mimari kesitin hattı üstündeyse kopyadır (denetim 14.11.2026) */
+    const mimMi = v => v.kaynak === 'MIMARIPAFTA' || (G.turler ? G.turler(v).includes('MIMARI') : (v.gruplar || []).some(g => /M[İI]MAR/i.test(String(g))));
+    const MV = VL.filter(mimMi), adlar = new Set(MV.map(v => v.nm)), ayniHat = e => MV.some(v => v.nm === e.name && v.a && e.a && Math.hypot(e.a[0] - v.a[0], e.a[1] - v.a[1]) < 0.05);
+    C.doc.ents = C.doc.ents.filter(e => !(e.type === 'kesitisaret' && !e.planIsaret && !tut.has(e.id) && adlar.has(e.name) && (/^K/.test(e.gv || '') || (e.gorunum && !VL.some(v => v.id === e.gorunum)) || (e.canli && !e.gv && !e.gorunum && ayniHat(e))))); // yetim: geçici gv'de, bağlı görünümü silinmiş ya da canlı yenilemeden kalmış bağsız kopya
     return n0 - C.doc.ents.length; };
   C.kesitIsaretTemizle = kesitIsaretTemizle;
   const uret = async (SC) => {
@@ -311,12 +314,14 @@
       const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
     // --- kesitler: yapıyı kesen disiplin kesitleri; yoksa A-A ve B-B alınır
-    const VL = G.liste(); let kes = VL.filter(v => v.tip === 'kesit' && v.a && v.b && kesiyorMu(v, bb));
+    /* yalnız Mimari kesitleri (MIMARIPAFTA'nın kendi kesitleri ve Mimari grubuna gönderilmiş kesitler): başka disiplinlerin kesitlerine dokunulmaz (denetim 14.11.2026) */
+    const mimMi = v => v.kaynak === 'MIMARIPAFTA' || (G.turler ? G.turler(v).includes('MIMARI') : (v.gruplar || []).some(g => /M[İI]MAR/i.test(String(g))));
+    const VL = G.liste(); let kes = VL.filter(v => v.tip === 'kesit' && v.a && v.b && kesiyorMu(v, bb) && mimMi(v));
     /* önceki MIMARIPAFTA kesitleri: yerleri modelden yeniden seçilir (kullanıcının KESITPAFTA ile aldıkları aynen kalır) */
     if (kes.length && kes.every(v => v.kaynak === 'MIMARIPAFTA')) { for (const v of kes) { G.sil(v); const i = VL.indexOf(v); if (i >= 0) VL.splice(i, 1); for (const L of C.doc.layouts || []) if (L.vps) L.vps = L.vps.filter(q => q.gorunum !== v.id); } kes = [];
       C.doc.layouts = (C.doc.layouts || []).filter(L => !(L.kesitPaftasi && !L.mimPafta && !(L.vps || []).length)); } // boşalan disiplin kesit paftaları
     let kesitBilgi = null;
-    if (kes.length) for (const v of kes) { const gv = v.gv; G.sil(v); v.gv = gv; if (v.kaynak === 'MIMARIPAFTA') v.olcek = SC; try { await G.kesitUret(v); } catch (er) { console.error(er); } } // bütün kesitler (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler — eski aksız içerik paftada kalmaz
+    if (kes.length) for (const v of kes) { const kendi = v.kaynak === 'MIMARIPAFTA', yal = kendi || !G.silTur ? undefined : 'MIMARI'; if (kendi) v.olcek = SC; if (yal) G.silTur(v, yal); else { const gv = v.gv; G.sil(v); v.gv = gv; } try { await G.kesitUret(v, yal); } catch (er) { console.error(er); } } // kendi kesitleri bütün türleriyle, kullanıcının Mimari'ye gönderdiği kesitlerin yalnız Mimari görünümü // bütün kesitler (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler — eski aksız içerik paftada kalmaz
     {
       const kul = new Set(C.doc.ents.filter(e => e.type === 'kesitisaret').map(e => e.name).concat(VL.map(v => v.nm)));
       const sGr = (C.doc.set.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']).filter(g => !/GENEL/i.test(g));
@@ -559,7 +564,7 @@
     if (Rb.tabs.some(t => t[0] === 'Mimari')) return true;
     const var_ = b => !!(C.cmds && C.cmds[b.cmd.split(' ')[0]]);
     const paneller = [
-      ['Pafta', [B('MIMARIPAFTA', 'Mimari paftalar', 'print'), s('KESITPAFTA', 'Kesit → disiplinler', 'cut'), s('KESITSEMBOL', 'Kesit sembolü', 'cut'), s('GORUNUMGUNCELLE', 'Kesitleri güncelle', 'undo'), s('ACILIMTABLO', 'Açılım tablosu', 'table'), s('PAFTALISTESI', 'Pafta listesi', 'table'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
+      ['Pafta', [B('MIMARIPAFTA', 'Mimari paftalar', 'print'), B('MIMARIDXF', 'Paftaları DXF kaydet', 'sheet'), s('KESITPAFTA', 'Kesit → disiplinler', 'cut'), s('KESITSEMBOL', 'Kesit sembolü', 'cut'), s('GORUNUMGUNCELLE', 'Kesitleri güncelle', 'undo'), s('ACILIMTABLO', 'Açılım tablosu', 'table'), s('PAFTALISTESI', 'Pafta listesi', 'table'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
       ['Görünüş', [B('KOTPLANI', 'Kot planı', 'area'), s('GORUNUS', 'Görünüş', 'box'), s('GORUNUSGUNCELLE', 'Güncelle', 'undo')]],
       ['Mahal', [B('MAHALLISTESI', 'Mahal listesi', 'table'), s('MAHALADI', 'Mahal adı', 'text')]],
       ['Açılım', [s('MALZEMEACILIM', 'Malzeme açılımı', 'text'), s('ACILIMSTIL', 'Açılım stili', 'prop')]],
