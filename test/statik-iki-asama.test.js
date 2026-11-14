@@ -51,7 +51,8 @@ const r = P.kabukHesap(IA.S), AG = r.AG;
 t('alt yapı kabuğu: tepkiler kolonun oturduğu perde üst düğümüne; düşey denge (radye yayları = kabuk öz ağırlığı + aktarılan G)', () => {
   assert.ok(r.bilgi.some(s => /10 kolon ayağı tepkisi/.test(s)));
   assert.ok(r.U.TX && r.U.TY && r.KV.some(k => /\(−%5\)/.test(k.ad) && k.f.TX), '−%5 dışmerkezlik kombinasyonları (zarf)');
-  assert.strictEqual(AG.dugumYuk.G.length, 10); for (const q of AG.dugumYuk.G) { const p = AG.nodes[q.n]; assert.ok(AG.els.some(e => e.tur === 'perde' && e.n.includes(q.n)), 'perde düğümü'); yak(p[2], -0.26 - 0.075, 1e-6, 'perde üstü = galeri döşemesi orta düzlemi'); }
+  const KY = AG.dugumYuk.G.filter(q => /^S\d+$/.test(q.ad || '')), DY = AG.dugumYuk.G.filter(q => / üstü\)$/.test(q.ad || ''));
+  assert.strictEqual(KY.length, 10); assert.strictEqual(KY.length + DY.length, AG.dugumYuk.G.length, 'kolon + duvar yükleri'); for (const q of KY) { const p = AG.nodes[q.n]; assert.ok(AG.els.some(e => e.tur === 'perde' && e.n.includes(q.n)), 'perde düğümü'); yak(p[2], -0.26 - 0.075, 1e-6, 'perde üstü = galeri döşemesi orta düzlemi'); }
   const kz = S.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
   const yay = c => { let s = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) s += -kz * trib[i] * r.U[c][i * 6 + 2]; return s; };
   const gc = S.mal.gc; let Wk = 0; for (const e of AG.els) Wk += gc * e.t * e.A + (e.tur === 'doseme' ? (IA.S.kabuk.dosemeler[+e.grp.slice(1)].g || 0) * e.A : 0); for (const b of AG.bars) Wk += gc * b.s.A * b.L;
@@ -59,11 +60,13 @@ t('alt yapı kabuğu: tepkiler kolonun oturduğu perde üst düğümüne; düşe
   const RY = P.radyeUstYuk(IA.S); assert.ok(RY.some(y => /taban betonu/.test(y.ad)) && RY.some(y => y.tur === 'dolgu') && RY.length === 5);
   let rG = 0, rQ = 0; for (const e of AG.els) if (e.tur === 'radye') { const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; for (const y of RY) { let ic = false; const q = y.pts; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > c[1]) !== (q[j][1] > c[1]) && c[0] < (q[j][0] - q[i][0]) * (c[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) ic = !ic; if (ic) { rG += y.pG * e.A; rQ += y.pQ * e.A; } } }
   yak(rG, RY.reduce((s, y) => s + y.G, 0), 0.03 * rG, 'radye üstü yük ağda (ızgara yaklaşığı)');
-  const tG = -P.tepkiToplam(T, 'G')[2]; yak(yay('G'), Wk + rG + tG, 1e-3 * (Wk + rG + tG), 'G dengesi');
+  // cephe ve bölme tuğla duvarları (galeri kotunda, perde / galeri döşemesi üstünde): 44,388 m³ × 12 kN/m³ = 532,7 kN — kabuğa yük
+  const tW = DY.reduce((s, q) => s - q.f[2], 0); yak(tW, 44.388 * P.TEMEL_GAMMA_TUGLA, 0.01, 'duvar ağırlığı'); assert.ok(DY.some(q => /bölme duvarı \(döşeme üstü\)/.test(q.ad)) && DY.filter(q => /perde üstü/.test(q.ad)).length > 30);
+  const tG = -P.tepkiToplam(T, 'G')[2]; yak(yay('G'), Wk + rG + tG + tW, 1e-3 * (Wk + rG + tG + tW), 'G dengesi');
   let Wq = 0; for (const e of AG.els) if (e.tur === 'doseme') Wq += (IA.S.kabuk.dosemeler[+e.grp.slice(1)].q || 0) * e.A; const tQ = -P.tepkiToplam(T, 'Q')[2]; yak(yay('Q'), Wq + rQ + tQ, 1e-3 * (Wq + rQ + tQ), 'Q dengesi');
   // tepkisiz çözümle fark = yalnız aktarılan yük (doğrusal)
-  const S0 = Object.assign({}, IA.S, { kabuk: Object.assign({}, IA.S.kabuk, { kolonYuk: [] }) }), r0 = P.kabukHesap(S0);
-  let fark = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) fark += -kz * trib[i] * (r.U.G[i * 6 + 2] - r0.U.G[i * 6 + 2]); yak(fark, tG, 1e-3 * tG, 'aktarılan G');
+  const S0 = Object.assign({}, IA.S, { kabuk: Object.assign({}, IA.S.kabuk, { kolonYuk: [] }), temel: Object.assign({}, IA.S.temel, { duvar: [] }) }), r0 = P.kabukHesap(S0);
+  let fark = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) fark += -kz * trib[i] * (r.U.G[i * 6 + 2] - r0.U.G[i * 6 + 2]); yak(fark, tG + tW, 1e-3 * (tG + tW), 'aktarılan G (kolon + duvar)');
 });
 t('üst yapısında perde olan yapı: kotun üstüne çıkan perde kabukta kotta kesilir; perdeye mesnetli kiriş uçlarının tepkileri ve perdenin üst kısmının ağırlığı alt yapıya aktarılır (denge)', () => {
   // 8 × 5 m gömülü hazne (perde üstü +4,40), B perdesi (y = 0) +7,40'a çıkar; arkada iki kolon (+7,40), kirişler ve döşeme +7,40'ta

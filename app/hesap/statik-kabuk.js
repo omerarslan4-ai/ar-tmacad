@@ -302,6 +302,8 @@
           for (const k of ns) { const dx = nodes[k][0] - cx, dy = nodes[k][1] - cy, fz = F[2] / m + al * dx + be * dy;
             (dugumYuk[c] = dugumYuk[c] || []).push({ n: k, f: [F[0] / m, F[1] / m, fz, ok2 ? 0 : Mx / m, ok2 ? 0 : My / m, Mz / m], ad: q.no }); } }
         continue; }
+      // döşeme üstündeki duvar yükü (hedef 'doseme'): döşeme ağının en yakın düğümü (kotu duvar tabanına en yakın döşeme)
+      else if (q.hedef === 'doseme' && DG.length) { let bd = Infinity; for (let gi = 0; gi < DG.length; gi++) { if (q.z != null && Math.abs(dos[gi].zt - q.z) > 0.3) continue; for (const e of DG[gi].list) for (const k of e.n) { const p0 = nodes[k], dd = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (dd < bd) { bd = dd; n = k; } } } }
       else if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;
       else { let bd = Infinity; for (const w of W) for (const p0 of w.S) { const d = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (d < bd) { bd = d; n = nod(p0[0], p0[1], w.ztm); } } if (n != null && q.id != null) yukUyar.push(`${q.no || 'Kolon'} (${q.x}; ${q.y}) tepkisi en yakın perde üst düğümüne uygulandı.`); } // kimliksiz (perde mesnedi, perdenin kotun üstündeki kısmı): perde üst düğümüne
       if (n == null) continue; const p0 = nodes[n], r = [(+q.x) - p0[0], (+q.y) - p0[1], (q.z != null ? +q.z : p0[2]) - p0[2]];

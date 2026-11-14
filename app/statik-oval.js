@@ -372,13 +372,16 @@
     if (!radye.length && !tekil.length && !surekli.length) return null;
     const merkez = q => { let A = 0, x = 0, y = 0; for (let i = 0; i < q.length; i++) { const [x0, y0] = q[i], [x1, y1] = q[(i + 1) % q.length], c = x0 * y1 - x1 * y0; A += c; x += (x0 + x1) * c; y += (y0 + y1) * c; } return Math.abs(A) > 1e-12 ? [x / (3 * A), y / (3 * A)] : q[0]; }; // çokgen ağırlık merkezi
     const ust = Math.max(...radye.map(r => r.zt), ...tekil.map(q => q.zt), ...surekli.map(q => q.zt)), ek = [];
+    const duvar = []; // bütün tuğla duvarlar (kottan bağımsız): perde ya da kabuk döşemesi üstüne oturanlar kabukta yük olur (P.perdeUstuDuvarYuk)
     if (Y && Y.net) { const N = Y.net(ents);
+      for (const [id, m] of N) { if (m.tur !== 'duvar' || !(m.net > 1e-6)) continue; const e = ents.find(x => x.id === id); if (!e || !Array.isArray(e.pts)) continue;
+        duvar.push({ id, ad: e.no || e.ad || m.ad, V: r3(m.net), za: r3(Math.min(...m.parcalar.map(p => p.za))), zt: r3(Math.max(...m.parcalar.map(p => p.zb))), eksen: pp(e.pts), kapali: !!e.closed }); }
       for (const [id, m] of N) { const e = ents.find(x => x.id === id); if (!e || !(m.net > 1e-6)) continue; const kick = e.type === 'perde' && e.kicker && !e.temel; if (!(['perde', 'duvar', 'dolgu', 'doseme'].includes(m.tur) || kick) || (e.type === 'perde' && e.temel)) continue; // perde ayağı (kicker) temel sınıfında ama radyenin üstündeki yüktür
         const za = Math.min(...m.parcalar.map(p => p.za)); if (za < ust - 0.1 || za > ust + 1.5) continue; // temelin üstünde (en çok 1,5 m) başlayan
         if (m.tur === 'doseme' && !(za <= ust + 1.2)) continue;
         let A = 0, sx = 0, sy = 0; for (const p of m.parcalar) { const a = Y._ic.alan(p.q) * (p.zb - p.za), c = merkez(p.q); A += a; sx += a * c[0]; sy += a * c[1]; }
         const zU = Math.max(...m.parcalar.map(p => p.zb)); ek.push({ id, tur: m.tur, ad: e.no || e.ad || m.ad, V: r3(m.net), x: r3(A ? sx / A : 0), y: r3(A ? sy / A : 0), za: r3(za), zt: r3(zU), ...(m.tur === 'doseme' ? { A: r3(Math.abs(M.polyArea(e.pts))), g: e.yukG != null ? +e.yukG : null, q: e.yukQ != null ? +e.yukQ : null } : {}), ...(m.tur === 'dolgu' ? { malz: e.malz || null } : {}), ...((m.tur === 'dolgu' || m.tur === 'doseme') && Array.isArray(e.pts) ? { pts: pp(e.pts) } : {}), ...(m.tur === 'duvar' && Array.isArray(e.pts) ? { eksen: pp(e.pts), kapali: !!e.closed } : {}) }); } }
-    return { radye, tekil, surekli, ust: r3(ust), ek };
+    return { radye, tekil, surekli, ust: r3(ust), ek, duvar };
   };
   C._statikTemelOku = temelOku;
   // statik penceresinden projeye kayıtlı statik ayarı yazar (yapı türü, alt yapı üst kotu …) — C.doc.set.statikAyar
