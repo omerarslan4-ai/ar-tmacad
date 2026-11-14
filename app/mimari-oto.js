@@ -556,7 +556,7 @@
     for (const m of V.mem) { if (!m.t || m.t === 'Alın tahtası' || m.t === 'Yastık' || m.t === 'Göğüsleme') continue; (tur.get(m.t) || tur.set(m.t, []).get(m.t)).push(m); } // yastık ve göğüsleme planda çizilmiyor
     for (const [t, L] of tur) { const ad = []; for (const m of L) { if (m.P) ad.push(w2(m.P)); else ad.push(...uyeOrnek(m.A, m.B, 3).map(w2)); } const m0 = L[0];
       G.push({ adaylar: ad.slice(0, 60), satir: catiUyeYazisi(t, m0.b, m0.P ? m0.b : m0.h, 'plan') }); }
-    const dn = catiDn(cati);
+    const dn = catiDn(cati); if (V.olukDN) dn.oluk = V.olukDN; if (V.borDN) dn.boru = V.borDN;
     if (V.oluk && V.oluk.length > 2) { const ad = []; for (let i = 0; i < V.oluk.length; i++) ad.push(...uyeOrnek(V.oluk[i], V.oluk[(i + 1) % V.oluk.length], 4).map(w2)); G.push({ adaylar: ad, satir: olukYazisi(dn.oluk) }); }
     if (V.boru.length) G.push({ adaylar: V.boru.map(w2), satir: inisBorusuYazisi(dn.boru) });
     return G.length ? okKoy(G, C.doc.ents.filter(e => e.gv === gv), { gv }, OKC) : 0;
@@ -586,10 +586,24 @@
       /* kaplama katmanları: kesit hattı üzerinde çatı yüzeyi boyunca (saçak ve mahyadan uzak) */
       const ust = []; { const f = V.G.foot, s0 = Math.min(...f.map(S)), s1 = Math.max(...f.map(S)); for (let i = 1; i < 24; i++) { const s = s0 + (s1 - s0) * i / 24, p = [K.a[0] + K.u[0] * s, K.a[1] + K.u[1] * s], z = V.G.zAt(p); if (isFinite(z)) ust.push([p, z]); } }
       for (const k of V.kat) { const ad = []; for (const [p, z] of ust) { const q = aday(p, z + k.o + k.t / 2); if (q) ad.push(q); } if (ad.length) G.push({ adaylar: ad, satir: catiKatmanYazisi(k) }); }
+      /* yağmur oluğu (kesit hattının oluğu kestiği yer) ve iniş boruları (kesit derinliğinde görünen, duvar boyunca düşey parçası) */
+      const dn = catiDn(cati); if (V.olukDN) dn.oluk = V.olukDN; if (V.borDN) dn.boru = V.borDN;
+      { const O = V.oluk || [], ad = []; for (let i = 0; i < O.length; i++) { const A = O[i], B = O[(i + 1) % O.length], dA = N(A), dB = N(B); if ((dA < 0) === (dB < 0) || Math.abs(dA - dB) < 1e-9) continue; const t = dA / (dA - dB), P = [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t], q = aday(P, V.zSacak - (V.ro || 0.0775) * 0.6); if (q) ad.push(q); } if (ad.length) G.push({ adaylar: ad, satir: olukYazisi(dn.oluk) }); }
+      if (V.borular) { const ad = []; for (const b of V.borular) { const Y = b.yol; for (let i = 1; i < Y.length; i++) { const a = Y[i - 1], c = Y[i]; if (Math.hypot(c[0] - a[0], c[1] - a[1]) > 1e-6 || a[2] - c[2] < 0.5) continue; for (const f of [0.3, 0.5, 0.7]) { const q = aday(a, a[2] + (c[2] - a[2]) * f); if (q) ad.push(q); } } } if (ad.length) G.push({ adaylar: ad, satir: inisBorusuYazisi(dn.boru) }); }
     }
     return G.length ? okKoy(G, C.doc.ents.slice(K.i0 || 0), {}, OKC) : 0;
   };
 
+  /* KAT PLANI: yağmur iniş boruları (firma kuralı 14.11.2026: plan ve kesitlerde oklu açıklama; her boruya ya da aynı cephedeki boru grubuna tek ok).
+     Plan kesme kotunu geçen düşey boru parçası. gv, W (model → çizim), hKes */
+  C.yagmurOkPlan = (gv, W, hKes, ents) => {
+    const G = []; for (const cati of (ents || C.doc.ents)) { if (cati.gv || cati.type !== 'cati' || !C.catiOkVerisi) continue; let V; try { V = C.catiOkVerisi(cati); } catch (er) { continue; } if (!V.borular) continue;
+      const dn = catiDn(cati); if (V.borDN) dn.boru = V.borDN; const kenar = new Map();
+      for (const b of V.borular) { const Y = b.yol; let p = null; for (let i = 1; i < Y.length; i++) { const a = Y[i - 1], c = Y[i]; if (Math.min(a[2], c[2]) <= hKes && Math.max(a[2], c[2]) >= hKes) { const t = Math.abs(c[2] - a[2]) < 1e-9 ? 0 : (hKes - a[2]) / (c[2] - a[2]); p = [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t]; break; } } if (!p) continue;
+        const k = b.kenar == null ? b.no : b.kenar; if (!kenar.has(k)) kenar.set(k, []); const w = W([p[0], p[1]]); kenar.get(k).push([w[0], w[1]]); }
+      for (const ad of kenar.values()) G.push({ adaylar: ad, satir: inisBorusuYazisi(dn.boru) }); }
+    return G.length ? okKoy(G, C.doc.ents.filter(e => e.gv === gv), { gv }, OKC) : 0;
+  };
   /* kesitin oklu açıklamaları: korkuluk, sonra çatı elemanları (kesit.js; disiplin görünümünde açılımdan sonra — gorunumler.js) */
   C.kesitOklari = K => { let n = 0; for (const [f, ad] of [[C.korkulukOkKesit, 'korkuluk oku'], [C.catiOkKesit, 'çatı oku']]) if (f) try { n += f(K) || 0; } catch (er) { console.error(ad, er); } return n; };
   /* AKS: modelde aks yoksa kolon merkezlerinden (yoksa betonarme perde eksenlerinden) türetilir; MIMARIPAFTA her çalıştığında yeniler (oto: 'MIMARIPAFTA') */

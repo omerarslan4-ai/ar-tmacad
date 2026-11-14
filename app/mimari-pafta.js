@@ -312,7 +312,7 @@
     katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
     const planlar = katlar.map(k => { const gv = gorunus({ kind: 'plan', h: k.h, depth: Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false, dograma: true }); if (!gv) return null;
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
-      const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
+      const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); if (C.yagmurOkPlan) C.yagmurOkPlan(gv, W, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
     // --- kesitler: yapıyı kesen disiplin kesitleri; yoksa A-A ve B-B alınır
     /* yalnız Mimari kesitleri (MIMARIPAFTA'nın kendi kesitleri ve Mimari grubuna gönderilmiş kesitler): başka disiplinlerin kesitlerine dokunulmaz (denetim 14.11.2026) */
@@ -565,7 +565,7 @@
     if (Rb.tabs.some(t => t[0] === 'Mimari')) return true;
     const var_ = b => !!(C.cmds && C.cmds[b.cmd.split(' ')[0]]);
     const paneller = [
-      ['Pafta', [B('MIMARIPAFTA', 'Mimari paftalar', 'print'), B('MIMARIDXF', 'Paftaları DXF kaydet', 'sheet'), s('KESITPAFTA', 'Kesit → disiplinler', 'cut'), s('KESITSEMBOL', 'Kesit sembolü', 'cut'), s('GORUNUMGUNCELLE', 'Kesitleri güncelle', 'undo'), s('ACILIMTABLO', 'Açılım tablosu', 'table'), s('PAFTALISTESI', 'Pafta listesi', 'table'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
+      ['Pafta', [B('MIMARIPAFTA', 'Mimari paftalar', 'print'), B('MIMARIDXF', 'Paftaları DXF kaydet', 'sheet'), s('YAGMUROLUGU', 'Yağmur oluğu', 'pipe'), s('INISBORUSU', 'İniş borusu', 'pipe'), s('KESITPAFTA', 'Kesit → disiplinler', 'cut'), s('KESITSEMBOL', 'Kesit sembolü', 'cut'), s('GORUNUMGUNCELLE', 'Kesitleri güncelle', 'undo'), s('ACILIMTABLO', 'Açılım tablosu', 'table'), s('PAFTALISTESI', 'Pafta listesi', 'table'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
       ['Görünüş', [B('KOTPLANI', 'Kot planı', 'area'), s('GORUNUS', 'Görünüş', 'box'), s('GORUNUSGUNCELLE', 'Güncelle', 'undo')]],
       ['Mahal', [B('MAHALLISTESI', 'Mahal listesi', 'table'), s('MAHALADI', 'Mahal adı', 'text')]],
       ['Açılım', [s('MALZEMEACILIM', 'Malzeme açılımı', 'text'), s('ACILIMSTIL', 'Açılım stili', 'prop')]],

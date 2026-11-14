@@ -187,13 +187,15 @@
       out._typ = 'Alın tahtası';
       for (const [A, B] of G.lines.eave) { const d = [B[0] - A[0], B[1] - A[1]], l = Math.hypot(d[0], d[1]); if (l < 0.05) continue; const nO = [d[1] / l * 0.0125, -d[0] / l * 0.0125]; beam(out, [A[0] + nO[0], A[1] + nO[1], A[2] + topOff * 0.5], [B[0] + nO[0], B[1] + nO[1], B[2] + topOff * 0.5], 0.025, 0.20, [0.92, 0.92, 0.90]); addW('Alın tahtası', l, 0.025, 0.20); }
     }
+    // yağmur oluğu ve iniş boruları (yagmur.js; çap ve adet mt-sihhi.js → C.yagmurHesap, yoksa DN155 / DN120 köşelerde)
+    if (C.yagmurCati && C.yagmurAg && e.oluk !== 'H') { try { const Y = C.yagmurCati(e); out._typ = 'Yağmur oluğu'; C.yagmurAg(out, Y); Q.yagmur = Y; } catch (er) { console.error('yağmur oluğu', er); } }
     // mahya / kırma çizgileri (örtü üstünde)
     for (const k of ['ridge', 'hip', 'valley']) for (const [A, B] of G.lines[k]) out.edges3.push([[A[0], A[1], A[2] + topOff + 0.01], [B[0], B[1], B[2] + topOff + 0.01]]);
     { const f = G.foot; for (let i = 0; i < f.length; i++) { const a = f[(i - 1 + f.length) % f.length], b = f[i], c = f[(i + 1) % f.length]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) > 1e-9) Q.boru++; } }
     const mem = out.mem; delete out.mem; delete out.edgesW; delete out._typ;
     return { mesh: out, Q, G, mem };
   };
-  const cacheAll = e => { const key = JSON.stringify([e.kind, e.pts, e.zt, e.ov, e.deg, e.knee, e.m1, e.deg1, e.yon, e.alt, e.xps, e.su, e.ortu, e.isk, e.mb, e.mh, e.msp, e.ab, e.ah, e.asp, e.db, e.dsp, e.yal, e.cy, e.sacak]); if (e._b && e._bk === key) return e._b; e._b = buildAll(e); e._bk = key; return e._b; };
+  const cacheAll = e => { const key = JSON.stringify([e.kind, e.pts, e.zt, e.ov, e.deg, e.knee, e.m1, e.deg1, e.yon, e.alt, e.xps, e.su, e.ortu, e.isk, e.mb, e.mh, e.msp, e.ab, e.ah, e.asp, e.db, e.dsp, e.yal, e.cy, e.sacak, e.oluk, e.olukDn, e.boruDn, e.yagmur]); if (e._b && e._bk === key) return e._b; e._b = buildAll(e); e._bk = key; return e._b; };
   const qty = e => {
     const { Q } = cacheAll(e), out = [], o = ORTU[e.ortu] || ORTU.marsilya, nm = TUR[e.kind].split(' (')[0];
     out.push([`${o.ad} — ${nm} (eğik alan)`, 'm²', Q.area]);
@@ -203,8 +205,8 @@
     if (e.alt && e.alt !== 'yok') out.push([ALT[e.alt].ad + ' — çatı', 'm²', Q.area]);
     let wv = 0; for (const [k, w] of Object.entries(Q.wood)) { out.push([`Ahşap ${k} ${+(w.b * 100).toFixed(1)}×${+(w.h * 100).toFixed(1)} (${M.fmt(w.L, 1)} m)`, 'm³', w.V]); wv += w.V; }
     if (wv) out.push(['Ahşap çatı iskeleti toplamı', 'm³', wv]);
-    if (Q.eave) out.push(['Yağmur oluğu (saçak boyu)', 'm', Q.eave]);
-    if (Q.boru) out.push(['Yağmur borusu (köşelerde)', 'adet', Q.boru]);
+    if (Q.yagmur && C.yagmurMetraj) out.push(...C.yagmurMetraj(Q.yagmur));
+    else { if (Q.eave) out.push(['Yağmur oluğu (saçak boyu)', 'm', Q.eave]); if (Q.boru) out.push(['Yağmur borusu (köşelerde)', 'adet', Q.boru]); }
     if (o.mahya && Q.ridge + Q.hip) out.push(['Mahya / kırma kiremidi', 'm', Q.ridge + Q.hip]);
     if (Q.valley) out.push(['Dere sacı (galvaniz)', 'm', Q.valley]);
     if (Q.gable > 0.01) out.push(['Alınlık (beşik uç) tuğla duvar', 'm²', Q.gable]);
@@ -226,9 +228,11 @@
       }
       const KES = { 'Saçak aşığı': '10x10', 'Mertek': `${Math.round((+e.mb || 0.05) * 100)}x${Math.round((+e.mh || 0.1) * 100)}`, 'Aşık': '10x10', 'Mahya aşığı': '10x10', 'Duvar aşığı': '10x10', 'Dikme': '10x10', 'Kırma mertek': '8x16', 'Dere mertek': '8x16', 'Kuşaklama': '2x5x10' };
       for (const [k, v] of Object.entries(lab)) { if (!et || !KES[k]) continue; const a = v.ang || 0, rot = Math.abs(a) > Math.PI / 2 ? a + Math.PI : a, tp = [v.p[0] + th * 1.2, v.p[1] + th * 1.2, 0]; out.push(L([v.p[0], v.p[1], 0], tp, { lw: 9 }), TX(tp, th, `${k} ${KES[k]}`, 0, 'BL')); void rot; }
-      // yağmur oluğu (saçak boyunca) ve yağmur boruları (dış köşeler)
-      const gut = offsetPoly(G.foot, 0.07); out.push(P(gut.map(p => [p[0], p[1], 0]), true, { lw: 13, lt: 'DASHED' }));
-      for (let i = 0; i < G.foot.length; i++) { const a = G.foot[(i - 1 + G.foot.length) % G.foot.length], b = G.foot[i], c = G.foot[(i + 1) % G.foot.length]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) <= 1e-9) continue; const q = gut[i]; out.push(C.prim.CI([q[0], q[1], 0], 0.06, { lw: 18 })); if (et) out.push(TX([q[0] + th, q[1] + th, 0], th * 0.8, 'Yağmur borusu', 0, 'BL')); }
+      // yağmur oluğu (saçak boyunca) ve yağmur iniş boruları (hesaptan: yagmur.js → C.yagmurCati; numaralar YB1 … hesapla aynı)
+      if (Q.yagmur) { const Y = Q.yagmur; out.push(P(Y.oluk.map(p => [p[0], p[1], 0]), true, { lw: 13, lt: 'DASHED' }));
+        for (const b of Y.borular) { const q = b.p; out.push(C.prim.CI([q[0], q[1], 0], Y.rb, { lw: 18 })); const w = b.yol[2] || b.yol[1]; if (w && Math.hypot(w[0] - q[0], w[1] - q[1]) > 0.03) out.push(L([q[0], q[1], 0], [w[0], w[1], 0], { lw: 13, lt: 'HIDDEN' }), C.prim.CI([w[0], w[1], 0], Y.rb, { lw: 13, lt: 'HIDDEN' })); out.push(TX([q[0] + th * 0.6, q[1] + th * 0.6, 0], th * 0.8, b.no, 0, 'BL')); if (et) out.push(TX([q[0] + th, q[1] - th * 0.6, 0], th * 0.8, 'Yağmur borusu', 0, 'TL')); } }
+      else { const gut = offsetPoly(G.foot, 0.07); out.push(P(gut.map(p => [p[0], p[1], 0]), true, { lw: 13, lt: 'DASHED' }));
+      for (let i = 0; i < G.foot.length; i++) { const a = G.foot[(i - 1 + G.foot.length) % G.foot.length], b = G.foot[i], c = G.foot[(i + 1) % G.foot.length]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) <= 1e-9) continue; const q = gut[i]; out.push(C.prim.CI([q[0], q[1], 0], 0.06, { lw: 18 })); if (et) out.push(TX([q[0] + th, q[1] + th, 0], th * 0.8, 'Yağmur borusu', 0, 'BL')); } }
       // mahya / kırma / dere çizgileri
       for (const k of ['ridge', 'hip', 'valley', 'gableEdge']) for (const [A, B] of G.lines[k]) out.push(L([A[0], A[1], 0], [B[0], B[1], 0], { lw: k === 'ridge' ? 35 : 25 }));
       // eğim okları ve kotlar
@@ -317,13 +321,14 @@
   /* oklu açıklama verisi (mimari-oto.js → C.catiOkPlan / C.catiOkKesit): ahşap elemanlar (mem: { t, A, B, b, h } kiriş türü, { t, P, z1, z2, b } dikme),
      kaplama katmanları (taşıyıcı üstünden yukarı: tür, anahtar, kalınlık, alt ofset), oluk ve iniş borusu (yer: oluk hattı = saçak 7 cm dışı, borular dış köşelerde) */
   C.catiOkVerisi = e => {
-    const { G, mem } = cacheAll(e), yal = e.yal || 'mertek', kat = []; let o = 0;
+    const { G, mem, Q } = cacheAll(e), yal = e.yal || 'mertek', kat = []; let o = 0;
     for (const [tur, key, t, ok] of [['alt', e.alt || 'osb', (ALT[e.alt] || ALT.osb).t, (ALT[e.alt] || ALT.osb).col], ['xps', 'xps', +e.xps > 0 && yal !== 'doseme' ? +e.xps / 100 : 0, XPSC], ['su', e.su || 'membran', (SU[e.su] || SU.membran).t, (SU[e.su] || SU.membran).col], ['ortu', e.ortu || 'marsilya', (ORTU[e.ortu] || ORTU.marsilya).t, (ORTU[e.ortu] || ORTU.marsilya).col]]) {
       if (!(t > 0) || !ok) continue; const ad = tur === 'alt' ? ALT[key].ad : tur === 'su' ? SU[key].ad : tur === 'ortu' ? ORTU[key].ad : 'XPS ısı yalıtımı'; kat.push({ tur, key, ad, t, o }); o += t; }
     const gut = offsetPoly(G.foot, 0.07), kose = [];
     for (let i = 0; i < G.foot.length; i++) { const a = G.foot[(i - 1 + G.foot.length) % G.foot.length], b = G.foot[i], c = G.foot[(i + 1) % G.foot.length]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) > 1e-9) kose.push(gut[i]); }
     const zE = G.lines.eave.length ? Math.min(...G.lines.eave.flat().map(p => p[2])) : G.Z0;
-    return { G, mem: mem || [], kat, oluk: gut, boru: kose, zSacak: zE, egim: Math.round(G.tn * 100) };
+    const Y = Q && Q.yagmur; // yagmur.js: hesaptan oluk ve borular
+    return { G, mem: mem || [], kat, oluk: Y ? Y.oluk : gut, boru: Y ? Y.borular.map(b => b.p) : kose, borular: Y ? Y.borular : null, olukDN: Y ? Y.olukDN : null, borDN: Y ? Y.borDN : null, ro: Y ? Y.ro : 0.0775, rb: Y ? Y.rb : 0.06, zSacak: Y ? Y.zSacak : zE, egim: Math.round(G.tn * 100) };
   };
   /* MIMARIPAFTA çatı detayları: DETAY-A (saçak) ve DETAY-B (mahya), 1/10; O: modelde yer. Yeni nesneler C._gvCur görünümüne girer. */
   C.catiDetaylari = (e, O) => drawDetails(e, O);
