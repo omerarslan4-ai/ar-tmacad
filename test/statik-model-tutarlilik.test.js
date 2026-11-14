@@ -45,6 +45,14 @@ t('Konya: statik eleman listesi net hacimle — toplam 371,65 m³ (brüt 390,59)
   // metrajla aynı kaynak: yapi-cakisma.js net
   const N = O.modelCevir(O.konyaDoc()).C.yapiCakisma.net(U.uret().doc.ents); let p = 0; for (const [, m] of N) if (m.tur === 'perde') p += m.net; yak(p, H.top.Perde, 1e-3);
 });
+t('kolon gusesi (vinç konsolu) metrajdaki gibi kolon hacmine eklenir: Konya 8 guse × 0,50 · 0,40 · (0,50 + 0,30)/2 = 0,64 m³', () => {
+  const C = O.modelCevir(O.konyaDoc()).C, zt = U.z(U.OLCU.kot.guseUst);
+  C.kolonGuse = e => (e.guse === 'E' ? [{ w: 0.5, gL: 0.4, zt, zf: zt - 0.5, zu: zt - 0.3, f0: 0.25, loc: () => [0, 1, 0] }] : []);
+  try { const H = O.modelCevir(O.konyaDoc()).d.hacim; yak(H.top.Kolon, 28.64, 1e-6); yak(H.net, 371.652 + 0.64, 1e-3); assert.strictEqual(H.liste.filter(e => e.guse).length, 8);
+    const B = P.netHacimBol(H, -0.26); yak(B.ust.Kolon, 11.75 + 0.64, 1e-6, 'guse üst yapıda'); }
+  finally { delete C.kolonGuse; }
+});
+
 t('alt yapı üst kotunda (−0,26) kotla bölme: kolonların alt kısmı alt yapıda, alt + üst = net', () => {
   const B = P.netHacimBol(d.hacim, -0.26);
   yak(B.altTop + B.ustTop, d.hacim.net, 0.01); yak(B.alt.Kolon, 10 * 0.25 * 6.5, 0.01); yak(B.ust.Kolon, 10 * 0.25 * 4.7, 0.01);

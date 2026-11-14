@@ -344,10 +344,13 @@
     const oturur = e => { if (e.type !== 'plak' || e.kind === 'radye' || !Array.isArray(e.pts) || !e.pts.length) return false; const za = (+e.zt || 0) - (+e.t || 0.15), m = e.pts.reduce((q, p) => [q[0] + p[0] / e.pts.length, q[1] + p[1] / e.pts.length], [0, 0]);
       return zemin.some(g => Math.abs(g.z - za) < 0.06 && Array.isArray(g.pts) && icinde(m, g.pts)); };
     const N = Y.net(ents), liste = [], top = {}; let net = 0, brut = 0;
-    for (const [id, m] of N) { if (m.tur === 'duvar' || m.tur === 'dolgu') continue; const e = ents.find(x => x.id === id); if (!e || oturur(e)) continue;
+    for (let [id, m] of N) { if (m.tur === 'duvar' || m.tur === 'dolgu') continue; const e = ents.find(x => x.id === id); if (!e || oturur(e)) continue;
       // dz: net parçaların kot aralıkları [za, zb, plan alanı] — pencere yapıyı alt / üst yapı diye kotla bölebilsin
       const dzm = new Map(); for (const p of m.parcalar || []) { const k = r3(p.za) + '|' + r3(p.zb), A = Y._ic.alan(p.q); dzm.set(k, (dzm.get(k) || 0) + A); }
-      liste.push({ id, tur: m.tur, ad: m.ad, no: e.no || e.ad || null, brut: r3(m.brut), net: r3(m.net), dz: [...dzm].map(([k, A]) => { const [a, b] = k.split('|').map(Number); return [a, b, Math.round(A * 1e4) / 1e4]; }) });
+      // kolon gusesi (vinç konsolu): metrajdaki gibi kolonun kendi hacmine eklenir (app/insaat.js › guseVol; yapi-cakisma prizmaları gusesiz)
+      let gv = 0; if (e.type === 'kolon' && e.guse === 'E' && C.kolonGuse) { try { gv = C.kolonGuse(e).reduce((s2, g) => s2 + g.w * g.gL * (g.zt - g.zf + g.zt - g.zu) / 2, 0); } catch (er) { gv = 0; } }
+      if (gv > 0) { m = Object.assign({}, m, { brut: m.brut + gv, net: m.net + gv }); const z = C.kolonGuse(e)[0]; dzm.set(r3(z.zu) + '|' + r3(z.zt), (dzm.get(r3(z.zu) + '|' + r3(z.zt)) || 0) + gv / Math.max(1e-6, z.zt - z.zu)); }
+      liste.push({ id, tur: m.tur, ad: m.ad, no: e.no || e.ad || null, brut: r3(m.brut), net: r3(m.net), ...(gv > 0 ? { guse: r3(gv) } : {}), dz: [...dzm].map(([k, A]) => { const [a, b] = k.split('|').map(Number); return [a, b, Math.round(A * 1e4) / 1e4]; }) });
       top[m.ad] = r3((top[m.ad] || 0) + m.net); net += m.net; brut += m.brut; }
     return { liste, top, net: r3(net), brut: r3(brut) };
   };
