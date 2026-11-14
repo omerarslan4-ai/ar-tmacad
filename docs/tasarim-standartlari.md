@@ -20,6 +20,15 @@
 - Kalıp planında gereken her yerde ek kesit alınır (kolonlardan, ara döşemelerden ve üzerine oturan perdelerden).
 - Statik rapor ve paftalar (kalıp, donatı, perde detayları, metraj tabloları, DSİ antet) firmanın standart biçimini izler (örnek: ÇOKAL AAT statik rapor ve paftaları).
 
+### Yapı türüne göre statik çözüm yolu (14.11.2026 — TASLAK, kullanıcı onayı bekliyor)
+Program her yapının türünü modelden önerir (zeminin altında betonarme perde var mı, haznede su var mı, üstünde kolonlu / kirişli kat var mı); kullanıcı statik penceresinde değiştirebilir. Statik rapor ve paftalar türe göre düzenlenir.
+1. **Su yapısı (havuz, hazne, tank — ör. anaerobik, kum tutucu):** 3B kabuk model (perde, radye, döşeme). Yükler: su, toprak ve sürşarj basıncı, kaldırma, deprem (hidrodinamik dahil). Çatlak genişliği sınırı wmax 0,2 mm (Çokal SR). Kalınlıklar firma basamaklarıyla. Çerçeve hesabı yoktur (köprü / yürüme yolu kirişleri kabuğun içinde ya da ayrı küçük çerçeve).
+2. **Gömülü alt yapı + üst yapı (ör. Konya terfi merkezi):** iki aşamalı çözüm.
+   - Üst yapı (kolon, kiriş, döşeme, çatı, vinç yolu): çerçeve modeli; kolon ayakları alt yapının üst kotunda ankastre kabul edilir. Deprem: TBDY 2018 rijit bodrumlu binalar yaklaşımı — üst yapı kendi R / D katsayılarıyla, taban kesme kuvveti alt yapı üst kotundan.
+   - Alt yapı (gömülü perdeler, radye, ara döşemeler): 3B kabuk modeli; toprak ve su basıncına ek olarak üst yapının kolon ayağı tepkileri (N, V, M; her yük birleşimi için) yük olarak aktarılır; alt yapı rijit kabul edilir (deprem kuvvetleri üst yapıdan gelir + gömülü kısmın kendi kütlesi ve dinamik toprak basıncı).
+   - İki model aynı yapı modelinden üretilir; hangi elemanın hangi aşamaya ait olduğu kotla belirlenir (alt yapı üst kotu = en yüksek toprak / tretuvar kotunun altındaki perde üstü; kullanıcı değiştirebilir).
+3. **Yalnız üst yapı (ör. bekçi binası, idari bina):** çerçeve modeli (kolon, kiriş, döşeme) + temel hesabı (tekil / sürekli / radye, zemin emniyet gerilmesi). Kabuk modeli yoktur.
+
 ### Kalınlık basamakları ve sınırları (13.11.2026 — Çokal AAT statik raporundan ölçüldü, kullanıcı onayı bekliyor)
 - Perde ve temel kalınlıkları 5 cm adımlı değil basamaklıdır: 20 (yalnız susuz küçük oda) – 25 – 30 – 40 – 50 – 60 – 70 – 80 cm. Üst döşeme 15 – 20 – 25 – 30 cm.
 - Dış perde kalınlığı perde yüksekliğine (H) bağlı aralıkta kalır: en ince max(25 cm; H/18), en kalın H/9,5'i karşılayan ilk basamak (Çokal: 2,2 m → 25; 3,75 – 6,3 m → 40; 10,65 m → 60). Ara perde dış perdeden kalın olmaz.
