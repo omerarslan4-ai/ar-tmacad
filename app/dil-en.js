@@ -377,5 +377,15 @@
     ['radye üstünde, net hacim # m³)', 'on the raft, net volume # m³)', 'ic'], ['(dolgu, net hacim # m³)', '(fill, net volume # m³)', 'ic'], ['(net hacim # m³)', '(net volume # m³)', 'ic'],
     ['üst kısmı bu hesapta tasarlanmadı: üst yapı çerçevesinde yalnız kiriş mesnedidir.', 'upper part is not designed in this calculation: it is only a beam support in the superstructure frame.'],
     ['Üst yapı perdesi ayrıca tasarlanmalıdır.', 'The superstructure wall must be designed separately.'],
+    /* temel kabuğu (radye + subasman perdesi), şerit perde (statik-temel.js), hazır proje yeri değerleri (statik-yapi-turu.js) */
+    ['TEMEL VE SUBASMAN PERDESİ — 3B KABUK (RADYE + PERDE)', 'FOUNDATION AND BASEMENT WALL — 3D SHELL (RAFT + WALL)'], ['Temel ve subasman perdesi (3B kabuk: radye + perde)', 'Foundation and basement wall (3D shell: raft + wall)'],
+    ['M düşey, kabuk (kNm/m)', 'M vertical, shell (kNm/m)'], ['M, şerit (kNm/m)', 'M, strip (kNm/m)'], ['M yatay (kNm/m)', 'M horizontal (kNm/m)'], ['M düşey / yatay (kNm/m)', 'M vertical / horizontal (kNm/m)'],
+    ['Düşey donatı', 'Vertical reinforcement'], ['Yatay donatı', 'Horizontal reinforcement'], ['Düşey donatı (iki yüz)', 'Vertical reinforcement (both faces)'], ['Yatay donatı (iki yüz)', 'Horizontal reinforcement (both faces)'],
+    ['Donatı (alt + üst)', 'Reinforcement (bottom + top)'], ['M alt (kNm/m)', 'M bottom (kNm/m)'], ['M üst (kNm/m)', 'M top (kNm/m)'], ['iç + dış', 'inner + outer', 'ic'], ['alt + üst', 'bottom + top', 'ic'],
+    ['Zemin gerilmesi (yerel tepe, plak)', 'Soil pressure (local peak, plate)'],
+    ['Radye ve radye üstündeki subasman (temel) perdeleri, Winkler zeminine oturan 3B kabuk modeliyle (perde ve radye kabuk elemanları) çözülmüştür.', 'The raft and the basement (foundation) walls on it were solved with a 3D shell model on a Winkler subgrade (wall and raft shell elements).', 'ic'],
+    ['Subasman perdesi ayrıca şerit perde olarak elle izlenebilir yöntemle hesaplanmıştır', 'The basement wall was also designed as a strip wall with a hand-traceable method', 'ic'],
+    ['H ≤ 2 m: düşey donatı filizsiz tek parça, iki ucu gönyeli (firma kuralı)', 'H ≤ 2 m: vertical bars in one piece without starter bars, hooked at both ends (company rule)', 'ic'],
+    ['Hazır zemin ve deprem değerleri (proje yeri)', 'Preset soil and seismic values (project site)'],
   ]);
 })();

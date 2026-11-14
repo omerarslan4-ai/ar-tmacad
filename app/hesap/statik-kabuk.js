@@ -287,12 +287,24 @@
        (perdeye gömülü kolonda perde üst düğümü, serbest kolonda kolon üst düğümü) düğüm yükü; kolon ekseni ile düğüm arasındaki kaçıklık
        momente katılır (M + r × F). dugumYuk: { durum: [{ n, f:[6] }] } */
     const dugumYuk = {}, yukUyar = [];
+    const radN = []; { const sr = new Set(); for (const e of RG.list) for (const k of e.n) if (!sr.has(k)) { sr.add(k); radN.push(k); } }
     for (const q of (M.kolonYuk || [])) { const K = KOL.find(k => q.id != null && k.c.id === q.id); let n = null;
-      if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;
+      // kolon ayağı radye üstündeyse (yalnız üst yapı: kolon perdenin içinden radyeye iner) yük radyenin en yakın düğümüne
+      /* radyede kolon izi + radye kalınlığı (45° yayılma) içindeki düğümlere rijit levha gibi dağıtılır: kuvvetler eşit, Mx / My düşey kuvvet
+         çifti (Fz_i ∝ uzaklık), Mz eşit — tek düğüme tekil moment radyede yapay tepe yapar */
+      if (q.z != null && +q.z <= rad.kAlt + rad.t + 0.05) { const ax = (+q.bx || 0.4) / 2 + rad.t / 2, ay = (+q.by || 0.4) / 2 + rad.t / 2;
+        let ns = radN.filter(k => Math.abs(nodes[k][0] - q.x) <= ax + 1e-6 && Math.abs(nodes[k][1] - q.y) <= ay + 1e-6);
+        if (!ns.length) { let bd = Infinity, n0 = null; for (const k of radN) { const p0 = nodes[k], dd = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (dd < bd) { bd = dd; n0 = k; } } ns = n0 != null ? [n0] : []; }
+        if (!ns.length) continue; const m = ns.length, cx = ns.reduce((t, k) => t + nodes[k][0], 0) / m, cy = ns.reduce((t, k) => t + nodes[k][1], 0) / m, Sxx = ns.reduce((t, k) => t + (nodes[k][0] - cx) ** 2, 0), Syy = ns.reduce((t, k) => t + (nodes[k][1] - cy) ** 2, 0), zc = nodes[ns[0]][2];
+        for (const [c, F] of Object.entries(q.F || {})) { if (!F) continue; const r = [(+q.x) - cx, (+q.y) - cy, (+q.z) - zc], mm = cross(r, [F[0], F[1], F[2]]), Mx = F[3] + mm[0], My = F[4] + mm[1], Mz = F[5] + mm[2];
+          for (const k of ns) { const dx = nodes[k][0] - cx, dy = nodes[k][1] - cy, fz = F[2] / m + (Syy > 1e-9 ? -Mx * dy / Syy : 0) + (Sxx > 1e-9 ? My * dx / Sxx : 0);
+            (dugumYuk[c] = dugumYuk[c] || []).push({ n: k, f: [F[0] / m, F[1] / m, fz, Syy > 1e-9 ? 0 : Mx / m, Sxx > 1e-9 ? 0 : My / m, Mz / m], ad: q.no }); } }
+        continue; }
+      else if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;
       else { let bd = Infinity; for (const w of W) for (const p0 of w.S) { const d = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (d < bd) { bd = d; n = nod(p0[0], p0[1], w.ztm); } } if (n != null && q.id != null) yukUyar.push(`${q.no || 'Kolon'} (${q.x}; ${q.y}) tepkisi en yakın perde üst düğümüne uygulandı.`); } // kimliksiz (perde mesnedi, perdenin kotun üstündeki kısmı): perde üst düğümüne
       if (n == null) continue; const p0 = nodes[n], r = [(+q.x) - p0[0], (+q.y) - p0[1], (q.z != null ? +q.z : p0[2]) - p0[2]];
       for (const [c, F] of Object.entries(q.F || {})) { if (!F) continue; const m = cross(r, [F[0], F[1], F[2]]); (dugumYuk[c] = dugumYuk[c] || []).push({ n, f: [F[0], F[1], F[2], F[3] + m[0], F[4] + m[1], F[5] + m[2]], ad: q.no }); } }
-    if ((M.kolonYuk || []).length) { const nk = (M.kolonYuk || []).filter(q => q.id != null).length, np = (M.kolonYuk || []).length - nk; uyarC.push(`Üst yapıdan ${nk} kolon ayağı tepkisi${np ? ` ve ${np} perde yükü (kotun üstündeki perde kısmı / perdeye mesnetli kiriş uçları)` : ''} alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar); }
+    if ((M.kolonYuk || []).length) { const nk = (M.kolonYuk || []).filter(q => q.id != null).length, np = (M.kolonYuk || []).length - nk; uyarC.push(`Üst yapıdan ${nk} kolon ayağı tepkisi${np ? ` ve ${np} ek yük (perde üstündeki duvar, kotun üstündeki perde kısmı ya da perdeye mesnetli kiriş ucu)` : ''} alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar); }
     for (const e of els) e.F = cerceve(e.n.map(i => nodes[i]));
     return { nodes, els, ties, W, RG, DG, Z, zr, h, mes, bars, uyarC, dugumYuk };
   };

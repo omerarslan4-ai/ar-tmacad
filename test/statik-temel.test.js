@@ -87,4 +87,35 @@ if (fs.existsSync(bekciYol)) {
   });
 } else console.log('- Bekçi dosyası yok, atlandı: ' + bekciYol);
 
+t('şerit perde (elle): üçgen yük K·γ·(H − z), H 1,05 — konsol M = Kγ H³/6, V = Kγ H²/2; alt ankastre üst mafsal M = Kγ H³/15, V = 0,4·Kγ H²', () => {
+  const H = 1.05, Kg = 0.333 * 18, p = z => Kg * (H - z), a = P.seritPerde(H, p, 'serbest'), b = P.seritPerde(H, p, 'mafsal');
+  yak(Math.abs(a.Mt), Kg * H ** 3 / 6, 1e-3); yak(a.Vt, Kg * H * H / 2, 1e-6); yak(Math.abs(b.Mt), Kg * H ** 3 / 15, 1e-3); yak(b.Vt, 0.4 * Kg * H * H, 1e-6);
+  yak(Math.abs(b.V[b.V.length - 1]), 0.1 * Kg * H * H, 1e-6, 'mafsal tepkisi');
+});
+if (fs.existsSync(path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'))) {
+  const { d: dB } = O.modelCevir(JSON.parse(fs.readFileSync(path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'), 'utf8')).doc), SB = O.uygula(P.ornekSaray(), dB);
+  t('Bekçi: Çokal AAT değerleri projede (CKL_AAT_GB_R0: SDS 1,624, SD1 0,549, R 8, D 3, qt 14,29 t/m², k 2400 t/m³) — uyarı yok', () => {
+    assert.strictEqual(SB.ayarUyari, null); assert.strictEqual(SB.dep.SDS, 1.624); yak(SB.zemin.sig, 140.2, 1e-9); yak(SB.zemin.kw, 23544, 1e-9); assert.strictEqual(SB.yer, 'cokal');
+    assert.strictEqual(SB.cer.ayar.SD1, 0.549); assert.strictEqual(SB.cer.ayar.R, 8); assert.strictEqual(SB.geo.kZemin, 0.75);
+  });
+  t('Bekçi subasman perdesi (20 cm, H 1,05; dış toprak +0,75 kotuna kadar): şerit konsol taban momenti = 1,6·Ks·(γ·Hs³/6 + q·Hs²/2)', () => {
+    const sb = P.subasmanHesap(SB)[0], IT = P.itki(SB), Hs = 0.75; assert.strictEqual(sb.ust, 'mafsal', 'zemin döşemesi perde üstünde');
+    yak(sb.H, 1.05, 1e-9); yak(sb.konsolMt, 1.6 * IT.Ks * (18 * Hs ** 3 / 6 + 5 * Hs * Hs / 2), 0.015 * sb.konsolMt) // %1,5: yük kırığı (+0,75) eleman sınırında değil; assert.ok(sb.sec && sb.sec.ok && sb.kesme.ok);
+    assert.ok(/H ≤ 2 m: düşey donatı filizsiz tek parça/.test(sb.not));
+  });
+  t('Bekçi temel kabuğu (radye + subasman): yeterli; perde iç / dış ve radye alt / üst aynı çap, 15 cm; düşey denge; kabuk paftaları çıkar', () => {
+    const RC = P.cerceveHesap(Object.assign({}, SB, { suYapisi: false })), TK = P.temelKabukHesap(SB, RC); assert.ok(TK && TK.ok, 'temel kabuğu yeterli');
+    for (const q of TK.perde) { assert.ok(q.dusey.ok && q.dusey.s === 0.15 && q.yatay.ok); assert.ok(q.Md >= q.Ms - 1e-9 && q.Md >= q.Mk - 1e-9, 'iki yöntemin büyüğü'); }
+    for (const q of TK.radye) assert.ok(q.sec.ok && q.sec.s === 0.15);
+    const r = TK.r, AG = r.AG, kz = SB.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
+    let yay = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) yay += -kz * trib[i] * r.U.G[i * 6 + 2];
+    let W = 0; for (const e of AG.els) W += SB.mal.gc * e.t * e.A; for (const b of AG.bars) W += SB.mal.gc * b.s.A * b.L; for (const q of (AG.dugumYuk.G || [])) W += -q.f[2];
+    let ry = 0; for (const e of AG.els) if (e.tur === 'radye') { const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; for (const y of P.radyeUstYuk(Object.assign({}, SB, { kabuk: Object.assign({}, SB.kabuk, { dosemeler: [] }) }))) { let ic = false; const q = y.pts; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > c[1]) !== (q[j][1] > c[1]) && c[0] < (q[j][0] - q[i][0]) * (c[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) ic = !ic; if (ic) ry += y.pG * e.A; } }
+    yak(yay, W + ry, 1e-3 * (W + ry), 'zemin tepkisi = öz ağırlık + kolon / duvar yükleri + radye üstü yük');
+    assert.ok(r.bilgi.some(s => /4 kolon ayağı tepkisi ve \d+ ek yük/.test(s)), 'perde üstündeki tuğla duvarlar perde üstüne');
+    const paf = P.kabukPaftalar(r, SB, 50, {}, SB.proj); assert.ok(paf.length >= 4 && paf.some(p => /TEMEL DONATI/.test(p.ad)) && paf.some(p => /PERDE DONATI/.test(p.ad)), paf.map(p => p.ad).join(' | '));
+    assert.ok(/TEMEL VE SUBASMAN PERDESİ/.test(P.temelKabukRapor(TK)) && /Temel ve subasman/.test(P.temelKabukOzet(TK)));
+  });
+}
+
 console.log(`\n${n} test geçti.`);

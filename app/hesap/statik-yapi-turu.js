@@ -15,6 +15,15 @@
   P.YAPI_TURU = { su: 'Su yapısı — 3B kabuk (perde, radye, döşeme)', altUst: 'Gömülü alt yapı + üst yapı — iki aşama (üst yapı çerçeve, alt yapı 3B kabuk)', ust: 'Yalnız üst yapı — çerçeve + temel (kabuk yok)' };
   P.YAPI_TURU_KISA = { su: 'Su yapısı', altUst: 'Alt yapı + üst yapı', ust: 'Yalnız üst yapı' };
 
+  /* hazır proje yeri değerleri (zemin + deprem): kaynak raporlardan, elle seçilir ve projeye yazılır
+     Çokal AAT (Saray / Tekirdağ): CKL_AAT_GB_R0 (güvenlik binası, 2026) — TBDY 2018 DD-2 ZC, Ss 1,353 S1 0,366 → SDS 1,624 SD1 0,549 (DD-3: 0,668 / 0,196),
+     R 8 D 3 I 1 (BKS 3), qt = 20 / 1,4 = 14,29 t/m², düşey yatak katsayısı 2400 t/m³; geri dolgu (ÇOKAL_AAT_SR_R2): φ 30°, γ 18 / 20 kN/m³, Ka Coulomb,
+     sürşarj 5 kN/m²; perde dinamik toprak itkisinde r = 1,5. */
+  P.HAZIR_YER = {
+    cokal: { ad: 'Çokal AAT — Saray / Tekirdağ (CKL_AAT_GB_R0, ÇOKAL_AAT_SR_R2)', ayar: { SDS: 1.624, SD1: 0.549, SDS3: 0.668, SD13: 0.196, R: 8, D: 3, I: 1, n: 0.3 },
+      zemin: { g: 18, gs: 20, phi: 30, dR: 0.667, K: 'KA', kw: 23544, sig: 140.2, q: 5 }, dep: { yon: 'TBDY2018', SDS: 1.624, r: 1.5, I: 1, yontem: 'MO', eYAS: true } },
+  };
+  P.hazirYerAyar = k => { const H = P.HAZIR_YER[k]; return H ? Object.assign({}, H.ayar, { zemin: Object.assign({}, H.zemin), dep: Object.assign({}, H.dep), yer: k }) : null; };
   /* d: STATIKMODEL verisi { kabuk?, geo?, cerceve?, zeminKot?, su?, statikAyar? } → { tur, altUstKot, zeminKot, su, ustVar, gomulu, neden[] } */
   P.yapiTuru = d => {
     d = d || {}; const K = d.kabuk || null, CF = d.cerceve || {}, neden = [];
@@ -65,6 +74,7 @@
     /* projede kayıt yoksa ÖNCEKİ projenin pencere değerleri devralınmaz: örnek varsayılanlara dönülür ve görünür uyarı verilir (S.ayarUyari) */
     if (A.zemin && typeof A.zemin === 'object') { S.zemin = Object.assign({}, V ? V.zemin : {}, A.zemin); out.push('zemin'); } else { if (V) S.zemin = Object.assign({}, V.zemin); eksik.push('zemin'); }
     if (A.dep && typeof A.dep === 'object') { S.dep = Object.assign({}, V ? V.dep : {}, A.dep); out.push('deprem'); } else { if (V) S.dep = Object.assign({}, V.dep); if (+A.SDS > 0) S.dep.SDS = +A.SDS; else eksik.push('deprem'); }
+    S.yer = A.yer || null;
     S.ayarUyari = eksik.length ? `${eksik.join(' ve ')} değerleri projede kayıtlı değil — varsayılanlar kullanılıyor (zemin emniyet gerilmesi ${f2(S.zemin.sig, 0)} kN/m², φ ${f2(S.zemin.phi, 0)}°, S<sub>DS</sub> ${f2(S.dep.SDS, 3)}); lütfen statik penceresinde girin (ArıtmaCAD penceresi açıksa projeye kaydedilir).` : null;
     if (A.kot && typeof A.kot === 'object' && S.geo) { const g = S.geo, K = S.kabuk && S.kabuk.radye, zTop = K ? K.kAlt + K.t : (+g.kAlt || 0) + (+g.hr || 0);
       if (A.kot.kZemin != null && isFinite(+A.kot.kZemin)) g.kZemin = +A.kot.kZemin;
@@ -86,7 +96,9 @@
     const hull = pts => { const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = []; for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); } for (const q of p.slice().reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); } return lo.slice(0, -1).concat(up.slice(0, -1)); };
     const kap = (S.kabuk.walls || []).filter(w => w.tip === 'dis' && w.kapali).sort((a, b) => alan(b.pts) - alan(a.pts)), IC = kap.length ? kap[0].pts : hull((S.kabuk.walls || []).filter(w => w.tip === 'dis').flatMap(w => w.pts));
     const merkez = q => { let A = 0, x = 0, y = 0; for (let i = 0; i < q.length; i++) { const [x0, y0] = q[i], [x1, y1] = q[(i + 1) % q.length], c = x0 * y1 - x1 * y0; A += c; x += (x0 + x1) * c; y += (y0 + y1) * c; } return Math.abs(A) > 1e-12 ? [x / (3 * A), y / (3 * A)] : q[0]; };
-    return T.ek.filter(e => (e.tur === 'dolgu' || e.tur === 'doseme') && Array.isArray(e.pts) && e.pts.length >= 3 && !haric.has(e.id) && (IC.length < 3 || pipq(merkez(e.pts), IC))).map(e => { const A = alan(e.pts), gam = e.tur === 'dolgu' ? gD0 : gc, G = e.V * gam + (e.tur === 'doseme' ? (e.g != null ? e.g : gD) * A : 0), Q = e.tur === 'doseme' ? (e.q != null ? e.q : qD) * A : 0;
+    // tuğla duvar (zemin döşemesi / dolgu üstünde, hazne içinde): ağırlığı iç bölgeye yayılı (kabul — duvar altı şerit yükü ayrıca alınmaz)
+    const ekL = T.ek.filter(e => e.tur === 'duvar' && IC.length >= 3 && pipq([e.x, e.y], IC) && !(Array.isArray(e.eksen) && e.eksen.some(q => !pipq(q, IC)))).map(e => Object.assign({}, e, { pts: IC, tur: 'duvar' }));
+    return T.ek.filter(e => (e.tur === 'dolgu' || e.tur === 'doseme') && Array.isArray(e.pts) && e.pts.length >= 3 && !haric.has(e.id) && (IC.length < 3 || pipq(merkez(e.pts), IC))).concat(ekL).map(e => { const A = alan(e.pts), gam = e.tur === 'dolgu' ? gD0 : e.tur === 'duvar' ? (P.TEMEL_GAMMA_TUGLA || 12) : gc, G = e.V * gam + (e.tur === 'doseme' ? (e.g != null ? e.g : gD) * A : 0), Q = e.tur === 'doseme' ? (e.q != null ? e.q : qD) * A : 0;
       return { id: e.id, ad: e.ad, tur: e.tur, pts: e.pts, A, V: e.V, gam, G, Q, pG: A > 0 ? G / A : 0, pQ: A > 0 ? Q / A : 0 }; }).filter(y => y.A > 0);
   };
   P.ayarUyariHtml = (S, rapor) => (S && S.ayarUyari ? (rapor ? `<p><b>UYARI:</b> ${S.ayarUyari}</p>` : `<div class="msg">${S.ayarUyari}</div>`) : '');
@@ -133,10 +145,14 @@
     w.innerHTML = `<summary>Yapı türü (statik çözüm yolu)</summary><div class="body">
       <label class="f full">Yapı türü<select id="selYapiTuru">${Object.entries(P.YAPI_TURU).map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('')}</select></label>
       ${y.tur === 'altUst' ? `<label class="f">Alt yapı üst kotu (m)<input id="inAltUst" value="${y.altUstKot != null ? y.altUstKot : ''}"></label><div class="hint" style="align-self:end">Bu kotun altındaki perde, radye, döşeme ve kirişler alt yapı (kabuk); üstündekiler üst yapı (çerçeve).</div>` : ''}
+      <label class="f full">Hazır zemin ve deprem değerleri (proje yeri)<select id="selYer"><option value="">— seçin (projeye yazılır) —</option>${Object.entries(P.HAZIR_YER).map(([k, h]) => `<option value="${k}">${esc(h.ad)}</option>`).join('')}</select></label>
       <p class="hint full">Program önerisi: <b>${esc(P.YAPI_TURU_KISA[o.tur] || '—')}</b>${o.tur === 'altUst' && o.altUstKot != null ? ` (alt yapı üst kotu ${f2(o.altUstKot)})` : ''}. ${esc((o.neden || []).join(' '))}${y.elle || y.elleKot ? ' <b>Seçim elle değiştirildi.</b> <a href="#" id="yapiOneri">Öneriye dön</a>' : ''}</p></div>`;
     const sel = w.querySelector('#selYapiTuru'); sel.value = y.tur;
     sel.onchange = () => { y.tur = sel.value; y.elle = y.tur !== o.tur; if (y.tur === 'altUst' && y.altUstKot == null) y.altUstKot = o.altUstKot; const ok = projeyeYaz({ yapiTuru: y.elle ? y.tur : null }); bildir(ok); G.buildForm(); changed(); };
     const inp = w.querySelector('#inAltUst'); if (inp) inp.onchange = () => { const v = parseFloat(String(inp.value).replace(',', '.')); if (isFinite(v)) { y.altUstKot = r3(v); y.elleKot = Math.abs(v - (o.altUstKot != null ? o.altUstKot : NaN)) > 1e-4; } else { y.altUstKot = o.altUstKot; y.elleKot = false; } const ok = projeyeYaz({ altUstKot: y.elleKot ? y.altUstKot : null }); bildir(ok); G.buildForm(); changed(); };
+    const yer = w.querySelector('#selYer'); if (yer) { const s0 = Sx(); yer.value = (s0 && s0.yer) || ''; yer.onchange = () => { const A = P.hazirYerAyar(yer.value); if (!A) return; const s1 = Sx();
+      s1.zemin = Object.assign({}, s1.zemin, A.zemin); s1.dep = Object.assign({}, s1.dep, A.dep); if (s1.cer) s1.cer.ayar = Object.assign({}, s1.cer.ayar || {}, P.HAZIR_YER[yer.value].ayar); s1.yer = yer.value; s1.ayarUyari = null; s1._ayarImza = JSON.stringify([s1.zemin, s1.dep]);
+      const ok = projeyeYaz(A); bildir(ok); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">${esc(P.HAZIR_YER[yer.value].ad)} zemin ve deprem değerleri uygulandı${ok ? ' ve projeye yazıldı' : ''}.</div>`); G.buildForm(); changed(); }; }
     const geri = w.querySelector('#yapiOneri'); if (geri) geri.onclick = ev => { ev.preventDefault(); y.tur = o.tur; y.altUstKot = o.altUstKot; y.elle = false; y.elleKot = false; bildir(projeyeYaz({ yapiTuru: null, altUstKot: null })); G.buildForm(); changed(); };
     return w;
   };
@@ -156,17 +172,18 @@
   const ustYapiHesap = () => {
     const s = Sx(); R = null; G._KR = null; let rc = null;
     try { if (s.cer && ((s.cer.kolonlar || []).length || (s.cer.kirisler || []).length) && P.cerceveHesap) rc = P.cerceveHesap(Object.assign({}, s, { suYapisi: false })); } catch (er) { console.error('çerçeve', er); }
-    RC = rc; let TH = null; try { TH = P.temelHesap ? P.temelHesap(s, rc) : null; } catch (er) { console.error('temel', er); TH = { temeller: [], uyar: ['Temel hesabı yapılamadı: ' + er.message], ok: false }; } P.temelSon = TH;
-    $('#sonuc').innerHTML = `<h3>Sonuçlar — yalnız üst yapı (çerçeve + temel)</h3><div class="msg info">Yapı türü <b>yalnız üst yapı</b>: kolon, kiriş ve döşemeler çerçeve modeliyle, temel zemin gerilmesi ve zımbalama ile hesaplandı. Perde / radye 3B kabuk modeli çalıştırılmadı.</div>`;
+    RC = rc; let TK = null; try { TK = P.temelKabukHesap ? P.temelKabukHesap(s, rc) : null; } catch (er) { console.error('temel kabuğu', er); } P.temelKabukSon = TK; G._KR = TK ? TK.r : null; // radye + subasman kabuğu: kabuk paftaları (kalıp, perde ve radye donatısı) bundan çıkar
+    let TH = null; try { TH = P.temelHesap ? P.temelHesap(s, rc) : null; if (TH) TH.kabukVar = !!TK; } catch (er) { console.error('temel', er); TH = { temeller: [], uyar: ['Temel hesabı yapılamadı: ' + er.message], ok: false }; } P.temelSon = TH;
+    $('#sonuc').innerHTML = `<h3>Sonuçlar — yalnız üst yapı (çerçeve + temel)</h3><div class="msg info">Yapı türü <b>yalnız üst yapı</b>: kolon, kiriş ve döşemeler çerçeve modeliyle, temel zemin gerilmesi ve zımbalama ile hesaplandı. Radye ve subasman perdesi ayrıca 3B kabukla (Winkler zemininde plak + perde) çözüldü.</div>`;
     if (rc && typeof cerGoster === 'function') { try { cerGoster(); } catch (er) { console.error(er); } } else if (!rc) $('#sonuc').insertAdjacentHTML('beforeend', '<div class="msg">Modelde kolon / kiriş yok: çerçeve hesabı yapılmadı.</div>');
-    if (TH && P.temelOzet) $('#sonuc').insertAdjacentHTML('beforeend', P.temelOzet(TH)); if (s.ayarUyari) $('#sonuc').insertAdjacentHTML('afterbegin', P.ayarUyariHtml(s));
+    if (TH && P.temelOzet) $('#sonuc').insertAdjacentHTML('beforeend', P.temelOzet(TH)); if (TK && P.temelKabukOzet) $('#sonuc').insertAdjacentHTML('beforeend', P.temelKabukOzet(TK)); if (s.ayarUyari) $('#sonuc').insertAdjacentHTML('afterbegin', P.ayarUyariHtml(s));
     const pr = s.proj || {}; let h = `<h1>${esc(pr.ad || 'Yapı')} — Statik Hesap Raporu</h1><p style="text-align:center">${esc(pr.tesis || '')}${pr.idare ? ' · ' + esc(pr.idare) : ''}${pr.tarih ? ' · ' + esc(pr.tarih) : ''}</p>
-      <h2>YAPI TÜRÜ VE ÇÖZÜM YOLU</h2><p>Yapı türü: <b>yalnız üst yapı</b> (${esc(P.YAPI_TURU.ust)}). Firma kuralı gereği kolon, kiriş ve döşemeler çerçeve modeliyle; temeller zemin emniyet gerilmesi (σ<sub>em</sub> = ${f2(s.zemin.sig, 0)} kN/m²) ve zımbalama ile hesaplanmıştır. Perde / radye 3B kabuk modeli kullanılmamıştır.</p>`;
-    h += P.ayarUyariHtml(s, true); if (TH && P.temelRapor) h += P.temelRapor(TH, f2);
+      <h2>YAPI TÜRÜ VE ÇÖZÜM YOLU</h2><p>Yapı türü: <b>yalnız üst yapı</b> (${esc(P.YAPI_TURU.ust)}). Firma kuralı gereği kolon, kiriş ve döşemeler çerçeve modeliyle; temeller zemin emniyet gerilmesi (σ<sub>em</sub> = ${f2(s.zemin.sig, 0)} kN/m²) ve zımbalama ile hesaplanmıştır. Radye ve subasman perdeleri ayrıca Winkler zemininde 3B kabuk (plak + perde) modeliyle çözülmüştür.</p>`;
+    h += P.ayarUyariHtml(s, true); if (TH && P.temelRapor) h += P.temelRapor(TH, f2); if (TK && P.temelKabukRapor) h += P.temelKabukRapor(TK, f2);
     if (P.elemanListesiHtml) h += P.elemanListesiHtml(s, f2);
     $('#rapor').innerHTML = h; if (rc && P.cerceveRapor) $('#rapor').insertAdjacentHTML('beforeend', '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' + P.cerceveRapor(rc, f2));
     $('#raporKutu').style.display = 'block';
-    ['#bCiz', '#bDxf', '#bYaz', '#bDon3'].forEach(q => { const b = $(q); if (b) b.disabled = !rc && q !== '#bYaz'; });
+    ['#bCiz', '#bDxf', '#bYaz', '#bDon3'].forEach(q => { const b = $(q); if (b) b.disabled = !rc && !TK && q !== '#bYaz'; });
     try { if (G.DIL && G.DIL.kod && G.DIL.kod() !== 'tr' && G.DIL.cevirDom) G.DIL.cevirDom($('#rapor')); } catch (er) { console.warn(er); }
   };
   /* kullanıcı pencerede zemin / deprem değerini değiştirince projeye yazılır (sonraki model tazelemesinde varsayılana dönmesin) */

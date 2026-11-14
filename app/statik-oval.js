@@ -377,7 +377,7 @@
         const za = Math.min(...m.parcalar.map(p => p.za)); if (za < ust - 0.1 || za > ust + 1.5) continue; // temelin üstünde (en çok 1,5 m) başlayan
         if (m.tur === 'doseme' && !(za <= ust + 1.2)) continue;
         let A = 0, sx = 0, sy = 0; for (const p of m.parcalar) { const a = Y._ic.alan(p.q) * (p.zb - p.za), c = merkez(p.q); A += a; sx += a * c[0]; sy += a * c[1]; }
-        ek.push({ id, tur: m.tur, ad: e.no || e.ad || m.ad, V: r3(m.net), x: r3(A ? sx / A : 0), y: r3(A ? sy / A : 0), ...(m.tur === 'doseme' ? { A: r3(Math.abs(M.polyArea(e.pts))), g: e.yukG != null ? +e.yukG : null, q: e.yukQ != null ? +e.yukQ : null } : {}), ...(m.tur === 'dolgu' ? { malz: e.malz || null } : {}), ...((m.tur === 'dolgu' || m.tur === 'doseme') && Array.isArray(e.pts) ? { pts: pp(e.pts) } : {}) }); } }
+        const zU = Math.max(...m.parcalar.map(p => p.zb)); ek.push({ id, tur: m.tur, ad: e.no || e.ad || m.ad, V: r3(m.net), x: r3(A ? sx / A : 0), y: r3(A ? sy / A : 0), za: r3(za), zt: r3(zU), ...(m.tur === 'doseme' ? { A: r3(Math.abs(M.polyArea(e.pts))), g: e.yukG != null ? +e.yukG : null, q: e.yukQ != null ? +e.yukQ : null } : {}), ...(m.tur === 'dolgu' ? { malz: e.malz || null } : {}), ...((m.tur === 'dolgu' || m.tur === 'doseme') && Array.isArray(e.pts) ? { pts: pp(e.pts) } : {}), ...(m.tur === 'duvar' && Array.isArray(e.pts) ? { eksen: pp(e.pts), kapali: !!e.closed } : {}) }); } }
     return { radye, tekil, surekli, ust: r3(ust), ek };
   };
   C._statikTemelOku = temelOku;

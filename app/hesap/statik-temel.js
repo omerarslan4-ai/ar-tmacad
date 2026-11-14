@@ -120,6 +120,99 @@
     out.ok = out.temeller.every(o => o.ok) && !kalan.length; out.T = T; out.gc = gc; out.gDolgu = gD0; return out;
   };
 
+  /* ŞERİT PERDE (1 m genişlik, elle izlenebilir kontrol): yükseklik H, taban radyeye ankastre, üst 'serbest' (konsol) ya da 'mafsal' (döşeme
+     ile tutulu). p(z): perdeye dik yayılı yük (kN/m², z tabandan yukarı). 60 elemanlı Euler-Bernoulli kiriş (tutarlı yük).
+     Dönen { z[], M[] (kNm/m, + : yükün ittiği yüzün KARŞI yüzünde çekme), V[], Mt (taban), Mac (açıklıkta en büyük ters işaretli), Vt } */
+  P.seritPerde = (H, p, ust) => {
+    const n = 60, h = H / n, N = 2 * (n + 1), K = Array.from({ length: N }, () => new Float64Array(N)), F = new Float64Array(N), EI = 1;
+    const ke = [[12, 6 * h, -12, 6 * h], [6 * h, 4 * h * h, -6 * h, 2 * h * h], [-12, -6 * h, 12, -6 * h], [6 * h, 2 * h * h, -6 * h, 4 * h * h]].map(r => r.map(v => v * EI / h ** 3));
+    for (let e = 0; e < n; e++) { const d = [2 * e, 2 * e + 1, 2 * e + 2, 2 * e + 3]; for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) K[d[a]][d[b]] += ke[a][b];
+      const p0 = p(e * h), p1 = p((e + 1) * h); F[d[0]] += h * (7 * p0 + 3 * p1) / 20; F[d[1]] += h * h * (3 * p0 + 2 * p1) / 60; F[d[2]] += h * (3 * p0 + 7 * p1) / 20; F[d[3]] -= h * h * (2 * p0 + 3 * p1) / 60; }
+    const K0 = Array.from(K[0]), F0 = F[0]; // taban kesme tepkisi için
+    const sabit = [0, 1].concat(ust === 'mafsal' ? [2 * n] : []); for (const q of sabit) { for (let j = 0; j < N; j++) { K[q][j] = 0; K[j][q] = 0; } K[q][q] = 1; F[q] = 0; }
+    const A = K.map(r => Array.from(r)), B = Array.from(F); for (let c = 0; c < N; c++) { let pv = c; for (let r = c + 1; r < N; r++) if (Math.abs(A[r][c]) > Math.abs(A[pv][c])) pv = r; [A[c], A[pv]] = [A[pv], A[c]]; [B[c], B[pv]] = [B[pv], B[c]]; for (let r = c + 1; r < N; r++) { const f = A[r][c] / A[c][c]; if (!f) continue; for (let k = c; k < N; k++) A[r][k] -= f * A[c][k]; B[r] -= f * B[c]; } }
+    const u = new Array(N).fill(0); for (let r = N - 1; r >= 0; r--) { let t = B[r]; for (let k = r + 1; k < N; k++) t -= A[r][k] * u[k]; u[r] = t / A[r][r]; }
+    // iç kuvvetler: düğümlerde M = EI·w'' (eleman uçlarından); kesme statik dengeden (üstten aşağı)
+    const z = [], M = [], V = []; for (let i = 0; i <= n; i++) { const e = Math.min(i, n - 1), x = i - e, w = [u[2 * e], u[2 * e + 1], u[2 * e + 2], u[2 * e + 3]], xi = x;
+      const B2 = [(-6 + 12 * xi) / h ** 2, (-4 + 6 * xi) / h, (6 - 12 * xi) / h ** 2, (-2 + 6 * xi) / h]; z.push(i * h); M.push(-EI * (B2[0] * w[0] + B2[1] * w[1] + B2[2] * w[2] + B2[3] * w[3])); }
+    // kesme: taban tepkisinden (K·u − F, 0. serbestlik) ve yükün integralinden: V(z) = R0 + ∫0^z p
+    const R0 = K0.reduce((t, k, j) => t + k * u[j], 0) - F0; let acc = 0; for (let i = 0; i <= n; i++) { if (i) acc += h * (p((i - 1) * h) + p(i * h)) / 2; V.push(R0 + acc); }
+    const Mt = M[0]; let Mac = 0; for (let i = 1; i < n; i++) if (Math.sign(M[i]) !== Math.sign(Mt) && Math.abs(M[i]) > Math.abs(Mac)) Mac = M[i];
+    return { z, M, V, Mt, Mac, Vt: Math.abs(V[0]) };
+  };
+  /* SUBASMAN / TEMEL PERDESİ (yalnız üst yapı yolu): radye üstündeki perdeler (S.kabuk.walls) şerit perde olarak.
+     Dışta toprak itkisi Ks·γ·z + sürşarj Ks·q (zemin kotunun altında), içte dolgu itkisi K0·(γ·z + döşeme yükü) (dolgu üstünün altında),
+     deprem: dış dinamik toprak itkisi artışı ½·ΔK·γ·Hs (yükseklik boyunca düzgün) + perde ataleti kh·γb·t. İki yüz ayrı ayrı yüklenir (yapım
+     aşamasında biri boşken). Üst kenar: perde üstünde zemine oturan döşeme varsa mafsal, yoksa konsol. İç ve dış yüz aynı çap (firma kuralı). */
+  P.subasmanHesap = (S, rap) => {
+    const K = S.kabuk; if (!K || !Array.isArray(K.walls) || !K.walls.length || !K.radye) return [];
+    const IT = P.itki(S), MAL = P.malzeme(S.mal), gc = S.mal.gc || 25, z0 = K.radye.kAlt + K.radye.t, zG = +S.geo.kZemin, gS = S.zemin.g, q = +S.zemin.q || 0, K0 = IT.K0, Ks = IT.Ks;
+    const dv = Object.assign(P.cerceveVars ? P.cerceveVars() : {}, (S.cer && S.cer.ayar) || {}), ek = (S.temel && S.temel.ek) || [];
+    const dol = ek.filter(e => e.tur === 'dolgu' && e.zt != null), dos = ek.filter(e => e.tur === 'doseme' && e.zt != null);
+    const dTop = dol.length ? Math.max(...dol.map(e => e.zt)) : null, dsUst = dos.length ? Math.max(...dos.map(e => e.zt)) : null;
+    const qDos = dos.length ? Math.max(...dos.map(e => gc * Math.max(0, e.zt - e.za) + (e.g != null ? e.g : +dv.gD || 1.5) + (e.q != null ? e.q : +dv.qD || 3.5))) : 0;
+    const out = [];
+    for (const w of K.walls) { const H = Math.max(0.1, +w.zt - z0), t = +w.t, d = t - (S.mal.cP || 0.05) - 0.01, ust = dsUst != null && Math.abs(dsUst - w.zt) <= 0.15 ? 'mafsal' : 'serbest';
+      const Hs = Math.max(0, Math.min(zG, w.zt) - z0);
+      const pDis = z => { const za = z0 + z; return za < zG ? Ks * (gS * (zG - za) + q) : 0; };
+      const pIc = z => { const za = z0 + z; return dTop != null && za < dTop ? K0 * (gS * (dTop - za) + qDos) : 0; };
+      const pE = z => (z0 + z < zG ? 0.5 * IT.dK * gS * Hs : 0) + IT.kh * gc * t;
+      const r = (f, u) => P.seritPerde(H, f, u);
+      // tasarım: modeldeki üst kenar koşulu (mafsal: zemine oturan döşeme perde üstünde) ile konsolun zarfı — döşeme dolguya oturduğu için
+      // perdeyi tutması güvenilir sayılmaz; taban momenti konsoldan, açıklık momenti mafsallıdan gelir
+      const Z = ['serbest', ust].filter((v, i, a) => a.indexOf(v) === i).map(u => ({ d: r(z => 1.6 * pDis(z), u), i: r(z => 1.6 * pIc(z), u), e: r(z => pDis(z) + pE(z), u) }));
+      const Rk = Z[0].d, mx = f => Math.max(...Z.map(f));
+      const Mdis = mx(q => Math.max(Math.abs(q.d.Mt), Math.abs(q.e.Mt), Math.abs(q.i.Mac))), Mic = mx(q => Math.max(Math.abs(q.i.Mt), Math.abs(q.d.Mac), Math.abs(q.e.Mac))), Md = Math.max(Mdis, Mic);
+      const Rd = { Vt: mx(q => q.d.Vt) }, Ri = { Vt: mx(q => q.i.Vt) }, Re = { Vt: mx(q => q.e.Vt) };
+      const sec = P.donatiSec({ M: Md, Ms: Md / 1.5, h: t, c: S.mal.cP || 0.05, kat: 2, su: false }, S, MAL), Vd = Math.max(Rd.Vt, Ri.Vt, Re.Vt), ks = P.kesme(Vd, d, MAL);
+      out.push({ ad: w.ad || 'Perde', H, t, ust, Hs, dTop, qDos, Ks, K0, dK: IT.dK, kh: IT.kh, Mdis, Mic, Md, Vd, sec, kesme: ks, konsolMt: Math.abs(Rk.Mt), ok: !!(sec && sec.ok) && ks.ok,
+        not: H <= 2 ? 'H ≤ 2 m: düşey donatı filizsiz tek parça, iki ucu gönyeli (firma kuralı)' : H < 6 ? 'H > 2 m: temel filizi + bindirme' : 'H ≥ 6 m: üç parça, yarı yükseklikte inşaat derzi' }); }
+    return out;
+  };
+  /* TEMEL KABUĞU (yalnız üst yapı, radye + radye üstündeki subasman perdeleri): 3B kabuk motoru (statik-kabuk.js) ile Winkler zemininde plak;
+     üst yapı kolon ayağı tepkileri (G, Q, deprem ±%5) düğüm yükü, radye üstündeki dolgu / zemin döşemesi / duvar yayılı yük, perdelerde toprak
+     itkisi ve deprem. Radye eğilme donatısı (Wood–Armer, alt / üst) ve perde donatısı bu çözümden; zemin gerilmesinin yerel tepesi de. */
+  P.temelKabuk = (S, RC) => {
+    const K0 = S.kabuk; if (!K0 || !K0.radye || !Array.isArray(K0.walls) || !K0.walls.length || !P.kabukHesap) return null;
+    const T = RC && P.kolonTepki ? P.kolonTepki(RC) : [];
+    /* subasman perdesinin üstüne oturan tuğla duvar (ekseni bir perde ekseninden ≤ yarı kalınlık + 15 cm): ağırlığı duvar boyunca perde üstüne
+       (≈ 1 m aralıklı düğüm yükleri); iç bölgedeki duvarlar P.radyeUstYuk ile radyeye yayılır */
+    const dseg = (q, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)); return Math.hypot(a[0] + dx * u - q[0], a[1] + dy * u - q[1]); };
+    const perdeUstu = q => K0.walls.some(w => { const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) if (dseg(q, w.pts[i], w.pts[(i + 1) % w.pts.length]) <= w.t / 2 + 0.15) return true; return false; });
+    const duvarYuk = [], z0 = [0, 0, 0, 0, 0, 0];
+    for (const e of ((S.temel && S.temel.ek) || []).filter(x => x.tur === 'duvar' && Array.isArray(x.eksen) && x.eksen.length >= 2)) { const E = e.eksen, n = e.kapali ? E.length : E.length - 1; let L = 0; for (let i = 0; i < n; i++) L += Math.hypot(E[(i + 1) % E.length][0] - E[i][0], E[(i + 1) % E.length][1] - E[i][1]);
+      const orta = E.map((a, i) => [(a[0] + E[(i + 1) % E.length][0]) / 2, (a[1] + E[(i + 1) % E.length][1]) / 2]).slice(0, n); if (!(L > 0) || !orta.every(perdeUstu)) continue; const W = e.V * (P.TEMEL_GAMMA_TUGLA || 12);
+      for (let i = 0; i < n; i++) { const a = E[i], b = E[(i + 1) % E.length], Li = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(Li)); for (let k = 0; k < m; k++) { const u = (k + 0.5) / m; duvarYuk.push({ id: null, no: `${e.ad || 'Duvar'} (perde üstü)`, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: null, F: { G: [0, 0, -W * Li / L / m, 0, 0, 0], Q: z0, 'EX+': z0, 'EX-': z0, 'EY+': z0, 'EY-': z0 } }); } } }
+    const K = Object.assign({}, K0, { kirisler: [], dosemeler: [], kolonYuk: P.kabukKolonYuku ? P.kabukKolonYuku(T.concat(duvarYuk)) : [] }); // zemine (dolguya) oturan döşeme kabuğa plak olarak girmez: yükü dolgu üstünden radyeye (P.radyeUstYuk), perde üstü serbest (konsol — güvenli taraf)
+    const tas = Object.assign({}, S.tas, { wmax: Math.max(+S.tas.wmax || 0, P.TEMEL_WMAX) }); // su tutmayan temel: çatlak sınırı (kabul)
+    return P.kabukHesap(Object.assign({}, S, { kabuk: K, tas }));
+  };
+  P.TEMEL_WMAX = 0.3;   // mm — su tutmayan temel ve subasman perdesinde çatlak genişliği sınırı (kabul; firma değeri sorulacak)
+  /* temel kabuğu + şerit perde birleşik tasarım: her subasman perdesinde iki yöntemin büyüğü, iç ve dış yüz AYNI çap (firma kuralı);
+     radyede alt ve üst AYNI çap (firma kuralı), 15 cm aralık önce */
+  P.temelKabukHesap = (S, RC) => {
+    const r = P.temelKabuk(S, RC); if (!r) return null; const sb = P.subasmanHesap(S), MAL = P.malzeme(S.mal);
+    const tasG = Object.assign({}, S, { tas: Object.assign({}, S.tas, { wmax: Math.max(+S.tas.wmax || 0, P.TEMEL_WMAX) }) });
+    const ortak = (M, h, c) => P.donatiSec({ M, Ms: M / 1.5, h, c, kat: 2, su: true }, tasG, MAL);
+    const perde = r.tasarim.filter(T => T.grup.tur === 'dis' || T.grup.tur === 'ic').map(T => { const s0 = sb.find(q => q.ad === T.eleman) || null, k = T.katman;
+      const Mk = Math.max(...k.filter(x => /düşey/.test(x.yon)).map(x => x.Meq || x.M)), Md = Math.max(Mk, s0 ? s0.Md : 0), Mh = Math.max(...k.filter(x => /yatay/.test(x.yon)).map(x => x.Meq || x.M));
+      return { ad: T.eleman, t: T.grup.t, Mk, Ms: s0 ? s0.Md : null, serit: s0, Md, Mh, dusey: ortak(Md, T.grup.t, T.grup.c), yatay: ortak(Mh, T.grup.t, T.grup.c), kesme: T.kesme, H: s0 ? s0.H : null, not: s0 ? s0.not : '' }; });
+    const R = r.tasarim.find(T => T.grup.tur === 'radye'), radye = R ? ['M11', 'M22'].map(y => { const k = R.katman.filter(x => x.yon.startsWith(y)), Mu = Math.max(...k.filter(x => x.yuz === 'üst').map(x => x.Meq || x.M)), Ma = Math.max(...k.filter(x => x.yuz === 'alt').map(x => x.Meq || x.M)), M = Math.max(Mu, Ma);
+      return { yon: y === 'M11' ? 'X' : 'Y', Mu, Ma, sec: ortak(M, R.grup.t, R.grup.c) }; }) : [];
+    const ok = perde.every(q => q.dusey && q.dusey.ok && q.yatay && q.yatay.ok && q.kesme.ok) && radye.every(q => q.sec && q.sec.ok) && (!R || R.kesme.ok) && r.qmax <= S.zemin.sig;
+    return { r, sb, perde, radye, radyeT: R ? R.grup.t : null, radyeKesme: R ? R.kesme : null, qmax: r.qmax, sig: S.zemin.sig, ok };
+  };
+  const cmS = v => String(Math.round(v * 1000) / 10).replace('.', ',');
+  P.temelKabukOzet = TK => { if (!TK) return ''; const d = ok => `<span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'UYGUN' : 'YETERSİZ'}</span>`, sc = q => (q && q.ok ? `Ø${q.F}/${cmS(q.s)}` : '—');
+    return `<h3 style="margin-top:14px">Temel ve subasman perdesi (3B kabuk: radye + perde) ${d(TK.ok)}</h3><table class="t"><tr><th class="l">Eleman</th><th>M düşey / yatay (kNm/m)</th><th>Düşey donatı (iki yüz)</th><th>Yatay donatı (iki yüz)</th><th>Kesme Vd / Vcr</th></tr>${TK.perde.map(q => `<tr><td class="l">${esc(q.ad)} (${cmS(q.t)} cm)</td><td>${f2(q.Md, 1)} / ${f2(q.Mh, 1)}</td><td>${sc(q.dusey)}</td><td>${sc(q.yatay)}</td><td>${f2(q.kesme.Vd, 1)} / ${f2(q.kesme.Vcr, 1)}</td></tr>`).join('')}${TK.radye.map(q => `<tr><td class="l">Radye ${q.yon} (${cmS(TK.radyeT)} cm)</td><td>alt ${f2(q.Ma, 1)} · üst ${f2(q.Mu, 1)}</td><td colspan="2">${sc(q.sec)} alt + üst</td><td>${TK.radyeKesme ? f2(TK.radyeKesme.Vd, 1) + ' / ' + f2(TK.radyeKesme.Vcr, 1) : '—'}</td></tr>`).join('')}<tr><td class="l">Zemin gerilmesi (yerel tepe, plak)</td><td colspan="4">${f2(TK.qmax, 1)} ≤ ${f2(TK.sig, 0)} kN/m²</td></tr></table>`; };
+  P.temelKabukRapor = (TK, f) => { if (!TK) return ''; f = f || f2; const sc = q => (q && q.ok ? `Ø${q.F}/${f(q.s * 100, 0)}` : 'yok');
+    let h = `<h2 class="sayfa">TEMEL VE SUBASMAN PERDESİ — 3B KABUK (RADYE + PERDE)</h2><p>Radye ve radye üstündeki subasman (temel) perdeleri, Winkler zeminine oturan 3B kabuk modeliyle (perde ve radye kabuk elemanları) çözülmüştür. Yükler: üst yapı kolon ayağı tepkileri (G, Q, deprem ±%5 dışmerkezlik; kolon izi ve radye kalınlığı içindeki düğümlere rijit levha gibi dağıtılarak), radye üstündeki dolgu, zemine oturan döşeme ve duvarlar (yayılı), perdelerde dış toprak itkisi ve sürşarj, deprem (dinamik toprak itkisi ve atalet). Zemine (dolguya) oturan döşeme perde üstünü tutan plak sayılmamıştır (perde konsol, güvenli taraf).</p>`
+      + `<p>Subasman perdesi ayrıca şerit perde olarak elle izlenebilir yöntemle hesaplanmıştır (taban ankastre; dışta toprak itkisi Ks·γ·z + sürşarj, içte dolgu itkisi K0·(γ·z + döşeme yükü), deprem; iki yüz ayrı yüklenir) ve iki yöntemin büyüğü alınmıştır. İç ve dış yüz donatısı aynı çaptır; radye alt ve üst donatısı aynı çaptır (firma kuralı). Çatlak genişliği sınırı ${f(P.TEMEL_WMAX, 1)} mm (su tutmayan temel — kabul).</p>`;
+    h += `<table><tr><th class="l">Perde</th><th>H (m)</th><th>M düşey, kabuk (kNm/m)</th><th>M, şerit (kNm/m)</th><th>M yatay (kNm/m)</th><th>Düşey donatı</th><th>Yatay donatı</th><th>Vd / Vcr (kN/m)</th></tr>${TK.perde.map(q => `<tr><td class="l">${esc(q.ad)} (${f(q.t * 100, 0)} cm)</td><td>${q.H != null ? f(q.H) : '—'}</td><td>${f(q.Mk, 1)}</td><td>${q.Ms != null ? f(q.Ms, 1) : '—'}</td><td>${f(q.Mh, 1)}</td><td>${sc(q.dusey)} iç + dış</td><td>${sc(q.yatay)} iç + dış</td><td>${f(q.kesme.Vd, 1)} / ${f(q.kesme.Vcr, 1)}</td></tr>`).join('')}</table>`;
+    for (const q of TK.perde) if (q.serit) h += `<p>${esc(q.ad)}: şerit perde Ks = ${f(q.serit.Ks, 3)}, K0 = ${f(q.serit.K0, 3)}, ΔK = ${f(q.serit.dK, 3)}, kh = ${f(q.serit.kh, 3)}; dolgu üstü ${q.serit.dTop != null ? f(q.serit.dTop) : '—'}, döşeme yükü ${f(q.serit.qDos, 1)} kN/m²; konsol taban momenti (1,6 × toprak) ${f(q.serit.konsolMt, 2)} kNm/m. ${esc(q.not)}.</p>`;
+    h += `<table><tr><th class="l">Radye</th><th>M alt (kNm/m)</th><th>M üst (kNm/m)</th><th>Donatı (alt + üst)</th></tr>${TK.radye.map(q => `<tr><td class="l">${q.yon} doğrultusu (${f(TK.radyeT * 100, 0)} cm)</td><td>${f(q.Ma, 1)}</td><td>${f(q.Mu, 1)}</td><td>${sc(q.sec)}</td></tr>`).join('')}</table>`;
+    h += `<p>Plak çözümünde zemin gerilmesinin yerel en büyük değeri ${f(TK.qmax, 1)} kN/m² (σem = ${f(TK.sig, 0)} kN/m²)${TK.radyeKesme ? `; radye kesmesi Vd = ${f(TK.radyeKesme.Vd, 1)} ≤ Vcr = ${f(TK.radyeKesme.Vcr, 1)} kN/m` : ''}.</p>`;
+    return h; };
   const TUR_AD = { radye: 'radye', tekil: 'tekil temel', surekli: 'sürekli temel' };
   P.temelOzet = TH => {
     const d = ok => `<span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'UYGUN' : 'YETERSİZ'}</span>`;
@@ -143,7 +236,7 @@
       h += `<table><tr><th class="l">Kombinasyon</th><th>N (kN)</th><th>σ<sub>ort</sub></th><th>σ<sub>maks</sub></th><th>σ<sub>min</sub> (kN/m²)</th><th>σ<sub>em</sub></th><th></th></tr>${o.zem.map(z => `<tr><td class="l">${z.ad}</td><td>${f(z.N, 1)}</td><td>${f(z.ort, 1)}</td><td>${f(z.smax, 1)}</td><td>${f(z.smin, 1)}</td><td>${f(o.sig, 0)}</td><td>${z.ok ? (z.temas < 1 ? 'UYGUN (kısmi temas %' + f(z.temas * 100, 0) + ')' : 'UYGUN') : z.devrilme ? 'DEVRİLME' : z.smax > o.sig ? 'YETERSİZ' : 'KALKMA'}</td></tr>`).join('')}</table>`;
       if (o.zimb.length) h += `<p>Zımbalama (her kolon için en elverişsiz taşıma gücü kombinasyonu), faydalı yükseklik d = ${f(o.zimb[0].d * 100, 0)} cm</p><table><tr><th class="l">Kolon</th><th>Komb.</th><th>N<sub>d</sub> (kN)</th><th>q<sub>net</sub> (kN/m²)</th><th>u<sub>p</sub> (m)</th><th>γ</th><th>V<sub>pd</sub> (kN)</th><th>V<sub>pr</sub> (kN)</th><th></th></tr>${o.zimb.map(z => `<tr><td class="l">${esc(z.kolon)}</td><td>${z.komb}</td><td>${f(z.Nd, 1)}</td><td>${f(z.qn, 1)}</td><td>${f(z.up)}</td><td>${f(z.gam, 3)}</td><td>${f(z.Vpd, 1)}</td><td>${f(z.Vpr, 1)}</td><td>${z.ok ? 'UYGUN' : 'YETERSİZ'}</td></tr>`).join('')}</table>`;
       if (o.egil) h += `<table><tr><th class="l">Eğilme (kolon yüzü)</th><th>M<sub>d</sub> (kNm/m)</th><th>A<sub>s</sub> ger. (cm²/m)</th><th>Seçilen</th></tr>${o.egil.map(e => `<tr><td class="l">${e.yon} doğrultusu (${e.komb})</td><td>${f(e.M, 1)}</td><td>${f(e.sec.req * 1e4)}</td><td>${e.sec.ok ? `Ø${e.sec.F}/${f(e.sec.s * 100, 0)} alt` : 'sığmıyor'}</td></tr>`).join('')}</table>`;
-      if (o.tur === 'radye') h += `<p class="f">Not: radye eğilme donatısı bu hesapta yapılmamıştır (rijit temel kabulüyle yalnız zemin gerilmesi ve zımbalama). Radye donatısı için elastik zemine oturan plak çözümü gerekir.</p>`;
+      if (o.tur === 'radye' && !TH.kabukVar) h += `<p class="f">Not: radye eğilme donatısı bu hesapta yapılmamıştır (rijit temel kabulüyle yalnız zemin gerilmesi ve zımbalama). Radye donatısı için elastik zemine oturan plak çözümü gerekir.</p>`;
     }
     return h;
   };
