@@ -187,6 +187,7 @@ t('çatı oklu açıklama yazısı: Çokal biçimi (ebat küçükten büyüğe, 
   assert.deepStrictEqual(A.catiUyeYazisi('Dikme', 0.10, 0.10, 'kesit'), ['Dikme 10x10']);
   assert.deepStrictEqual(A.catiUyeYazisi('Dikme', 0.10, 0.10, 'plan'), ['Dikme', '10x10']);
   assert.deepStrictEqual(A.catiUyeYazisi('Kuşaklama', 0.05, 0.10, 'plan'), ['Kuşaklama', '2x5x10']);
+  assert.deepStrictEqual(A.catiUyeYazisi('Göğüsleme', 0.05, 0.10, 'kesit'), ['Göğüsleme', '2x5x10']); // çift tahta (Çokal; kullanıcı 14.11.2026)
   assert.deepStrictEqual(A.catiUyeYazisi('Yastık', 0.10, 0.025, 'kesit'), ['Yastık 2.5x10']);
   assert.deepStrictEqual(A.catiUyeYazisi('Mahya aşığı', 0.10, 0.12, 'kesit'), ['Mahya Aşığı 10x12']);
   assert.deepStrictEqual(A.catiKatmanYazisi({ tur: 'alt', key: 'tahta18', t: 0.018 }), ['Kaplama Tahtası', '1.8x10']);

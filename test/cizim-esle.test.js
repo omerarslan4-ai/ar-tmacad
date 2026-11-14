@@ -103,4 +103,8 @@ t('çizgi tipi kâğıtta ölçekten bağımsız: aks 12 / 1,5 mm, gizli çizgi 
   for (const sc of [25, 50, 100]) { assert.deepStrictEqual(K.kagitDesen(M.ACAD_ISO04W100, sc), M.ACAD_ISO04W100, '1/' + sc); assert.deepStrictEqual(K.kagitDesen(M.HIDDEN, sc), M.HIDDEN); }
   assert.strictEqual(K.vpCizgiOlcegi(50), 0.05); assert.strictEqual(K.vpCizgiOlcegi(100), 0.1);
 });
+t('kesilen lento (kullanıcı kararı 14.11.2026): sınırı kesilen eleman (Beton), taraması grobeton (AR-CONC, Grobeton katmanı)', () => {
+  assert.strictEqual(es('KESIT_LENTO'), 'Beton');
+  const s = K.kesitTaramaSec(M, 'LG'); assert.strictEqual(s.pat, 'AR-CONC'); assert.strictEqual(s.katman, 'Grobeton'); assert.deepStrictEqual(K.kesitTaramaSec(M, 'LG'), K.kesitTaramaSec(M, 'G'));
+});
 console.log(`\n${n} test geçti.`);

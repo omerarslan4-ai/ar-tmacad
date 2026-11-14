@@ -75,6 +75,8 @@
       const gk = cut.some(q => q.lk) ? 'G#GROBETON' : 'G'; if (!concS.has(gk)) concS.set(gk, []); concS.get(gk).push([[[x0, ymin - g], [x1, ymin - g], [x1, ymin], [x0, ymin]]]);
     }
     const byMat = [], loops = []; for (const [key, sol] of concS) { const hi = key.indexOf('#'), mat = hi < 0 ? key : key.slice(0, hi), lk = hi < 0 ? undefined : key.slice(hi + 1); const lp = unionLoops(sol); if (lp.length) { for (const q of lp) q.lk = lk; byMat.push({ mat, lk, loops: lp }); loops.push(...lp); } }
+    // lento: duvar taramasında boşluk (tarama halkalarına iç halka olarak eklenir; çift-tek kuralı) — kendi grobeton taraması ayrı
+    { const LL = byMat.filter(g => g.mat === 'LG').flatMap(g => g.loops); if (LL.length) for (const g of byMat) if (/^T:/.test(g.mat)) { const ic = LL.filter(lp => { const m = [lp.reduce((s2, q) => s2 + q[0], 0) / lp.length, lp.reduce((s2, q) => s2 + q[1], 0) / lp.length]; return g.loops.some(o => C.pointInPoly(m, o)); }); if (ic.length) g.loops = g.loops.concat(ic.map(lp => lp.slice())); } }
     const eq = []; for (const ls of otherS) for (const q of unionLoops([ls])) { q.lk = ls.lk; eq.push(q); }
     // görünen çizgiler: eleman (katman) grubuna göre ayrı birleştirilir, her parça kendi katmanını bilir
     const vg = new Map(); for (const sg of vis) { const k = sg.lk || ''; if (!vg.has(k)) vg.set(k, []); vg.get(k).push(sg); }
@@ -173,7 +175,7 @@
     const P = C.HATCH_PATTERNS || {}, b = P[base] ? base : 'ANSI31';
     if (mat === 'KA') return null; // kesilen çatı ahşabı (aşık, mertek, dikme): Çokal 10-İdari A'-A' / A-A — taramasız, kesit kutusu + çapraz (C.ahsapCapraz); ana oturum kararı 14.11.2026 (eskiden dolu)
     if (mat === 'D') return { pat: b, ang: 90, sc: 1, ann: true };
-    if (mat === 'G') return { pat: 'AR-CONC', ang: 0, sc: 0.5, ann: true };
+    if (mat === 'G' || mat === 'LG') return { pat: 'AR-CONC', ang: 0, sc: 0.5, ann: true }; // LG: kesilen lento (grobeton taraması)
     if (mat === 'K') return null;
     if (mat === 'Y') return { pat: 'ZIGZAG', ang: 0, sc: 0.25, ann: true };
     if (mat === 'F') return { pat: 'GRAVEL', ang: 0, sc: 0.5, ann: true };
@@ -247,6 +249,14 @@
         if (pts.length === 2 && Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]) > 1e-5) { pts.g = e.id; if (e.type === 'tretuvar' && C.tretSecMat && t.col && t.col[i] >= 0) { pts.mat = C.tretSecMat(e, [t.col[i], t.col[i + 1], t.col[i + 2]]); pts.g = e.id + '|' + pts.mat; } if (e.type === 'cati' && C.catiSecMat && t.col && t.col[i] >= 0) { pts.mat = C.catiSecMat(e, [t.col[i], t.col[i + 1], t.col[i + 2]]); pts.g = e.id + '|' + pts.mat; } pts.terr = e.type === 'arazi' || e.type === 'kazi'; pts.conc = CONC.has(e.type); pts.mat = pts.mat || C.secMat(e); pts.fnd = C.secFnd(e); pts.lk = lkOf(e); if (e.type === 'perde' && e.kicker) { const sp = supOf(e); if (sp) { pts.mat = C.secMat(sp); pts.lk = lkOf(sp); } } if (kdD) { pts.mat = C.secMat(kdD); pts.lk = lkOf(kdD); } if (pts.terr ? (inU(pts[0]) && inU(pts[1])) : true) eCut.push(pts); }
       }
       if (eCut.length && (eCut[0].terr || eCut.some(q => inU(q[0]) || inU(q[1])))) { cut.push(...eCut); secEnts.add(e); } // kesit çizgisinin değdiği gövde bütün olarak kesilir (kapalı, taranabilir)
+      /* lento (kullanıcı kararı 14.11.2026): kâgir duvarın kesilen lentosu duvardan ve betondan ayrı görünür — kendi sınırı (kesilen eleman çizgisi, KESIT_LENTO)
+         ve grobeton taraması (malzeme 'LG' → kural tablosunda grobeton: AR-CONC, Grobeton katmanı); duvar taraması lentonun içinde boş kalır (sectionMerge) */
+      if (e.type === 'perde' && C.lentoKutulari && eCut.length) for (const [k, Lb] of C.lentoKutulari(e).entries()) { const c = Lb.c8, lc = [];
+        for (const [i0, i1, i2, i3] of [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]]) for (const [p0, p1, p2] of [[c[i0], c[i1], c[i2]], [c[i0], c[i2], c[i3]]]) {
+          const d0 = dist(p0), d1 = dist(p1), d2 = dist(p2); if ((d0 > 0 && d1 > 0 && d2 > 0) || (d0 < 0 && d1 < 0 && d2 < 0)) continue; const pts = [];
+          for (const [x, y, dx, dy] of [[p0, p1, d0, d1], [p1, p2, d1, d2], [p2, p0, d2, d0]]) if ((dx < 0) !== (dy < 0) && dx !== dy) { const t2 = dx / (dx - dy); pts.push(uv(M.lerp(x, y, t2))); }
+          if (pts.length === 2 && Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]) > 1e-5) { Object.assign(pts, { g: e.id + '|LENTO' + k, conc: true, mat: 'LG', fnd: false, lk: 'LENTO', lento: true }); lc.push(pts); } }
+        if (lc.some(q => inU(q[0]) || inU(q[1]))) cut.push(...lc); }
       if (e.type === 'pipe') {
         const r = C.T.pipe.r(e), path = C.pipePath(e).pts, lkp = lkOf(e);
         for (let i = 1; i < path.length; i++) {
@@ -329,7 +339,7 @@
     // otomatik kotlar: kesitteki tüm üst yüzeyler (merdiven basamakları, korkuluk, su tutucu bant, grobeton hariç); kapatmak için KESITAL KOT=H
     let nK = 0;
     if (kv.KOT !== 'H') {
-      const SKIP = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON']), LP = R.loops, BB = LP.map(lp => { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; for (const q of lp) { a = Math.min(a, q[0]); b = Math.min(b, q[1]); c = Math.max(c, q[0]); d = Math.max(d, q[1]); } return [a, b, c, d]; });
+      const SKIP = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON', 'LENTO']), LP = R.loops, BB = LP.map(lp => { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; for (const q of lp) { a = Math.min(a, q[0]); b = Math.min(b, q[1]); c = Math.max(c, q[0]); d = Math.max(d, q[1]); } return [a, b, c, d]; });
       const covered = q => LP.some((lp, k) => { const bb = BB[k]; return q[0] >= bb[0] && q[0] <= bb[2] && q[1] >= bb[1] && q[1] <= bb[3] && C.pointInPoly(q, lp); });
       /* kot yazısı için örtü ağırlığı: kesilen betona / duvara değmek yasak (1e6), öbür kesilen parçalara (doğrama, kaplama, tretuvar) değmek istenmez (1e3) */
       const BETON_LK = /PERDE|DUVAR|KOLON|DOSEME|TEMEL|KIRIS|RADYE|PARAPET|CATI/;
@@ -381,7 +391,7 @@
     let nT = 0; if (C.dogramaEtiketKesit && kv.TIP !== 'H') { try { nT = C.dogramaEtiketKesit({ a, u, n, depth, W, inU, zAt }); } catch (er) { console.error('kesit doğrama no', er); } } // kapı / pencere tip numarası (ölçülerden önce: zincirler üstüne binmesin)
     let nD = 0, dimBot = Infinity;
     if (kv.OLCU !== 'H' && C.T.dim) {
-      const SKIPD = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON', 'TRETUVAR']), LPD = R.loops.filter(lp => !SKIPD.has(lp.lk));
+      const SKIPD = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON', 'TRETUVAR', 'LENTO']), LPD = R.loops.filter(lp => !SKIPD.has(lp.lk));
       if (LPD.length) {
         C.ensureLayer('KESIT_OLCU', 3, 'CONTINUOUS', 18);
         let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity; for (const lp of LPD) for (const q of lp) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); }

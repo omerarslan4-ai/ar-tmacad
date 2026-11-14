@@ -266,12 +266,12 @@
      "Mertek 5x10", "Aşık 10x10", "D. Aşığı 10x10", "Dikme 10x10" (planda iki satır: "Dikme" / "10x10"), "Kuşaklama" / "2x5x10", "Göğüsleme" / "2x5x10",
      "Yastık 2.5x10", "Kaplama Tahtası" / "1.8x10", "EPS Dolgulu Renkli" / "Sac Galvaniz Panel (5 cm)", "Bitümlü Örtü İle Su Yalıtımı",
      "DN155 Çinko Yağmur Oluğu", "DN120 Çinko Yağmur" / "İniş Borusu". Ebat küçükten büyüğe, cm, ondalık noktalı; sözcük başları büyük.
-     t: eleman türü (cati.js mem.t), b / h (m), yer: 'plan' | 'kesit'. Göğüsleme modelde tek çapraz (örnekte çift): "2x" yazılmaz. */
+     t: eleman türü (cati.js mem.t), b / h (m), yer: 'plan' | 'kesit'. Göğüsleme kuşaklama gibi çift tahta (dikmenin iki yanında; kullanıcı kararı 14.11.2026): "2x5x10". */
   const ebatYaz = (b, h) => [b, h].map(v => +(v * 100).toFixed(1)).sort((x, y) => x - y).join('x');
   const basBuyuk = s => String(s || '').toLocaleLowerCase('tr').replace(/(^|[\s(/-])(\S)/g, (m, a, c) => a + c.toLocaleUpperCase('tr'));
   const CATI_AD = { 'Duvar aşığı': 'D. Aşığı', 'Saçak aşığı': 'D. Aşığı' }; // Çokal ÇKL-AAT-İB-03: duvar üstündeki (saçak) aşık her yerde "D. Aşığı" (plan, kesit, detay)
   const catiUyeYazisi = (t, b, h, yer) => { const ad = CATI_AD[t] || basBuyuk(t), e = ebatYaz(b, h);
-    if (t === 'Kuşaklama') return [ad, '2x' + e]; if (t === 'Göğüsleme' || (t === 'Dikme' && yer === 'plan')) return [ad, e]; return [ad + ' ' + e]; };
+    if (t === 'Kuşaklama' || t === 'Göğüsleme') return [ad, '2x' + e]; if (t === 'Dikme' && yer === 'plan') return [ad, e]; return [ad + ' ' + e]; };
   /* uzun yazıyı ortaya en yakın sözcük arasından iki satıra böler (Çokal: "EPS Dolgulu Renkli" / "Sac Galvaniz Panel (5 cm)") */
   const ikiSatir = (s, en = 20) => { s = String(s); if (s.length <= en) return [s]; const w = s.split(' '); let best = null;
     for (let i = 1; i < w.length; i++) { const a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), d = Math.abs(a.length - b.length); if (!best || d < best.d) best = { d, r: [a, b] }; } return best ? best.r : [s]; };

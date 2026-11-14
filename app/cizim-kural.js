@@ -125,7 +125,7 @@
         su: { katman: 'Su', desen: 'ANSI31', olcek: 20, aci: 135, sc: 0.1575, ne: 'Su (program kesitte su taramaz)' },
       },
       /* programın kesit malzeme kodu (kesit.js → secMat / tretSecMat) → yukarıdaki malzeme */
-      kod: { B: 'beton', D: 'beton', G: 'grobeton', 'T:tugla': 'tugla', 'T:gazbeton': 'gazbeton', F: 'dolgu', Y: 'yalitim',
+      kod: { B: 'beton', D: 'beton', G: 'grobeton', LG: 'grobeton', 'T:tugla': 'tugla', 'T:gazbeton': 'gazbeton', F: 'dolgu', Y: 'yalitim',
         'TR:kap': 'tretuvarKaplama', 'TR:harc': 'tretuvarAlt', 'TR:stab': 'tretuvarAlt', 'TR:bord': 'bordur', 'TR:beton': 'tretuvarBeton', 'TR:yatak': 'yatak' },
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
     /* MAHAL LİSTESİ — R2 İdari bina mahal listesi: başlık 4 mm (Yazi_Baslik katmanı; programda başlık katmanı Yazi30), öteki yazılar 2 mm (kullanıcı kararı 14.11.2026) */

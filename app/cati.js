@@ -179,7 +179,7 @@
           const hP = zPost - zBase;
           if (hP > 0.8) { // kuşaklama 2×(5×10): dikmeleri yatayda bağlar (dikme yüksekliğinin ortası), iki yanda
             const zk = zBase + hP * 0.55; out._typ = 'Kuşaklama'; for (const sgn of [1, -1]) { const o = [-ud[1] * (db / 2 + 0.025) * sgn, ud[0] * (db / 2 + 0.025) * sgn]; beam(out, [pts[0][0] + o[0], pts[0][1] + o[1], zk + 0.05], [pts[pts.length - 1][0] + o[0], pts[pts.length - 1][1] + o[1], zk + 0.05], 0.05, 0.10, WOOD2); addW('Kuşaklama', M.dist2(pts[0], pts[pts.length - 1]), 0.05, 0.10); }
-            out._typ = 'Göğüsleme'; for (let i = 0; i + 1 < pts.length; i++) { const p1 = pts[i], p2 = pts[i + 1], dL = M.dist2(p1, p2); if (dL < 0.6) continue; for (const [qa, qb, za, zb] of [[p1, p2, zBase + 0.15, zPost - 0.05], [p2, p1, zBase + 0.15, zPost - 0.05]]) { const A3 = [qa[0], qa[1], za + 0.05], B3 = [qb[0] - (qb[0] - qa[0]) * 0.0, qb[1] - (qb[1] - qa[1]) * 0.0, zb]; beam(out, B3, A3, 0.05, 0.10, WOOD2); addW('Göğüsleme', Math.hypot(dL, zb - za), 0.05, 0.10); } }
+            out._typ = 'Göğüsleme'; for (let i = 0; i + 1 < pts.length; i++) { const p1 = pts[i], p2 = pts[i + 1], dL = M.dist2(p1, p2); if (dL < 0.6) continue; for (const [qa, qb, za, zb] of [[p1, p2, zBase + 0.15, zPost - 0.05], [p2, p1, zBase + 0.15, zPost - 0.05]]) for (const sgn of [1, -1]) { const o = [-ud[1] * (db / 2 + 0.075) * sgn, ud[0] * (db / 2 + 0.075) * sgn], A3 = [qa[0] + o[0], qa[1] + o[1], za + 0.05], B3 = [qb[0] + o[0], qb[1] + o[1], zb]; beam(out, B3, A3, 0.05, 0.10, WOOD2); addW('Göğüsleme', Math.hypot(dL, zb - za), 0.05, 0.10); } } // göğüsleme çift tahta 2x(5x10) (Çokal; kullanıcı kararı 14.11.2026): dikmenin iki yanında, kuşaklamanın dışında
           }
         }
       }
@@ -197,7 +197,7 @@
   };
   const cacheAll = e => { const key = JSON.stringify([e.kind, e.pts, e.zt, e.ov, e.deg, e.knee, e.m1, e.deg1, e.yon, e.alt, e.xps, e.su, e.ortu, e.isk, e.mb, e.mh, e.msp, e.ab, e.ah, e.asp, e.db, e.dsp, e.yal, e.cy, e.sacak, e.oluk, e.olukDn, e.boruDn, e.yagmur, C.yagmurImza && e.oluk !== 'H' ? C.yagmurImza() : '']); if (e._b && e._bk === key) return e._b; e._b = buildAll(e); e._bk = key; return e._b; };
   const qty = e => {
-    const { Q } = cacheAll(e), out = [], o = ORTU[e.ortu] || ORTU.marsilya, nm = TUR[e.kind].split(' (')[0];
+    const { Q } = cacheAll(e), out = [], o = ORTU[e.ortu] || ORTU.marsilya, nm = (TUR[e.kind] || TUR.kirma).split(' (')[0]; // boş tür (eski dosya, Bekçi): geometride kırma
     out.push([`${o.ad} — ${nm} (eğik alan)`, 'm²', Q.area]);
     if (+e.xps > 0 && (e.yal || 'mertek') !== 'doseme') out.push([`XPS ısı yalıtımı (${e.xps} cm) — çatı (mertek üstü)`, 'm²', Q.area]);
     if (Q.cy) out.push([`Cam yünü şilte (${e.cy || 8} cm) — çatı arası döşeme üstü`, 'm²', Q.cy]);
@@ -249,7 +249,7 @@
     mesh: e => [cacheAll(e).mesh],
     xf: (e, X) => { let dz = 0; try { const q = X.p([0, 0, 0]); dz = q && q.length > 2 ? (q[2] || 0) : 0; } catch (err) { } e.zt = (+e.zt || 0) + dz; e.pts = e.pts.map(q => X.p([q[0], q[1], 0]).slice(0, 2)); delete e._g; delete e._b; },
     snaps: e => { const G = geomOf(e), out = G.foot.map(p => ({ p: [p[0], p[1], 0], k: 'end' })); return out; },
-    info: e => { const G = geomOf(e), q = qty(e); return `${TUR[e.kind]} · eğim ${M.fmt(+e.deg, 1)}° (%${Math.round(Math.tan(+e.deg * RAD) * 100)}) · saçak ${+e.sacak > 0 ? `${Math.round(+e.sacak * 100)} cm (döşeme konsolu)` + (+e.ov > 0 ? ` + ${Math.round(+e.ov * 100)} cm` : '') : `${Math.round((+e.ov || 0) * 100)} cm`}${+e.knee ? ` · ayak duvarı ${M.fmt(+e.knee, 2)} m` : ''} · mahya kotu ${M.fmt(C.catiMahyaKotu(e), 2)} · ${q.slice(0, 2).map(([a, b, v]) => `${a} ${M.fmt(v, 2)} ${b}`).join(' · ')}${G.warn ? ' · ' + G.warn : ''}`; },
+    info: e => { const G = geomOf(e), q = qty(e); return `${TUR[e.kind] || TUR.kirma} · eğim ${M.fmt(+e.deg, 1)}° (%${Math.round(Math.tan(+e.deg * RAD) * 100)}) · saçak ${+e.sacak > 0 ? `${Math.round(+e.sacak * 100)} cm (döşeme konsolu)` + (+e.ov > 0 ? ` + ${Math.round(+e.ov * 100)} cm` : '') : `${Math.round((+e.ov || 0) * 100)} cm`}${+e.knee ? ` · ayak duvarı ${M.fmt(+e.knee, 2)} m` : ''} · mahya kotu ${M.fmt(C.catiMahyaKotu(e), 2)} · ${q.slice(0, 2).map(([a, b, v]) => `${a} ${M.fmt(v, 2)} ${b}`).join(' · ')}${G.warn ? ' · ' + G.warn : ''}`; },
   };
   /* sıhhi tesisat yağmur ayarı, kolon / perde zarfı ya da tretuvar değişirse oluk, boru ve metraj hemen yenilenir (önbellek ve çizim silinir) */
   let sonImza = null;

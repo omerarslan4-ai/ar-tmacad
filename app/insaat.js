@@ -151,6 +151,18 @@
     return { s0: Math.max(0, (+o.s || 0) - w / 2 - lb), s1: Math.min(sf.L, (+o.s || 0) + w / 2 + lb), za, zb, o: { kind: 'lento', host: o } };
   };
   C.lentoOf = (o) => { const H = hostFrame(o); return H ? lentoOf(H.h, o, H.sf, H.F) : null; };
+  /* kesitte lento (kullanıcı kararı 14.11.2026): kâgir duvardaki lento kutuları, 8 köşe (alt 4 + üst 4, duvar yüzleriyle aynı düzlemde, dünya koordinatı).
+     kesit.js bunları keser: lento sınırı kesilen eleman çizgisi, içi grobeton taraması (AR-CONC); duvar taraması lentonun içine girmez. Döner: [{ c8, o }] */
+  C.lentoKutulari = e => {
+    if (!e || e.type !== 'perde' || (e.malz || 'beton') === 'beton') return [];
+    const F = faceOffs(e), z0 = +e.z0 || 0, h = +e.h || 3, SF = segFrames(e), out = [];
+    const off = (side, z) => { const t = (z - z0) / h; return side === 'L' ? F.lB + (F.lT - F.lB) * t : F.rB + (F.rT - F.rB) * t; };
+    for (const o of openingsOf(e)) { const sf = SF.find(f => f.i === (o.seg || 0)); if (!sf) continue; const q = lentoOf(e, o, sf, F); if (!q) continue;
+      const P3 = (s, side, z) => { const w = off(side, z); return [sf.a[0] + sf.u[0] * s + sf.nn[0] * w, sf.a[1] + sf.u[1] * s + sf.nn[1] * w, z]; }, c8 = [];
+      for (const z of [q.za, q.zb]) c8.push(P3(q.s0, 'L', z), P3(q.s1, 'L', z), P3(q.s1, 'R', z), P3(q.s0, 'R', z));
+      out.push({ c8, o }); }
+    return out;
+  };
   const perdeMesh = e => {
     const out = newMesh(), F = faceOffs(e), z0 = +e.z0 || 0, h = +e.h || 3, col = colOf(e);
     const off = (side, z) => { const t = (z - z0) / h; return side === 'L' ? F.lB + (F.lT - F.lB) * t : F.rB + (F.rT - F.rB) * t; };
