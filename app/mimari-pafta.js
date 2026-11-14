@@ -461,8 +461,8 @@
       const gp = C.grpCur; C.grpCur = 'Mimari'; const L = C.newLayout(`MİMARİ-${no} ${adN}`, P.kagit, 'L'); C.grpCur = gp;
       Object.assign(L, { grp: 'Mimari', mimPafta: key + (i + 1), size: 'OZEL', pw: P.pw, ph: P.ph, orient: 'L', noTitle: false, margin: Object.assign({}, PAFTA_R2.kenar), antetSutun: P.antet, kagit: P.kagit });
       L.f = Object.assign(L.f || {}, { proje: L.f.proje || C.doc.set.name || '', baslik: `${yapi} — ${adN}`, no: `MİM-${no}` });
-      const olcekler = [...new Set(P.ids.map(id => byId.get(id).sc))].sort((a, b) => a - b); L.f.olcek = olcekler.map(s => '1/' + s).join(', ');
       L.vps = P.ids.map(id => { const b = byId.get(id), q = P.yer[id]; return Object.assign({ x: q[0], y: q[1], w: b.w, h: b.h, cx: (b.bb[0] + b.bb[2]) / 2, cy: (b.bb[1] + b.bb[3]) / 2, scale: b.sc, gvOnly: b.gv, frame: { on: false }, lock: true, disiplin: 'Mimari' }, b.v ? { gorunum: b.v.id } : {}); });
+      L.f.olcek = C.paftaOlcekYazisi ? C.paftaOlcekYazisi(L) : [...new Set(P.ids.map(id => byId.get(id).sc))].map(s => '1/' + s).join(', '); // antet canlı (layout.js); burada kayıt için
       if (P.tasan.length) C.warn(`${L.name}: ${P.tasan.length} çizim pafta yüksekliğine (${P.ph} mm) sığmıyor; paftada kırpılır.`);
       return L;
     });
@@ -558,7 +558,7 @@
     if (Rb.tabs.some(t => t[0] === 'Mimari')) return true;
     const var_ = b => !!(C.cmds && C.cmds[b.cmd.split(' ')[0]]);
     const paneller = [
-      ['Pafta', [B('MIMARIPAFTA', 'Mimari paftalar', 'print'), s('KESITPAFTA', 'Kesit → disiplinler', 'cut'), s('KESITSEMBOL', 'Kesit sembolü', 'cut'), s('GORUNUMGUNCELLE', 'Kesitleri güncelle', 'undo'), s('ACILIMTABLO', 'Açılım tablosu', 'table'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
+      ['Pafta', [B('MIMARIPAFTA', 'Mimari paftalar', 'print'), s('KESITPAFTA', 'Kesit → disiplinler', 'cut'), s('KESITSEMBOL', 'Kesit sembolü', 'cut'), s('GORUNUMGUNCELLE', 'Kesitleri güncelle', 'undo'), s('ACILIMTABLO', 'Açılım tablosu', 'table'), s('PAFTALISTESI', 'Pafta listesi', 'table'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
       ['Görünüş', [B('KOTPLANI', 'Kot planı', 'area'), s('GORUNUS', 'Görünüş', 'box'), s('GORUNUSGUNCELLE', 'Güncelle', 'undo')]],
       ['Mahal', [B('MAHALLISTESI', 'Mahal listesi', 'table'), s('MAHALADI', 'Mahal adı', 'text')]],
       ['Açılım', [s('MALZEMEACILIM', 'Malzeme açılımı', 'text'), s('ACILIMSTIL', 'Açılım stili', 'prop')]],

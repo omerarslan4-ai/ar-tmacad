@@ -41,7 +41,8 @@
   };
   C.paperSize = L => { let [w, h] = L.size === 'OZEL' && L.pw > 0 && L.ph > 0 ? [L.pw, L.ph] : (C.PAPER[L.size] || C.PAPER.A1); if (L.orient === 'P') [w, h] = [h, w]; return { w, h }; };
   C.layoutFrame = L => { const { w, h } = C.paperSize(L), m = L.margin || {}; const x0 = m.l != null ? m.l : 20, y0 = m.b != null ? m.b : 10, x1 = w - (m.r != null ? m.r : 10), y1 = h - (m.t != null ? m.t : 10); return { x0, y0, x1, y1, tbTop: L.noTitle ? y0 : y0 + 66, tbX: x1 - 180 }; };
-  const scaleTxt = L => L.vps.length ? [...new Set(L.vps.map(v => '1/' + v.scale))].join(', ') : '-';
+  /* antetteki ölçek: paftadaki bütün pencerelerin ölçekleri, ana ölçek önce (pafta-liste.js; kullanıcı isteği 14.11.2026) — canlı */
+  const scaleTxt = L => C.paftaOlcekYazisi ? C.paftaOlcekYazisi(L) : (L.vps.length ? [...new Set(L.vps.map(v => '1/' + v.scale))].join(', ') : '-');
   C.titlePrims = L => {
     if (L.noTitle) { const { w, h } = C.paperSize(L), fr = C.layoutFrame(L); return [C.prim.P([[0, 0, 0], [w, 0, 0], [w, h, 0], [0, h, 0]], true, { lw: 13 }), C.prim.P([[fr.x0, fr.y0, 0], [fr.x1, fr.y0, 0], [fr.x1, fr.y1, 0], [fr.x0, fr.y1, 0]], true, { lw: 70 })]; }
     const def = C.T.sheet.prims({ type: 'sheet', o: [0, 0, 0], size: L.size, pw: L.pw, ph: L.ph, margin: L.margin, orient: L.orient, scale: 1000, f: L.f || {}, scaleText: scaleTxt(L) });

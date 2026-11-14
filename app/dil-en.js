@@ -275,3 +275,18 @@
     ['Plan ve kesit ölçeği', 'Plan and section scale'], ['1/# (önerilen — firma kuralı: #)', '1/# (recommended — company rule: #)'], ['bina ebatına göre', 'by building size'],
   ]);
 })();
+/* PAFTA LİSTESİ ve ANTETTE ÖLÇEK (pafta-liste.js, 14.11.2026) */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['Pafta listesi', 'Sheet list'], ['PAFTA LİSTESİ', 'SHEET LIST'], ['PAFTA LİSTESİ — #', 'SHEET LIST — #'], ['SIRA NO', 'NO.'], ['PAFTA NO', 'SHEET NO.'], ['PAFTA ADI', 'SHEET TITLE'], ['ÖLÇEK', 'SCALE'],
+    ['Tabloyu yerleştir', 'Place table'], ['Excel (CSV) indir', 'Download Excel (CSV)'], ['Bu grupta pafta yok', 'No sheets in this group'], ['Bu grupta pafta yok.', 'No sheets in this group.'],
+    ['Tablonun sol üst köşesi (modelde ya da paftada)', 'Top-left corner of the table (model or sheet)'], ['Pafta grubu (#; boş = hepsi)', 'Sheet group (#; empty = all)'],
+    ['Pafta listesi: # pafta (paftalar değişince kendiliğinden güncellenir).', 'Sheet list: # sheets (updates automatically when sheets change).'],
+    ['Pafta listesi paftaya konuldu (# pafta, 1/#; paftalar değişince güncellenir).', 'Sheet list placed on the sheet (# sheets, 1/#; updates when sheets change).'],
+    ['Pafta listesi indirildi (# pafta, Excel\'de açılır).', 'Sheet list downloaded (# sheets, opens in Excel).'],
+    ['Pafta listesi: bir pafta grubundaki (varsayılan Mimari) paftalar — SIRA NO, PAFTA NO, PAFTA ADI, ÖLÇEK; paftalardan canlı tablo, modelde ya da paftada tıklanan yere. PAFTALISTESI [Y = yerleştir | C = Excel (CSV) indir] [grup]', 'Sheet list: sheets of a sheet group (default Architecture) — NO., SHEET NO., SHEET TITLE, SCALE; live table from the sheets, placed where you click in the model or on a sheet. PAFTALISTESI [Y = place | C = download Excel (CSV)] [group]'],
+    ['GÖRÜNÜŞLER', 'ELEVATIONS'], ['KAT PLANLARI', 'FLOOR PLANS'],
+  ]);
+})();
