@@ -229,5 +229,26 @@ t('kesit iç düşey zincirleri: kaba zincir atılır, aynı ölçü bir kez (Ko
 t('lento yazısı: Çokal 6-Blower biçimi "Lento" / "(20x20)" — en (duvar kalınlığı) x yükseklik', () => {
   assert.deepStrictEqual(A.lentoYazisi(0.2, 0.2), ['Lento', '(20x20)']); assert.deepStrictEqual(A.lentoYazisi(0.25, 0.3), ['Lento', '(25x30)']);
 });
+t('mahal adları tekil: adsız mahal o kottaki seviyenin adını alır (tek ise), öbürleri MAHAL 1, MAHAL 2 …; verilmiş ad korunur (Konya: Pompa holü −5,90, Montaj holü ±0,00)', () => {
+  const sv = [{ ad: 'Çatı', z: 5.24 }, { ad: 'Montaj holü (zemin kat)', z: 0 }, { ad: 'Pompa holü', z: -5.9 }];
+  assert.deepStrictEqual(A.mahalAdlari([{ ad: 'Mahal 1', z: -5.9 }, { ad: 'Mahal 1', z: 0 }], sv), ['POMPA HOLÜ', 'MONTAJ HOLÜ']);
+  assert.deepStrictEqual(A.mahalAdlari([{ ad: 'Mahal 1', z: 0 }, { ad: 'Kumanda Odası', z: 0 }, { ad: '', z: 0 }], sv), ['MAHAL 1', 'Kumanda Odası', 'MAHAL 2'], 'aynı kotta iki adsız: numaralı');
+  assert.deepStrictEqual(A.mahalAdlari([{ ad: 'Mahal 2', z: 0 }, { ad: 'Mahal 2', z: 3 }], []), ['MAHAL 1', 'MAHAL 2']);
+  assert.deepStrictEqual(A.mahalAdlari([{ ad: 'Depo', z: 0 }, { ad: 'Depo', z: 3 }], []), ['Depo', 'Depo 2'], 'iki kez geçen verilmiş ad');
+  assert.deepStrictEqual(A.mahalAdlari([{ ad: 'MAHAL 1', z: 0 }, { ad: 'Pompa Holü', z: -5.9 }, { ad: '', z: -5.9 }], sv), ['MONTAJ HOLÜ', 'Pompa Holü', 'MAHAL 1'], 'seviye adı başka mahalde kullanılmışsa numara');
+});
+t('planda lento oku: aynı ebat + aynı cephe tek ok, başka cephe ya da başka ebat ayrı (Konya: 8,4 × 6,9 m, 20 cm duvar)', () => {
+  // güney duvarı (y = 0, doğu yönlü) iki pencere, kuzey (y = 6,9, batı yönlü) bir pencere, doğu (x = 8,4) bir kapı (lento 20x30)
+  const L = [
+    { A: [0, 0], u: [1, 0], s: 2, w: 1.2, td: 0.2, lh: 0.2, k: '20x20' }, { A: [0, 0], u: [1, 0], s: 6, w: 1.2, td: 0.2, lh: 0.2, k: '20x20' },
+    { A: [8.4, 6.9], u: [-1, 0], s: 4, w: 1.2, td: 0.2, lh: 0.2, k: '20x20' }, { A: [8.4, 0], u: [0, 1], s: 3, w: 1.0, td: 0.2, lh: 0.3, k: '20x30' }];
+  const G = A.lentoGrupPlan(L, [4.2, 3.45]);
+  assert.strictEqual(G.length, 3, 'güney (2 pencere tek ok), kuzey, doğu kapı');
+  const g = G.find(q => q.k === '20x20' && q.adaylar.some(p => p[1] === 0)); assert.strictEqual(g.adaylar.length, 6, 'iki lentonun adayları birleşir (her lentoda 3)');
+  assert.deepStrictEqual(g.satir, ['Lento', '(20x20)']); assert.deepStrictEqual(G.find(q => q.k === '20x30').satir, ['Lento', '(20x30)']);
+  assert.ok(g.adaylar.some(p => Math.abs(p[0] - 2) < 1e-9) && g.adaylar.some(p => Math.abs(p[0] - 6) < 1e-9), 'ok ucu adayı lentonun ortası');
+  // aynı duvar ters çizilmiş (u ters): cephe yine güney → aynı grup
+  assert.strictEqual(A.lentoGrupPlan([L[0], { A: [8.4, 0], u: [-1, 0], s: 2.4, w: 1.2, td: 0.2, lh: 0.2, k: '20x20' }], [4.2, 3.45]).length, 1);
+});
 
 console.log(`\n${n} test geçti.`);

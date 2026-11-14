@@ -302,5 +302,8 @@
     ['Yağmur suyu (TS EN 12056-3): çatı # m² · Q = # l/s → # adet DN# iniş borusu, DN# oluk. Yerleri ve hesap raporun 15. bölümündedir.', 'Rainwater (TS EN 12056-3): roof # m² · Q = # l/s → # DN# downpipes, DN# gutter. Locations and calculation in section 15 of the report.'],
     ['Çinko yağmur oluğu DN# (yarım daire)', 'Zinc rain gutter DN# (half-round)'], ['Çinko yağmur iniş borusu DN#', 'Zinc rainwater downpipe DN#'], ['Yağmur iniş borusu DN# (süzgeç, dirsek, kelepçe ile)', 'Rainwater downpipe DN# (with strainer, elbows, brackets)'],
     ['Yağmur oluğu', 'Rain gutter'], ['İniş borusu', 'Downpipe'], ['Lento', 'Lintel'], ['(#x#)', '(#x#)'],
+    ['Alın Tahtası #x#', 'Fascia board #x#'], ['Cam Yünü Şilte (# cm)', 'Glass wool blanket (# cm)'], ['Mahya Kiremidi + Harç Dolgu', 'Ridge tile + mortar bedding'],
+    ['# eski ortak kesite disiplin görünümü eklendi (Statik / Mekanik pencereleri artık kendi görünümlerini gösterir).', 'Discipline views added to # older shared section(s) (Structural / Mechanical viewports now show their own views).'],
+    ['MAHAL #', 'ROOM #'],
   ]);
 })();

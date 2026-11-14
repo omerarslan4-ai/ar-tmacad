@@ -335,8 +335,9 @@
       const BETON_LK = /PERDE|DUVAR|KOLON|DOSEME|TEMEL|KIRIS|RADYE|PARAPET|CATI/;
       const ortu = q => { let w = 0; for (let k = 0; k < LP.length; k++) { const bb = BB[k]; if (q[0] < bb[0] || q[0] > bb[2] || q[1] < bb[1] || q[1] > bb[3] || !C.pointInPoly(q, LP[k])) continue; w = Math.max(w, BETON_LK.test(LP[k].lk || '') || !LP[k].lk ? 1e6 : 1e3); } return w; };
       const lv = [];
+      const catiKotAyri = yeniDuzen && kv.MIMARI === 'E' && !!C.catiKotKesit; // Mimari kesitte çatı (örtü, ahşap) yüzeyine kot konmaz: mahya kotu C.catiKotKesit'ten (tek değer)
       for (const lp of LP) {
-        if (SKIP.has(lp.lk)) continue; const sg = M.polyArea(lp) > 0 ? 1 : -1;
+        if (SKIP.has(lp.lk) || (catiKotAyri && lp.lk === 'CATI')) continue; const sg = M.polyArea(lp) > 0 ? 1 : -1;
         for (let i = 0; i < lp.length; i++) {
           const A = lp[i], B = lp[(i + 1) % lp.length], dx = B[0] - A[0], dy = B[1] - A[1], Ls = Math.hypot(dx, dy);
           if (Ls < 0.15 || Math.abs(dy) > Math.abs(dx) * 0.03 || sg * dx >= 0) continue; // yatay (≤ %3 eğim) ve dolu taraf altta → üst yüzey

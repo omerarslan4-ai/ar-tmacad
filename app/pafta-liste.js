@@ -12,20 +12,22 @@
 
   /* ======================= SAF KISIM ======================= */
   const olcekAd = s => '1/' + (Math.round(s * 100) / 100);
-  /* vps: [{ scale, w, h }] → "1/50, 1/20, 1/10" (ana ölçek önce) ya da "-" */
+  /* vps: [{ scale, w, h, olceksiz? }] → "1/50, 1/20, 1/10" (ana ölçek önce) ya da "-"; tablo pencereleri (olceksiz / paftaListesi: pafta listesi,
+     mahal listesi, açılım tablosu) çizim ölçeği sayılmaz (denetim 14.11.2026: MİM-04 "1/20, 1/50") */
   const olcekYazisi = vps => {
-    const A = new Map(); for (const v of vps || []) { const s = +v.scale; if (!(s > 0)) continue; A.set(s, (A.get(s) || 0) + Math.max(0, (+v.w || 0) * (+v.h || 0))); }
+    const A = new Map(); for (const v of vps || []) { const s = +v.scale; if (!(s > 0) || v.olceksiz || v.paftaListesi) continue; A.set(s, (A.get(s) || 0) + Math.max(0, (+v.w || 0) * (+v.h || 0))); }
     if (!A.size) return '-';
     const ana = [...A.entries()].sort((p, q) => q[1] - p[1] || q[0] - p[0])[0][0];
     return [ana, ...[...A.keys()].filter(s => s !== ana).sort((a, b) => b - a)].map(olcekAd).join(', ');
   };
   /* paftanın antetteki ölçeği: elle verilmişse o, yoksa pencerelerden */
   const paftaOlcegi = L => (L && L.f && String(L.f.olcekElle || '').trim()) || olcekYazisi(L ? L.vps : []);
-  /* pafta no ve adı: MIMARIPAFTA adı "MİMARİ-01 KAT PLANLARI" → no "MİMARİ-01", ad "KAT PLANLARI"; değilse antet no (f.no) ve başlık / düzen adı */
-  const noAd = L => { const m = /^(\S+-\d+)\s+(.+)$/.exec(String(L.name || '').trim()); if (m) return { no: m[1], ad: m[2] };
+  /* pafta no ve adı: no antetteki pafta no (f.no; MIMARIPAFTA "MİM-01") — liste ile antet aynı (denetim 14.11.2026); antette no yoksa düzen adındaki
+     ("MİMARİ-01 KAT PLANLARI" → "MİMARİ-01"); ad düzen adının geri kalanı ("KAT PLANLARI"), yoksa antet başlığı */
+  const noAd = L => { const m = /^(\S+-\d+)\s+(.+)$/.exec(String(L.name || '').trim()); if (m) return { no: String((L.f || {}).no || '').trim() || m[1], ad: m[2] };
     const f = L.f || {}; return { no: f.no || '', ad: f.baslik || L.name || '' }; };
   /* layouts → satırlar [{ sira, no, ad, olcek }]; grp verilirse yalnız o gruptaki paftalar (L.grp) */
-  const satirlar = (layouts, grp) => (layouts || []).filter(L => L && (!grp || String(L.grp || '') === grp)).map((L, i) => Object.assign({ sira: i + 1 }, noAd(L), { olcek: paftaOlcegi(L) }));
+  const satirlar = (layouts, grp) => (layouts || []).filter(L => L && (!grp || String(L.grp || '') === grp)).map((L, i) => Object.assign({ sira: i + 1 }, noAd(L), { olcek: (C && C.paftaOlcekYazisi ? C.paftaOlcekYazisi : paftaOlcegi)(L) }));
   /* CSV (Excel: noktalı virgül ayraç, UTF-8 BOM) */
   const csv = (rows, baslik) => { const q = v => { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const L = []; if (baslik) L.push(q(baslik)); L.push(['SIRA NO', 'PAFTA NO', 'PAFTA ADI', 'ÖLÇEK'].join(';')); for (const r of rows) L.push([r.sira, r.no, r.ad, r.olcek].map(q).join(';')); return '﻿' + L.join('\r\n') + '\r\n'; };
@@ -33,7 +35,9 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.paftaListeApi = api;
-  C.paftaOlcekYazisi = paftaOlcegi; // layout.js (antet) ve pafta listesi aynı fonksiyondan
+  /* tablo penceresi mi: gösterdiği görünümde pafta listesi / mahal listesi tablosu var ya da görünüm kaydı tablo (açılım tablosu) */
+  const tabloGv = gv => { if (!gv || !C.doc) return false; const v = (C.doc.set.gorunumler || []).find(q => q.gv === gv); if (v && v.tip === 'tablo') return true; return C.doc.ents.some(e => e.gv === gv && (e.type === 'paftaliste' || e.type === 'mahaltablo')); };
+  C.paftaOlcekYazisi = L => L && Array.isArray(L.vps) ? paftaOlcegi(Object.assign({}, L, { vps: L.vps.map(v => v.paftaListesi || v.olceksiz || !tabloGv(v.gvOnly) ? v : Object.assign({}, v, { olceksiz: true })) })) : paftaOlcegi(L); // layout.js (antet) ve pafta listesi aynı fonksiyondan
 
   /* ======================= TABLO NESNESİ (paftalardan canlı) ======================= */
   const M = C.M, { L: LN, TX } = C.prim;

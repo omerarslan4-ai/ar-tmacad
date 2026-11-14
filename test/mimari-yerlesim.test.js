@@ -67,9 +67,11 @@ t('merdivenli katta plan kesme kotu: Konya −5.90 katı, merdiven sahanlıklar�
   assert.strictEqual(A.planKesmeKotu({ z: 0, h: 1.2 }, [{ z0: 0, sahanliklar: [0.9, 1.6] }]).h, 1.55, 'ikinci sahanlığın 5 cm altı');
 });
 
-t('başlık boyları kural tablosunda: görünüş 4 mm, kesit 5 mm, ölçek satırı 3 mm (10-İdari, 6-Blower); seviye ve kot yazılarında özel eksi (U+2212) yok', () => {
+t('başlık boyları kural tablosunda: görünüş 4 mm, kesit 5 mm, ölçek satırı 3 mm, detay (DETAY-A / DETAY-B) 4 mm (10-İdari, 6-Blower); seviye ve kot yazılarında özel eksi (U+2212) yok', () => {
   globalThis.C = globalThis.C || {}; require('../app/cizim-kural.js');
-  assert.deepStrictEqual(globalThis.C.cizimKural.MIMARI.baslik, { gorunusMm: 4, kesitMm: 5, olcekMm: 3 });
+  assert.deepStrictEqual(globalThis.C.cizimKural.MIMARI.baslik, { gorunusMm: 4, kesitMm: 5, olcekMm: 3, detayMm: 4 });
+  { const O = globalThis.C.cizimKural.MIMARI.okluAciklama; assert.deepStrictEqual([O.okMm, O.korkuluk.kolMm, O.korkuluk.aci, O.cati.kolMm, O.cati.aci], [1.2, 11.7, 59, 6.4, 60], 'oklu açıklama ölçüleri (mimari.md bölüm 6)'); assert.strictEqual(O.lento.yaziKatman, 'LENTO_YAZI'); }
+  assert.ok(globalThis.C.cizimKural.MIMARI.esleme.some(([r, k]) => r.test('LENTO_YAZI') && k === 'Yazi25'), 'lento yazısı Yazi25 (Çokal 6-Blower)');
   const fs = require('fs'), path = require('path'), sv = fs.readFileSync(path.join(__dirname, '..', 'app', 'seviye.js'), 'utf8');
   // seviye yazısı: seviye.js'teki fz işlevinin kendisi çalıştırılır (kaynak metin araması değil, davranış)
   const m = /const fz = (v => [^\n]*?);\s*\/\//.exec(sv); assert.ok(m, 'fz bulunamadı'); const fz = eval(m[1]);

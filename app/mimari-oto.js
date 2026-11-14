@@ -269,7 +269,7 @@
      t: eleman türü (cati.js mem.t), b / h (m), yer: 'plan' | 'kesit'. Göğüsleme modelde tek çapraz (örnekte çift): "2x" yazılmaz. */
   const ebatYaz = (b, h) => [b, h].map(v => +(v * 100).toFixed(1)).sort((x, y) => x - y).join('x');
   const basBuyuk = s => String(s || '').toLocaleLowerCase('tr').replace(/(^|[\s(/-])(\S)/g, (m, a, c) => a + c.toLocaleUpperCase('tr'));
-  const CATI_AD = { 'Duvar aşığı': 'D. Aşığı' };
+  const CATI_AD = { 'Duvar aşığı': 'D. Aşığı', 'Saçak aşığı': 'D. Aşığı' }; // Çokal ÇKL-AAT-İB-03: duvar üstündeki (saçak) aşık her yerde "D. Aşığı" (plan, kesit, detay)
   const catiUyeYazisi = (t, b, h, yer) => { const ad = CATI_AD[t] || basBuyuk(t), e = ebatYaz(b, h);
     if (t === 'Kuşaklama') return [ad, '2x' + e]; if (t === 'Göğüsleme' || (t === 'Dikme' && yer === 'plan')) return [ad, e]; return [ad + ' ' + e]; };
   /* uzun yazıyı ortaya en yakın sözcük arasından iki satıra böler (Çokal: "EPS Dolgulu Renkli" / "Sac Galvaniz Panel (5 cm)") */
@@ -342,10 +342,32 @@
     for (const g of D) { if (at.has(g)) continue; for (const q of g.q) { const k = yuv(Math.min(q.a[1], q.b[1])) + '|' + yuv(Math.max(q.a[1], q.b[1])); if (gor.has(k)) continue; gor.add(k); out.push(q); } }
     return O.concat(out);
   };
-  const api = { siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, lentoYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  /* MAHAL ADLARI (denetim 14.11.2026: mahal listesinde iki "Mahal 1"; kesit adlarında "Mahal 1, MAHAL 2"): adı verilmemiş (boş ya da "Mahal n")
+     mahaller o kottaki kat seviyesinin adını alır (parantez içi atılır, büyük harf: "Pompa holü" → "POMPA HOLÜ") — yalnız o kotta tek adsız mahal varsa;
+     öbürleri kot ve sıra düzeninde "MAHAL 1", "MAHAL 2" … (numara bütün projede tek). Verilmiş adlar korunur; yine de iki kez geçen ad "… 2" olur.
+     rooms: [{ ad, z }] (sırası korunur), seviyeler: [{ ad, z }]. Döner: yeni adlar (aynı sırada) */
+  const mahalAdlari = (rooms, seviyeler) => { const gen = s => !String(s || '').trim() || /^mahal\s*\d+$/i.test(String(s).trim()), up = s => String(s).toLocaleUpperCase('tr');
+    const svAd = z => { const v = (seviyeler || []).find(q => Math.abs((+q.z || 0) - (+z || 0)) < 0.05 && String(q.ad || '').trim()); return v ? up(String(v.ad).replace(/\s*\([^)]*\)\s*/g, ' ').trim()) : null; };
+    const out = rooms.map(r => (gen(r.ad) ? null : String(r.ad))), kullan = new Set(out.filter(Boolean).map(up)), sayZ = new Map();
+    rooms.forEach((r, i) => { if (out[i] == null) { const k = (+r.z || 0).toFixed(2); sayZ.set(k, (sayZ.get(k) || 0) + 1); } });
+    rooms.forEach((r, i) => { if (out[i] != null || sayZ.get((+r.z || 0).toFixed(2)) !== 1) return; const a = svAd(r.z); if (a && !kullan.has(a)) { out[i] = a; kullan.add(a); } });
+    let n = 0; rooms.map((r, i) => i).sort((a, b) => (+rooms[a].z || 0) - (+rooms[b].z || 0) || a - b).forEach(i => { if (out[i] != null) return; let a; do a = `MAHAL ${++n}`; while (kullan.has(a)); out[i] = a; kullan.add(a); });
+    const gor = new Map(); return out.map(a => { const k = up(a), c = (gor.get(k) || 0) + 1; gor.set(k, c); return c > 1 ? `${a} ${c}` : a; }); };
+  /* lento oklarının planda gruplanması (saf): L = [{ A, u (duvar doğrultusu), s, w, td, lh, k }], merkez = yapının ortası; aynı ebat + aynı cephe → tek grup */
+  const lentoGrupPlan = (L, merkez) => { const G = new Map();
+    for (const q of L) { const P = [q.A[0] + q.u[0] * q.s, q.A[1] + q.u[1] * q.s], n = [q.u[1], -q.u[0]], sg = ((P[0] - merkez[0]) * n[0] + (P[1] - merkez[1]) * n[1]) >= 0 ? 1 : -1, yon = ((Math.round(Math.atan2(n[1] * sg, n[0] * sg) / (Math.PI / 2)) % 4) + 4) % 4;
+      const key = q.k + '|' + yon; if (!G.has(key)) G.set(key, { adaylar: [], satir: lentoYazisi(q.td, q.lh), k: q.k, yon });
+      for (const f of [-0.25, 0, 0.25]) G.get(key).adaylar.push([P[0] + q.u[0] * q.w * f, P[1] + q.u[1] * q.w * f]); }
+    return [...G.values()]; };
+  const api = { mahalAdlari, lentoGrupPlan, siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, lentoYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
+  /* mahal listesi ve kesit adları tekil olsun (mahalAdlari): mimari.js mahal satırlarını kurarken C.tipOdalar(rooms) çağırır — satır nesneleri (modeldeki
+     kaplama değil) burada adlandırılır; modeldeki ad (kaplama.ad) değişmez. Kalıcı yeri mimari.js mahalRows (ana oturuma bildirildi). */
+  { const t0 = C.tipOdalar; C.tipOdalar = function (rooms) { let ek = []; try { ek = t0 ? t0.apply(this, arguments) || [] : []; } catch (er) { console.error(er); ek = []; }
+      try { const hepsi = (rooms || []).concat(ek), sv = C.seviyeler ? C.seviyeler() : ((C.doc.set.seviye || {}).list || []), A = mahalAdlari(hepsi, sv); hepsi.forEach((r, i) => { r.ad = A[i]; }); } catch (er) { console.error('mahal adları', er); }
+      return ek; }; }
   C.siluetKenar = (t, d) => (t && t.pos ? siluetKenar(t.pos, d, t.inner) : []); // gorunus.js / kesit.js gizli çizgi motoru (sırt sırta katman yüzleri siluet değil)
 
   /* ======================= MODEL BAĞLANTISI ======================= */
@@ -491,7 +513,10 @@
   /* ===== KORKULUK OKLARI (firma kuralı 14.11.2026: plan ve kesitte her korkuluğa oklu açıklama, yazıda detay kodu) =====
      Çokal 10-İdari Bina_R2: ok MULTILEADER `YZ` katmanında (ucu _ClosedBlank 1,2 mm), yazı `Mim_Yazi25` 2 mm. Program: leader (app/leader.js, okt 'bos')
      katmanı ACIKLAMA_OKU → YZ, yazı YAZI → Mim_Yazi25 (cizim-kural.js). Bir korkuluk nesnesine ve korkuluklu her merdivene bir ok. */
-  const OKK = { aci: 59, kolMm: 11.7, okMm: 1.2, yaziMm: 2, bosluk: 0.8 };
+  /* ok ölçüleri kural tablosundan (app/cizim-kural.js → MIMARI.okluAciklama); tablo yüklenmemişse aynı sayılar */
+  const okKural = tur => { const T = (C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.okluAciklama) || { okMm: 1.2, yaziMm: 2, bosluk: 0.8, korkuluk: { kolMm: 11.7, aci: 59, yaziKatman: 'YAZI' }, cati: { kolMm: 6.4, aci: 60, yaziKatman: 'ACIKLAMA_OKU' }, lento: { kolMm: 11.7, aci: 59, yaziKatman: 'LENTO_YAZI' } };
+    return Object.assign({ okMm: T.okMm, yaziMm: T.yaziMm, bosluk: T.bosluk }, T[tur] || {}); };
+  const OKK = okKural('korkuluk');
   const korkulukTipi = ents => { const T = C.mimariKorkuluklar ? C.mimariKorkuluklar(ents) : [];
     return e => T.find(t => t.kh === Math.round(+e.kh || 110) && t.dik === Math.round(+e.dik || 150) && t.km === (e.km || 'galvaniz') && t.tk === (e.tk === 'H' ? 'H' : 'E')) || { kh: Math.round(+e.kh || 110) }; };
   const malAdi = e => { const K = C._mrd && C._mrd.KM; return K && K[e.km || 'galvaniz'] ? K[e.km || 'galvaniz'][0] : 'Sıcak daldırma galvaniz çelik'; };
@@ -509,8 +534,8 @@
     }
     return { alanlar, kutular, cizgiler }; };
   const okKoy = (gruplar, list, ek, O0) => { // gruplar: [{ adaylar (çizim), satir: [s1, s2 …] }] — ilk satır kırılmanın üstünde, öbürleri altında
-    const O = Object.assign({}, OKK, O0 || {}), k = C.annoH(1), E = engelTopla(list), h = O.yaziMm * k, mw = s => (C.measureText ? C.measureText(String(s), h) : String(s).length * 0.75 * h * 0.7); let n = 0;
-    if (C.ensureLayer) C.ensureLayer('ACIKLAMA_OKU', 7, 'CONTINUOUS', 20);
+    const O = Object.assign({}, OKK, O0 || {}), k = O.k || C.annoH(1), /* O.k: kâğıt 1 mm'nin model karşılığı (detay 1/10: 0,01) */ E = engelTopla(list), h = O.yaziMm * k, mw = s => (C.measureText ? C.measureText(String(s), h) : String(s).length * 0.75 * h * 0.7); let n = 0;
+    if (C.ensureLayer) { C.ensureLayer('ACIKLAMA_OKU', 7, 'CONTINUOUS', 20); if (O.yaziKatman === 'LENTO_YAZI') C.ensureLayer('LENTO_YAZI', 7, 'CONTINUOUS', 25); }
     const mk = (type, p) => { const e = C.add(C.newEnt(type, Object.assign({}, ek, p))); if (e) delete e.sp; return e; };
     for (const g of gruplar) { if (!g.adaylar.length || !g.satir || !g.satir.length) continue; const w = Math.max(...g.satir.map(mw)) + 1 * k;
       const r = okluAciklamaYeri({ adaylar: g.adaylar, w, h, L: O.kolMm * k, aci: O.aci, bosluk: O.bosluk * k, alanlar: E.alanlar, kutular: E.kutular, cizgiler: E.cizgiler }); if (!r) continue;
@@ -520,6 +545,8 @@
       const alt = g.satir.length > 1 ? (g.satir.length - 1) * 1.4 * h : 0, bb = [Math.min(r.kirik[0], r.son[0]), r.kirik[1] - alt - O.bosluk * k, Math.max(r.kirik[0], r.son[0]), r.kirik[1] + h + O.bosluk * k];
       E.kutular.push({ bb, a: 1e3 }); E.cizgiler.push([r.uc, r.kirik], [r.kirik, r.son]); n++; }
     return n; };
+  /* başka modüllerin (cati.js DETAY-A / DETAY-B) oklu açıklaması: aynı yer seçimi ve biçim; O.tur 'cati' | 'korkuluk' | 'lento' kural tablosundan, O.k ölçek */
+  C.okluAciklamaKoy = (G, list, ek, O) => okKoy(G, list || [], ek || {}, Object.assign({}, okKural((O && O.tur) || 'cati'), O || {}));
   /* korkuluk nesnesinin noktaları boyunca örnekler (uçlardan 0,3 m içeride, 0,4 m arayla): [[x, y, z] …] */
   const korkulukOrnek = e => { const q = e.kapali ? e.pts.concat([e.pts[0]]) : e.pts, out = [];
     for (let i = 1; i < q.length; i++) { const A = q[i - 1], B = q[i], l = Math.hypot(B[0] - A[0], B[1] - A[1]); if (l < 0.05) continue; const n = Math.max(1, Math.floor(l / 0.4));
@@ -549,7 +576,9 @@
      MULTILEADER YZ katmanında, ok ucu _ClosedBlank 6 birim (1,2 mm), eğik kol ≈ 32 birim (6,4 mm) yatayla ≈ 60°, yatay kırılma yazı genişliğinde;
      yazı YZ katmanında 10 birim (2 mm), kırılmanın 4 birim (0,8 mm) üstünde, ikinci satır (ebat) altında. Her eleman türüne bir ok (örnekte simetrik
      yarılarda tekrar var), yer korkuluk okundaki gibi ağırlıklı seçilir (kesilen beton 1e6, ölçü / kot / yazı / başka ok 1e3, çizgi 1). */
-  const OKC = { aci: 60, kolMm: 6.4, okMm: 1.2, yaziMm: 2, bosluk: 0.8, yaziKatman: 'ACIKLAMA_OKU' };
+  const OKC = okKural('cati'), OKL = okKural('lento');
+  /* aynı yazılı gruplar birleşir (ör. saçak aşığı ve duvar aşığı ikisi de "D. Aşığı 10x10"): tek ok */
+  const yaziBirlestir = G => { const M2 = new Map(); for (const g of G) { const k = g.satir.join('|'); if (M2.has(k)) M2.get(k).adaylar.push(...g.adaylar); else M2.set(k, { adaylar: g.adaylar.slice(), satir: g.satir }); } return [...M2.values()]; };
   const catiDn = c => ({ oluk: +c.olukDn || 155, boru: +c.boruDn || 120 }); // modelde çap yoksa Çokal İdari çatısındaki DN155 / DN120
   const uyeOrnek = (A, B, n) => { const o = []; for (let i = 1; i <= n; i++) { const t = i / (n + 1); o.push([A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, (A[2] || 0) + ((B[2] || 0) - (A[2] || 0)) * t]); } return o; };
   /* PLAN (ÇATI PLANI): iskelet elemanları, oluk, iniş boruları. W: model → çizim */
@@ -561,13 +590,13 @@
     const dn = catiDn(cati); if (V.olukDN) dn.oluk = V.olukDN; if (V.borDN) dn.boru = V.borDN;
     if (V.oluk && V.oluk.length > 2) { const ad = []; for (let i = 0; i < V.oluk.length; i++) ad.push(...uyeOrnek(V.oluk[i], V.oluk[(i + 1) % V.oluk.length], 4).map(w2)); G.push({ adaylar: ad, satir: olukYazisi(dn.oluk) }); }
     if (V.boru.length) G.push({ adaylar: V.boru.map(w2), satir: inisBorusuYazisi(dn.boru) });
-    return G.length ? okKoy(G, C.doc.ents.filter(e => e.gv === gv), { gv }, OKC) : 0;
+    return G.length ? okKoy(yaziBirlestir(G), C.doc.ents.filter(e => e.gv === gv), { gv }, OKC) : 0;
   };
   /* PLAN kotları (Kot katmanında kot nesnesi): mahya (taşıyıcı üstü en yüksek) ve çatı döşemesi üstü — eski düz yazılar Mim_Yazi25'e düşüyordu */
   C.catiKotPlan = (gv, W, cati) => {
     if (!cati || !C.catiGeom) return 0; const G = C.catiGeom(cati); let n = 0; if (C.ensureLayer) C.ensureLayer('CATI_KOT', 7, 'CONTINUOUS', 20);
     const put = (q, v) => { const e = C.add(C.newEnt('kot', { gv, pk: true, p: W([q[0], q[1]]), v: +v.toFixed(3), txt: '', layer: 'CATI_KOT' })); if (e) { delete e.sp; n++; } };
-    const zr = Math.max(...G.pieces.flatMap(p => p.z));
+    const zr = C.catiMahyaKotu ? C.catiMahyaKotu(cati) : Math.max(...G.pieces.flatMap(p => p.z)); // mahya kotu tek fonksiyondan (kesitlerle aynı)
     if (G.lines.ridge.length) { const [A, B] = G.lines.ridge.reduce((m, l) => (Math.hypot(l[1][0] - l[0][0], l[1][1] - l[0][1]) > Math.hypot(m[1][0] - m[0][0], m[1][1] - m[0][1]) ? l : m)); const u = [B[0] - A[0], B[1] - A[1]], l = Math.hypot(u[0], u[1]) || 1; put([(A[0] + B[0]) / 2 + u[0] / l * 0.6, (A[1] + B[1]) / 2 + u[1] / l * 0.6], zr); }
     { const w = G.wall, c = [w[0][0] + (w[1][0] - w[0][0]) * 0.25, w[0][1] + (w[1][1] - w[0][1]) * 0.25], nn = [-(w[1][1] - w[0][1]), w[1][0] - w[0][0]], ln = Math.hypot(nn[0], nn[1]) || 1; put([c[0] + nn[0] / ln * 0.9, c[1] + nn[1] / ln * 0.9], +cati.zt || 0); } // döşeme üstü: duvarın içinde (çatı arası)
     return n;
@@ -591,9 +620,9 @@
       /* yağmur oluğu (kesit hattının oluğu kestiği yer) ve iniş boruları (kesit derinliğinde görünen, duvar boyunca düşey parçası) */
       const dn = catiDn(cati); if (V.olukDN) dn.oluk = V.olukDN; if (V.borDN) dn.boru = V.borDN;
       { const O = V.oluk || [], ad = []; for (let i = 0; i < O.length; i++) { const A = O[i], B = O[(i + 1) % O.length], dA = N(A), dB = N(B); if ((dA < 0) === (dB < 0) || Math.abs(dA - dB) < 1e-9) continue; const t = dA / (dA - dB), P = [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t], q = aday(P, V.zSacak - (V.ro || 0.0775) * 0.6); if (q) ad.push(q); } if (ad.length) G.push({ adaylar: ad, satir: olukYazisi(dn.oluk) }); }
-      if (V.borular) { const ad = []; for (const b of V.borular) { const Y = b.yol; for (let i = 1; i < Y.length; i++) { const a = Y[i - 1], c = Y[i]; if (Math.hypot(c[0] - a[0], c[1] - a[1]) > 1e-6 || a[2] - c[2] < 0.5) continue; for (const f of [0.3, 0.5, 0.7]) { const q = aday(a, a[2] + (c[2] - a[2]) * f); if (q) ad.push(q); } } } if (ad.length) G.push({ adaylar: ad, satir: inisBorusuYazisi(dn.boru) }); }
+      if (V.borular) { const ad = []; for (const b of V.borular) { const Y = b.yol; for (let i = 1; i < Y.length; i++) { const a = Y[i - 1], c = Y[i]; if (Math.hypot(c[0] - a[0], c[1] - a[1]) > 1e-6 || a[2] - c[2] < 0.5) continue; for (const zz of [a[2] - 0.3, a[2] - 0.6]) { const q = aday(a, zz); if (q) ad.push(q); } for (const f of [0.3, 0.5, 0.7]) { const q = aday(a, a[2] + (c[2] - a[2]) * f, 0.5); if (q) ad.push(q); } } } if (ad.length) G.push({ adaylar: ad, satir: inisBorusuYazisi(dn.boru) }); }
     }
-    return G.length ? okKoy(G, C.doc.ents.slice(K.i0 || 0), {}, OKC) : 0;
+    return G.length ? okKoy(yaziBirlestir(G), C.doc.ents.slice(K.i0 || 0), {}, OKC) : 0;
   };
 
   /* KAT PLANI: yağmur iniş boruları (firma kuralı 14.11.2026: plan ve kesitlerde oklu açıklama; her boruya ya da aynı cephedeki boru grubuna tek ok).
@@ -608,7 +637,18 @@
   };
   /* kesitin oklu açıklamaları: korkuluk, sonra çatı elemanları (kesit.js; disiplin görünümünde açılımdan sonra — gorunumler.js) */
   /* KESİT: kesilen doğramanın lentosu (firma kuralı 14.11.2026: "lentoları da okla, ebatı ile birlikte yaz"); aynı ebattaki lentolara tek ok (tip başına).
-     Lento: doğrama boşluğunun üstünde, yükseklik lh (yoksa duvar kalınlığı), en duvar kalınlığı; Çokal planlarında lento yazısı yok — yalnız kesitte */
+     Lento: doğrama boşluğunun üstünde, yükseklik lh (yoksa duvar kalınlığı), en duvar kalınlığı. Yazı Yazi25 (LENTO_YAZI), ok YZ */
+  const lentoBilgi = e => { if (e.gv || e.type !== 'acik' || e.lento === false || !C.layer(e.layer).on) return null; const h = C.byId(e.host); if (!h || !Array.isArray(h.pts) || h.pts.length < 2) return null;
+    const i = Math.max(0, Math.min(h.pts.length - 2, +e.seg || 0)), A = h.pts[i], B = h.pts[i + 1], L = Math.hypot(B[0] - A[0], B[1] - A[1]); if (L < 1e-6) return null;
+    const u = [(B[0] - A[0]) / L, (B[1] - A[1]) / L], w = +e.w || 1, lb = +e.lb || 0, td = +h.tb || +h.t || 0.2, lh = +e.lh > 0 ? +e.lh : td;
+    return { h, A, u, w, lb, td, lh, s: +e.s, k: Math.round(td * 100) + 'x' + Math.round(lh * 100), z: (+h.z0 || 0) + (+e.par || 0) + (+e.hh || +e.h || 2) + lh / 2 }; };
+  /* KAT PLANI: o katta (plan kesme kotu duvarın yükseklik aralığında) her lentoya aday; aynı ebat + aynı cephe (duvarın dış yönü, 4 yöne yuvarlanmış) tek ok —
+     kullanıcı 14.11.2026 "plan ve kesitlerde lentolar da oklu açıklamayla". gv, W (model → çizim), hKes, ents */
+  C.lentoOkPlan = (gv, W, hKes, ents) => {
+    const L = []; for (const e of (ents || C.doc.ents)) { const q = lentoBilgi(e); if (!q) continue; const z0 = +q.h.z0 || 0, hh = +q.h.h || 3; if (hKes < z0 - 0.01 || hKes > z0 + hh + 0.01) continue; L.push(q); }
+    if (!L.length) return 0; const D = (ents || C.doc.ents).filter(x => !x.gv && /^(perde|kolon|duvar|wall)$/.test(x.type)), b = D.length && C.extents ? C.extents(D) : null, m = b && isFinite(b[0]) ? [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2] : [0, 0];
+    const G = lentoGrupPlan(L, m).map(g => ({ satir: g.satir, adaylar: g.adaylar.map(p => { const w = W([p[0], p[1]]); return [w[0], w[1]]; }) }));
+    return okKoy(G, C.doc.ents.filter(e => e.gv === gv), { gv }, OKL); };
   C.lentoOkKesit = K => {
     const S = p => (p[0] - K.a[0]) * K.u[0] + (p[1] - K.a[1]) * K.u[1], N = p => (p[0] - K.a[0]) * K.n[0] + (p[1] - K.a[1]) * K.n[1], G = new Map();
     for (const e of C.doc.ents) { if (e.gv || e.type !== 'acik' || e.lento === false || !C.layer(e.layer).on) continue; const h = C.byId(e.host); if (!h || !Array.isArray(h.pts) || h.pts.length < 2) continue;
@@ -618,9 +658,18 @@
       let P; if ((d0 < 0) !== (d1 < 0) && Math.abs(d0 - d1) > 1e-9) { const t = d0 / (d0 - d1); P = [P0[0] + (P1[0] - P0[0]) * t, P0[1] + (P1[1] - P0[1]) * t]; } else continue; // yalnız kesilen lento
       const z = (+h.z0 || 0) + (+e.par || 0) + (+e.hh || +e.h || 2) + lh / 2, s = S(P); if (!K.inU([s, z])) continue; const w2 = K.W([s, z]), k = Math.round(td * 100) + 'x' + Math.round(lh * 100);
       if (!G.has(k)) G.set(k, { adaylar: [], satir: lentoYazisi(td, lh) }); G.get(k).adaylar.push([w2[0], w2[1]]); }
-    return G.size ? okKoy([...G.values()], C.doc.ents.slice(K.i0 || 0), {}) : 0;
+    return G.size ? okKoy([...G.values()], C.doc.ents.slice(K.i0 || 0), {}, OKL) : 0;
   };
-  C.kesitOklari = K => { let n = 0; for (const [f, ad] of [[C.korkulukOkKesit, 'korkuluk oku'], [C.lentoOkKesit, 'lento oku'], [C.catiOkKesit, 'çatı oku']]) if (f) try { n += f(K) || 0; } catch (er) { console.error(ad, er); } return n; };
+  /* KESİT: mahya kotu (C.catiMahyaKotu — çatı planıyla aynı değer). Mahya hattı kesit düzlemini kesiyorsa (B'-B', A-A) kesişimde, kesite paralel ve
+     kesit derinliğindeyse (A'-A') hattın ortasında; kot nesnesi KOT katmanında. Mimari kesitte çatı katmanlarının yatay yüzeyine ayrıca kot konmaz (kesit.js). */
+  C.catiKotKesit = K => { let n = 0; if (!C.catiMahyaKotu || !C.catiMahyaHatti) return 0; const S = p => (p[0] - K.a[0]) * K.u[0] + (p[1] - K.a[1]) * K.u[1], N = p => (p[0] - K.a[0]) * K.n[0] + (p[1] - K.a[1]) * K.n[1];
+    for (const cati of C.doc.ents) { if (cati.gv || cati.type !== 'cati' || !C.layer(cati.layer).on) continue; let H, z; try { H = C.catiMahyaHatti(cati); z = C.catiMahyaKotu(cati); } catch (er) { continue; } if (!H || !isFinite(z)) continue;
+      const dA = N(H[0]), dB = N(H[1]); let s;
+      if ((dA < -1e-6) !== (dB < -1e-6) && Math.abs(dA - dB) > 1e-6) { const t = dA / (dA - dB); s = S([H[0][0] + (H[1][0] - H[0][0]) * t, H[0][1] + (H[1][1] - H[0][1]) * t]); }
+      else if (Math.min(dA, dB) >= -0.05 && Math.max(dA, dB) <= K.depth) s = (S(H[0]) + S(H[1])) / 2; else continue;
+      if (!K.inU([s, z])) continue; if (C.ensureLayer) C.ensureLayer('KOT', 7, 'CONTINUOUS', 18); const e = C.add(C.newEnt('kot', { p: K.W([s, z]), v: z, txt: '', layer: 'KOT' })); if (e) { delete e.sp; n++; } }
+    return n; };
+  C.kesitOklari = K => { let n = 0; for (const [f, ad] of [[C.catiKotKesit, 'mahya kotu'], [C.korkulukOkKesit, 'korkuluk oku'], [C.lentoOkKesit, 'lento oku'], [C.catiOkKesit, 'çatı oku']]) if (f) try { n += f(K) || 0; } catch (er) { console.error(ad, er); } return n; };
   /* AKS: modelde aks yoksa kolon merkezlerinden (yoksa betonarme perde eksenlerinden) türetilir; MIMARIPAFTA her çalıştığında yeniler (oto: 'MIMARIPAFTA') */
   C.mimariAksHazirla = ents => {
     C.doc.ents = C.doc.ents.filter(e => !(e.type === 'aks' && e.oto === 'MIMARIPAFTA'));
@@ -674,8 +723,10 @@
     const kes = (p, o) => Math.max(0, Math.min(p.bb[2], o.bb[2]) - Math.max(p.bb[0], o.bb[0])) * Math.max(0, Math.min(p.bb[3], o.bb[3]) - Math.max(p.bb[1], o.bb[1]));
     const M2 = odalar.filter(o => !odalar.some(p => p !== o && p.z > o.z && kes(p, o) >= 0.8 * (p.bb[2] - p.bb[0]) * (p.bb[3] - p.bb[1])));
     let adlar = []; try { adlar = C.mahalVerisi ? C.mahalVerisi().rooms : []; } catch (er) { adlar = []; }
-    const merkez = q => { let sx = 0, sy = 0; for (const p of q.e.pts) { sx += p[0]; sy += p[1]; } return [sx / q.e.pts.length, sy / q.e.pts.length]; };
-    M2.forEach((m, i) => { const r = adlar.find(q => q.e && Array.isArray(q.e.pts) && q.e.pts.length && (c => c[0] > m.bb[0] && c[0] < m.bb[2] && c[1] > m.bb[1] && c[1] < m.bb[3])(merkez(q))); m.ad = r ? r.ad : `MAHAL ${i + 1}`; });
+    const pts = q => (q.e && Array.isArray(q.e.pts) && q.e.pts.length ? q.e.pts : Array.isArray(q.poly) && q.poly.length ? q.poly : null), merkez = P => { let sx = 0, sy = 0; for (const p of P) { sx += p[0]; sy += p[1]; } return [sx / P.length, sy / P.length]; };
+    /* mahal listesindeki adla (aynı kot, merkez odanın içinde); bulunmazsa listedeki adlarla çakışmayan MAHAL n (mahalAdlari) */
+    M2.forEach(m => { const r = adlar.find(q => { const P = pts(q); if (!P || Math.abs((+q.z || 0) - (+m.z || 0)) > 1.5) return false; const c = merkez(P); return c[0] > m.bb[0] && c[0] < m.bb[2] && c[1] > m.bb[1] && c[1] < m.bb[3]; }); m.ad = r ? r.ad : ''; });
+    { const A = mahalAdlari(adlar.map(q => ({ ad: q.ad, z: q.z })).concat(M2.map(m => ({ ad: m.ad, z: m.z }))), []).slice(adlar.length); M2.forEach((m, i) => { if (!m.ad) m.ad = A[i]; }); }
     const aciklar = dogramalar(ents).map(d => ({ c: d.c, w: d.w, d: Math.abs(d.u[0]) >= Math.abs(d.u[1]) ? 'x' : 'y' }));
     const kolonlar = ents.filter(e => e.type === 'kolon').map(e => { const b = B3.get(e) || bbox3(e); return b ? [b[0], b[1], b[3], b[4]] : null; }).filter(Boolean);
     const kirisler = ents.filter(e => e.type === 'kiris' && e.a && e.b).map(e => { const b = bbox3(e); return b ? { bb: [b[0], b[1], b[3], b[4]], d: Math.abs(e.b[0] - e.a[0]) >= Math.abs(e.b[1] - e.a[1]) ? 'x' : 'y' } : null; }).filter(Boolean);

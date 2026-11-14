@@ -238,7 +238,7 @@
       // eğim okları ve kotlar
       const done = new Set(), pct = pc => `Eğim %${Math.round(pc.slope * 100)}`;
       for (const pc of G.pieces.slice().sort((a, b) => Math.abs(area(b.q)) - Math.abs(area(a.q)))) { const k = pc.r + ':' + pc.k + (pc.lower ? 'L' : ''); if (done.has(k)) continue; done.add(k); const c = pc.q.reduce((s2, p) => [s2[0] + p[0] / pc.q.length, s2[1] + p[1] / pc.q.length], [0, 0]), n = pc.x.n, Lr = Math.min(1.2, Math.sqrt(Math.abs(area(pc.q))) * 0.35), a = [c[0] + n[0] * Lr / 2, c[1] + n[1] * Lr / 2, 0], b = [c[0] - n[0] * Lr / 2, c[1] - n[1] * Lr / 2, 0], hw = Lr * 0.18; out.push(L(a, b, { lw: 18 }), L(b, [b[0] + n[0] * hw - n[1] * hw * 0.6, b[1] + n[1] * hw + n[0] * hw * 0.6, 0], { lw: 18 }), L(b, [b[0] + n[0] * hw + n[1] * hw * 0.6, b[1] + n[1] * hw - n[0] * hw * 0.6, 0], { lw: 18 })); out.push(TX([c[0] - n[1] * th * 1.2, c[1] + n[0] * th * 1.2, 0], th, pct(pc), Math.abs(Math.atan2(-n[0], n[1])) > Math.PI / 2 ? Math.atan2(-n[0], n[1]) + Math.PI : Math.atan2(-n[0], n[1]), 'MC')); }
-      const zr = Math.max(...G.pieces.flatMap(p => p.z)), fz = v => (v >= 0 ? '+' : '') + v.toFixed(2);
+      const zr = C.catiMahyaKotu ? C.catiMahyaKotu(e) : Math.max(...G.pieces.flatMap(p => p.z)), fz = v => (v >= 0 ? '+' : '') + v.toFixed(2); // mahya kotu tek fonksiyondan (plan, kesit, bilgi)
       if (et && G.lines.ridge.length) { const [A, B] = G.lines.ridge.reduce((m, l) => (Math.hypot(l[1][0] - l[0][0], l[1][1] - l[0][1]) > Math.hypot(m[1][0] - m[0][0], m[1][1] - m[0][1]) ? l : m)); out.push(TX([(A[0] + B[0]) / 2 + th, (A[1] + B[1]) / 2 + th, 0], th, fz(zr), 0, 'BL')); }
       if (et) { const w = G.wall, c = [w[0][0] + (w[1][0] - w[0][0]) * 0.25, w[0][1] + (w[1][1] - w[0][1]) * 0.25]; const n = [-(w[1][1] - w[0][1]), w[1][0] - w[0][0]], ln = Math.hypot(n[0], n[1]) || 1, q = [c[0] + n[0] / ln * 0.9, c[1] + n[1] / ln * 0.9]; out.push(C.prim.CI([q[0], q[1], 0], th * 0.4, { lw: 13 }), L([q[0] - th * 0.6, q[1], 0], [q[0] + th * 0.6, q[1], 0], { lw: 9 }), L([q[0], q[1] - th * 0.6, 0], [q[0], q[1] + th * 0.6, 0], { lw: 9 }), TX([q[0], q[1] + th * 0.8, 0], th, fz(+e.zt || 0), 0, 'BC')); }
       void Q; return out;
@@ -249,7 +249,7 @@
     mesh: e => [cacheAll(e).mesh],
     xf: (e, X) => { let dz = 0; try { const q = X.p([0, 0, 0]); dz = q && q.length > 2 ? (q[2] || 0) : 0; } catch (err) { } e.zt = (+e.zt || 0) + dz; e.pts = e.pts.map(q => X.p([q[0], q[1], 0]).slice(0, 2)); delete e._g; delete e._b; },
     snaps: e => { const G = geomOf(e), out = G.foot.map(p => ({ p: [p[0], p[1], 0], k: 'end' })); return out; },
-    info: e => { const G = geomOf(e), q = qty(e); return `${TUR[e.kind]} · eğim ${M.fmt(+e.deg, 1)}° (%${Math.round(Math.tan(+e.deg * RAD) * 100)}) · saçak ${+e.sacak > 0 ? `${Math.round(+e.sacak * 100)} cm (döşeme konsolu)` + (+e.ov > 0 ? ` + ${Math.round(+e.ov * 100)} cm` : '') : `${Math.round((+e.ov || 0) * 100)} cm`}${+e.knee ? ` · ayak duvarı ${M.fmt(+e.knee, 2)} m` : ''} · mahya kotu ${M.fmt(Math.max(...G.pieces.flatMap(p => p.z)), 2)} · ${q.slice(0, 2).map(([a, b, v]) => `${a} ${M.fmt(v, 2)} ${b}`).join(' · ')}${G.warn ? ' · ' + G.warn : ''}`; },
+    info: e => { const G = geomOf(e), q = qty(e); return `${TUR[e.kind]} · eğim ${M.fmt(+e.deg, 1)}° (%${Math.round(Math.tan(+e.deg * RAD) * 100)}) · saçak ${+e.sacak > 0 ? `${Math.round(+e.sacak * 100)} cm (döşeme konsolu)` + (+e.ov > 0 ? ` + ${Math.round(+e.ov * 100)} cm` : '') : `${Math.round((+e.ov || 0) * 100)} cm`}${+e.knee ? ` · ayak duvarı ${M.fmt(+e.knee, 2)} m` : ''} · mahya kotu ${M.fmt(C.catiMahyaKotu(e), 2)} · ${q.slice(0, 2).map(([a, b, v]) => `${a} ${M.fmt(v, 2)} ${b}`).join(' · ')}${G.warn ? ' · ' + G.warn : ''}`; },
   };
   /* sıhhi tesisat yağmur ayarı, kolon / perde zarfı ya da tretuvar değişirse oluk, boru ve metraj hemen yenilenir (önbellek ve çizim silinir) */
   let sonImza = null;
@@ -320,6 +320,14 @@
     return out;
   };
   C.catiGeom = e => geomOf(e);
+  /* MAHYA KOTU (tek kaynak; denetim 14.11.2026: A-A +6.65, A'-A' +6.57, çatı planı +6.58 üç ayrı değerdi): mahyada örtünün üstü = taşıyıcı (mertek) üstü
+     en yüksek kotu + kaplama katmanlarının toplamı (kaplama tahtası, XPS, su yalıtımı, örtü — 3B modelde üst üste konan katmanlar). Çatı planı kotu,
+     kesitlerdeki mahya kotu (C.catiKotKesit, A-A, A'-A', B'-B') ve çatı bilgisi bunu kullanır. Çokal 10-İdari çatı kesitlerinde mahya kotu yok (+6,19 baca
+     başlığı); örtü üstü kabulü kullanıcıya soruldu. */
+  C.catiMahyaKotu = e => { const G = geomOf(e), zr = Math.max(...G.pieces.flatMap(p => p.z)); let top = 0; try { for (const k of C.catiOkVerisi(e).kat) top = Math.max(top, k.o + k.t); } catch (er) { top = 0; } return Math.round((zr + top) * 1000) / 1000; };
+  /* mahya hattı (en uzun mahya; yoksa en yüksek kenar): [[x, y], [x, y]] */
+  C.catiMahyaHatti = e => { const G = geomOf(e), L = G.lines.ridge || []; if (L.length) { const r = L.reduce((m, l) => (Math.hypot(l[1][0] - l[0][0], l[1][1] - l[0][1]) > Math.hypot(m[1][0] - m[0][0], m[1][1] - m[0][1]) ? l : m)); return [[r[0][0], r[0][1]], [r[1][0], r[1][1]]]; }
+    let en = null; for (const pc of G.pieces) for (let i = 0; i < pc.q.length; i++) { const j = (i + 1) % pc.q.length, z = Math.min(pc.z[i], pc.z[j]); if (!en || z > en.z + 1e-6) en = { z, a: pc.q[i], b: pc.q[j] }; } return en ? [[en.a[0], en.a[1]], [en.b[0], en.b[1]]] : null; };
   C.catiPlanCizim = e => planPrims(e, false);
   /* oklu açıklama verisi (mimari-oto.js → C.catiOkPlan / C.catiOkKesit): ahşap elemanlar (mem: { t, A, B, b, h } kiriş türü, { t, P, z1, z2, b } dikme),
      kaplama katmanları (taşıyıcı üstünden yukarı: tür, anahtar, kalınlık, alt ofset), oluk ve iniş borusu (yer: oluk hattı = saçak 7 cm dışı, borular dış köşelerde) */
@@ -336,64 +344,79 @@
   /* MIMARIPAFTA çatı detayları: DETAY-A (saçak) ve DETAY-B (mahya), 1/10; O: modelde yer. Yeni nesneler C._gvCur görünümüne girer. */
   C.catiDetaylari = (e, O) => drawDetails(e, O);
   /* ---------- ÇATI PAFTASI: çatı planı başlığı + ölçüleri, A-A / B-B kesitleri, DETAY-A (saçak) ve DETAY-B (mahya) 1/10 ---------- */
+  /* Yazılar, ebatlar ve taramalar tek kaynaktan (denetim 14.11.2026: detay plan / kesitle çelişmesin): ebatlar modelin çatı nesnesinden (C.catiOkVerisi →
+     plan ve kesit oklarıyla aynı), yazı biçimi mimari-oto.js (Çokal ÇKL-AAT-İB-03: "Aşık 10x12", "D. Aşığı 10x10", "Kuşaklama" / "2x5x10" …), oklu açıklama
+     aynı yer seçimiyle (C.okluAciklamaKoy; YZ katmanı, ok ucu 1,2 mm, kol 6,4 mm / 60°, 1/10'da kâğıt 1 mm = 0,01 m), tarama kesit taramasıyla aynı
+     (C.secHatchSpec: beton kural tablosundan ANSI36; 1/10'da kâğıttaki aralık korunur), başlık 4 mm (kural tablosu baslik.detayMm). */
   const drawDetails = (e, O) => {
     const host = C.byId(e.host) || {}, tn = Math.tan((+e.deg || 18) * RAD), cs = Math.cos(Math.atan(tn)), t = +host.t || 0.15, sc = +host.sacak > 0 ? +host.sacak : Math.max(0.3, +e.ov || 0.5);
-    const mh = +e.mh || 0.10, mb = +e.mb || 0.05, yal = e.yal || 'doseme', cy = (yal === 'doseme' || yal === 'ikisi') ? (+e.cy || 8) / 100 : 0, xps = yal !== 'doseme' ? (+e.xps || 0) / 100 : 0;
-    const at = (ALT[e.alt] || ALT.tahta18).t, st = (SU[e.su] || SU.bitum).t || 0.004, ort = ORTU[e.ortu] || ORTU.alaturka, ang = Math.atan(tn), pct = Math.round(tn * 100);
+    let V = null; try { V = C.catiOkVerisi(e); } catch (er) { V = null; }
+    const memB = tt => { const m = V && V.mem.find(q => q.t === tt); return m ? [m.b, m.P ? m.b : m.h] : null; };
+    const mb = +e.mb || 0.05, mh = +e.mh || 0.12, ab = +e.ab || 0.10, ah = +e.ah || 0.12, db = +e.db || 0.10, yal = e.yal || 'mertek', cy = (yal === 'doseme' || yal === 'ikisi') ? (+e.cy || 8) / 100 : 0;
+    const sA = memB('Saçak aşığı') || memB('Duvar aşığı') || [0.10, 0.10], sAt = memB('Saçak aşığı') ? 'Saçak aşığı' : 'Duvar aşığı', alin = memB('Alın tahtası') || [0.025, 0.20];
+    const kat = V ? V.kat : [], katOf = tur => kat.find(k => k.tur === tur), ang = Math.atan(tn), pct = Math.round(tn * 100);
+    const A = C.mimariOtoApi || {}, ebat = (b, h) => [b, h].map(v => +(v * 100).toFixed(1)).sort((x, y) => x - y).join('x');
+    const uye = (tt, b, h, yer) => A.catiUyeYazisi ? A.catiUyeYazisi(tt, b, h, yer || 'kesit') : [tt + ' ' + ebat(b, h)];
+    const katY = k => A.catiKatmanYazisi ? A.catiKatmanYazisi(k) : [k.ad], dnO = (V && V.olukDN) || +e.olukDn || 155, olukY = A.olukYazisi ? A.olukYazisi(dnO) : [`DN${dnO} Çinko Yağmur Oluğu`];
+    const KB = (C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.baslik) || {}, thB = (KB.detayMm || 4) / 100, thO = (KB.olcekMm || 3) / 100;
     ['DETAY', 'DETAY_INCE', 'DETAY_TARAMA'].forEach((l, i) => C.ensureLayer(l, [7, 8, 8][i], 'CONTINUOUS', [35, 13, 9][i])); C.std('YAZI');
     const add = (t2, pr) => { const x = C.add(C.newEnt(t2, pr)); delete x.sp; return x; };
     const th = 0.02; // 1/10'da 2 mm yazı
     const mk = (ox, oy) => {
-      const W = (x, y) => [ox + x, oy + y, 0];
+      const W = (x, y) => [ox + x, oy + y, 0], oklar = [], i0 = C.doc.ents.length;
       const ln = (a, b, lay, o) => add('line', Object.assign({ a: W(...a), b: W(...b), layer: lay || 'DETAY' }, o || {}));
       const pl = (pts, cl, lay, o) => add('pline', Object.assign({ pts: pts.map(p => W(...p)), closed: !!cl, layer: lay || 'DETAY' }, o || {}));
-      const ht = (loops, pat, sc2) => add('hatch', { loops: loops.map(lp => lp.map(p => { const w = W(...p); return [w[0], w[1]]; })), pat, sc: sc2 || 6, ang: 0, ann: false, orig: [ox, oy], layer: 'DETAY_TARAMA' });
+      /* tarama: kesit malzeme kodu (B beton, Y yalıtım, F dolgu) → kesit taramasıyla aynı desen; 1/10 detayda kâğıttaki aralık korunur (ann → gerçek ölçek × 10) */
+      const ht = (loops, mat) => { const H = C.secHatchSpec ? C.secHatchSpec(mat) : null; if (!H) return null; return add('hatch', { loops: loops.map(lp => lp.map(p => { const w = W(...p); return [w[0], w[1]]; })), pat: H.pat, sc: H.ann === false ? H.sc : H.sc * 10, ang: H.ang || 0, ann: false, orig: [ox, oy], layer: 'DETAY_TARAMA' }); };
       const tx = (p, s2, al, rot) => add('text', { p: W(...p), h: th, s: s2, rot: rot || 0, al: al || 'L', layer: 'YAZI' });
-      const lead = (p, q, s2) => { ln(p, q, 'DETAY_INCE'); ln(q, [q[0] + (q[0] >= p[0] ? 0.02 : -0.02) + 0.0, q[1]], 'DETAY_INCE'); tx([q[0] + (q[0] >= p[0] ? 0.025 : -0.025), q[1] + 0.004], s2, q[0] >= p[0] ? 'L' : 'R'); };
+      const ok = (p, satir) => { if (satir && satir.length) oklar.push({ p, satir }); }; // oklu açıklama: ucu p'de, yeri sonra (bütün çizgiler konduktan sonra) seçilir
       const wood = (x0, y0, w, h) => { pl([[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]], true); ln([x0, y0], [x0 + w, y0 + h], 'DETAY_INCE'); ln([x0 + w, y0], [x0, y0 + h], 'DETAY_INCE'); };
       const tiles = (x0, y0, len, a) => { // a: ilerleme açısı (rad); kiremitler örtü üstünde (yukarı tarafa)
         const ca = Math.cos(a), sa = Math.sin(a); let nx = -sa, ny = ca; if (ny < 0) { nx = -nx; ny = -ny; } const T2 = (s2, n) => [x0 + s2 * ca + n * nx, y0 + s2 * sa + n * ny];
         for (let s2 = 0; s2 < len - 0.05; s2 += 0.36) { const seg = [[s2, 0.0], [s2 + 0.02, 0.045], [s2 + 0.06, 0.055], [s2 + 0.09, 0.035], [s2 + 0.40, 0.02], [s2 + 0.42, 0.005]].map(([u, n]) => T2(u, n)); pl(seg, false, 'DETAY'); }
       };
-      const title = (p, s2) => { add('text', { p: W(p[0], p[1]), h: 0.05, s: s2, rot: 0, al: 'C', layer: 'YAZI' }); const w2 = s2.length * 0.035; ln([p[0] - w2 / 2, p[1] - 0.015], [p[0] + w2 / 2, p[1] - 0.015], 'YAZI', { lw: 35 }); ln([p[0] - w2 / 2, p[1] - 0.025], [p[0] + w2 / 2, p[1] - 0.025], 'YAZI'); add('text', { p: W(p[0], p[1] - 0.07), h: 0.03, s: 'ÖL:1/10', rot: 0, al: 'C', layer: 'YAZI' }); };
-      return { W, ln, pl, ht, tx, lead, wood, tiles, title };
+      const title = (p, s2) => { add('text', { p: W(p[0], p[1]), h: thB, s: s2, rot: 0, al: 'C', layer: 'YAZI' }); const w2 = s2.length * thB * 0.7; ln([p[0] - w2 / 2, p[1] - 0.015], [p[0] + w2 / 2, p[1] - 0.015], 'YAZI', { lw: 35 }); ln([p[0] - w2 / 2, p[1] - 0.025], [p[0] + w2 / 2, p[1] - 0.025], 'YAZI'); add('text', { p: W(p[0], p[1] - 0.07), h: thO, s: 'ÖL:1/10', rot: 0, al: 'C', layer: 'YAZI' }); };
+      const okKoy = () => { if (!oklar.length) return; const list = C.doc.ents.slice(i0);
+        if (C.okluAciklamaKoy) C.okluAciklamaKoy(oklar.map(o => ({ adaylar: [W(...o.p).slice(0, 2)], satir: o.satir })), list, {}, { tur: 'cati', k: 0.01 });
+        else for (const o of oklar) o.satir.forEach((s2, i) => tx([o.p[0] + 0.1, o.p[1] + 0.1 - i * 0.03], s2)); };
+      return { W, ln, pl, ht, tx, ok, wood, tiles, title, okKoy };
     };
     /* DETAY-A: saçak */
     { const D = mk(O[0], O[1]), Lx = sc + 1.4, ybot = -0.55;
-      const conc = [[0, 0], [Lx, 0], [Lx, -t], [sc + 0.30, -t], [sc + 0.30, ybot], [sc, ybot], [sc, -t], [0, -t]]; D.pl(conc, true); D.ht([conc], 'ANSI31', 5);
-      D.pl([[sc, ybot], [sc + 0.19, ybot], [sc + 0.19, ybot - 0.5]], false); D.pl([[sc - 0.05, -t], [sc - 0.05, ybot - 0.5]], false, 'DETAY_INCE'); D.ht([[[sc - 0.05, -t], [sc, -t], [sc, ybot - 0.5], [sc - 0.05, ybot - 0.5]]], 'DOTS', 4);
+      const conc = [[0, 0], [Lx, 0], [Lx, -t], [sc + 0.30, -t], [sc + 0.30, ybot], [sc, ybot], [sc, -t], [0, -t]]; D.pl(conc, true); D.ht([conc], 'B');
+      D.pl([[sc, ybot], [sc + 0.19, ybot], [sc + 0.19, ybot - 0.5]], false); D.pl([[sc - 0.05, -t], [sc - 0.05, ybot - 0.5]], false, 'DETAY_INCE'); D.ht([[[sc - 0.05, -t], [sc, -t], [sc, ybot - 0.5], [sc - 0.05, ybot - 0.5]]], 'Y');
       D.ln([sc + 0.19, ybot - 0.5], [sc - 0.05, ybot - 0.5], 'DETAY_INCE', { lt: 'DASHED' }); D.ln([Lx, 0.9], [Lx, ybot - 0.5], 'DETAY_INCE', { lt: 'DASHED' });
-      if (cy > 0) { const q = [[sc + 0.08, 0], [Lx, 0], [Lx, cy], [sc + 0.08, cy]]; D.pl(q, true, 'DETAY_INCE'); D.ht([q], 'DOTS', 4); D.lead([sc + 0.9, cy / 2], [Lx + 0.12, cy + 0.12], `ISI YALITIMI (cam yünü şilte ${Math.round(cy * 100)} cm)`); }
-      const xs = -0.03, yb = x => 0.10 + Math.max(x, 0) * tn + Math.min(x, 0) * tn, hv = mh / cs, yt = x => yb(x) + hv;
-      D.wood(0.0, 0, 0.10, 0.10); D.lead([0.05, 0.05], [-0.2, -0.12 - t], 'SAÇAK AŞIĞI 10/10');
-      { const ya = yb(sc); D.wood(sc - 0.05, ya - 0.10, 0.10, 0.10); D.pl([[sc - 0.05, 0], [sc + 0.05, 0], [sc + 0.05, ya - 0.10], [sc - 0.05, ya - 0.10]], true, 'DETAY_INCE'); D.lead([sc, ya - 0.05], [sc + 0.35, ya + 0.25], 'AŞIK 10/10 (dikme / yastık üstünde)'); }
+      if (cy > 0) { const q = [[sc + 0.08, 0], [Lx, 0], [Lx, cy], [sc + 0.08, cy]]; D.pl(q, true, 'DETAY_INCE'); D.ht([q], 'Y'); D.ok([sc + 0.9, cy / 2], [`Cam Yünü Şilte (${Math.round(cy * 100)} cm)`]); }
+      const xs = -0.03, yb = x => sA[1] + Math.max(x, 0) * tn + Math.min(x, 0) * tn, hv = mh / cs, yt = x => yb(x) + hv;
+      D.wood(0.0, 0, sA[0], sA[1]); D.ok([sA[0] / 2, sA[1] / 2], uye(sAt, sA[0], sA[1]));
+      { const ya = yb(sc); D.wood(sc - ab / 2, ya - ah, ab, ah); D.pl([[sc - db / 2, 0], [sc + db / 2, 0], [sc + db / 2, ya - ah], [sc - db / 2, ya - ah]], true, 'DETAY_INCE'); D.ok([sc, ya - ah / 2], uye('Aşık', ab, ah)); }
       D.pl([[xs, yb(xs)], [Lx, yb(Lx)]], false); D.pl([[xs, yt(xs)], [Lx, yt(Lx)]], false); D.ln([xs, yb(xs)], [xs, yt(xs)]);
-      D.lead([sc + 0.6, (yb(sc + 0.6) + yt(sc + 0.6)) / 2], [sc + 0.75, yt(sc + 0.6) + 0.42], `MERTEK (${Math.round(mb * 100)}x${Math.round(mh * 100)})`);
-      let o = hv; const band = (h2, nm, pat, lw) => { if (!(h2 > 0)) return; const a1 = o, a2 = o + h2 / cs, y1 = x => yb(x) + a1, y2 = x => yb(x) + a2; const q = [[xs, y1(xs)], [Lx, y1(Lx)], [Lx, y2(Lx)], [xs, y2(xs)]]; D.pl(q, true, lw ? 'DETAY' : 'DETAY_INCE', lw ? { lw } : undefined); if (pat) D.ht([q], pat, 3); D.lead([sc + 1.0, (y1(sc + 1.0) + y2(sc + 1.0)) / 2], [sc + 1.1 - (nm.length * 0.004), y2(sc + 1.0) + 0.25 + o * 0.6], nm); o = a2; };
-      band(at, (ALT[e.alt] || ALT.tahta18).ad.toUpperCase()); band(xps, `XPS ${Math.round(xps * 100)} cm`, 'ZIGZAG'); band(Math.max(st, 0.004), (SU[e.su] || SU.bitum).ad.toUpperCase(), null, 50);
-      D.tiles(xs - 0.04, yb(xs - 0.04) + o, (Lx - xs) / cs, ang); D.lead([sc + 0.3, yb(sc + 0.3) + o + 0.05], [sc + 0.05, yb(sc + 0.3) + o + 0.3], ort.ad.toUpperCase());
-      D.pl([[xs - 0.025, yt(xs) + 0.01], [xs - 0.025, yt(xs) - 0.20], [xs, yt(xs) - 0.20]], false); D.lead([xs - 0.025, yt(xs) - 0.1], [xs - 0.25, yt(xs) - 0.05], 'ALIN TAHTASI 2.5x20');
-      const gy = yt(xs) - 0.22; D.pl([[xs - 0.03, gy + 0.13], [xs - 0.03, gy], [xs - 0.16, gy], [xs - 0.16, gy + 0.14], [xs - 0.175, gy + 0.14]], false, 'DETAY', { lw: 35 }); D.lead([xs - 0.12, gy + 0.03], [xs - 0.35, gy - 0.15], 'YAĞMUR OLUĞU');
-      const kx = sc + 0.75; D.pl([[kx, yb(kx) - 0.12], [Lx, yb(kx) - 0.12], [Lx, yb(kx) - 0.02], [kx, yb(kx) - 0.02]], true, 'DETAY_INCE'); D.lead([kx + 0.3, yb(kx) - 0.07], [Lx + 0.12, yb(kx) - 0.07], 'KUŞAKLAMA 2x(5x10)');
+      D.ok([sc + 0.6, (yb(sc + 0.6) + yt(sc + 0.6)) / 2], uye('Mertek', mb, mh));
+      let o = hv; const band = (k, mat, lw) => { if (!k || !(k.t > 0)) return; const a1 = o, a2 = o + k.t / cs, y1 = x => yb(x) + a1, y2 = x => yb(x) + a2; const q = [[xs, y1(xs)], [Lx, y1(Lx)], [Lx, y2(Lx)], [xs, y2(xs)]]; D.pl(q, true, lw ? 'DETAY' : 'DETAY_INCE', lw ? { lw } : undefined); if (mat) D.ht([q], mat); D.ok([sc + 1.0, (y1(sc + 1.0) + y2(sc + 1.0)) / 2], katY(k)); o = a2; };
+      band(katOf('alt')); band(katOf('xps'), 'Y'); band(katOf('su'), null, 50);
+      D.tiles(xs - 0.04, yb(xs - 0.04) + o, (Lx - xs) / cs, ang); if (katOf('ortu')) D.ok([sc + 0.3, yb(sc + 0.3) + o + 0.03], katY(katOf('ortu')));
+      D.pl([[xs - alin[0], yt(xs) + 0.01], [xs - alin[0], yt(xs) - alin[1]], [xs, yt(xs) - alin[1]]], false); D.ok([xs - alin[0], yt(xs) - alin[1] / 2], uye('Alın tahtası', alin[0], alin[1]));
+      const gy = yt(xs) - alin[1] - 0.02, r0 = dnO / 2000; D.pl([[xs - 0.03, gy + 0.13], [xs - 0.03, gy], [xs - 0.03 - 2 * r0, gy], [xs - 0.03 - 2 * r0, gy + 0.14], [xs - 0.045 - 2 * r0, gy + 0.14]], false, 'DETAY', { lw: 35 }); D.ok([xs - 0.03 - r0, gy], olukY);
+      const kx = sc + 0.75; D.pl([[kx, yb(kx) - 0.12], [Lx, yb(kx) - 0.12], [Lx, yb(kx) - 0.02], [kx, yb(kx) - 0.02]], true, 'DETAY_INCE'); D.ok([kx + 0.3, yb(kx) - 0.07], uye('Kuşaklama', 0.05, 0.10));
       const ax = sc + 0.35, ay = yt(sc + 0.35) + o + 0.18; D.pl([[ax + 0.3 * cs, ay + 0.3 * Math.sin(ang)], [ax, ay]], false, 'DETAY_INCE'); D.pl([[ax + 0.05, ay + 0.03], [ax, ay], [ax + 0.05, ay - 0.02]], false, 'DETAY_INCE'); D.tx([ax + 0.1, ay + 0.06], `Eğim %${pct}`, 'L', ang / RAD);
-      D.title([sc * 0.6 + 0.6, ybot - 0.65], 'DETAY-A');
+      D.title([sc * 0.6 + 0.6, ybot - 0.65], 'DETAY-A'); D.okKoy();
     }
     /* DETAY-B: mahya */
-    { const ox = O[0] + sc + 3.6, oy = O[1] + 0.2, D = mk(ox, oy), X = 1.25, hv = mh / cs, yt = x => -Math.abs(x) * tn, yb = x => yt(x) - hv;
+    { const ox = O[0] + sc + 3.6, oy = O[1] + 0.2, D = mk(ox, oy), X = 1.25, hv = mh / cs, yt = x => -Math.abs(x) * tn, yb = x => yt(x) - hv, mA = memB('Mahya aşığı') || [ab, ah], dk = memB('Dikme') || [db, db];
       for (const sg of [1, -1]) { D.pl([[0, yt(0)], [sg * X, yt(X)]], false); D.pl([[sg * 0.0, yb(0)], [sg * X, yb(X)]], false); }
-      D.lead([0.55, (yt(0.55) + yb(0.55)) / 2 - 0.0], [0.75, yt(0.55) + 0.32], `MERTEK (${Math.round(mb * 100)}x${Math.round(mh * 100)})`);
-      const ay = yb(0); D.wood(-0.05, ay - 0.10, 0.10, 0.10); D.lead([0.05, ay - 0.05], [0.35, ay - 0.2], 'MAHYA AŞIĞI (10x10)');
-      D.pl([[-0.05, ay - 0.10], [-0.05, -1.05]], false); D.pl([[0.05, ay - 0.10], [0.05, -1.05]], false); D.ln([-0.05, -1.05], [0.05, -1.05], 'DETAY_INCE', { lt: 'DASHED' }); D.lead([0.0, -0.8], [-0.45, -0.95], 'DİKME (10x10)');
-      const ky = -0.52; D.pl([[-1.0, ky - 0.05], [1.0, ky - 0.05], [1.0, ky + 0.05], [-1.0, ky + 0.05]], true); D.lead([-0.6, ky], [-0.95, ky + 0.25], 'KUŞAKLAMA 2x(5x10)');
-      for (const sg of [1, -1]) { const p1 = [sg * 0.05, -0.95], p2 = [sg * 0.75, yb(0.75) - 0.02]; const d = [p2[0] - p1[0], p2[1] - p1[1]], l = Math.hypot(d[0], d[1]), nn = [-d[1] / l * 0.05, d[0] / l * 0.05]; D.pl([[p1[0] + nn[0], p1[1] + nn[1]], [p2[0] + nn[0], p2[1] + nn[1]], [p2[0] - nn[0], p2[1] - nn[1]], [p1[0] - nn[0], p1[1] - nn[1]]], true, 'DETAY_INCE'); }
-      D.lead([0.4, -0.65], [0.55, -0.9], 'GÖĞÜSLEME 2x(5x10)');
-      let o = 0; const band = (h2, nm, pat, lw) => { if (!(h2 > 0)) return; const a2 = o + h2 / cs; for (const sg of [1, -1]) { const q = [[0, yt(0) + o], [sg * X, yt(X) + o], [sg * X, yt(X) + a2], [0, yt(0) + a2]]; D.pl(q, true, lw ? 'DETAY' : 'DETAY_INCE', lw ? { lw } : undefined); if (pat) D.ht([q], pat, 3); } D.lead([0.9, yt(0.9) + (o + a2) / 2], [1.05, yt(0.9) + 0.3 + o * 2], nm); o = a2; };
-      band(at, (ALT[e.alt] || ALT.tahta18).ad.toUpperCase()); band(xps, `XPS ${Math.round(xps * 100)} cm`, 'ZIGZAG'); band(Math.max(st, 0.004), (SU[e.su] || SU.bitum).ad.toUpperCase(), null, 50);
-      D.tiles(0.06, yt(0.06) + o, X, -ang); D.tiles(-0.06, yt(0.06) + o, X, Math.PI + ang); D.lead([-0.6, yt(0.6) + o + 0.05], [-0.95, yt(0.6) + o + 0.3], ort.ad.toUpperCase());
-      const r = 0.09, cyy = yt(0) + o + 0.04, arc = []; for (let i = 0; i <= 16; i++) { const a = Math.PI * i / 16; arc.push([Math.cos(a) * r, cyy + Math.sin(a) * r * 0.9]); } D.pl(arc, false, 'DETAY', { lw: 35 }); D.ht([arc.concat([[-r, cyy - 0.02], [r, cyy - 0.02]].reverse())], 'AR-SAND', 2);
-      D.lead([0.02, cyy + r], [0.15, cyy + r + 0.18], 'MAHYA KİREMİDİ + HARÇ DOLGU');
+      D.ok([0.55, (yt(0.55) + yb(0.55)) / 2], uye('Mertek', mb, mh));
+      const ay = yb(0); D.wood(-mA[0] / 2, ay - mA[1], mA[0], mA[1]); D.ok([0, ay - mA[1] / 2], uye('Mahya aşığı', mA[0], mA[1]));
+      D.pl([[-dk[0] / 2, ay - mA[1]], [-dk[0] / 2, -1.05]], false); D.pl([[dk[0] / 2, ay - mA[1]], [dk[0] / 2, -1.05]], false); D.ln([-dk[0] / 2, -1.05], [dk[0] / 2, -1.05], 'DETAY_INCE', { lt: 'DASHED' }); D.ok([0.0, -0.8], uye('Dikme', dk[0], dk[1]));
+      const ky = -0.52; D.pl([[-1.0, ky - 0.05], [1.0, ky - 0.05], [1.0, ky + 0.05], [-1.0, ky + 0.05]], true); D.ok([-0.6, ky], uye('Kuşaklama', 0.05, 0.10));
+      for (const sg of [1, -1]) { const p1 = [sg * dk[0] / 2, -0.95], p2 = [sg * 0.75, yb(0.75) - 0.02]; const d = [p2[0] - p1[0], p2[1] - p1[1]], l = Math.hypot(d[0], d[1]), nn = [-d[1] / l * 0.05, d[0] / l * 0.05]; D.pl([[p1[0] + nn[0], p1[1] + nn[1]], [p2[0] + nn[0], p2[1] + nn[1]], [p2[0] - nn[0], p2[1] - nn[1]], [p1[0] - nn[0], p1[1] - nn[1]]], true, 'DETAY_INCE'); }
+      D.ok([0.4, (-0.95 + yb(0.75)) / 2 + 0.05], uye('Göğüsleme', 0.05, 0.10));
+      let o = 0; const band = (k, mat, lw) => { if (!k || !(k.t > 0)) return; const a2 = o + k.t / cs; for (const sg of [1, -1]) { const q = [[0, yt(0) + o], [sg * X, yt(X) + o], [sg * X, yt(X) + a2], [0, yt(0) + a2]]; D.pl(q, true, lw ? 'DETAY' : 'DETAY_INCE', lw ? { lw } : undefined); if (mat) D.ht([q], mat); } D.ok([0.9, yt(0.9) + (o + a2) / 2], katY(k)); o = a2; };
+      band(katOf('alt')); band(katOf('xps'), 'Y'); band(katOf('su'), null, 50);
+      D.tiles(0.06, yt(0.06) + o, X, -ang); D.tiles(-0.06, yt(0.06) + o, X, Math.PI + ang); if (katOf('ortu')) D.ok([-0.6, yt(0.6) + o + 0.03], katY(katOf('ortu')));
+      const r = 0.09, cyy = yt(0) + o + 0.04, arc = []; for (let i = 0; i <= 16; i++) { const a = Math.PI * i / 16; arc.push([Math.cos(a) * r, cyy + Math.sin(a) * r * 0.9]); } D.pl(arc, false, 'DETAY', { lw: 35 }); D.ht([arc.concat([[-r, cyy - 0.02], [r, cyy - 0.02]].reverse())], 'F');
+      D.ok([0.02, cyy + r * 0.9], ['Mahya Kiremidi + Harç Dolgu']);
       D.ln([-X, -1.05], [X, -1.05], 'DETAY_INCE', { lt: 'DASHED' });
-      D.title([0, -1.25], 'DETAY-B');
+      D.title([0, -1.25], 'DETAY-B'); D.okKoy();
     }
   };
   C.addCommand(['CATIPAFTA', 'CATIDETAY', 'CATICIZIM'], 'Çatı paftası (örnek kırma çatı projesine göre): çatı planı başlığı ve ölçüleri, A-A ve B-B kesitleri, DETAY-A (saçak) ve DETAY-B (mahya) 1/10 — çatıya tıklayın.', async (I) => {

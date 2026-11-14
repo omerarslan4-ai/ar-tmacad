@@ -130,7 +130,7 @@
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
     /* MAHAL LİSTESİ — R2 İdari bina mahal listesi: başlık 4 mm (Yazi_Baslik katmanı; programda başlık katmanı Yazi30), öteki yazılar 2 mm (kullanıcı kararı 14.11.2026) */
     /* GÖRÜNÜM BAŞLIĞI (10-İdari Bina_R2, 6-Blower_R2): görünüş / plan / detay başlığı 20 birim (4 mm), kesit başlığı 25 birim (5 mm); altındaki ölçek satırı "ÖL:1/…" 15 birim (3 mm) */
-    baslik: { gorunusMm: 4, kesitMm: 5, olcekMm: 3 },
+    baslik: { gorunusMm: 4, kesitMm: 5, olcekMm: 3, detayMm: 4 }, /* detayMm: DETAY-A, DETAY-B … başlığı (denetim 14.11.2026; 5 mm idi) */
     mahalListesi: { baslikMm: 4, yaziMm: 2, baslikStil: 'YZ' }, /* başlık stili YZ (kullanıcı kararı 14.11.2026; İdari'de TÜRKÇE idi) */
     /* MALZEME AÇILIMI ve PERDE / DÖŞEME NUMARALARI (Çokal R2: çöktürme, yoğunlaştırma, ön arıtma, terfi mimari paftalarından ölçüldü; kâğıt mm).
        etiket: kesitte elemanın yanındaki kod (DU01, DÖ02 …) — 2,5 mm YZ, katman Mim_Yazi25; koddan elemana ince çizgi (renk 243).
@@ -149,6 +149,16 @@
     /* nesne türü → çizim katmanı (katman adından önce gelir) */
     tipKatman: { baslik: 'Yazi30', kot: 'Kot', dim: 'ÖL', aks: 'Aks', kesitisaret: 'Kesit_Cizgisi', seviyecizgi: 'ZMN' },
     yaziKatmani: 'Mim_Yazi25',                            // çizgi katmanına düşen yazılar (eleman etiketleri) buraya alınır
+    /* OKLU AÇIKLAMA (MULTILEADER; kâğıt mm, açı derece yatayla) — Çokal R2'den ölçüldü (mimari.md bölüm 6): ok ucu _ClosedBlank 6 birim = 1,2 mm,
+       yazı 2 mm, kırılma ile yazı arası 0,8 mm. Korkuluk: 10-İdari planı (kol 58 birim = 11,7 mm, 59°), yazı Mim_Yazi25. Çatı: ÇKL-AAT-İB-03 (kol 32 birim
+       = 6,4 mm, 60°), yazı YZ. Lento: 6-Blower kesit detayı, yazı Yazi25 (kol ve açı korkulukla aynı). Program katmanları: ok ACIKLAMA_OKU → YZ,
+       yazı YAZI → Mim_Yazi25, ACIKLAMA_OKU → YZ, LENTO_YAZI → Yazi25. */
+    okluAciklama: {
+      okMm: 1.2, yaziMm: 2, bosluk: 0.8,
+      korkuluk: { kolMm: 11.7, aci: 59, yaziKatman: 'YAZI' },
+      cati: { kolMm: 6.4, aci: 60, yaziKatman: 'ACIKLAMA_OKU' },
+      lento: { kolMm: 11.7, aci: 59, yaziKatman: 'LENTO_YAZI' },
+    },
     /* mimari paftada görünen başka disiplin katmanları (örneklerden; kuralları mekanik belgesinde kesinleşecek) ve AutoCAD'in basılmayan katmanı */
     digerKatman: {
       'Mekanik': { renk: 94, tip: 'Continuous', kal: 0.25 }, 'Mek_Yazi': { renk: 31, tip: 'Continuous', kal: 0.25 }, 'Boru_Eksen': { renk: 242, tip: 'DASHDOT', kal: 0.15 },
@@ -161,6 +171,7 @@
       [/(^|_)DOGRAMA_NO$/, 'YZ'],                         // kapı / pencere tip numarası (Çokal İdari: YZ katmanı)
       [/(^|_)DOGRAMA$/, 'Kapi_Pencere'],                  // doğrama çizgileri plan, kesit ve görünüşte (Çokal İdari: Kapi_Pencere, renk 23, 0,25)
       [/(^|_)ACIKLAMA_OKU$/, 'YZ'],                       // oklu açıklamanın oku (Çokal İdari: MULTILEADER YZ katmanında, yazısı Mim_Yazi25)
+      [/^LENTO_YAZI$/, 'Yazi25'],                        // lento oklu açıklamasının yazısı (Çokal 6-Blower_R2: MTEXT Yazi25 "Lento" / "(20x20)"; oku YZ)
       [/^(PAFTA_ANTET|PFT_CERCEVE|PFT_TABLO|PFT_BASLIK)$/, 'ANTET'], [/^(PAFTA_YAZI|PFT_YAZI)$/, 'YAZI GENEL'],
       [/^(KESIT_DUZLEMI|KAZI.*|STA_.*|STATIK.*|DONATI.*|MT_.*|AC_.*|SAHA_.*|PENCERE|DETAY|PAFTA_INDEKS)$/, null], // başka disiplinin ve programın kendi yardımcı katmanları (PENCERE: pafta penceresi çerçevesi)
       [/(^|_)OLCU$/, 'ÖL'], [/(^|_)KOT$/, 'Kot'], [/(^|_)AKS(_BLOK)?$/, 'Aks'], [/^KESIT_ISARET$/, 'Kesit_Cizgisi'],
