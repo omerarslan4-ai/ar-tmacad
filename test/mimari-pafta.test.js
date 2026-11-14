@@ -123,4 +123,15 @@ t('bölge düzeni: Bekçi binası — Mimari bölgesi statik çizimlerinin üst�
   const P2 = bolgeDuzeniPlanla(yeni, model); assert.deepStrictEqual(P2.tasi, {}, 'düzenli alan ikinci kez kıpırdamaz');
 });
 
+t('kullanılmayan eski kesitler (Bekçi: Genel bölgesinde, paftasız 12 canlı KESITAL ve 1 canlı KOTPLANI): yalnız hiçbir pencerede görünmeyen, elle düzeltilmemiş kesitler silinir', () => {
+  const { kullanilmayanKesitler } = require('../app/mimari-pafta.js');
+  const K = [];
+  for (let i = 0; i < 12; i++) K.push({ id: 'C:eski' + i, kind: 'kesit', gvs: ['K' + i], bb: [320 + i, -20, 321 + i, -10] }); // Genel bölgesi, paftasız
+  K.push({ id: 'C:A', kind: 'kesit', gvs: ['VA'], bb: [400, 0, 410, 5] }, // MIMARIPAFTA A-A: MİMARİ-02'de gvOnly
+    { id: 'C:stat', kind: 'kesit', gvs: ['ST'], bb: [500, 0, 510, 5] }, // statik paftasında görünüm bağsız pencere alanında
+    { id: 'C:elle', kind: 'kesit', gvs: ['EL'], bb: [600, 0, 610, 5], elle: true }, { id: 'C:kot', kind: 'plan', gvs: ['KP'], bb: [700, 0, 710, 5] }, { id: 'C:kotKul', kind: 'plan', gvs: ['KP2'], bb: [800, 0, 810, 5] }, { id: 'C:bos', kind: 'kesit', gvs: [] });
+  const sil = kullanilmayanKesitler(K, { vpGv: ['VA', 'KP2'], pencereler: [[505, -5, 520, 10]] });
+  assert.deepStrictEqual(sil, K.slice(0, 12).map(q => q.id).concat(['C:kot']), '12 Y-Y kesiti + paftasız canlı kot planı (Bekçi: 13)');
+});
+
 console.log(`\n${n} test geçti.`);

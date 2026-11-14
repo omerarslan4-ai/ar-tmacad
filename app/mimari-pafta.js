@@ -258,8 +258,15 @@
     }
     return { tasi, bolgeler, basliklar };
   };
+  /* KULLANILMAYAN ESKİ KESİTLER (kullanıcı kararı 14.11.2026, Bekçi: "Genel" bölgesine konmuş, hiçbir paftada olmayan 13 eski canlı kesit silinsin):
+     kayitlar: [{ id, kind ('kesit' | 'plan' …), gvs: [gv …], bb: [x0, y0, x1, y1] (model), elle }], o: { vpGv: [gv] (pencerenin gösterdiği görünüm),
+     pencereler: [[x0, y0, x1, y1]] (görünüm bağsız pencerelerin model alanı) }. Döner: silinecek kayıt kimlikleri — kesit ya da canlı kot planı (KOTPLANI)
+     türünde, elle düzeltilmemiş, görünümü olan ve hiçbir pencerede görünmeyen kayıtlar (statik / mekanik modüllerin çizimleri bu listeye girmez:
+     canlı kayıtları yoktur — ör. mekanik Y-Y yalıtım kesiti MTY…) */
+  const kullanilmayanKesitler = (kayitlar, o = {}) => { const G = new Set(o.vpGv || []), P = o.pencereler || [], kes = (a, b) => a && b && a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+    return (kayitlar || []).filter(q => q && (q.kind === 'kesit' || q.kind === 'plan') && !q.elle && (q.gvs || []).length && !q.gvs.some(g => G.has(g)) && !P.some(w => kes(q.bb, w))).map(q => q.id); };
   const dxfCizgiOlcegi = olcek =>({ ltscale: (+olcek || 50) / 1000, psltscale: 0, celtOlcek: +olcek || 50 });
-  const api = { PAFTA_R2, paftaPlanla, katKotlari, gercekKatlar, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, bolgeDuzeniPlanla, dxfCizgiOlcegi, yanYanaBol };
+  const api = { PAFTA_R2, paftaPlanla, katKotlari, gercekKatlar, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, bolgeDuzeniPlanla, dxfCizgiOlcegi, yanYanaBol, kullanilmayanKesitler };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariPaftaApi = api;
@@ -286,6 +293,10 @@
     const kk = sc / 1000, ents = C.doc.ents.filter(e => e.gv === gv && (e.type !== 'kesitisaret' || e.planIsaret)); if (!ents.length) return null;
     for (const e of ents) { if (e.type === 'baslik' && e.ay != null && e.dmm != null) { e.p = [e.p[0], e.ay - e.dmm * kk, 0]; delete e.ay; delete e.dmm; } delete e._c; }
     const bb = C.withAnno ? C.withAnno(sc, () => C.extents(ents)) : C.extents(ents); for (const e of ents) delete e._c; if (!bb || !isFinite(bb[0])) return null;
+    /* seviye yazısı ("ÇATI +5.24 (210.91)") pencere kenarına yapışmasın: yazının ölçülen genişliği + 2 mm (denetim 14.11.2026, Konya A'-A', B'-B') */
+    const yaziSag = () => { for (const e of ents) { if (e.type !== 'seviyecizgi' || !C.T.seviyecizgi) continue; let P = []; try { P = C.withAnno ? C.withAnno(sc, () => C.T.seviyecizgi.prims(e)) : C.T.seviyecizgi.prims(e); } catch (er) { continue; }
+      for (const q of P) if (q.k === 'T' && q.p) { const w = C.measureText ? C.measureText(String(q.s || ''), q.h, C.textStyle ? C.textStyle(q.st) : undefined) * ((C.textStyle && C.textStyle(q.st) && C.textStyle(q.st).wf) || 1) : String(q.s || '').length * q.h * 0.8; bb[2] = Math.max(bb[2], q.p[0] + w + 2 * kk); } } };
+    try { yaziSag(); } catch (er) { console.error('seviye yazısı', er); }
     for (const e of ents) if (e.type === 'baslik') { const hp = e.hp || 5, yb = e.p[1] - hp * 1.9 * kk, hw = String(e.s || '').length * hp * 0.4 * kk + 2 * kk; bb[1] = Math.min(bb[1], yb); bb[0] = Math.min(bb[0], e.p[0] - hw); bb[2] = Math.max(bb[2], e.p[0] + hw); }
     const k = 1000 / sc; return { gv, bb, w: (bb[2] - bb[0]) * k, h: (bb[3] - bb[1]) * k };
   };
@@ -293,15 +304,26 @@
   /* görünüm başlığı en alttaki çizimin (balon, ölçü) altına: blokOlc başlığı ay − dmm'ye koyar */
   const baslikAlta = gv => { const g = C.doc.ents.filter(e => e.gv === gv); g.forEach(e => { delete e._c; }); const b = C.extents(g.filter(e => e.type !== 'baslik')); if (!b) return;
     for (const e of g) if (e.type === 'baslik') { e.ay = b[1]; e.dmm = 11; e.p = [e.p[0], b[1] - 11 * C.annoH(1), 0]; delete e._c; } };
-  /* ölçü çakışma denetimi (firma kuralı 14.11.2026: sıralar üst üste binmez): görünümdeki ölçüler, kot ve yazılar kâğıt mm'de */
-  const olcuDenetle = gvs => { const A = C.mimariOtoApi; if (!A) return []; const k = C.annoH(1), out = [];
-    for (const gv of gvs.filter(Boolean)) { const og = [];
-      for (const e of C.doc.ents) { if (e.gv !== gv) continue;
-        if (e.type === 'dim' && e.a && e.b && e.p && (e.k === 'h' || e.k === 'v')) { const h = e.k === 'h'; og.push({ ad: 'ölçü#' + e.id, k: 'olcu', a: h ? [e.a[0] / k, e.p[1] / k] : [e.p[0] / k, e.a[1] / k], b: h ? [e.b[0] / k, e.p[1] / k] : [e.p[0] / k, e.b[1] / k], p: [e.p[0] / k, e.p[1] / k], yazi: 2, metin: String(Math.round(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) * 100)) }); }
-        else if (e.type === 'acilim' && C.acilimYaziKutulari) { for (const b of C.acilimYaziKutulari(e)) og.push({ ad: 'acilim#' + e.id, k: 'kutu', bb: b.map(v => v / k) }); }
-        else if (e.type === 'kot' || e.type === 'text') { let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (b && isFinite(b[0])) og.push({ ad: e.type + '#' + e.id, k: 'kutu', bb: b.map(v => v / k) }); } }
-      for (const [x, y] of A.olcuCakisma(og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01 })) /* sıralar arası modelde 25 cm */ out.push({ gv, x, y }); } // ölçü, yazı, kot, açılım kodu ve oklu açıklama yazısı (denetim 14.11.2026)
+  /* ölçü çakışma denetimi (firma kuralı 14.11.2026: sıralar üst üste binmez): görünümdeki ölçüler, kot, yazılar, açılım kodları ve doğrama numarası
+     daireleri kâğıt mm'de. tasinir: çakışma gidermede kayabilecek öğeler gruplanır (ölçü sırası çizgisine dik, kot yatayda, doğrama numarası düşeyde) */
+  const ogeTopla = (gv, tasinir) => { const k = C.annoH(1), og = [], ref = new Map(), r3 = v => (+v).toFixed(3);
+    for (const e of C.doc.ents) { if (e.gv !== gv) continue;
+      if (e.type === 'dim' && e.a && e.b && e.p && (e.k === 'h' || e.k === 'v')) { const h = e.k === 'h', ad = 'ölçü#' + e.id, g = tasinir ? (h ? 'h:' + r3(e.p[1]) : 'v:' + r3(e.p[0])) : null;
+        og.push(Object.assign({ ad, k: 'olcu', a: h ? [e.a[0] / k, e.p[1] / k] : [e.p[0] / k, e.a[1] / k], b: h ? [e.b[0] / k, e.p[1] / k] : [e.p[0] / k, e.b[1] / k], p: [e.p[0] / k, e.p[1] / k], yazi: 2, metin: String(Math.round(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) * 100)) }, g ? { grup: g, eksen: h ? 'y' : 'x', sinir: 10 } : {})); ref.set(ad, e); }
+      else if (e.type === 'acilim' && C.acilimYaziKutulari) { const ad = 'acilim#' + e.id; for (const b of C.acilimYaziKutulari(e)) og.push(Object.assign({ ad, k: 'kutu', bb: b.map(v => v / k) }, tasinir && e.p ? { grup: ad, eksen: (e.tur || '') === 'duvar' ? 'y' : 'x', sinir: 10 } : {})); ref.set(ad, e); } // açılım kodu yazısı (acilimKaydir gibi: duvar kodu düşeyde, döşeme kodu yatayda)
+      else if (e.type === 'kot' || e.type === 'text' || (e.type === 'circle' && /DOGRAMA_NO$/.test(e.layer || ''))) { let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (!(b && isFinite(b[0]))) continue;
+        const ad = e.type + '#' + e.id, no = /DOGRAMA_NO$/.test(e.layer || ''), c = no ? (e.type === 'circle' ? e.c : e.p) : null, g = !tasinir ? null : e.type === 'kot' ? ad : no && c ? 'no:' + r3(c[0]) + ',' + r3(c[1]) : null;
+        og.push(Object.assign({ ad, k: 'kutu', bb: b.map(v => v / k) }, no && c ? { ayni: 'no:' + r3(c[0]) + ',' + r3(c[1]) } : {}, g ? { grup: g, eksen: e.type === 'kot' ? 'x' : 'y', sinir: e.type === 'kot' ? 12 : 8 } : {})); ref.set(ad, e); } }
+    return { og, ref, k }; };
+  const olcuDenetle = gvs => { const A = C.mimariOtoApi; if (!A) return []; const out = [];
+    for (const gv of gvs.filter(Boolean)) for (const [x, y] of A.olcuCakisma(ogeTopla(gv).og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01 })) /* sıralar arası modelde 25 cm */ out.push({ gv, x, y }); // ölçü, yazı, kot, açılım kodu, oklu açıklama yazısı ve doğrama numarası (denetim 14.11.2026)
     return out; };
+  /* çakışma giderme (mimari-oto.js cakismaCoz): ölçü sırası, kot ve doğrama numarası birkaç mm kaydırılır; ölçülen noktalar yerinde kalır */
+  const cakismaGider = gv => { const A = C.mimariOtoApi; if (!A || !A.cakismaCoz || !gv) return 0; const T = ogeTopla(gv, true), R = A.cakismaCoz(T.og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01, enCok: 12 }), k = T.k; let n = 0;
+    for (const [g, d] of Object.entries(R.tasi)) { const dx = d[0] * k, dy = d[1] * k; if (!dx && !dy) continue; n++;
+      for (const q of T.og) { if (q.grup !== g) continue; const e = T.ref.get(q.ad); if (!e || e._kayd === g) continue; e._kayd = g;
+        if (e.type === 'dim') e.p = [e.p[0] + dx, e.p[1] + dy, e.p[2] || 0]; else if (e.type === 'circle') e.c = [e.c[0] + dx, e.c[1] + dy, e.c[2] || 0]; else e.p = [e.p[0] + dx, e.p[1] + dy, e.p[2] || 0]; delete e._c; } }
+    for (const e of T.ref.values()) delete e._kayd; return n; };
   /* kesit işareti planlarda (Çokal R2 planları): modeldeki kesit hattı plan görünümüne taşınır, uçları planın (ölçü ve balonlar dahil) 4 mm dışında */
   const kesitIsaretiPlana = (gv, W, v, nm) => {
     const m = C.byId(v.isaret), a0 = m ? m.a : v.a, b0 = m ? m.b : v.b; if (!a0 || !b0 || !C.makeSectionMark) return null;
@@ -311,7 +333,15 @@
     let t0 = -Infinity, t1 = Infinity; // hattın planın kutusu içindeki aralığı
     for (const [p, q0, q1] of [[d[0], ext[0] - A[0], ext[2] - A[0]], [d[1], ext[1] - A[1], ext[3] - A[1]]]) { if (Math.abs(p) < 1e-9) continue; const x = q0 / p, y = q1 / p; t0 = Math.max(t0, Math.min(x, y)); t1 = Math.min(t1, Math.max(x, y)); }
     if (!(t1 > t0)) { t0 = 0; t1 = l; }
-    const e = C.makeSectionMark([A[0] + d[0] * (t0 - 4 * k), A[1] + d[1] * (t0 - 4 * k), 0], [A[0] + d[0] * (t1 + 4 * k), A[1] + d[1] * (t1 + 4 * k), 0], n, nm || v.nm, gv);
+    /* balonlar öbür kesit işaretlerinin balonlarına binmesin (denetim 14.11.2026, Konya çatı planı: A ile A' balonları merkezler arası 6 mm, r 5):
+       binerse bu işaretin uçları hat boyunca 13 mm'lik adımlarla dışarı uzatılır */
+    const r = 5 * k, bal = q => { const qa = q.a, qb = q.b, w = [qb[0] - qa[0], qb[1] - qa[1]], lw = Math.hypot(w[0], w[1]) || 1, uu = [w[0] / lw, w[1] / lw]; return [[qa[0] - uu[0] * r, qa[1] - uu[1] * r], [qb[0] + uu[0] * r, qb[1] + uu[1] * r]]; };
+    const diger = C.doc.ents.filter(q => q.gv === gv && q.type === 'kesitisaret' && q.planIsaret && q.name !== (nm || v.nm)).flatMap(bal).map(c => ({ c, r }));
+    for (const ax of C.doc.ents.filter(q => q.gv === gv && q.type === 'aks')) { let P = []; try { P = C.prims(ax); } catch (er) { } for (const pr of P) if (pr.k === 'C' && pr.c) diger.push({ c: pr.c, r: pr.r }); } // aks balonları da (Konya çatı planı: B' ile aks balonu 6 mm)
+    let ek = 4 * k, e = null;
+    for (let i = 0; i < 4; i++) { const pa = [A[0] + d[0] * (t0 - ek), A[1] + d[1] * (t0 - ek), 0], pb = [A[0] + d[0] * (t1 + ek), A[1] + d[1] * (t1 + ek), 0], B2 = bal({ a: pa, b: pb });
+      const carp = diger.some(D => B2.some(q => Math.hypot(D.c[0] - q[0], D.c[1] - q[1]) < D.r + r + 2 * k));
+      if (!carp || i === 3) { e = C.makeSectionMark(pa, pb, n, nm || v.nm, gv); break; } ek += 13 * k; }
     if (e) { e.planIsaret = true; delete e.sp; } return e;
   };
   /* 2B parça (C.prims biçimi) → görünüm nesnesi (W: model → çizim) */
@@ -482,7 +512,9 @@
     /* Tasarım alanında Mimari bölgesi: görünümler ızgarada (her tür bir sıra), modelin ve öbür disiplin bölgelerinin dışında, başında "MİMARİ" */
     try { bolgeDuzenle([[...planlar.map(p => p.gv), mahGv], [...kes.map(v => v.gv), acGv], ['ON', 'ARKA', 'SAG', 'SOL'].map(d => gor[d]), [catiR.plan, ...(catiR.kesitler || []).map(v => v.gv), ...(catiR.detaylar || [catiR.detay])],
       detay.dograma.map(d => d.gv), [...detay.korkuluk, ...detay.kapak].map(d => d.gv)], kes.concat(catiR.kesitler || []), st); } catch (er) { console.error('mimari bölge', er); }
-    return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: yapiAdi(u), kesitBilgi, cakisma: olcuDenetle([...planlar.map(p => p.gv), ...kes.map(v => v.gv), catiR.plan, ...(catiR.kesitler || []).map(v => v.gv)]) };
+    const denGv = [...planlar.map(p => p.gv), ...kes.map(v => v.gv), catiR.plan, ...(catiR.kesitler || []).map(v => v.gv)].filter(Boolean);
+    for (const gv of denGv) { try { cakismaGider(gv); baslikAlta(gv); } catch (er) { console.error('çakışma giderme', er); } } // başlık en son: balonların, kesit işaretlerinin ve kayan ölçülerin altında (denetim 14.11.2026, Konya ±0.00 / −5.90 planı)
+    return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: yapiAdi(u), kesitBilgi, cakisma: olcuDenetle(denGv) };
   };
   /* görünüm gruplarını Mimari bölgesine taşı. satirlar: [[gv]]; kesitler: canlı kesitlerin yeri (v.yer ve canlı görünüm kaydı) de taşınır */
   const bolgeDuzenle = (satirlar, kesitler, st) => {
@@ -568,11 +600,30 @@
     paf.push(...paftaKur('C', r.yapi, [anaB(sb(olc(r.cati.plan))), ...(r.cati.kesitler || []).map(v => anaB(sb(olc(v.gv)))), ...cd].map(b => G(b, 'ÇATI')), 'ÇATI PLANI, KESİTLERİ VE DETAYLARI'));
     const alan = Math.round(paf.reduce((s, L) => s + L.pw * L.ph, 0) / 1e4) / 100;
     tekKopya();
+    try { eskiKesitTemizle(); } catch (er) { console.error('kullanılmayan kesit temizliği', er); }
     try { C.bolgeDuzenle({ sessiz: true }); } catch (er) { console.error('bölge düzeni', er); } // bütün disiplinlerin bölgeleri ayrık (statik / mekanik çizimleri dahil)
     { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Mimari')) s.grups.unshift('Mimari'); }
     Object.assign(durum(), { t: Date.now(), olcek: SC, kagit: kgt, oranA1: os.oranA1, alan }); C.changed(); C.emit('layouts');
     return { paf, r, olcek: os, alan };
   };
+  /* hiçbir pafta penceresinde görünmeyen eski kesitleri sil (kullanilmayanKesitler): canlı KESITAL kayıtları ve disiplin kesit görünümleri — görünüm nesneleri,
+     canlı kaydı ve plandaki kesit işareti birlikte. MIMARIPAFTA komutunun içinde: geri al (U) hepsini geri getirir. Silinenler komut satırına yazılır. */
+  const eskiKesitTemizle = () => {
+    const set = C.doc.set, can = set.canli || {}, GA = C.gorunumApi, VLs = GA ? GA.liste() : [], vpGv = [], pencereler = [];
+    for (const L of C.doc.layouts || []) for (const vp of L.vps || []) { if (vp.gvOnly) vpGv.push(vp.gvOnly); else if (vp.scale > 0 && !(vp.g3 || vp.mtG3 || vp.mtPlan)) { const k = vp.scale / 1000; pencereler.push([vp.cx - vp.w / 2 * k, vp.cy - vp.h / 2 * k, vp.cx + vp.w / 2 * k, vp.cy + vp.h / 2 * k]); } }
+    const gvsOf = pred => [...new Set(C.doc.ents.filter(pred).map(e => e.gv).filter(g => typeof g === 'string'))];
+    const bbOf = gvs => { const S = new Set(gvs), L = C.doc.ents.filter(e => S.has(e.gv) && e.type !== 'kesitisaret'); L.forEach(e => { delete e._c; }); return L.length ? C.extents(L) : null; };
+    const VK = VLs.filter(v => v.tip === 'kesit'), vGv = new Set(VK.flatMap(v => GA.tumGv(v)));
+    const kayit = [];
+    for (const v of VK) { const g = GA.tumGv(v); kayit.push({ id: 'G:' + v.id, kind: 'kesit', gvs: g, bb: bbOf(g), elle: !!v.elle, ad: v.ad || v.nm }); }
+    for (const [cid, r] of Object.entries(can)) { if (!r || !(r.kind === 'kesit' || (r.kind === 'plan' && r.cmd === 'KOTPLANI'))) continue; const g = gvsOf(e => e.canli === cid); if (g.some(x => vGv.has(x))) continue; /* disiplin görünümünün canlı kaydı: görünümle birlikte */ kayit.push({ id: 'C:' + cid, kind: r.kind, gvs: g, bb: bbOf(g), elle: !!r.elle, ad: r.ad || cid }); }
+    const sil = new Set(kullanilmayanKesitler(kayit, { vpGv, pencereler })); if (!sil.size) return 0;
+    const adlar = [], gs = new Set(), cids = new Set();
+    for (const q of kayit) { if (!sil.has(q.id)) continue; adlar.push(q.ad); q.gvs.forEach(g => gs.add(g));
+      if (q.id.startsWith('C:')) cids.add(q.id.slice(2)); else { const v = VK.find(x => 'G:' + x.id === q.id); if (v) { GA.sil(v); const i = VLs.indexOf(v); if (i >= 0) VLs.splice(i, 1); for (const e of C.doc.ents) if (e.canli && gs.has(e.gv)) cids.add(e.canli); } } }
+    const n0 = C.doc.ents.length; C.doc.ents = C.doc.ents.filter(e => !(e.gv && gs.has(e.gv)) && !(e.canli && cids.has(e.canli))); for (const c of cids) delete can[c];
+    C.log(`Hiçbir paftada kullanılmayan ${adlar.length} eski kesit / kot planı silindi (${n0 - C.doc.ents.length} nesne, plandaki işaretleri dahil; geri almak için U): ${adlar.join(', ')}.`);
+    return adlar.length; };
   /* Mimari grubunda her kesit / tablo bir kez: MİMARİ paftalarındaki görünümler (gorunum kimliği) öbür Mimari paftalarından
      (KESITPAFTA / ACILIMTABLO'nun açtığı "MİMARİ — KESİTLER n") kaldırılır, boşalan kesit paftası silinir. Sonradan çalışan
      KESITPAFTA / ACILIMTABLO aynı kimliği MİMARİ-02'de bulur ve yalnız günceller (gorunumler.js → paftayaKoy). */
@@ -603,7 +654,7 @@
       if (icinde(b, yapi)) { sabit.push(b); continue; } // modelin üstüne çizilmiş (tesisat planı sembolleri vb.)
       let dis = mim.has(gv) ? 'Mimari' : disOf.get(gv) || (/^STATIK_/.test(gv) ? 'Statik' : /^MT/.test(gv) ? 'Mekanik' : null);
       if (!dis) { const c = [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]; for (const Ly of lays) for (const vp of Ly.vps || []) { const w = pen(vp); if (!dis && w && Ly.grp && Ly.grp !== 'Genel' && c[0] > w[0] && c[0] < w[2] && c[1] > w[1] && c[1] < w[3]) dis = Ly.grp; } }
-      birim.push({ id: gv, dis: dis || 'Genel', bb: b }); uyeler.set(gv, ciz); }
+      birim.push({ id: gv, dis: dis || 'Genel', bb: b }); uyeler.set(gv, L); } // planın kesit işaretleri (planIsaret) kutuya girmez ama planla birlikte kayar (denetim 14.11.2026: Bekçi planında işaretler planın dışında kalıyordu, Konya'da başlık balona biniyordu)
     // gevşek pafta çizimleri: aynı pencerede görünenler bir birim
     const gev = ents.filter(e => !e.gv && GEVSEK.test(e.type)), kul = new Set();
     lays.forEach((Ly, li) => (Ly.vps || []).forEach((vp, vi) => { const w = pen(vp); if (!w) return; const L = gev.filter(e => !kul.has(e) && (() => { const b = bbOf([e]); return b && b[0] < w[2] && b[2] > w[0] && b[1] < w[3] && b[3] > w[1]; })()); if (!L.length) return;

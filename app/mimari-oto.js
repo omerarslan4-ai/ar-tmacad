@@ -220,6 +220,7 @@
     const sira = o.sira == null ? 5 : o.sira, K = (ogeler || []).map(q => q.k === 'olcu' ? Object.assign({ q }, olcuKutusu(q)) : { q, bb: q.bb }), out = [];
     const ust = (A, B, m = 0) => Math.min(A[2], B[2]) - Math.max(A[0], B[0]) > m && Math.min(A[3], B[3]) - Math.max(A[1], B[1]) > m;
     for (let i = 0; i < K.length; i++) for (let j = i + 1; j < K.length; j++) { const A = K[i], B = K[j];
+      if (A.q.ayni != null && A.q.ayni === B.q.ayni) continue; // aynı öğenin parçaları (doğrama numarasının dairesi ve yazısı)
       if (A.hat != null && B.hat != null && A.yat !== B.yat) { /* dik iki ölçü: çizgiler kesişebilir (örneklerde de öyle); yazısı öbürünün çizgisine binmesin */
         const yaziKutu = Z => { const q = Z.q, h = q.yazi || 2, tw = Math.max(3, String(q.metin || '000').length) * 0.75 * h, m = Z.yat ? (Z.bb[0] + Z.bb[2]) / 2 : (Z.bb[1] + Z.bb[3]) / 2;
           return Z.yat ? [m - tw / 2, Z.hat + 0.2, m + tw / 2, Z.hat + 0.2 + h] : [Z.hat - 0.2 - h, m - tw / 2, Z.hat - 0.2, m + tw / 2]; };
@@ -232,6 +233,31 @@
         if (Math.min(s0[1], s1[1]) - Math.max(s0[0], s1[0]) > 0.01 && Math.abs(A.hat - B.hat) < sira - 0.01) out.push([A.q.ad, B.q.ad]); continue; }
       if (ust(A.bb, B.bb, 0.05)) out.push([A.q.ad, B.q.ad]); }
     return out;
+  };
+  /* ÇAKIŞMA GİDERME (denetim 14.11.2026: Bekçi A-A iç düşey ölçü "P3" numarasının içinden geçiyor, kot üçgeni "21,5" ölçü yazısının üstünde):
+     olcuCakisma öğeleri (kâğıt mm); taşınabilir öğelerde grup (aynı grup birlikte kayar), eksen ('x' | 'y') ve sinir (en çok toplam kayma, mm).
+     Ölçüde yalnız ölçü çizgisi (p) kayar — ölçülen noktalar (a, b) yerinde; kutuda bb kayar. Çakışan öğelerin grupları adımlarla (1, 2 … en çok
+     `enCok` mm, iki yöne) denenir; toplam çakışmayı en çok azaltan kayma uygulanır, azaltan yoksa durulur. Döner: { tasi: { grup: [dx, dy] }, once, sonra } */
+  const ogeKaydir = (q, d) => q.k === 'olcu' ? Object.assign({}, q, { p: [q.p[0] + d[0], q.p[1] + d[1]] }) : Object.assign({}, q, { bb: [q.bb[0] + d[0], q.bb[1] + d[1], q.bb[2] + d[0], q.bb[3] + d[1]] });
+  const cakismaCoz = (ogeler, o = {}) => {
+    const enCok = o.enCok == null ? 8 : o.enCok, adim = o.adim || 1, L = (ogeler || []).slice(), tasi = {}, say = X => olcuCakisma(X, o).length;
+    const n0 = say(L); let cur = n0;
+    /* L0 durumunda çakışan öğelerin gruplarına tek kayma adayları: [{ g, d, X, c, s }] (tasi0: o ana kadarki kaymalar) */
+    const adaylar = (L0, tasi0, ilk) => { const P = olcuCakisma(L0, o), adlar = new Set(); for (const [x, y] of P) { adlar.add(x); adlar.add(y); }
+      const gr = [...new Set(L0.filter(q => q.grup != null && q.eksen && adlar.has(q.ad)).map(q => q.grup))], out = [];
+      for (const g of gr) { if (ilk && g === ilk) continue; const ix = L0.map((q, i) => (q.grup === g ? i : -1)).filter(i => i >= 0), ek = L0[ix[0]].eksen, sinir = L0[ix[0]].sinir == null ? enCok : L0[ix[0]].sinir, t0 = tasi0[g] || [0, 0];
+        for (let s = adim; s <= enCok + 1e-9; s += adim) for (const sg of [1, -1]) { const d = ek === 'x' ? [sg * s, 0] : [0, sg * s], top = Math.abs((ek === 'x' ? t0[0] : t0[1]) + sg * s); if (top > sinir + 1e-9) continue;
+          const X = L0.slice(); for (const i of ix) X[i] = ogeKaydir(L0[i], d); out.push({ g, d, X, c: say(X), s }); } }
+      return out; };
+    const uygula = (m, T) => { const t = T[m.g] || [0, 0]; T[m.g] = [t[0] + m.d[0], t[1] + m.d[1]]; };
+    for (let it = 0; it < (o.tur || 40) && cur; it++) {
+      const A1 = adaylar(L, tasi); let en = null; for (const m of A1) if (m.c < cur && (!en || m.c < en.c || (m.c === en.c && m.s < en.s))) en = m;
+      if (en) { for (let i = 0; i < L.length; i++) L[i] = en.X[i]; uygula(en, tasi); cur = en.c; continue; }
+      /* tek kayma azaltmıyorsa iki kayma (ör. ölçü sırası aşağı + yeni bindiği açılım kodu yana): ilk kaymanın açtığı çakışmalar ikinciyle giderilir */
+      let en2 = null; for (const m of A1) { if (m.c > cur + 2) continue; const T = Object.assign({}, tasi); uygula(m, T);
+        for (const m2 of adaylar(m.X, T, null)) if (m2.c < cur && (!en2 || m2.c < en2.c || (m2.c === en2.c && m.s + m2.s < en2.s))) en2 = { c: m2.c, X: m2.X, m, m2, s: m.s + m2.s }; }
+      if (!en2) break; for (let i = 0; i < L.length; i++) L[i] = en2.X[i]; uygula(en2.m, tasi); uygula(en2.m2, tasi); cur = en2.c; }
+    return { tasi, once: n0, sonra: cur };
   };
 
   /* ---------- 5b) OKLU AÇIKLAMA YERİ (korkuluk; firma kuralı 14.11.2026: plan ve kesitte korkuluk oklu açıklamayla) ----------
@@ -254,7 +280,9 @@
       for (const Gr of gruplar) { const ic = q => Gr.reduce((t, Z) => t + (icinde(q, Z.pts) ? 1 : 0), 0) % 2 === 1, a0 = Gr[0].a == null ? 1e6 : Gr[0].a; // aynı katmandaki iç içe çevreler tek-çift kuralıyla (delikli bölge: çatı kaplama bandı)
         for (let a = 0; a <= 6; a++) for (let b = 0; b <= 2; b++) if (ic([bb[0] + (bb[2] - bb[0]) * a / 6, bb[1] + (bb[3] - bb[1]) * b / 2])) c += a0;
         if (ic([(u[0] + k[0]) / 2, (u[1] + k[1]) / 2])) c += a0 / 10; } // eğik kol da betonun içinden geçmesin
-      for (const K of o.kutular || []) if (ust(bb, K.bb)) c += K.a == null ? 1e3 : K.a;
+      for (const K of o.kutular || []) { const a1 = K.a == null ? 1e3 : K.a; if (ust(bb, K.bb)) c += a1;
+        /* ok ucu ve eğik kol da yazıya / ölçüye / kota binmesin (denetim 14.11.2026, Konya A-A: kuşaklama okunun ucu "DÖ01" yazısının üstündeydi) */
+        const m = 0.3 * h, ub = [K.bb[0] - m, K.bb[1] - m, K.bb[2] + m, K.bb[3] + m]; if (u[0] > ub[0] && u[0] < ub[2] && u[1] > ub[1] && u[1] < ub[3]) c += a1; else if (kes([u, k], K.bb)) c += a1 / 2; }
       for (const sg of o.cizgiler || []) if (kes(sg, bb)) c++;
       c += Math.abs(i - orta) * 1e-3 + (sy < 0 ? 0.5e-3 : 0) + (sx < 0 ? 0.25e-3 : 0); // eşitlikte korkuluğun ortası, yukarı, sağa
       if (!en || c < en.maliyet) en = { uc: [u[0], u[1]], kirik: k, son: s, yazi: [(k[0] + s[0]) / 2, k[1]], maliyet: c }; } });
@@ -362,7 +390,7 @@
       const key = q.k + '|' + yon; if (!G.has(key)) G.set(key, { adaylar: [], satir: lentoYazisi(q.td, q.lh), k: q.k, yon });
       for (const f of [-0.25, 0, 0.25]) G.get(key).adaylar.push([P[0] + q.u[0] * q.w * f, P[1] + q.u[1] * q.w * f]); }
     return [...G.values()]; };
-  const api = { mahalAdlari, lentoGrupPlan, siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, lentoYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  const api = { mahalAdlari, lentoGrupPlan, siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, lentoYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, cakismaCoz, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
@@ -473,7 +501,8 @@
       if (o.zg != null && d.z0 + d.h < o.zg) continue; const t = cizimTipi(d, tipler); if (!t) continue;
       const m = [F.dis[0], F.dis[1], d.z0 + d.h / 2], wf = dot(m, Dn); if (o.zAt) { const z = o.zAt(dot(m, Rr), m[2]); if (isFinite(z) && z < wf - 0.12) continue; } // önü kapalı
       const r = A.dogramaGorunus(t, { yazi: false, doseme: false, mentese: F.mentese });
-      listeCiz(r.items, q => { const p = [F.P0[0] + F.x[0] * q[0], F.P0[1] + F.x[1] * q[0], d.z0 + q[1]]; return o.W([dot(p, Rr), p[2]]); }, { gv: o.gv, layer: L }); n++; }
+      listeCiz(r.items, q => { const p = [F.P0[0] + F.x[0] * q[0], F.P0[1] + F.x[1] * q[0], d.z0 + q[1]]; return o.W([dot(p, Rr), p[2]]); }, { gv: o.gv, layer: L }); n++;
+      if (o.kotlar) { const sA = dot([F.P0[0], F.P0[1], 0], Rr), sB = dot([F.P0[0] + F.x[0] * d.w, F.P0[1] + F.x[1] * d.w, 0], Rr); o.kotlar.push({ s0: Math.min(sA, sB), s1: Math.max(sA, sB), z0: d.z0, z1: d.z0 + d.h, kapi: d.kind === 'kapi' }); } } // görünüş kotları (gorunus.js): denizlik ve lento altı
     return n;
   };
   /* KESİT: hattın içinden geçtiği doğramaya 2-2 kesiti (duvarı kesit kendisi çizer), kesitin baktığı (derinlik içindeki, hatta paralel duvardaki) doğramaya görünüş.

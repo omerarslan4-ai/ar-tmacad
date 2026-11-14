@@ -142,6 +142,29 @@ t('kesit yerleri: Bekçi — iki mahal de büyük hacim kesitinde görünüyor: 
   assert.deepStrictEqual(K.map(h => h.nm + ':' + h.tur), ['A:uzun', 'B:buyuk'], 'iki kesit: uzun + büyük hacim');
   for (let i = 0; i < K.length; i++) for (let j = i + 1; j < K.length; j++) if (K[i].d === K[j].d) assert.notDeepStrictEqual(K[i].mahaller.slice().sort(), K[j].mahaller.slice().sort(), 'aynı içerikli iki kesit');
 });
+t('çakışma giderme: Bekçi A-A — iç düşey zincir P3 numarasından, kot üçgeni ölçü yazısından kayar; ölçülen noktalar yerinde', () => {
+  /* MIMARIPAFTA Bekçi A-A (14.11.2026, kâğıt mm): iç yatay zincir y = −398,1 (245 / 203 / 21), iç düşey zincir x = 736 (250) ve 781,4 (160 + 50); P3 numarası, +2.65 kotu */
+  const o = (ad, a, b, p, ek) => Object.assign({ ad, k: 'olcu', a, b, p, yazi: 2, metin: ad.split('#')[1] }, ek || {});
+  const L = [
+    o('h#245', [710, -399.1], [758.9, -399.1], [710, -398.1], { grup: 'h1', eksen: 'y' }), o('h#203', [760.9, -399.1], [801.4, -399.1], [760.9, -398.1], { grup: 'h1', eksen: 'y' }), o('h#21', [801.4, -399.1], [805.7, -399.1], [801.4, -398.1], { grup: 'h1', eksen: 'y' }),
+    o('v#250', [737, -429.1], [737, -379.1], [736, -429.1], { grup: 'v1', eksen: 'x' }), o('v#160', [782.4, -429.1], [782.4, -397.1], [781.4, -429.1], { grup: 'v2', eksen: 'x' }), o('v#50', [782.4, -397.1], [782.4, -387.1], [781.4, -397.1], { grup: 'v2', eksen: 'x' }),
+    { ad: 'P3', k: 'kutu', bb: [734.5, -384.6, 737.9, -382.1], grup: 'no', eksen: 'y' }, { ad: 'kot', k: 'kutu', bb: [792, -397.1, 806, -390.2], grup: 'kot', eksen: 'x' }];
+  const once = A.olcuCakisma(L).length; assert.ok(once >= 5, 'önce çakışma var: ' + once);
+  const R = A.cakismaCoz(L); assert.strictEqual(R.once, once); assert.strictEqual(R.sonra, 0, 'hepsi giderildi');
+  for (const g in R.tasi) assert.ok(Math.abs(R.tasi[g][0]) + Math.abs(R.tasi[g][1]) <= 8 + 1e-9, g + ' en çok 8 mm');
+  assert.ok(!R.tasi.h1 || !R.tasi.h1[0], 'yatay zincir yalnız düşeyde kayabilir');
+});
+t('çakışma giderme: tek kayma yetmezse iki kayma (ölçü sırası aşağı + bindiği açılım kodu yana)', () => {
+  const L = [{ ad: 'h', k: 'olcu', a: [0, 0], b: [40, 0], p: [0, 0], yazi: 2, metin: '400', grup: 'h', eksen: 'y', sinir: 3 },
+    { ad: 'kot', k: 'kutu', bb: [10, 1, 20, 15] }, { ad: 'DU01', k: 'kutu', bb: [36, -3, 39, -1], grup: 'ac', eksen: 'x', sinir: 10 }];
+  assert.strictEqual(A.olcuCakisma(L).length, 1);
+  const R = A.cakismaCoz(L); assert.strictEqual(R.sonra, 0); assert.ok(R.tasi.h && R.tasi.h[1] < 0 && R.tasi.ac && R.tasi.ac[0] !== 0, JSON.stringify(R.tasi));
+});
+t('oklu açıklama: ok ucu yazının (DÖ01) üstüne düşen aday seçilmez (Konya A-A kuşaklama)', () => {
+  const kod = { bb: [9.5, -0.5, 11, 0.6], a: 1e3 }; // "DÖ01" yazısı ilk adayın üstünde
+  const r = A.okluAciklamaYeri({ adaylar: [[10, 0], [14, 0]], w: 3, h: 0.5, L: 1.5, aci: 60, kutular: [kod] });
+  assert.deepStrictEqual(r.uc, [14, 0], 'ikinci aday (yazıdan uzak)');
+});
 t('eski çalıştırmadan kalan 2 kesit (uzun + montaj holü) korunur, eksik oda kesiti eklenir; kesit zaten varsa eklenmez', () => {
   const M = A.mahalBul(KONYA_KAPILI.concat(A.acikIzleri([K2])), [0, 0, 19.7, 8], { h: 0.1 });
   const K = A.kesitYerleri({ bb: [0, 0, 19.7, 8], mahaller: M });

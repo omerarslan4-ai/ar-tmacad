@@ -234,7 +234,20 @@
     { const vg = new Map(); for (const sg of R.vis) { const k = sg.lk || ''; if (!vg.has(k)) vg.set(k, []); vg.get(k).push(sg); } for (const [k, vs] of vg) C.addFittedSegs(vs, W, { gv, layer: def.kind === 'plan' ? LGf(k || null) : LKf(k || null) }); }
     if (R.loops.length && def.hatch !== 'YOK' && C.T.hatch) { if (C.secHatches) C.secHatches(R, W, g => LTf(g.lk), def.hatch || 'ANSI31', def.kind === 'plan', mk); else mk('hatch', { loops: R.loops.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), pat: def.hatch || 'ANSI31', sc: 1, ang: 0, ann: true, orig: [0, 0], layer: LT }); }
     if (R.equip.length && def.hatch !== 'YOK' && C.T.hatch) { const eg = new Map(); for (const lp of R.equip) { const k = lp.lk || ''; if (!eg.has(k)) eg.set(k, []); eg.get(k).push(lp); } for (const [k, eqs] of eg) mk('hatch', { loops: eqs.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), ...(C.ekipTarama ? C.ekipTarama() : { pat: 'ANSI37', sc: 0.5 }), ang: 0, ann: true, orig: [0, 0], layer: LTf(k || null) }); }
-    if (dogr) { try { if (def.kind === 'plan') C.dogramaCizPlan(gv, W, def.h, entsD); else C.dogramaCizGorunus({ ents: entsD, D: r.frame.D, R: r.frame.R, zAt: r.zAt, W, gv, layer: tag + '_DOGRAMA', zg }); } catch (er) { console.error('doğrama çizimi', er); } }
+    const dKot = []; // görünen doğramaların denizlik / lento altı kotları (görünüş kotları için)
+    if (dogr) { try { if (def.kind === 'plan') C.dogramaCizPlan(gv, W, def.h, entsD); else C.dogramaCizGorunus({ ents: entsD, D: r.frame.D, R: r.frame.R, zAt: r.zAt, W, gv, layer: tag + '_DOGRAMA', zg, kotlar: dKot }); } catch (er) { console.error('doğrama çizimi', er); } }
+    /* GÖRÜNÜŞ KOTLARI (denetim 14.11.2026; Çokal R2 görünüşleri ölçüldü — 10-İdari ÖN / ARKA / SAĞ / SOL: kot var, ölçü yok): zemin, kat seviyeleri, saçak ve
+       mahya kotu yapının solunda dışarıda; pencere denizliği ve lento altı (kapıda lento altı) doğramanın solunda. Her kot değeri görünüşte bir kez. */
+    if (dogr && def.kind !== 'plan' && C.pstil && C.pstil()) { try {
+      const k = C.annoH(1), LKt = tag + '_KOT', yaz = new Set(), kon = []; C.ensureLayer(LKt, 7, 'CONTINUOUS', 18);
+      const koy = (sx, z) => { if (!isFinite(z) || z < ub[1] - 0.01 || z > ub[3] + 0.01) return; const key = z.toFixed(2); if (yaz.has(key)) return;
+        let x = sx; for (let i = 0; i < 4 && kon.some(q => Math.abs(q[0] - x) < 17 * k && Math.abs(q[1] - z) < 5 * k); i++) x -= 18 * k; // aynı yerde üst üste binmesin: bir sütun sola
+        yaz.add(key); kon.push([x, z]); const e = mk('kot', { p: W([x, z]), v: +z.toFixed(3), txt: '', layer: LKt, ters: true }); if (e) delete e.sp; };
+      const sol = ub[0] - 3 * k, svl = (C.seviyeler ? C.seviyeler() : []).filter(q => isFinite(+q.z) && !/temel|toprak/i.test(String(q.ad || '')));
+      if (zg != null) koy(sol, zg); for (const q of svl) koy(sol, +q.z);
+      for (const c of ents.filter(e => e.type === 'cati' && !e.gv)) { try { const V = C.catiOkVerisi ? C.catiOkVerisi(c) : null; if (V && isFinite(V.zSacak)) koy(sol, V.zSacak); if (C.catiMahyaKotu) koy(sol, C.catiMahyaKotu(c)); } catch (er) { } }
+      for (const d of dKot.sort((p, q) => p.s0 - q.s0)) { if (!d.kapi) koy(d.s0 - 2 * k, d.z0); koy(d.s0 - 2 * k, d.z1); }
+    } catch (er) { console.error('görünüş kotları', er); } }
     if (def.kind === 'plan' && def.kot !== false) planKots(ents, R, def, W, gv, tag);
     // mekanik: boru / ek parça eksen çizgileri, boru adları ve poz numaraları (kot planında)
     if (def.kind === 'plan' && def.mek !== false) {

@@ -189,7 +189,10 @@
     parca.gorunus = [0, 0, W, H];
     // ---- 2-2 KESİTİ (düşey) ----
     if (!kapi) {
-      const gx = W + Math.max(0.55, 30 * k) + (sek ? 1.3 : 0), K = dograma22(t, { sc }), ic = gx + K.ic, dis = gx + K.dis;
+      /* 2-2 kesitinin soluna yazılan iç açıklamalar ("MERMER İÇ DENİZLİK (3 cm)", 0,3 m sola) görünüşün sağındaki "1" kesit işaretine binmesin
+         (denetim 14.11.2026, Bekçi P1 50/50): aralık = işaret (4 + 10 mm) + 3 mm + en uzun iç yazı + 0,3 m */
+      const icYazi = sek || kapi ? 0 : Math.max(...['MERMER İÇ DENİZLİK (3 cm)', 'İÇ SIVA'].map(s => s.length)) * 2 * 0.75 * k;
+      const gx = Math.max(W + Math.max(0.55, 30 * k), W + 17 * k + 0.3 + icYazi) + (sek ? 1.3 : 0), K = dograma22(t, { sc }), ic = gx + K.ic, dis = gx + K.dis;
       D.o.push(...kaydir(K.items, gx, 0));
       D.D([dis + 0.08, 0], [dis + 0.08, H], 'v', 6);
       if (!sek) D.D([ic, K.alt], [dis, K.alt], 'h', -6);
@@ -199,7 +202,7 @@
     // ---- 1-1 KESİTİ (yatay; dış altta, iç üstte) ----
     const lwMax = kapi ? (W - 2 * f) / Math.max(1, t.kanat || 1) : 0, py = -(dA + 25) * k - td - (kapi ? lwMax + 0.05 : 0), pi = py + td, uz = 0.3; // kapıda açık kanat ve yay görünüşün altında kalır
     D.o.push(...kaydir(dograma11(t, { sc }).items, 0, py));
-    D.D([0, py], [W, py], 'h', -8); D.T([W + uz + 0.05, py + td / 2], 'DIŞ', 2, 'L'); D.T([W + uz + 0.05, pi + 0.03], 'İÇ', 2, 'L');
+    D.D([0, py], [W, py], 'h', -8); D.T([-uz - 0.05, py + td / 2], 'DIŞ', 2, 'R'); D.T([-uz - 0.05, pi + 0.03], 'İÇ', 2, 'R'); // solda: sağdaki 2-2 KESİTİ başlığına yaklaşmasın (denetim 14.11.2026)
     D.ALT([W / 2, py - 18 * k], '1-1 KESİTİ');
     parca.kesit11 = [-uz, py, W + uz, kapi ? pi + lwMax : pi];
     // ---- başlık ve adet ----

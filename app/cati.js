@@ -352,6 +352,8 @@
   const drawDetails = (e, O) => {
     const host = C.byId(e.host) || {}, tn = Math.tan((+e.deg || 18) * RAD), cs = Math.cos(Math.atan(tn)), t = +host.t || 0.15, sc = +host.sacak > 0 ? +host.sacak : Math.max(0.3, +e.ov || 0.5);
     let V = null; try { V = C.catiOkVerisi(e); } catch (er) { V = null; }
+    /* kuşaklama ve göğüsleme yalnız modelde varsa (dikme 0,80 m'den yüksekse; cati.js buildAll) çizilir — detay plan / kesitle çelişmesin (denetim 14.11.2026, Bekçi) */
+    const varK = !V || V.mem.some(m => m.t === 'Kuşaklama'), varG = !V || V.mem.some(m => m.t === 'Göğüsleme');
     const memB = tt => { const m = V && V.mem.find(q => q.t === tt); return m ? [m.b, m.P ? m.b : m.h] : null; };
     const mb = +e.mb || 0.05, mh = +e.mh || 0.12, ab = +e.ab || 0.10, ah = +e.ah || 0.12, db = +e.db || 0.10, yal = e.yal || 'mertek', cy = (yal === 'doseme' || yal === 'ikisi') ? (+e.cy || 8) / 100 : 0;
     const sA = memB('Saçak aşığı') || memB('Duvar aşığı') || [0.10, 0.10], sAt = memB('Saçak aşığı') ? 'Saçak aşığı' : 'Duvar aşığı', alin = memB('Alın tahtası') || [0.025, 0.20];
@@ -398,7 +400,7 @@
       D.tiles(xs - 0.04, yb(xs - 0.04) + o, (Lx - xs) / cs, ang); if (katOf('ortu')) D.ok([sc + 0.3, yb(sc + 0.3) + o + 0.03], katY(katOf('ortu')));
       D.pl([[xs - alin[0], yt(xs) + 0.01], [xs - alin[0], yt(xs) - alin[1]], [xs, yt(xs) - alin[1]]], false); D.ok([xs - alin[0], yt(xs) - alin[1] / 2], uye('Alın tahtası', alin[0], alin[1]));
       const gy = yt(xs) - alin[1] - 0.02, r0 = dnO / 2000; D.pl([[xs - 0.03, gy + 0.13], [xs - 0.03, gy], [xs - 0.03 - 2 * r0, gy], [xs - 0.03 - 2 * r0, gy + 0.14], [xs - 0.045 - 2 * r0, gy + 0.14]], false, 'DETAY', { lw: 35 }); D.ok([xs - 0.03 - r0, gy], olukY);
-      const kx = sc + 0.75; D.pl([[kx, yb(kx) - 0.12], [Lx, yb(kx) - 0.12], [Lx, yb(kx) - 0.02], [kx, yb(kx) - 0.02]], true, 'DETAY_INCE'); D.ok([kx + 0.3, yb(kx) - 0.07], uye('Kuşaklama', 0.05, 0.10));
+      const kx = sc + 0.75; if (varK) D.pl([[kx, yb(kx) - 0.12], [Lx, yb(kx) - 0.12], [Lx, yb(kx) - 0.02], [kx, yb(kx) - 0.02]], true, 'DETAY_INCE'); if (varK) D.ok([kx + 0.3, yb(kx) - 0.07], uye('Kuşaklama', 0.05, 0.10));
       const ax = sc + 0.35, ay = yt(sc + 0.35) + o + 0.18; D.pl([[ax + 0.3 * cs, ay + 0.3 * Math.sin(ang)], [ax, ay]], false, 'DETAY_INCE'); D.pl([[ax + 0.05, ay + 0.03], [ax, ay], [ax + 0.05, ay - 0.02]], false, 'DETAY_INCE'); D.tx([ax + 0.1, ay + 0.06], `Eğim %${pct}`, 'L', ang / RAD);
       D.title([sc * 0.6 + 0.6, ybot - 0.65], 'DETAY-A'); D.okKoy();
     }
@@ -408,9 +410,9 @@
       D.ok([0.55, (yt(0.55) + yb(0.55)) / 2], uye('Mertek', mb, mh));
       const ay = yb(0); D.wood(-mA[0] / 2, ay - mA[1], mA[0], mA[1]); D.ok([0, ay - mA[1] / 2], uye('Mahya aşığı', mA[0], mA[1]));
       D.pl([[-dk[0] / 2, ay - mA[1]], [-dk[0] / 2, -1.05]], false); D.pl([[dk[0] / 2, ay - mA[1]], [dk[0] / 2, -1.05]], false); D.ln([-dk[0] / 2, -1.05], [dk[0] / 2, -1.05], 'DETAY_INCE', { lt: 'DASHED' }); D.ok([0.0, -0.8], uye('Dikme', dk[0], dk[1]));
-      const ky = -0.52; D.pl([[-1.0, ky - 0.05], [1.0, ky - 0.05], [1.0, ky + 0.05], [-1.0, ky + 0.05]], true); D.ok([-0.6, ky], uye('Kuşaklama', 0.05, 0.10));
-      for (const sg of [1, -1]) { const p1 = [sg * dk[0] / 2, -0.95], p2 = [sg * 0.75, yb(0.75) - 0.02]; const d = [p2[0] - p1[0], p2[1] - p1[1]], l = Math.hypot(d[0], d[1]), nn = [-d[1] / l * 0.05, d[0] / l * 0.05]; D.pl([[p1[0] + nn[0], p1[1] + nn[1]], [p2[0] + nn[0], p2[1] + nn[1]], [p2[0] - nn[0], p2[1] - nn[1]], [p1[0] - nn[0], p1[1] - nn[1]]], true, 'DETAY_INCE'); }
-      D.ok([0.4, (-0.95 + yb(0.75)) / 2 + 0.05], uye('Göğüsleme', 0.05, 0.10));
+      const ky = -0.52; if (varK) D.pl([[-1.0, ky - 0.05], [1.0, ky - 0.05], [1.0, ky + 0.05], [-1.0, ky + 0.05]], true); if (varK) D.ok([-0.6, ky], uye('Kuşaklama', 0.05, 0.10));
+      if (varG) for (const sg of [1, -1]) { const p1 = [sg * dk[0] / 2, -0.95], p2 = [sg * 0.75, yb(0.75) - 0.02]; const d = [p2[0] - p1[0], p2[1] - p1[1]], l = Math.hypot(d[0], d[1]), nn = [-d[1] / l * 0.05, d[0] / l * 0.05]; D.pl([[p1[0] + nn[0], p1[1] + nn[1]], [p2[0] + nn[0], p2[1] + nn[1]], [p2[0] - nn[0], p2[1] - nn[1]], [p1[0] - nn[0], p1[1] - nn[1]]], true, 'DETAY_INCE'); }
+      if (varG) D.ok([0.4, (-0.95 + yb(0.75)) / 2 + 0.05], uye('Göğüsleme', 0.05, 0.10));
       let o = 0; const band = (k, mat, lw) => { if (!k || !(k.t > 0)) return; const a2 = o + k.t / cs; for (const sg of [1, -1]) { const q = [[0, yt(0) + o], [sg * X, yt(X) + o], [sg * X, yt(X) + a2], [0, yt(0) + a2]]; D.pl(q, true, lw ? 'DETAY' : 'DETAY_INCE', lw ? { lw } : undefined); if (mat) D.ht([q], mat); } D.ok([0.9, yt(0.9) + (o + a2) / 2], katY(k)); o = a2; };
       band(katOf('alt')); band(katOf('xps'), 'Y'); band(katOf('su'), null, 50);
       D.tiles(0.06, yt(0.06) + o, X, -ang); D.tiles(-0.06, yt(0.06) + o, X, Math.PI + ang); if (katOf('ortu')) D.ok([-0.6, yt(0.6) + o + 0.03], katY(katOf('ortu')));
