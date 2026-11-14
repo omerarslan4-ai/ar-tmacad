@@ -87,6 +87,50 @@
     return out;
   };
 
+  /* ---------- mesnet bölgeleri ve tekil noktalar (saf geometri) ----------
+     mes(q, e, d) : q noktası (e elemanının üstünde) bir mesnedin yüzünden d'den daha yakın mı? (kesme tahkiki bu bölgenin dışında yapılır)
+        perde  : radye üstü; döşemeyle tutulu üst kenar; perdeye açıyla saplanan başka perde / aynı perdenin köşesi; perdeye gömülü kolon
+        radye / döşeme : perde eksenleri, kolonlar, (döşemede) kiriş kaburgaları
+     tek(q, e, r) : q noktası bir tekil noktaya r'den yakın mı? Tekil noktalar: döşeme poligonunun içbükey (boşluk) köşesi, döşeme kenarının
+        bir perdenin ortasında bittiği nokta, kirişin perdeye saplandığı düğüm, döşeme içindeki kiriş ucu. Perde köşeleri tekil değildir (mesnet). */
+  const d2seg = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy; let t = l2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2 : 0; t = t < 0 ? 0 : t > 1 ? 1 : t; return Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dy * t); };
+  P.kabukBolge = (S, AG, h) => {
+    const M = S.kabuk, W = AG.W, zRadUst = M.radye.kAlt + M.radye.t, hat = [], kol = [], kir = [], tekil = [], dos = M.dosemeler || [];
+    W.forEach((w, wi) => { const n = w.kapali ? w.P.length : w.P.length - 1; for (let i = 0; i < n; i++) { const a = w.P[i], b = w.P[(i + 1) % w.P.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L > 1e-6) hat.push({ a, b, u: [(b[0] - a[0]) / L, (b[1] - a[1]) / L], hw: w.t / 2, zt: w.ztm, wi }); } });
+    const gor = new Set(), kirId = new Set();
+    for (const br of (AG.bars || [])) {
+      if (br.tur === 'kolon') { const k = 'c' + (br.id != null ? br.id : br.ad); if (gor.has(k)) continue; gor.add(k); const q = AG.nodes[br.n[0]], c = (M.kolonlar || []).find(x => x.id === br.id) || {}; kol.push({ p: [q[0], q[1]], hw: (br.ek ? br.ek.b : Math.max(+c.bx || 0, +c.by || 0, +c.D || 0, 0.3)) / 2 }); }
+      else { const a = AG.nodes[br.n[0]], b = AG.nodes[br.n[1]], kb = (M.kirisler || []).find(x => x.id === br.id) || {}; kir.push({ a, b, hw: (+kb.bw || 0.3) / 2, z: a[2] }); kirId.add(br.id); } }
+    // q noktası bir perde ekseninin üstünde mi? → { hh, kose }: kose = başka doğrultuda bir perdeye de yakın (perde köşesi / birleşimi)
+    const duvarda = (q, z) => { let best = null; for (const hh of hat) { if (hh.zt < z - 0.3) continue; const d = d2seg(q, hh.a, hh.b); if (d <= hh.hw + 0.15 && (!best || d < best.d)) best = { hh, d }; } if (!best) return null;
+      let kose = false; for (const o of hat) { if (o === best.hh || o.zt < z - 0.3 || Math.abs(o.u[0] * best.hh.u[1] - o.u[1] * best.hh.u[0]) < 0.5) continue; if (d2seg(q, o.a, o.b) <= o.hw + 0.5) { kose = true; break; } }
+      return { hh: best.hh, kose }; };
+    dos.forEach((d, k) => { const Q = d.pts, n = Q.length, zm = d.zt - d.t / 2; let A = 0; for (let i = 0; i < n; i++) { const a = Q[i], b = Q[(i + 1) % n]; A += a[0] * b[1] - b[0] * a[1]; } const sg = A >= 0 ? 1 : -1;
+      for (let i = 0; i < n; i++) { const a = Q[(i + n - 1) % n], b = Q[i], c = Q[(i + 1) % n], cr = ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) * sg, dv = duvarda(b, zm);
+        if (cr < -1e-9) tekil.push({ p: [b[0], b[1], zm], neden: 'döşeme boşluğunun köşesi', dos: k });
+        else if (dv && !dv.kose) tekil.push({ p: [b[0], b[1], zm], neden: 'döşeme kenarının perdede bittiği nokta (boşluk köşesi)', dos: k }); } });
+    for (const kb of (M.kirisler || [])) { if (!kirId.has(kb.id)) continue; for (const q of [kb.a, kb.b]) { const dv = duvarda(q, +kb.zt - 0.3);
+      if (dv && dv.kose) continue; tekil.push(dv ? { p: [q[0], q[1], +kb.zt], neden: 'kirişin perdeye saplandığı düğüm' } : { p: [q[0], q[1], +kb.zt], neden: 'kiriş ucu', yalnizDos: true }); } }
+    const dosK = e => (e.tur === 'doseme' ? +e.grp.slice(1) : -1);
+    const tekBul = (q, e, r) => { if (e.tur === 'radye') return null; const k = dosK(e);
+      for (const t of tekil) { if (e.tur === 'perde') { if (t.yalnizDos) continue; if (Math.hypot(q[0] - t.p[0], q[1] - t.p[1], q[2] - t.p[2]) < r) return t; }
+        else { if (t.dos != null && t.dos !== k) continue; if (Math.abs(t.p[2] - q[2]) < 0.6 && Math.hypot(q[0] - t.p[0], q[1] - t.p[1]) < r) return t; } }
+      return null; };
+    const mes = (q, e, d) => {
+      if (e.tur === 'perde') { const w = W[e.wi]; if (q[2] < zRadUst + d) return true;
+        if (w.dos && w.ustS && q[2] > w.ztm - w.dos.t / 2 - d) { let b = 0, bd = Infinity; for (let j = 0; j < w.S.length; j++) { const v = Math.hypot(w.S[j][0] - q[0], w.S[j][1] - q[1]); if (v < bd) { bd = v; b = j; } } if (w.ustS[b]) return true; }
+        const X0 = AG.nodes[e.n[0]], X1 = AG.nodes[e.n[1]], L = Math.hypot(X1[0] - X0[0], X1[1] - X0[1]) || 1, u = [(X1[0] - X0[0]) / L, (X1[1] - X0[1]) / L];
+        for (const o of hat) { if (o.zt < q[2] - 1e-6 || Math.abs(o.u[0] * u[1] - o.u[1] * u[0]) < 0.5) continue; if (d2seg(q, o.a, o.b) < o.hw + d) return true; }
+        for (const c of kol) if (Math.hypot(q[0] - c.p[0], q[1] - c.p[1]) < c.hw + d) return true;
+        return false; }
+      const rad = e.tur === 'radye';
+      for (const o of hat) { if (!rad && Math.abs(o.zt - q[2]) > 0.3) continue; if (d2seg(q, o.a, o.b) < o.hw + d) return true; }
+      for (const c of kol) if (Math.hypot(q[0] - c.p[0], q[1] - c.p[1]) < c.hw + d) return true;
+      if (!rad) for (const b of kir) { if (Math.abs(b.z - q[2]) > 0.3) continue; if (d2seg(q, b.a, b.b) < b.hw + d) return true; }
+      return false; };
+    return { hat, kol, kir, tekil, mes, tek: (q, e, r) => !!tekBul(q, e, r), neden: (q, e, r) => { const t = tekBul(q, e, r * 1.6) || tekBul(q, e, r * 4); return t ? t.neden : 'tekil nokta'; } };
+  };
+
   /* ---------- hesap ---------- */
   const NQ = 8, QI = { M11: 0, M22: 1, M12: 2, N11: 3, N22: 4, N12: 5, V13: 6, V23: 7 };
   P.kabukHesap = (S, ilerle) => {
@@ -108,12 +152,20 @@
     /* 'cat': çatlak kontrolünde kullanılan zarf — emniyet kombinasyonları. Varsayılan: deprem dahil (kullanıcı kararı);
        S.tas.catDep kapatılırsa yalnız işletme yükleri */
     const catDep = !(S.tas.catDep === false || S.tas.catDep === 'false');
-    const KV = kombler(S), Z = {}; for (const tip of ['tsm', 'emn', 'cat']) Z[tip] = { m11p: new Float32Array(ne * 4).fill(-1e9), m11n: new Float32Array(ne * 4).fill(1e9), m22p: new Float32Array(ne * 4).fill(-1e9), m22n: new Float32Array(ne * 4).fill(1e9), n11: new Float32Array(ne * 4).fill(-1e9), n22: new Float32Array(ne * 4).fill(-1e9), v: new Float32Array(ne * 4) };
+    const KV = kombler(S), Z = {}; for (const tip of ['tsm', 'emn', 'cat']) Z[tip] = { m11p: new Float32Array(ne * 4).fill(-1e9), m11n: new Float32Array(ne * 4).fill(1e9), m22p: new Float32Array(ne * 4).fill(-1e9), m22n: new Float32Array(ne * 4).fill(1e9), n11: new Float32Array(ne * 4).fill(-1e9), n22: new Float32Array(ne * 4).fill(-1e9), v: new Float32Array(ne * 4),
+      /* eşdeğer tasarım momenti (eğilme + eksenel çekme): Meq = M + 0,5·N·0,9·d — AYNI noktada ve AYNI kombinasyonda oluşan M ve N ile
+         (eskiden grubun bir yerindeki en büyük N, başka yerindeki en büyük M ile toplanıyordu). m..pE / m..nE: + / − yüz için Meq zarfı,
+         n..pE / n..nE: o Meq'i veren kombinasyondaki çekme kuvveti. */
+      m11pE: new Float32Array(ne * 4).fill(-1e9), m11nE: new Float32Array(ne * 4).fill(-1e9), m22pE: new Float32Array(ne * 4).fill(-1e9), m22nE: new Float32Array(ne * 4).fill(-1e9), n11pE: new Float32Array(ne * 4), n11nE: new Float32Array(ne * 4), n22pE: new Float32Array(ne * 4), n22nE: new Float32Array(ne * 4) };
+    const cTur = e => (e.tur === 'perde' ? S.mal.cP : e.tur === 'radye' ? S.mal.cR : S.mal.cD), kE = new Float32Array(ne); AG.els.forEach((e, i) => { kE[i] = 0.45 * Math.max(0.02, e.t - cTur(e) - 0.01); });
     const tmp = new Float64Array(NQ);
     for (const k of KV.concat(KV.filter(k => k.tip === 'emn' && (catDep || !k.dep)).map(k => Object.assign({}, k, { tip: 'cat' })))) { const z = Z[k.tip], ent = Object.entries(k.f).filter(([c, f]) => f && Q[c]);
       for (let i = 0; i < ne * 4; i++) { tmp.fill(0); for (const [c, f] of ent) { const a = Q[c], b = i * NQ; for (let q = 0; q < NQ; q++) tmp[q] += f * a[b + q]; }
         const a12 = Math.abs(tmp[2]); z.m11p[i] = Math.max(z.m11p[i], tmp[0] + a12); z.m11n[i] = Math.min(z.m11n[i], tmp[0] - a12); z.m22p[i] = Math.max(z.m22p[i], tmp[1] + a12); z.m22n[i] = Math.min(z.m22n[i], tmp[1] - a12);
-        z.n11[i] = Math.max(z.n11[i], tmp[3]); z.n22[i] = Math.max(z.n22[i], tmp[4]); z.v[i] = Math.max(z.v[i], Math.hypot(tmp[6], tmp[7])); } }
+        z.n11[i] = Math.max(z.n11[i], tmp[3]); z.n22[i] = Math.max(z.n22[i], tmp[4]); z.v[i] = Math.max(z.v[i], Math.hypot(tmp[6], tmp[7]));
+        const kk = kE[i >> 2], t1 = tmp[3] > 0 ? tmp[3] : 0, t2 = tmp[4] > 0 ? tmp[4] : 0; let v;
+        if ((v = tmp[0] + a12 + kk * t1) > z.m11pE[i]) { z.m11pE[i] = v; z.n11pE[i] = t1; } if ((v = a12 - tmp[0] + kk * t1) > z.m11nE[i]) { z.m11nE[i] = v; z.n11nE[i] = t1; }
+        if ((v = tmp[1] + a12 + kk * t2) > z.m22pE[i]) { z.m22pE[i] = v; z.n22pE[i] = t2; } if ((v = a12 - tmp[1] + kk * t2) > z.m22nE[i]) { z.m22nE[i] = v; z.n22nE[i] = t2; } } }
     // şerit ortalaması (model M.seritOrt m verirse; ör. anaerobik 1,0): köşe / serbest uç / birleşim tekil tepeleri yerine
     // donatı doğrultusuna dik yönde 1 m'lik şerit ortalaması — düşey donatı (M22, N22) yatayda, yatay donatı (M11, N11) düşeyde,
     // radyede X donatısı Y'de, Y donatısı X'te; kesme 1 × 1 m alanda. Ağırlık: elemanın pencereyle örtüşen boyu.
@@ -157,31 +209,53 @@
     AG.W.forEach((w, wi) => ekle(w.ad || ('Perde ' + (wi + 1)), w.tip === 'dis' ? 'dis' : 'ic', e => e.wi === wi && e.tur === 'perde', w.t, S.mal.cP, w.tip === 'dis' ? ['dış', 'iç'] : ['1. yüz', '2. yüz']));
     ekle(`${f2(M.radye.kAlt)} Kotu Temel (radye)`, 'radye', e => e.tur === 'radye', M.radye.t, S.mal.cR, ['üst', 'alt']);
     (M.dosemeler || []).forEach((d, k) => ekle(`${d.ad || 'D' + (k + 1)} döşeme`, 'doseme', e => e.grp === 'D' + k, d.t, S.mal.cD, ['üst', 'alt']));
-    const tasarim = [], uyar = [];
+    const tasarim = [], uyar = [], yerelMsg = [];
+    /* mesnet bölgeleri ve tekil noktalar (P.kabukBolge): kesme mesnet yüzünden d içeride alınır (TS 500 8.1); boşluk köşesi / kirişin perdeye
+       saplandığı düğüm gibi tekil noktalardaki tepe değer kalınlık gerekçesi olmaz — eleman tekil nokta dışındaki en büyük değerle
+       yetiyorsa donatı ona göre seçilir, tekil nokta "yerel ilave donatı" notu olarak bildirilir. */
+    const GH = P.kabukBolge(S, AG, h), FL = new Uint8Array(ne * 4), nok = pi => { const e = AG.els[pi >> 2], q = AG.nodes[e.n[pi & 3]]; return q; }, yerYaz = q => `x = ${f2(q[0])}, y = ${f2(q[1])}, kot ${f2(q[2])}`;
+    const KS = [[-1, -1], [1, -1], [1, 1], [-1, 1]], OR = [-1, -0.5, 0, 0.5, 1];
     for (const gr of gruplar) {
-      const enb = (arr, f, isr) => { let m = isr > 0 ? -1e9 : 1e9, at = -1; for (const i of gr.ids) for (let k = 0; k < 4; k++) { const v = arr[i * 4 + k]; if (isr > 0 ? v > m : v < m) { m = v; at = i; } } return { m, at }; };
+      const dd = gr.t - gr.c - 0.01, rT = Math.max(2 * gr.t, 1.5 * h); let tekVar = false;
+      for (const i of gr.ids) { const e = AG.els[i]; for (let k = 0; k < 4; k++) { const q = AG.nodes[e.n[k]], f = (GH.tek(q, e, rT) ? 1 : 0) | (GH.mes(q, e, dd) ? 2 : 0); FL[i * 4 + k] = f; if (f & 1) tekVar = true; } }
+      const enb = (arr, genel) => { let m = -1e9, pi = -1; for (const i of gr.ids) for (let k = 0; k < 4; k++) { if (genel && (FL[i * 4 + k] & 1)) continue; const v = arr[i * 4 + k]; if (v > m) { m = v; pi = i * 4 + k; } } return { m, pi }; };
       // dış perdede +3 yönü dışa mı? (yüz eşlemesi: M>0 → +3 yüzünde çekme)
       const e0 = AG.els[gr.ids[0]], disa = gr.tur === 'dis' ? (YT.disYon.get(e0)[0] * e0.F.e3[0] + YT.disYon.get(e0)[1] * e0.F.e3[1] > 0) : true;
-      const kat = [];
-      for (const [yon, kp, kn, kN] of [['M11 (yatay)', 'm11p', 'm11n', 'n11'], ['M22 (düşey)', 'm22p', 'm22n', 'n22']]) {
-        if (gr.tur === 'radye' || gr.tur === 'doseme') yon.replace('yatay', 'X').replace('düşey', 'Y');
+      const kat = [], yerel = [];
+      for (const [yon, kp, kn] of [['M11 (yatay)', 'm11p', 'm11n'], ['M22 (düşey)', 'm22p', 'm22n']]) {
         const yAd = gr.tur === 'radye' || gr.tur === 'doseme' ? (kp === 'm11p' ? 'M11 (X)' : 'M22 (Y)') : yon;
-        const Nd = Math.max(0, enb(Z.tsm[kN], 0, 1).m), Ns = Math.max(0, enb(Z.cat[kN], 0, 1).m);
         for (const [s, key] of [[1, kp], [-1, kn]]) {
-          const Md = Math.max(0, s * enb(Z.tsm[key], 0, s).m), Ms = Math.max(0, s * enb(Z.cat[key], 0, s).m);
+          const nKey = 'n' + key.slice(1) + 'E', hes = genel => { const a = enb(Z.tsm[key + 'E'], genel), c = enb(Z.cat[key + 'E'], genel), Meq = Math.max(0, a.m), Mseq = Math.max(0, c.m), Nd = Meq > 0 ? Z.tsm[nKey][a.pi] : 0, Ns = Mseq > 0 ? Z.cat[nKey][c.pi] : 0;
+            return { Meq, Mseq, Nd, Ns, Md: Meq > 0 ? Math.max(0, Meq - kE[a.pi >> 2] * Nd) : 0, Ms: Mseq > 0 ? Math.max(0, Mseq - kE[c.pi >> 2] * Ns) : 0, pi: a.pi }; };
           const yuz = gr.tur === 'radye' || gr.tur === 'doseme' ? (s > 0 ? 'üst' : 'alt') : (gr.tur === 'dis' ? ((s > 0) === disa ? 'dış' : 'iç') : (s > 0 ? '1. yüz' : '2. yüz'));
-          const dd = gr.t - gr.c - 0.01, Meq = Md + 0.5 * Nd * 0.9 * dd, Mseq = Ms + 0.5 * Ns * 0.9 * dd;
-          const sec = P.donatiSec({ M: Meq, Ms: Mseq, h: gr.t, c: gr.c, kat: kp === 'm11p' ? 1 : 2, su: true }, S, MAL);
-          kat.push({ yon: yAd, yuz, M: Md, Ms, N: Nd, Ns, sec });
+          const sec0 = q => P.donatiSec({ M: q.Meq, Ms: q.Mseq, h: gr.t, c: gr.c, kat: kp === 'm11p' ? 1 : 2, su: true }, S, MAL);
+          let q = hes(false), sec = sec0(q), yr = null;
+          if (!sec.ok && tekVar) { const q2 = hes(true), s2 = sec0(q2); if (s2.ok) { const yeri = nok(q.pi); yr = { tur: 'eğilme', yon: yAd, yuz, M: q.Md, N: q.Nd, at: [yeri[0], yeri[1], yeri[2]], neden: GH.neden(yeri, AG.els[q.pi >> 2], rT) }; yerel.push(yr);
+            yerelMsg.push(`${gr.ad} — ${yAd} ${yuz}: tekil noktada (${yr.neden}; ${yerYaz(yeri)}) yerel tepe M = ${f2(q.Md, 0)} kNm/m${q.Nd > 1 ? `, N = ${f2(q.Nd, 0)} kN/m` : ''} — kalınlık gerekçesi sayılmadı. Genel donatı tekil nokta dışındaki en büyük değere göre seçildi (M = ${f2(q2.Md, 0)} kNm/m → Ø${s2.F}/${Math.round(s2.s * 100)}); bu noktada yerel ilave donatı gerekir.`);
+            q = q2; sec = s2; } }
+          kat.push(Object.assign({ yon: yAd, yuz, M: q.Md, Ms: q.Ms, N: q.Nd, Ns: q.Ns, Meq: q.Meq, Mseq: q.Mseq, key, sec }, yr ? { yerel: yr } : {}));
           if (!sec.ok) uyar.push(`${gr.ad} — ${yAd} ${yuz}: ${sec.msg || 'uygun donatı yok'}`);
         }
       }
-      const Vd = enb(Z.tsm.v, 0, 1).m, ks = P.kesme(Vd, gr.t - gr.c - 0.01, MAL); if (!ks.ok) uyar.push(`${gr.ad}: kesme Vd = ${f2(Vd, 1)} > Vcr = ${f2(ks.Vcr, 1)} kN/m`);
-      tasarim.push({ eleman: gr.ad, grup: gr, katman: kat, kesme: ks });
+      /* kesme: mesnet (radye / komşu perde / döşeme / kolon / kiriş) yüzünden d içerideki en büyük değer; mesnet bölgesini kesen elemanda
+         değer eleman içinde (5 × 5 nokta) ara değerle bulunur */
+      const kes = genel => { let m = 0, yeri = null; const arr = Z.tsm.v;
+        for (const i of gr.ids) { const e = AG.els[i], f = [FL[i * 4], FL[i * 4 + 1], FL[i * 4 + 2], FL[i * 4 + 3]], nm = f.filter(x => x & 2).length; if (nm === 4) continue;
+          if (!nm) { for (let k = 0; k < 4; k++) { if (genel && (f[k] & 1)) continue; const v = arr[i * 4 + k]; if (v > m) { m = v; yeri = AG.nodes[e.n[k]]; } } continue; }
+          const X = e.n.map(n => AG.nodes[n]);
+          for (const xi of OR) for (const et of OR) { const N = KS.map(c => (1 + c[0] * xi) * (1 + c[1] * et) / 4), q = [0, 1, 2].map(c => N[0] * X[0][c] + N[1] * X[1][c] + N[2] * X[2][c] + N[3] * X[3][c]);
+            if (GH.mes(q, e, dd) || (genel && GH.tek(q, e, rT))) continue; const v = N[0] * arr[i * 4] + N[1] * arr[i * 4 + 1] + N[2] * arr[i * 4 + 2] + N[3] * arr[i * 4 + 3]; if (v > m) { m = v; yeri = q; } } }
+        return { Vd: m, yeri }; };
+      let kv = kes(false), ks = P.kesme(kv.Vd, dd, MAL);
+      if (!ks.ok && tekVar) { const k2 = kes(true), s2 = P.kesme(k2.Vd, dd, MAL); if (s2.ok) { const yr = { tur: 'kesme', V: kv.Vd, at: kv.yeri.slice(0, 3), neden: GH.neden(kv.yeri, AG.els[gr.ids[0]], rT) }; yerel.push(yr);
+        yerelMsg.push(`${gr.ad}: tekil noktada (${yr.neden}; ${yerYaz(kv.yeri)}) yerel kesme tepesi Vd = ${f2(kv.Vd, 0)} kN/m > Vcr = ${f2(ks.Vcr, 0)} kN/m — kalınlık gerekçesi sayılmadı (tekil nokta dışında Vd = ${f2(k2.Vd, 0)} kN/m ≤ Vcr); bu noktada yerel kesme donatısı / başlık gerekir.`); kv = k2; ks = s2; } }
+      ks.yeri = kv.yeri ? kv.yeri.slice(0, 3) : null;
+      if (!ks.ok) uyar.push(`${gr.ad}: kesme Vd = ${f2(ks.Vd, 1)} > Vcr = ${f2(ks.Vcr, 1)} kN/m (mesnet yüzünden d içeride${ks.yeri ? '; ' + yerYaz(ks.yeri) : ''})`);
+      tasarim.push({ eleman: gr.ad, grup: gr, katman: kat, kesme: ks, yerel });
     }
     YT.nanUyar.forEach(u => uyar.push(u));
     if (qmax > S.zemin.sig) uyar.push(`Zemin gerilmesi ${f2(qmax, 1)} > ${S.zemin.sig} kN/m²`);
-    KR = { AG, o, Q, Z, KV, YT, U: coz.sonuc, gruplar, tasarim, uyar, cubuk, QB, bilgi: AG.uyarC || [], qz, qmax, h, sure: Date.now() - t0, dof: coz.N, prof: coz.prof, MAL, ok: !uyar.length };
+    KR = { AG, o, Q, Z, KV, YT, U: coz.sonuc, gruplar, tasarim, uyar, cubuk, QB, bilgi: (AG.uyarC || []).concat(yerelMsg), yerel: yerelMsg, qz, qmax, h, sure: Date.now() - t0, dof: coz.N, prof: coz.prof, MAL, ok: !uyar.length };
     return KR;
   };
 
@@ -381,7 +455,7 @@
       <label>Açı <input id="kbA" type="range" min="-180" max="180" value="-50" style="width:120px"></label></div><div id="kbC"></div>`;
     h += `<table class="t"><tr><th class="l">Eleman</th><th>Donatı yönü / yüz</th><th>Md (kNm/m)</th><th>Nd (kN/m)</th><th>Ms (kNm/m)</th><th>As ger. (cm²/m)</th><th>Seçilen</th><th>As (cm²/m)</th><th>σs (MPa)</th><th>w (mm)</th></tr>`;
     for (const t of r.tasarim) { t.katman.forEach((k, i) => { const s = k.sec; h += `<tr>${i === 0 ? `<td class="l" rowspan="${t.katman.length + 1}"><b>${esc(t.eleman)}</b><br><span class="hint">t = ${cm(t.grup.t)} cm</span></td>` : ''}<td class="l">${k.yon} — ${k.yuz}</td><td>${f2(k.M, 1)}</td><td>${f2(k.N, 1)}</td><td>${f2(k.Ms, 1)}</td><td>${f2((s.req || 0) * 1e4)}</td><td>${s.ok ? `Ø${s.F}/${cm(s.s)}` : '<span class="bad">—</span>'}</td><td>${s.ok ? f2(s.As * 1e4) : '—'}</td><td>${s.ok ? f2(s.ss, 0) : '—'}</td><td>${s.ok ? f2(s.w, 3) : '—'}</td></tr>`; });
-      h += `<tr><td class="l">Kesme</td><td colspan="8">Vd = ${f2(t.kesme.Vd, 1)} kN/m ≤ Vcr = ${f2(t.kesme.Vcr, 1)} kN/m ${t.kesme.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr>`; }
+      h += `<tr><td class="l">Kesme <span class="hint">(mesnet yüzünden d içeride)</span></td><td colspan="8">Vd = ${f2(t.kesme.Vd, 1)} kN/m ≤ Vcr = ${f2(t.kesme.Vcr, 1)} kN/m ${t.kesme.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}${(t.yerel || []).length ? ` <span class="hint">· ${t.yerel.length} tekil noktada yerel ilave donatı notu (yukarıda)</span>` : ''}</td></tr>`; }
     h += `</table><table class="t" style="margin-top:10px"><tr><th class="l">Kontrol</th><th>Değer</th><th>Sınır</th></tr><tr><td class="l">Zemin gerilmesi (yay basıncı maks., emniyet kombinasyonları)</td><td>${f2(r.qmax, 1)} kN/m²</td><td>${S.zemin.sig} kN/m² ${r.qmax <= S.zemin.sig ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td></tr></table>`;
     if (r.cubuk && r.cubuk.length) { // kabuk modelindeki kolon / kiriş kaburgaları: perde / döşemeyle birlikte taşıdıkları iç kuvvetler (TSM zarfı)
       h += `<h4 style="margin:12px 0 4px">Kabuk modelindeki kolon ve kirişler — iç kuvvet zarfı (TSM)</h4><p class="hint">Perde içindeki kolonların perde dışına taşan kısmı ve döşeme altına sarkan kiriş gövdeleri kaburga çubuk olarak hesaba girdi. Bu kuvvetler su yapısı yüklerinden (toprak, su, YAS, deprem itkisi) gelir; kolon donatısı hesabında çerçeve kuvvetlerine eklenir (son sütun: kaburga + perde şeridi = kolon kesitinin taşıdığı moment); kiriş kuvvetleri bilgi içindir.</p><table class="t"><tr><th class="l">Eleman</th><th>Kaburga A (cm²)</th><th>N min / maks (kN)</th><th>M güçlü (kNm)</th><th>M zayıf (kNm)</th><th>V (kN)</th><th>Kolon kesit momenti, depremsiz / depremli (kNm)</th></tr>`;

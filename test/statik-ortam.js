@@ -63,7 +63,8 @@ const uygula = (S, d) => {
   const p = pencere();
   if (d.geo) { p.modelKotUygula(S, d); S.koken = d.koken; S.suYapisi = true; } else S.suYapisi = false;
   if (d.cerceve) S.cer = { kolonlar: d.cerceve.kolonlar, kirisler: d.cerceve.kirisler, dosemeler: d.cerceve.dosemeler, perdeler: d.cerceve.perdeler, ayar: Object.assign(p.cerceveVars(), d.cerceve.ayar || {}) }; else S.cer = null;
-  if (d.kabuk) { S.kabuk = d.kabuk; S.mod = 'kabuk'; S.suYapisi = false; if (S.tas.dH == null) S.tas.dH = 0.3; } else { S.mod = 'dik'; delete S.kabuk; }
+  if (d.cerceve && d.cerceve.ayar && +d.cerceve.ayar.SDS > 0) S.dep = Object.assign(S.dep || {}, { SDS: +d.cerceve.ayar.SDS }); // projeye kayıtlı deprem ayarı
+  if (d.kabuk) { S.kabuk = d.kabuk; S.mod = 'kabuk'; S.suYapisi = false; if (d.kabuk.wmax > 0) S.tas.wmax = d.kabuk.wmax; if (S.tas.dH == null) S.tas.dH = 0.3; } else { S.mod = 'dik'; delete S.kabuk; }
   return S;
 };
 const konyaDoc = () => require(path.join(KOK, 'araclar/konya-terfi-uret.js')).uret().doc;

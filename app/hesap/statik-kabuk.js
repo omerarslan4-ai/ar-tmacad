@@ -225,7 +225,7 @@
     for (const w of W) { for (const q of w.S) tabanD.add(nod(q[0], q[1], zr)); let tut = 0; if (w.dos) { const k = dos.indexOf(w.dos); for (const q of w.S) if (dosta(q, w.dos, w)) { ustD.set(nod(q[0], q[1], w.ztm), k); tut++; } } // döşemenin olmadığı perde üstü (ör. boşluk kenarı) serbest kalır
       /* üst kenar bilgisi (rapor ve kalınlık önerisi için): perde boyu, döşemeyle tutulu oran ve serbest kalan boy */
       let boy = 0; for (let i = 1; i < w.S.length; i++) boy += Math.hypot(w.S[i][0] - w.S[i - 1][0], w.S[i][1] - w.S[i - 1][1]); if (w.kapali && w.S.length > 2) boy += Math.hypot(w.S[0][0] - w.S[w.S.length - 1][0], w.S[0][1] - w.S[w.S.length - 1][1]);
-      w.boy = boy; w.ustOran = w.S.length ? tut / w.S.length : 0; w.ustSerbest = boy * (1 - w.ustOran); }
+      w.boy = boy; w.ustOran = w.S.length ? tut / w.S.length : 0; w.ustSerbest = boy * (1 - w.ustOran); w.ustS = w.S.map(q => !!(w.dos && dosta(q, w.dos, w))); }
     for (const s of tabanD) bagla(s, RG);
     for (const [s, k] of ustD) bagla(s, DG[k]);
     /* çubuklar: { n:[i,j], s: kesit, ref: güçlü eğilme yönü, ad, tur:'kolon'|'kiris', id } */
