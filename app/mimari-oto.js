@@ -50,6 +50,12 @@
     return { tipler, kodOf };
   };
 
+  /* numara dairesi bütün tiplerde aynı (kullanıcı kararı 14.11.2026: r = 3 mm, Çokal İdari); uzun kod (SEK1) daireyi büyütmez: yazı boyu 2 mm kalır
+     (kuralın en küçük yazısı), genişlik çarpanı daraltılarak daireye sığdırılır. Yazı genişliği ≈ harf × 0,75 × h (YZ, genişlik 0,70), daire içinde
+     iki yanda 0,6 mm pay. Döner: { r, h (kâğıt mm), wf (yazının genişlik çarpanı; 0,70 = YZ) } */
+  const kodYazi = (kod, o = {}) => { const r = o.balonR || 3, h = o.kodMm || 2, n = String(kod || '').length || 1, f = Math.min(1, 2 * (r - 0.6) / (0.75 * n * h)), yz = o.yzGen || 0.7;
+    return { r, h, wf: Math.round(yz * f * 1000) / 1000 }; };
+
   /* ---------- 2) AKS TÜRETME ve PLAN ÖLÇÜ SIRALARI ---------- */
   const kume = (v, tol) => { const s = v.slice().sort((a, b) => a - b), g = []; for (const x of s) { const l = g[g.length - 1]; if (l && x - l[l.length - 1] <= tol) l.push(x); else g.push([x]); } return g.map(q => r2(q.reduce((a, b) => a + b, 0) / q.length)); };
   /* o: { kolonlar: [[x, y]] merkezler, perdeler: [{ a: [x, y], b: [x, y] }] eksen çizgileri (m) }. Kolon varsa akslar kolon merkezleridir;
@@ -206,7 +212,7 @@
   /* görünüşün zemin kotu: tretuvarın oturduğu zemin (zg) en düşüğü; yoksa "toprak / zemin" adlı seviye; yoksa null (kırpılmaz) */
   const zeminKotu = (ogeler, seviyeler) => { const t = (ogeler || []).filter(e => e.type === 'tretuvar' && isFinite(+e.zg)).map(e => +e.zg);
     if (t.length) return Math.min(...t); const s = (seviyeler || []).find(q => /toprak|tabii zemin|zemin kotu/i.test(String(q.ad || q.id || ''))); return s && isFinite(+s.z) ? +s.z : null; };
-  const api = { tipNumaralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  const api = { tipNumaralari, kodYazi, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
@@ -216,6 +222,7 @@
   const DK = () => Object.assign({ balonR: 3, kodMm: 2, yaziMm: 2, cizgiRenk: 243, mesafe: 15.7, katman: 'DOGRAMA_NO' }, kural().dogramaNo || {});
   const AK = () => Object.assign({ balonR: 6, yaziMm: 5, balonOte: 11 }, kural().aks || {});
   const OY = () => Object.assign({ ilkSira: 14, siraAraligi: 5 }, (kural().olcuYeri || {}).genel || {});
+  const siraMm = Y => Y.siraModel ? Y.siraModel * 1000 / ((C.doc && C.doc.set && +C.doc.set.anno) || 50) : Y.siraAraligi;
   const katmanAc = ad => { if (C.ensureLayer) C.ensureLayer(ad, 7, 'CONTINUOUS', 20); return ad; };
   const bbox3 = e => { let t; try { t = C.entTris(e); } catch (er) { return null; } const P = t && t.pos; if (!P || !P.length) return null; const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
     for (let i = 0; i < P.length; i += 3) { b[0] = Math.min(b[0], P[i]); b[1] = Math.min(b[1], P[i + 1]); b[2] = Math.min(b[2], P[i + 2]); b[3] = Math.max(b[3], P[i]); b[4] = Math.max(b[4], P[i + 1]); b[5] = Math.max(b[5], P[i + 2]); } return b; };
@@ -242,14 +249,14 @@
     for (const d of dogramalar(ents)) {
       const kod = kodOf[d.id]; if (!kod || !kesenDuvar(d, hKes) || hKes < d.z0 - 0.01 || hKes > d.z0 + d.h + 0.01) continue; // plan kesit düzleminin kestiği doğrama (yüksek pencere kesitte ve görünüşte numaralanır)
       let o = d.nn.slice(); if ((d.c[0] - cx) * o[0] + (d.c[1] - cy) * o[1] < 0) o = [-o[0], -o[1]]; // yapının dışına doğru (iç duvarda merkezden uzağa)
-      const r = Math.max(D.balonR, kod.length * 0.75 * D.kodMm / 2 + 0.6) * k, P = s => W([d.c[0] + o[0] * s, d.c[1] + o[1] * s]); // uzun kod (SEK1) daireye sığar
+      const KY = kodYazi(kod, D), r = KY.r * k, P = s => W([d.c[0] + o[0] * s, d.c[1] + o[1] * s]); // uzun kod (SEK1) daireye sığar
       /* etiketler üst üste binmesin: aynı yerde başka etiket varsa (yan yana doğrama, aynı noktada iki doğrama) 9 mm dışarı */
       let Lc = D.mesafe * k; for (let g = 0; g < 4 && yer.some(q => Math.hypot(q[0] - P(Lc)[0], q[1] - P(Lc)[1]) < 2 * r + 7 * k); g++) Lc += 9 * k; yer.push(P(Lc));
       const dt = (o[0] > 0.5 || o[1] > 0.5) ? o : [-o[0], -o[1]], rot = Math.atan2(dt[1], dt[0]) * 180 / Math.PI, pr = [-dt[1], dt[0]]; // yazı doğrultusu (okunur), "üst" yönü
       const c = P(Lc), tm = P(Lc - r - 3.4 * k), yz = D.yaziMm * k, off = 0.5 * k;
       mk('line', { a: P(0), b: P(Lc - r), color: D.cizgiRenk });
       mk('circle', { c, r });
-      mk('text', { p: c, h: D.kodMm * k, s: kod, rot, al: 'M' });
+      mk('text', Object.assign({ p: c, h: KY.h * k, s: kod, rot, al: 'M' }, KY.wf < 0.7 - 1e-9 ? { st: 'YZ', wf: KY.wf } : {}));
       mk('text', { p: [tm[0] + pr[0] * off, tm[1] + pr[1] * off, 0], h: yz, s: String(Math.round(d.w * 100)), rot, al: 'C' });
       mk('text', { p: [tm[0] - pr[0] * (off + yz), tm[1] - pr[1] * (off + yz), 0], h: yz, s: String(Math.round(d.h * 100)), rot, al: 'C' });
       n++;
@@ -266,9 +273,9 @@
       if (Math.abs(d.u[0] * K.u[0] + d.u[1] * K.u[1]) > 0.9) { if (dist < -0.05 || dist > K.depth) continue; } // paralel duvar: bakılan tarafta
       else if (Math.abs(dist) > d.w / 2) continue; // dik duvar: hat doğramanın içinden geçer
       if (!K.inU([s, 0])) continue;
-      const r = Math.max(D.balonR, kod.length * 0.75 * D.kodMm / 2 + 0.6) * k, q = [s, d.z0 + d.h + r + 2 * k];
+      const KY = kodYazi(kod, D), r = KY.r * k, q = [s, d.z0 + d.h + r + 2 * k];
       if (used.some(p => Math.hypot(p[0] - q[0], p[1] - q[1]) < 2 * r + 0.5 * k)) continue; used.push(q);
-      C.add(C.newEnt('circle', { c: K.W(q), r, layer: L })); C.add(C.newEnt('text', { p: K.W(q), h: D.kodMm * k, s: kod, rot: 0, al: 'M', layer: L })); n++;
+      C.add(C.newEnt('circle', { c: K.W(q), r, layer: L })); C.add(C.newEnt('text', Object.assign({ p: K.W(q), h: KY.h * k, s: kod, rot: 0, al: 'M', layer: L }, KY.wf < 0.7 - 1e-9 ? { st: 'YZ', wf: KY.wf } : {}))); n++;
     }
     return n;
   };
@@ -297,7 +304,7 @@
       if (yat) { if (Math.abs(d.c[1] - bb[1]) < 0.8) bos.ALT.push(iv); else if (Math.abs(d.c[1] - bb[3]) < 0.8) bos.UST.push(iv); }
       else if (Math.abs(d.u[1]) > 0.9) { if (Math.abs(d.c[0] - bb[0]) < 0.8) bos.SOL.push(iv); else if (Math.abs(d.c[0] - bb[2]) < 0.8) bos.SAG.push(iv); } }
     const xs = [], ys = []; for (const e of aks) for (const l of C.aksLines(e)) { if (Math.abs(l.d[0]) < 1e-6) xs.push(l.p[0] - dx); else if (Math.abs(l.d[1]) < 1e-6) ys.push(l.p[1] - dy); }
-    const S = planOlcuSiralari({ bb, xs, ys, bosluk: bos, ilk: 0, sira: Y.siraAraligi, balon: A.balonOte });
+    const S = planOlcuSiralari({ bb, xs, ys, bosluk: bos, ilk: 0, sira: siraMm(Y), balon: A.balonOte }); // sıra aralığı modelde 0,25 m → kâğıtta 250 / ölçek mm
     /* ilk sıra çizimin (tretuvar ve doğrama etiketleri dahil) en dış çizgisinden ilkSira mm dışarıda */
     const taban = { ALT: ext[1] - Y.ilkSira * k, UST: ext[3] + Y.ilkSira * k, SOL: ext[0] - Y.ilkSira * k, SAG: ext[2] + Y.ilkSira * k }, sg = { ALT: -1, UST: 1, SOL: -1, SAG: 1 };
     C.ensureLayer('PLAN_OLCU', 3, 'CONTINUOUS', 18); let n = 0;

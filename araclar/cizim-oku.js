@@ -22,6 +22,7 @@ const DIMKOD = { 40: 'DIMSCALE', 41: 'DIMASZ', 42: 'DIMEXO', 43: 'DIMDLI', 44: '
 
 function oku(metin) {
   const P = { katmanlar: {}, yaziStilleri: {}, olcuStilleri: {}, cizgiTipleri: [], kullanim: {}, yazilar: {}, olculer: {}, taramalar: {}, bloklar: {}, uzay: { model: 0, kagit: 0, blokIci: 0 }, baslik: {} };
+  P.pencereler = []; P.yazilarKagit = {}; P.penceresizYazi = {}; P.olcuHatlari = []; const yerli = [];
   const tutamak = {}; // yazı stili / blok kaydı tutamakları → ad (ölçü stilindeki 340, 342 … için)
   let bolum = '', tablo = '', kayit = null, blokAd = null, nesne = null, hdr = null;
   const kul = k => P.kullanim[k] || (P.kullanim[k] = { tur: {}, renk: {}, cizgiTipi: {}, kalinlik: {}, toplam: 0 });
@@ -34,12 +35,18 @@ function oku(metin) {
     say(u.renk, e[62] == null ? 'katmandan' : e[62] === 0 ? 'bloktan' : String(e[62]));
     say(u.cizgiTipi, e[6] == null ? 'katmandan' : e[6]); say(u.kalinlik, e[370] == null || e[370] === -1 ? 'katmandan' : String(e[370]));
     if (e.t === 'TEXT' || e.t === 'MTEXT' || e.t === 'ATTRIB') {
-      const st = e[7] || 'Standard', h = yuv(+e[40] || 0, (+e[40] || 0) < 1 ? 0.0001 : 0.01), y = P.yazilar[kat] || (P.yazilar[kat] = {}); say(y, st + ' | ' + h);
+      const st = e[7] || 'Standard', h = yuv(+e[40] || 0, (+e[40] || 0) < 1 ? 0.0001 : 0.01);
+      if (!kagit && e[10] != null) yerli.push({ kat, st, h0: +e[40] || 0, h, x: e[10], y: e[20] }); // pafta penceresine göre ayrılır (aşağıda)
+      else { const y = P.yazilar[kat] || (P.yazilar[kat] = {}); say(y, st + ' | ' + h); }
+    } else if (e.t === 'VIEWPORT' && kagit && e[41] > 0 && e[45] > 0 && e[12] != null) { const k = e[45] / e[41]; if (Math.abs(k - 1) > 0.02) P.pencereler.push({ k, x0: e[12] - e[40] * k / 2, x1: e[12] + e[40] * k / 2, y0: e[22] - e[45] / 2, y1: e[22] + e[45] / 2 });
     } else if (e.t === 'DIMENSION') {
       const st = e[3] || 'Standard', o = P.olculer[st] || (P.olculer[st] = { adet: 0, katman: {}, tur: {}, uzaklik: {}, elleYazi: 0 });
       o.adet++; say(o.katman, kat); const tur = (e[70] || 0) & 7; say(o.tur, ['dönük / yatay / düşey', 'hizalı', 'açı', 'çap', 'yarıçap', 'açı (3 nokta)', 'ordinat'][tur] || String(tur));
       if (e[1] && e[1] !== '<>' && e[1] !== '') o.elleYazi++;
       // ölçü çizgisinin ölçülen noktalardan uzaklığı (çizim birimi): ölçü çizgisi noktası (10,20) ile 2. uzatma noktası (14,24) arası, ölçü doğrultusuna dik
+      if (tur <= 1 && e[13] != null && e[14] != null && e[10] != null && !kagit) { // ölçü çizgisinin doğrultusu, dik konumu ve boyu (sıra aralığı denetimi için)
+        const ang = tur === 1 ? Math.atan2(e[24] - e[23], e[14] - e[13]) : (+e[50] || 0) * Math.PI / 180, u = [Math.cos(ang), Math.sin(ang)], nn = [-u[1], u[0]], s0 = e[13] * u[0] + e[23] * u[1], s1 = e[14] * u[0] + e[24] * u[1];
+        P.olcuHatlari.push({ aci: ((Math.round(ang * 180 / Math.PI) % 180) + 180) % 180, d: e[10] * nn[0] + e[20] * nn[1], s0: Math.min(s0, s1), s1: Math.max(s0, s1) }); }
       if (tur <= 1 && e[13] != null && e[14] != null) { const ax = e[14] - e[13], ay = e[24] - e[23], L = Math.hypot(ax, ay); if (L > 1e-9) { const d = Math.abs((e[10] - e[14]) * (tur === 1 ? -ay / L : 0) + (e[20] - e[24]) * (tur === 1 ? ax / L : 0)); const dd = tur === 1 ? d : Math.max(Math.abs((e[10] - e[14]) * Math.sin((e[50] || 0) * Math.PI / 180) - (e[20] - e[24]) * Math.cos((e[50] || 0) * Math.PI / 180)), 0); say(o.uzaklik, String(yuv(dd, 1))); } }
     } else if (e.t === 'HATCH') { const t = P.taramalar[kat] || (P.taramalar[kat] = {}); say(t, e[2] || '?'); }
     else if (e.t === 'INSERT') { const b = P.bloklar[e[2] || '?'] || (P.bloklar[e[2] || '?'] = { adet: 0, katman: {} }); b.adet++; say(b.katman, kat); }
@@ -65,11 +72,17 @@ function oku(metin) {
     if (nesne) {
       if (nesne.t === '_BLOCK') { if (k === 2) { blokAd = v; nesne = null; } continue; }
       if ([1, 2, 3, 6, 7, 8].includes(k)) { if (nesne[k] == null) nesne[k] = v; }
-      else if ([10, 20, 13, 23, 14, 24, 40, 50].includes(k)) { if (nesne[k] == null) nesne[k] = parseFloat(v); }
+      else if ([10, 20, 12, 22, 13, 23, 14, 24, 40, 41, 45, 50].includes(k)) { if (nesne[k] == null) nesne[k] = parseFloat(v); }
       else if ([62, 67, 70, 370].includes(k)) { if (nesne[k] == null) nesne[k] = parseInt(v, 10); }
     }
   }
   if (nesne) bitir();
+  /* çok ölçekli pafta: model uzayındaki yazı, onu gösteren pafta penceresinin ölçeğiyle kâğıt mm'ye çevrilir (P.yazilarKagit); pencere varken hiçbir
+     pencerede görünmeyen yazı P.penceresizYazi'ye (pencereden taşan); pafta penceresi yoksa eskisi gibi P.yazilar (çizim birimi) */
+  for (const t of yerli) { const W = P.pencereler.find(w => t.x >= w.x0 && t.x <= w.x1 && t.y >= w.y0 && t.y <= w.y1);
+    if (W) { const y = P.yazilarKagit[t.kat] || (P.yazilarKagit[t.kat] = {}); say(y, t.st + ' | ' + yuv(t.h0 / W.k, 0.01)); }
+    else if (P.pencereler.length) say(P.penceresizYazi, t.kat);
+    else { const y = P.yazilar[t.kat] || (P.yazilar[t.kat] = {}); say(y, t.st + ' | ' + t.h); } }
   for (const d of Object.values(P.olcuStilleri)) { d.yaziStili = tutamak[d._yazi] || null; d.ok = tutamak[d._ok] || tutamak[d._ok1] || null; delete d._yazi; delete d._ok; delete d._ok1; delete d._ok2; }
   return P;
 }

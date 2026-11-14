@@ -97,12 +97,12 @@
     /* nesne çizgi tipi ölçeği (kod 48): opts.celtOlcek verildiyse, ana ölçekten başka ölçekli pafta penceresinde görünen nesne için pencere ölçeği / ana ölçek */
     const ltOlcek = e => { if (!opts.celtOlcek || r12) return 0; const sc = annoSc(e); return sc && Math.abs(sc - opts.celtOlcek) > 1e-9 ? sc / opts.celtOlcek : 0; };
     const primRecs = (e, layer) => {
-      const comp = COMPOSITE.has(e.type), recs = [], ltK = ltOlcek(e);
+      const comp = COMPOSITE.has(e.type), recs = [], ltK = ltOlcek(e), vsc = VPW.length ? annoSc(e) : null; // vsc: nesneyi gösteren pafta penceresinin ölçeği (çizim kuralı yazı boyu için)
       for (const pr of primsAt(e)) {
         const st = comp
           ? { layer, color: pr.color != null ? pr.color : (e.color === 256 ? 256 : 0), lt: pr.lt || 'BYLAYER', lw: pr.lw != null ? pr.lw : -1 }
           : { layer, color: pr.color != null ? pr.color : e.color, lt: pr.lt || e.lt, lw: pr.lw != null ? pr.lw : e.lw };
-        if (ltK) st.lts = ltK;
+        if (ltK) st.lts = ltK; if (vsc) st.vsc = vsc;
         recs.push({ pr, st });
       }
       return recs;

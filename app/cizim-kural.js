@@ -65,9 +65,9 @@
     /* katman → izin verilen yazı stilleri ve kâğıt üstü yükseklikler (mm) */
     yazi: {
       'Mim_Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi20': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3, 3.5, 4] }, /* 3,5: açılım kodu, 4: DÖŞEMELER / DUVARLAR başlığı */ 'YZ': { stil: ['YZ'], mm: [2, 2.5, 3] },
-      'ZMN': { stil: ['YZ'], mm: [2.5, 3] }, 'Kot': { stil: ['YZ'], mm: [2, 3] },
+      'ZMN': { stil: ['YZ'], mm: [2.5] }, 'Kot': { stil: ['YZ'], mm: [2, 2.5, 3] }, /* 10-İdari Bina_R2: ZMN 12,5 birim (2,5 mm); KOT 10 (2 mm, en sık), 12,5 (2,5 mm), 1/20 detayda 6 (3 mm) */
       'Aks': { stil: ['ARIAL'], mm: [5] }, 'Kesit_Cizgisi': { stil: ['ARIAL'], mm: [5] },
-      'MAHAL İSİM': { stil: ['ARIAL', 'TÜRKÇE'], mm: [3, 4, 5] }, 'Yazi30': { stil: null, mm: [4, 5] },
+      'MAHAL İSİM': { stil: ['ARIAL', 'TÜRKÇE'], mm: [3, 4] }, 'Yazi30': { stil: ['YZ'], mm: [4, 5] }, /* mahal adı 15 – 20 birim; başlık 20 (görünüş) – 25 (kesit, Blower) birim; başlık stili YZ (kullanıcı kararı 14.11.2026) */
     },
     olcu: {
       katman: 'ÖL', uc: ['_ArchTick'], ustte: true, hizali: true, yaziStili: ['OL', 'OL 20'],
@@ -86,8 +86,9 @@
        (detay için örneklerde ölçülen 6,5 – 7,5 mm bu kuralla 5 mm'ye indi). */
     /* ilkSira: ilk ölçü sırası çizimin en dış çizgisinden (tretuvar dahil; tretuvarın dışında) 14 mm uzakta — kullanıcı kararı 13.11.2026, "çizime göre revize ederiz" */
     olcuYeri: {
-      genel: { ilkSira: 14, siraAraligi: 5, uzatmaIc: 4.1, uzatmaDis: 1, uzatmaBosluk: 0, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
-      detay: { ilkSira: 14, siraAraligi: 5, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
+      /* siraModel: ölçü sıraları arası MODELDE 0,25 m, her ölçekte aynı (firma kuralı 14.11.2026): kâğıtta 250 / ölçek mm (1/50 5, 1/25 10, 1/100 2,5, 1/20 12,5 mm); siraAraligi: eski kâğıt mm (yedek) */
+      genel: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaIc: 4.1, uzatmaDis: 1, uzatmaBosluk: 0, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
+      detay: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
     },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
     /* ÇİZGİ TİPİ — kâğıtta görünen desen (mm), ölçekten bağımsız (14.11.2026, Çokal R2'den hesaplandı): örnekler cm çizilmiş, $LTSCALE 20,
@@ -127,7 +128,7 @@
         'TR:kap': 'tretuvarKaplama', 'TR:harc': 'tretuvarAlt', 'TR:stab': 'tretuvarAlt', 'TR:bord': 'bordur', 'TR:beton': 'tretuvarBeton', 'TR:yatak': 'yatak' },
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
     /* MAHAL LİSTESİ — R2 İdari bina mahal listesi: başlık 4 mm (Yazi_Baslik katmanı; programda başlık katmanı Yazi30), öteki yazılar 2 mm (kullanıcı kararı 14.11.2026) */
-    mahalListesi: { baslikMm: 4, yaziMm: 2 },
+    mahalListesi: { baslikMm: 4, yaziMm: 2, baslikStil: 'YZ' }, /* başlık stili YZ (kullanıcı kararı 14.11.2026; İdari'de TÜRKÇE idi) */
     /* MALZEME AÇILIMI ve PERDE / DÖŞEME NUMARALARI (Çokal R2: çöktürme, yoğunlaştırma, ön arıtma, terfi mimari paftalarından ölçüldü; kâğıt mm).
        etiket: kesitte elemanın yanındaki kod (DU01, DÖ02 …) — 2,5 mm YZ, katman Mim_Yazi25; koddan elemana ince çizgi (renk 243).
                Duvarda çizgi yataydır: duvarın ortasından çıkar, yüzden 4,5 mm sonra biter, kod çizgiden 1,3 mm sonra başlar.
@@ -294,7 +295,7 @@
         /* Çokal R2 kesitleri (Blower A-A / B-B, İdari A-A): düşey ölçüler hacmin içinde, doğramalı duvarın yanında iki sıra, 25 cm (5 mm) arayla —
            duvara yakın sıra: alt döşeme · parapet · doğrama · lento · üst döşeme; içerideki sıra: net kat yüksekliği. Doğrama yoksa tek sıra.
            Hat arkada görünen kolon / kiriş / doğrama çizgisinin (engelX) üstüne binmez: duvardan içeri doğru ilk boş yere kayar (boş yer yoksa en az çizgi kesen yer). */
-        const sg = sagda ? -1 : 1, x0V = sagda ? xB : xA, sira = (Y.sira || 5) * e, yazi = 2.5 * e;
+        const sg = sagda ? -1 : 1, x0V = sagda ? xB : xA, sira = Y.siraModel ? +Y.siraModel : (Y.sira || 5) * e, yazi = 2.5 * e; // sıra aralığı modelde 0,25 m (her ölçekte)
         const KB = (Y.engelK || []).filter(b => b[1] < zB); /* hacmin altındaki ve içindeki kot / yazı kutuları (zincir alttaki boşluğa da inebilir) */
         const carp = x => (Y.engelX || []).filter(q => q > x - yazi - e && q < x + 1.5 * e).length + 3 * KB.filter(b => b[2] > x - yazi - e && b[0] < x + 1.5 * e).length; /* ölçü çizgisi ve yazı şeridine düşen çizgi / kot sayısı */
         /* adaylar: duvardan içeri her 1 mm'de bir; önce en az çakışan, sonra duvara en yakın. Alt ve üst döşemesi olan ilk aday seçilir */

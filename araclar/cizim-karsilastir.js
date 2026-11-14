@@ -56,6 +56,15 @@ function denetle(P, kural, o) {
       if (r.stil && !r.stil.some(x => esit(x, stil))) ekle('HATA', 'yazı stili', ad, `${n} yazı "${stil}" stilinde, olması gereken ${r.stil.join(' / ')}`);
       if (!yukUyar(h, r.mm)) ekle('HATA', 'yazı yüksekliği', ad, `${n} yazı ${mm(h)} ${o.kagit ? 'mm' : 'birim'}, kâğıtta olması gereken ${r.mm.map(mm).join(' / ')} mm`); }
   }
+  /* 4b. pafta penceresi olan çizimde yazılar penceresinin ölçeğiyle kâğıt mm'de (çok ölçekli pafta: 1/50 plan, 1/20 detay, 1/10 …) */
+  const kagitUyar = (h, liste) => liste.some(m => Math.abs(h - m) <= Math.max(0.03, m * 0.02));
+  for (const [ad, y] of Object.entries(P.yazilarKagit || {})) {
+    if (kural.sistem.test(ad) || kural.baskaDisiplin.test(ad) || !kat(ad) || kat(ad).serbest) continue;
+    const r = kural.yazi[ad]; if (!r) { ekle('UYARI', 'yazı', ad, `bu katmanda yazı beklenmiyor (${Object.values(y).reduce((a, b) => a + b, 0)} yazı)`); continue; }
+    for (const [anahtar, n] of Object.entries(y)) { const [stil, hs] = anahtar.split(' | '), h = +hs;
+      if (r.stil && !r.stil.some(x => esit(x, stil))) ekle('HATA', 'yazı stili', ad, `${n} yazı "${stil}" stilinde, olması gereken ${r.stil.join(' / ')}`);
+      if (!kagitUyar(h, r.mm)) ekle('HATA', 'yazı yüksekliği', ad, `${n} yazı kâğıtta ${mm(h)} mm (penceresinin ölçeğiyle), olması gereken ${r.mm.map(mm).join(' / ')} mm`); } }
+  for (const [ad, n] of Object.entries(P.penceresizYazi || {})) if (!kural.sistem.test(ad) && !kural.baskaDisiplin.test(ad)) ekle('UYARI', 'yazı', ad, `${n} yazı hiçbir pafta penceresinde görünmüyor (pencereden taşıyor ya da paftaya konmamış)`);
   /* 5. ölçüler */
   const q = kural.olcu;
   for (const [stil, v] of Object.entries(P.olculer)) {
@@ -72,6 +81,11 @@ function denetle(P, kural, o) {
       if (t.yaziStili && d.yaziStili && !esit(d.yaziStili, t.yaziStili)) ekle('HATA', 'ölçü yazısı', stil, `yazı stili ${d.yaziStili}, olması gereken ${t.yaziStili}`); }
     if (v.elleYazi) ekle('UYARI', 'ölçü yazısı', stil, `${v.elleYazi} ölçünün yazısı elle değiştirilmiş (gerçek ölçüyü göstermiyor olabilir)`);
   }
+  /* 5b. ölçü sıraları arası (firma kuralı 14.11.2026): MODELDE 0,25 m (25 cm), her ölçekte aynı — paralel, boyları örtüşen iki ölçü çizgisi arası 25 cm'den az olmaz */
+  { const sira = (o.birim === 'm' ? 0.25 : 25) * (o.kagit ? 0 : 1), H = P.olcuHatlari || []; let n2 = 0;
+    if (sira > 0) for (let i = 0; i < H.length; i++) for (let j = i + 1; j < H.length; j++) { const a = H[i], c = H[j]; if (a.aci !== c.aci) continue; const dd = Math.abs(a.d - c.d), ort = Math.min(a.s1, c.s1) - Math.max(a.s0, c.s0);
+      if (ort > sira * 0.04 && dd > sira * 0.02 && dd < sira * 0.96) n2++; }
+    if (n2) ekle('HATA', 'ölçü sıra aralığı', q.katman, `${n2} çift paralel ölçü sırası modelde ${o.birim === 'm' ? '0,25 m' : '25 cm'}'den sık (kural: her ölçekte 25 cm)`); }
   /* 6. kot bloğu */
   for (const b of kural.kot.yasakBlok) if (P.bloklar[b]) ekle('HATA', 'kot işareti', b, `${P.bloklar[b].adet} kot "${b}" bloğuyla konmuş, olması gereken "${kural.kot.blok}"`);
   const kb = P.bloklar[kural.kot.blok]; if (kb) for (const [k, n] of Object.entries(kb.katman)) if (k !== kural.kot.katman) ekle('HATA', 'kot işareti', kural.kot.blok, `${n} kot "${k}" katmanında, olması gereken "${kural.kot.katman}"`);

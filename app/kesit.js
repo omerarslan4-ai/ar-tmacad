@@ -311,11 +311,18 @@
           const A = lp[i], B = lp[(i + 1) % lp.length], dx = B[0] - A[0], dy = B[1] - A[1], Ls = Math.hypot(dx, dy);
           if (Ls < 0.15 || Math.abs(dy) > Math.abs(dx) * 0.03 || sg * dx >= 0) continue; // yatay (≤ %3 eğim) ve dolu taraf altta → üst yüzey
           const m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2]; if (m[0] < -2 || m[0] > Lc + 2 || covered([m[0], m[1] + 0.01])) continue;
-          lv.push(m);
+          m.x0 = Math.min(A[0], B[0]); m.x1 = Math.max(A[0], B[0]); lv.push(m);
         }
       }
       lv.sort((p, q) => q[1] - p[1] || p[0] - q[0]); const done = [[ub[2] + 0.5, 0]];
-      for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m); C.add(C.newEnt('kot', Object.assign({ p: W(m), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, m[0] < (ub[0] + ub[2]) / 2 ? { ters: true } : {}))); nK++; }
+      /* kot yazısı kesilen elemanın (beton, tarama) üstüne binmesin: yazı kutusu kesilen bir çevreye değiyorsa önce öbür yana, sonra yüzey boyunca kaydırılır */
+      const ks = C.annoH(2.5), kw = C.annoH(16), kutuBos = (x, y, f) => { const a0 = f > 0 ? x - ks * 0.6 : x - kw, a1 = f > 0 ? x + kw : x + ks * 0.6, b0 = y + ks * 0.15, b1 = y + ks * 2.2;
+        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 2; j++) if (covered([a0 + (a1 - a0) * i / 6, b0 + (b1 - b0) * j / 2])) return false; return true; };
+      for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m);
+        let f0 = m[0] < (ub[0] + ub[2]) / 2 ? -1 : 1, x = m[0], yer = null; const adim = Math.max(0.1, (m.x1 - m.x0) / 12);
+        for (const dx of [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * adim).flatMap(d => [d, -d])]) { const xx = m[0] + dx; if (xx < m.x0 + 0.02 || xx > m.x1 - 0.02) continue; for (const f of [f0, -f0]) if (kutuBos(xx, m[1], f)) { yer = { x: xx, f }; break; } if (yer) break; }
+        if (yer) { x = yer.x; f0 = yer.f; }
+        C.add(C.newEnt('kot', Object.assign({ p: W([x, m[1]]), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, f0 < 0 ? { ters: true } : {}))); nK++; }
     }
     // otomatik ölçülendirme: altta perde / boşluk zinciri + toplam, solda temel / perde / döşeme kalınlıkları zinciri + toplam yükseklik; kapatmak için KESITAL OLCU=H
     let nT = 0; if (C.dogramaEtiketKesit && kv.TIP !== 'H') { try { nT = C.dogramaEtiketKesit({ a, u, n, depth, W, inU }); } catch (er) { console.error('kesit doğrama no', er); } } // kapı / pencere tip numarası (ölçülerden önce: zincirler üstüne binmesin)

@@ -449,7 +449,7 @@
       const hdrH = titleH + grpH + numH + vnH, H = hdrH + Math.max(1, rooms.length) * rowH;
       // dış çerçeve + başlık
       LN(0, 0, W, 0); LN(0, H, W, H); LN(0, 0, 0, H); LN(W, 0, W, H); LN(0, titleH, W, titleH);
-      TXT(W / 2, titleH * 0.72, hBas, 'MAHAL LİSTESİ' + (e.title ? ' — ' + e.title : ''), 'C', 0, 4, 'baslik');   // rol: AutoCAD çıktısında başlık katmanı (Yazi30)
+      TXT(W / 2, titleH * 0.72, hBas, 'MAHAL LİSTESİ' + (e.title ? ' — ' + e.title : ''), 'C', 0, 4, 'baslik'); if (ML && ML.baslikStil) out[out.length - 1].st = ML.baslikStil; // başlık stili kural tablosundan (İdari: TÜRKÇE)   // rol: AutoCAD çıktısında başlık katmanı (Yazi30)
       // sol başlıklar (dikey)
       LN(lvW, titleH, lvW, H); LN(lvW + rmW, titleH, lvW + rmW, H); LN(0, hdrH, W, hdrH);
       TXT(lvW * 0.62, hdrH - 3 * k, hEt, 'Kat / Seviye', 'L', Math.PI / 2, 4); TXT(lvW + rmW * 0.5 + 1.2 * k, hdrH - 3 * k, hEt, 'Mahal adı', 'L', Math.PI / 2, 4);

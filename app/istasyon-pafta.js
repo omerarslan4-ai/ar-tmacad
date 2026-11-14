@@ -257,10 +257,10 @@
     if (cift) { kulp(w / 2 - 0.09); kulp(w / 2 + 0.09); } else kulp(w - 0.10);
     // yazılar
     D.TX(X(w / 2, l * 0.80), `${t.ad}`, 5, 'C', 'YAZI_KAPAK');
-    D.TX(X(w / 2, l * 0.80 - 7 * sc / 1000), cift ? 'ÇİFT KANATLI' : 'TEK KANATLI', 2.2, 'C', 'YAZI_KAPAK');
+    D.TX(X(w / 2, l * 0.80 - 7 * sc / 1000), cift ? 'ÇİFT KANATLI' : 'TEK KANATLI', 2.5, 'C', 'YAZI_KAPAK'); // 2,5 mm: kuralın yazı boylarından (2 / 2,5 / 3)
     // ölçüler
-    D.DM(X(0, 0), X(w, 0), 'h', -7, cmi(w)); D.DM(X(f, 0), X(w - f, 0), 'h', -13, cmi(w - 2 * f) + ' (net geçiş)');
-    D.DM(X(0, 0), X(0, l), 'v', -7, cmi(l)); D.DM(X(0, f), X(0, l - f), 'v', -13, cmi(l - 2 * f));
+    D.DM(X(0, 0), X(w, 0), 'h', -7, cmi(w)); D.DM(X(f, 0), X(w - f, 0), 'h', -7 - 250 / sc, cmi(w - 2 * f) + ' (net geçiş)'); // sıralar arası modelde 0,25 m (firma kuralı 14.11.2026): 1/20'de 12,5 mm
+    D.DM(X(0, 0), X(0, l), 'v', -7, cmi(l)); D.DM(X(0, f), X(0, l - f), 'v', -7 - 250 / sc, cmi(l - 2 * f));
     // 1-1 kesit işareti
     const yk = l * 0.35; D.L(X(-bt - 0.05, yk), X(-bt + 0.08, yk), 'DETAY_KAPAK'); D.L(X(w + bt - 0.08, yk), X(w + bt + 0.05, yk), 'DETAY_KAPAK'); D.TX(X(-bt - 0.05, yk + 0.03), '1', 3, 'C', 'YAZI_KAPAK'); D.TX(X(w + bt + 0.05, yk + 0.03), '1', 3, 'C', 'YAZI_KAPAK');
     D.BAS(base[0] + w / 2, base[1] - bt - 0.02, `${t.ad} KAPAĞI PLANI (${cmi(w)}×${cmi(l)})`, 22);

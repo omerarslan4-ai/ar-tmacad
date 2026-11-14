@@ -53,4 +53,11 @@ t('disiplin bölgeleri: modelin sağında 20 m arayla; ikinci disiplin birincini
   assert.deepStrictEqual(A.bolgeYeri(model, B3, 'Mimari', 130, 100), { x0: 230, yUst: 8 }, 'büyüyen bölge komşusuna binmez, en sağa taşınır');
 });
 
+t('ölçü sıraları arası modelde 25 cm, her ölçekte aynı (firma kuralı): kâğıtta 1/50 5 mm, 1/25 10 mm, 1/100 2,5 mm, 1/20 12,5 mm; 1/25 eşiği %40', () => {
+  globalThis.C = globalThis.C || {}; require('../app/cizim-kural.js'); const Y = globalThis.C.cizimKural.MIMARI.olcuYeri;
+  assert.strictEqual(Y.genel.siraModel, 0.25); assert.strictEqual(Y.detay.siraModel, 0.25);
+  assert.deepStrictEqual([50, 25, 100, 20].map(s => Y.genel.siraModel * 1000 / s), [5, 10, 2.5, 12.5]);
+  assert.strictEqual(A.OLCEK_ESIK, 0.4);
+});
+
 console.log(`\n${n} test geçti.`);

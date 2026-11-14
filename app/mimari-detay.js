@@ -92,13 +92,14 @@
     }
     // ölçüler: altta zincir + toplam, solda yükseklik
     const zincir = parca.paneller && parca.paneller.length > 2;
+    const SR = 250 / sc; // ölçü sıraları arası modelde 0,25 m (firma kuralı 14.11.2026): 1/20'de 12,5 mm
     if (zincir) D.Z(parca.paneller, 0, 'h', -10);
-    D.D([0, 0], [W, 0], 'h', zincir ? -15 : -10);
+    D.D([0, 0], [W, 0], 'h', zincir ? -10 - SR : -10); const dA = zincir ? 10 + SR : 10; // görünüşün altındaki ölçülerin kâğıtta derinliği
     D.D([0, 0], [0, H], 'v', -10);
     // kesit işaretleri
-    D.KI([W / 2, H + 4 * k], 'v', '2'); D.KI([W / 2, -(zincir ? 20 : 15) * k - 6 * k], 'v', '2');
+    D.KI([W / 2, H + 4 * k], 'v', '2'); D.KI([W / 2, -(dA + 5) * k - 6 * k], 'v', '2');
     D.KI([-(16 * k) - 6 * k, H / 2], 'h', '1'); D.KI([W + 4 * k, H / 2], 'h', '1');
-    D.ALT([W / 2, -(zincir ? 32 : 27) * k], 'GÖRÜNÜŞ');
+    D.ALT([W / 2, -(dA + 17) * k], 'GÖRÜNÜŞ');
     parca.gorunus = [0, 0, W, H];
     // ---- 2-2 KESİTİ (düşey) ----
     const gx = W + Math.max(0.55, 30 * k) + (sek ? 1.3 : 0), ic = gx, dis = gx + td, fx0 = dis - 0.03 - (kapi ? td - 0.03 : 0.07), fx1 = dis - 0.03;
@@ -132,7 +133,7 @@
       parca.kesit22 = [ic, alt, dis, lus];
     }
     // ---- 1-1 KESİTİ (yatay; dış altta, iç üstte) ----
-    const lwMax = kapi ? (W - 2 * f) / Math.max(1, t.kanat || 1) : 0, y0 = -(zincir ? 40 : 36) * k - td - (kapi ? lwMax + 0.05 : 0), py = y0, pi = py + td, uz = 0.3; // kapıda açık kanat ve yay görünüşün altında kalır
+    const lwMax = kapi ? (W - 2 * f) / Math.max(1, t.kanat || 1) : 0, y0 = -(dA + 25) * k - td - (kapi ? lwMax + 0.05 : 0), py = y0, pi = py + td, uz = 0.3; // kapıda açık kanat ve yay görünüşün altında kalır
     for (const [a, b] of [[-uz, 0], [W, W + uz]]) { D.P([[a, py], [b, py], [b, pi], [a, pi]], true, 'DETAY_KESIT'); D.H([[a, py], [b, py], [b, pi], [a, pi]], 'tugla'); }
     D.KIRIK([-uz, py], [-uz, pi], 'DETAY_KESIT'); D.KIRIK([W + uz, py], [W + uz, pi], 'DETAY_KESIT');
     if (kapi) {
@@ -180,8 +181,8 @@
     D.R(0, kh - K.kup / 2, Ls, kh + K.kup / 2, 'DETAY_KORKULUK'); D.R(0, kh / 2 - K.ara / 2, Ls, kh / 2 + K.ara / 2, 'DETAY_KORKULUK');
     if (t.tk !== 'H') D.R(0, K.plakaT, Ls, K.tekH, 'DETAY_KORKULUK');
     D.KIRIK([0, kh + 0.06], [0, kh - 0.06], 'DETAY_KORKULUK'); D.KIRIK([Ls, kh + 0.06], [Ls, kh - 0.06], 'DETAY_KORKULUK');
-    D.Z(xs, kh + K.kup / 2, 'h', 8); D.D([xs[0], kh + K.kup / 2], [xs[2], kh + K.kup / 2], 'h', 13);
-    const dz = [0, ...(t.tk !== 'H' ? [K.tekH] : []), kh / 2, kh]; D.Z(dz, 0, 'v', -8); D.D([0, 0], [0, kh], 'v', -13);
+    const SR = 250 / sc; D.Z(xs, kh + K.kup / 2, 'h', 8); D.D([xs[0], kh + K.kup / 2], [xs[2], kh + K.kup / 2], 'h', 8 + SR); // sıralar arası modelde 0,25 m
+    const dz = [0, ...(t.tk !== 'H' ? [K.tekH] : []), kh / 2, kh]; D.Z(dz, 0, 'v', -8); D.D([0, 0], [0, kh], 'v', -8 - SR);
     D.AC([Ls * 0.62, kh], [Ls * 0.7, kh + 0.3], 'Ø42,4 KÜPEŞTE BORUSU', 2);
     D.AC([Ls * 0.78, kh / 2], [Ls * 0.86, kh / 2 + 0.25], 'Ø33,7 ARA KÜPEŞTE', 2);
     D.AC([xs[1], kh * 0.3], [xs[1] + 0.35, kh * 0.33], `Ø42,4 DİKME @${Math.round(sp * 100)} cm`, 2);

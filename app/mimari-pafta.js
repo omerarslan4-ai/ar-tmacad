@@ -229,7 +229,7 @@
       for (const e of C.doc.ents) { if (e.gv !== gv) continue;
         if (e.type === 'dim' && e.a && e.b && e.p && (e.k === 'h' || e.k === 'v')) { const h = e.k === 'h'; og.push({ ad: 'ölçü#' + e.id, k: 'olcu', a: h ? [e.a[0] / k, e.p[1] / k] : [e.p[0] / k, e.a[1] / k], b: h ? [e.b[0] / k, e.p[1] / k] : [e.p[0] / k, e.b[1] / k], p: [e.p[0] / k, e.p[1] / k], yazi: 2, metin: String(Math.round(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) * 100)) }); }
         else if (e.type === 'kot' || e.type === 'text') { let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (b && isFinite(b[0])) og.push({ ad: e.type + '#' + e.id, k: 'kutu', bb: b.map(v => v / k) }); } }
-      for (const [x, y] of A.olcuCakisma(og)) if (/^ölçü/.test(x) || /^ölçü/.test(y)) out.push({ gv, x, y }); }
+      for (const [x, y] of A.olcuCakisma(og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01 })) /* sıralar arası modelde 25 cm */ if (/^ölçü/.test(x) || /^ölçü/.test(y)) out.push({ gv, x, y }); }
     return out; };
   /* kesit işareti planlarda (Çokal R2 planları): modeldeki kesit hattı plan görünümüne taşınır, uçları planın (ölçü ve balonlar dahil) 4 mm dışında */
   const kesitIsaretiPlana = (gv, W, v, nm) => {
@@ -354,7 +354,7 @@
       // DETAY-A (saçak) ve DETAY-B (mahya), 1/10 — cati.js; katmanlar kural tablosundaki adlara (kesilen → Beton, ince → Ongor)
       try { if (C.catiDetaylari) { const gv = 'MIM_CATIDET_' + Date.now().toString(36), g0 = C._gvCur; C._gvCur = gv;
         try { C.catiDetaylari(cati, [X0 + 1, Yc - 3]); } finally { C._gvCur = g0; }
-        for (const e of C.doc.ents) if (e.gv === gv) { if (e.layer === 'DETAY') e.layer = 'DETAY_KESIT'; else if (e.layer === 'DETAY_INCE') e.layer = 'DETAY_GORUNEN'; if (e.type === 'text') { e.ann = false; delete e.acs; delete e.ascales; } if (e.type === 'hatch' && e.pat === 'DOTS') e.pat = 'ZIGZAG'; delete e._c; } // yazılar gerçek boyda (1/10'da 2 mm); yalıtım taraması kuraldaki gibi ZIGZAG (mimari.md bölüm 5)
+        for (const e of C.doc.ents) if (e.gv === gv) { if (e.layer === 'DETAY') e.layer = 'DETAY_KESIT'; else if (e.layer === 'DETAY_INCE') e.layer = 'DETAY_GORUNEN'; if (e.type === 'text') { e.ann = false; delete e.acs; delete e.ascales; } if (e.type === 'hatch' && e.pat === 'DOTS') e.pat = 'ZIGZAG'; if (e.type === 'text' && e.h >= 0.045) { C.ensureLayer('Yazi30', 72, 'CONTINUOUS', 30); e.layer = 'Yazi30'; } delete e._c; } /* DETAY-A / DETAY-B başlıkları (1/10'da 5 mm) başlık katmanında */ // yazılar gerçek boyda (1/10'da 2 mm); yalıtım taraması kuraldaki gibi ZIGZAG (mimari.md bölüm 5)
         st.gvs.push(gv); catiR.detay = gv; asagi(gv); } } catch (er) { console.error('çatı detayları', er); }
     }
 
@@ -368,7 +368,7 @@
     }
     try { const KD = C.kapakDetay, bos = C.mimariKapakBosluklari ? C.mimariKapakBosluklari(ents) : [], tipler = DA ? DA.kapakTipleri(bos) : [];
       if (KD && tipler.length) { KD.katmanlar();
-        for (const t of tipler) { const gv = 'MIM_KAPAK_' + t.ad + '_' + Date.now().toString(36); KD.plani(t, [X0 + 0.5, Yc - t.l - 0.8], gv, 20); st.gvs.push(gv); detay.kapak.push({ gv, sc: 20 }); asagi(gv); }
+        for (const t of tipler) { const gv = 'MIM_KAPAK_' + t.ad + '_' + Date.now().toString(36); KD.plani(t, [X0 + 0.5, Yc - t.l - 0.8], gv, 20); for (const e of C.doc.ents) if (e.gv === gv && e.type === 'text' && e.h >= 0.09) { C.ensureLayer('Yazi30', 72, 'CONTINUOUS', 30); e.layer = 'Yazi30'; } /* kapak adı (1/20'de 5 mm) başlık katmanında */ st.gvs.push(gv); detay.kapak.push({ gv, sc: 20 }); asagi(gv); }
         const ts = (bos[0] && bos[0].ts) || 0.15, gvK = 'MIM_KENAR_' + Date.now().toString(36); KD.kenar([X0 + 0.6, Yc - 0.3], gvK, 5, ts);
         /* malzeme yazıları düz açıklama olarak (açılım nesnesi Çokal stilinde DU / DÖ koduna döner; kapak parçaları açılım tablosunda yok) */
         for (const e of C.doc.ents.filter(q => q.gv === gvK && q.type === 'acilim')) { const p = e.p, a = e.a, sg = p[0] >= a[0] ? 1 : -1, hh = 0.01;

@@ -31,7 +31,7 @@ t('P3 300/60: üç kanat, ölçü zinciri 101 / 98 / 101 = 300 (kayıt eksenleri
   const r = D.dogramaDetay(tip('P3', 'P', 300, 60), { sc: 20 });
   assert.strictEqual(r.parca.paneller.length, 4);
   const z = of(r, 'D').filter(q => q.yon === 'h' && q.off === -10).map(q => +q.txt); assert.deepStrictEqual(z, [101, 98, 101]);
-  assert.ok(of(r, 'D').some(q => q.yon === 'h' && q.off === -15 && q.txt === '300'), 'toplam en dışta');
+  assert.ok(of(r, 'D').some(q => q.yon === 'h' && q.off === -22.5 && q.txt === '300'), 'toplam en dışta, zincirden modelde 25 cm (1/20 kâğıtta 12,5 mm) aşağıda');
 });
 
 t('K2 130/276 çift kanat: 1-1 kesitinde iki açılım yayı, kanatlar görünüşün altında (çakışmaz)', () => {
@@ -71,6 +71,12 @@ t('görünüşte toprak altı kırpılır (firma kuralı): çevre, açık çizgi
   assert.strictEqual(O.zeminKotu([{ type: 'tretuvar', zg: -0.2 }, { type: 'perde' }], []), -0.2);
   assert.strictEqual(O.zeminKotu([], [{ id: 'toprak', ad: 'Toprak kotu', z: -0.2 }]), -0.2);
   assert.strictEqual(O.zeminKotu([], []), null);
+});
+
+t('kapı / pencere numara dairesi bütün tiplerde 3 mm (kullanıcı kararı): SEK1 daireyi büyütmez, yazı 2 mm kalır, genişlik çarpanı 0,56', () => {
+  for (const k of ['P1', 'K2', 'SEK1', 'PA12']) { const y = O.kodYazi(k, { balonR: 3, kodMm: 2 }); assert.strictEqual(y.r, 3); assert.strictEqual(y.h, 2);
+    assert.ok(k.length * 0.75 * y.h * (y.wf / 0.7) <= 2 * (3 - 0.6) + 1e-9, k + ' daireye sığar'); }
+  assert.strictEqual(O.kodYazi('P1', { balonR: 3, kodMm: 2 }).wf, 0.7); assert.strictEqual(O.kodYazi('SEK1', { balonR: 3, kodMm: 2 }).wf, 0.56);
 });
 
 console.log(`\n${n} test geçti.`);

@@ -6,7 +6,7 @@
               genel yazı 2 mm, eleman kodları 2,5 mm. Aks ve kesit harfleri "ARIAL" stili — Arial Bold (arialbd.ttf).
      Ölçü   : eğik tik, yazı 2 mm (1/25 ve daha büyük ölçekte 3 mm), OL / OL 20 stili; uzatma çizgisi, taşmalar ve sıra aralığı kural tablosundan (olcuYeri):
               1/50'de sıralar 5 mm arayla, uzatma çizgisi ölçü çizgisinin 1 mm berisinden başlayıp 4,1 mm aşar; detayda ölçülen noktadan başlar.
-     Kot    : yarı dolu üçgen + zemin çizgisi, dikme ve üstü çizgili yazı (YZ), "+" işareti yazılmaz (99.15).
+     Kot    : yarı dolu üçgen + zemin çizgisi, dikme ve üstü çizgili yazı (YZ); artı kotlarda "+" yazılır (kullanıcı kararı 14.11.2026; eskiden yazılmıyordu).
      Aks    : balon çapı 12 mm, harf 5 mm Arial Bold; çizgi noktalı – kesikli, 0,13.
      Kesit  : işaret dairesi çapı 10 mm, harf 5 mm Arial Bold, dolu ok; başlık altı tek çizgili "F-F KESİTİ" (4 mm; 1/25 ve büyükte 5 mm), altında "ÖL:1/20" (3 mm).
    C.doc.set.pstil: 'COKAL' (varsayılan) | 'KLASIK' (ArıtmaCAD'in eski görünümü). Komut: PAFTASTIL.
@@ -22,8 +22,8 @@
   const COKAL = {
     ad: 'Çokal AAT paftaları', yazi: 'YZ', kalin: 'ARIAL', yaziH: 2.0, kodH: 2.5,
     dim: (e) => { const Y = mimariMi(e) ? oy() : ESKI; /* sabit boylu uzatma (Çokal R2, 1/50): ölçü çizgisinden ölçülen noktaya doğru uzatmaIc mm, öbür yana uzatmaDis mm (entities.js: exf içe, exe dışa) */
-      return ({ exo: Y.uzatmaBosluk, exe: Y.uzatmaIc ? Y.uzatmaDis : Y.uzatmaTasma, dle: Y.cizgiTasma, exf: Y.uzatmaIc || Y.uzatmaSabit, sira: Y.siraAraligi, ilk: Y.ilkSira, tik: true, th: buyuk() ? 3.0 : 2.0, ah: 2.0, st: buyuk() ? 'OL 20' : 'OL' }); },
-    kot: { stil: 'cokal', th: 2.0, arti: false },
+      return ({ exo: Y.uzatmaBosluk, exe: Y.uzatmaIc ? Y.uzatmaDis : Y.uzatmaTasma, dle: Y.cizgiTasma, exf: Y.uzatmaIc || Y.uzatmaSabit, sira: Y.siraModel ? Y.siraModel * 1000 / (+C.doc.set.anno || 50) : Y.siraAraligi, ilk: Y.ilkSira, /* sıra aralığı modelde 0,25 m (her ölçekte; kâğıtta 250 / ölçek mm) */ tik: true, th: buyuk() ? 3.0 : 2.0, ah: 2.0, st: buyuk() ? 'OL 20' : 'OL' }); },
+    kot: { stil: 'cokal', th: 2.0, arti: true }, // kullanıcı kararı 14.11.2026: kot ve seviye yazısında "+" var (ör. "ÇATI +5.24", plan kotu "+0.53" — 10-İdari Bina_R2)
     aks: { bp: 6, th: 5, st: 'ARIAL', lt: 'DASHDOT', lw: 13 },
     kesit: { r: 5, th: 5, st: 'ARIAL' },
     baslik: () => ({ th: buyuk() ? 5 : 4, alt: 3, tek: true, onek: 'ÖL:', st: 'YZ' }),
@@ -34,11 +34,12 @@
     for (const n of ['YZ', 'OL', 'OL 20']) { const w = gen(n, 0.7);
       if (!S[n]) S[n] = { name: n, font: 'Türkçe (CAD)', h: 0, wf: w, obl: 0, bold: false, italic: false };
       else if (S[n].font === 'Türkçe (CAD)' && S[n].wf === 0.75 && n === 'YZ') S[n].wf = w; } // eski çizimlerde 0,75 yazılmıştı (karar 4: 0,70)
-    if (!S.ARIAL) S.ARIAL = { name: 'ARIAL', font: 'Arial', h: 0, wf: 1, obl: 0, bold: true, italic: false }; };
+    if (!S.ARIAL) S.ARIAL = { name: 'ARIAL', font: 'Arial', h: 0, wf: 1, obl: 0, bold: true, italic: false };
+    if (!S['TÜRKÇE']) S['TÜRKÇE'] = { name: 'TÜRKÇE', font: 'Arial Narrow', h: 0, wf: 1, obl: 0, bold: false, italic: false }; }; // Çokal R2: mahal listesi başlığı, antet (ARIALN.TTF)
   /* etkin stil (yoksa null: eski görünüm) */
   C.pstil = () => { const d = C.doc; if (!d || !d.set) return null; const k = d.set.pstil == null ? 'COKAL' : d.set.pstil; const p = C.PAFTA_STILLER[k] || null; if (p && !(d.styles && d.styles.YZ && d.styles.ARIAL && d.styles.OL && d.styles['OL 20'] && d.styles.YZ.wf !== 0.75)) stilEkle(); return p; };
   C.pstilAd = () => (C.doc && C.doc.set && C.doc.set.pstil) || 'COKAL';
-  /* kot yazısı: örnek projede "+" işareti yok */
+  /* kot yazısı: stilde arti === false ise "+" kaldırılır (Çokal stilinde 14.11.2026'dan beri "+" yazılır) */
   if (C.fmtKot) { const f0 = C.fmtKot; C.fmtKot = function (v) { const s = f0.apply(this, arguments), p = C.pstil(); return p && p.kot && p.kot.arti === false && typeof s === 'string' && s[0] === '+' ? s.slice(1) : s; }; }
   /* ---- aks, kesit işareti ve görünüş başlığı: mevcut çizicilerin üstüne stil (KLASIK'te dokunulmaz) ---- */
   const T = C.T, M = C.M, { L, TX } = C.prim, kk = () => C.doc.set.anno / 1000;

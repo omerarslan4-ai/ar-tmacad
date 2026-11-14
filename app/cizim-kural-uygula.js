@@ -41,7 +41,7 @@
   C.cizimKuralCikti = ({ body, blocks, PSL, layers, usedLt, opts }) => {
     if (!etkin() || (opts && opts.grp && !/M[İI]MAR[İI]|GENEL/i.test(opts.grp))) return null; // statik, mekanik, elektrik dosyalarına dokunulmaz (kuralları henüz yok)
     const kayit = body.slice(); for (const b of blocks || []) for (const it of b.items || []) kayit.push(it); for (const P of PSL || []) for (const it of P.items || []) kayit.push(it);
-    const an = (C.doc.set.anno || 50) / 1000, r = K.ciktiUygula(R(), kayit, layers, { mm: q => q.st.ps ? q.pr.h : q.pr.h / an });
+    const an = (C.doc.set.anno || 50) / 1000, r = K.ciktiUygula(R(), kayit, layers, { mm: q => q.st.ps ? q.pr.h : q.pr.h / (q.st.vsc ? q.st.vsc / 1000 : an) }); // yazının kâğıt boyu: onu gösteren pafta penceresinin ölçeğiyle (1/20 detay, 1/10 çatı detayı …)
     for (const L of Object.values(layers)) { if (!C.LT[L.lt]) L.lt = 'CONTINUOUS'; usedLt.add(L.lt); }
     C.cizimKuralSon = r; return r;
   };
