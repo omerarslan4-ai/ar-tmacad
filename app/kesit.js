@@ -162,6 +162,7 @@
   C.secHatchSpec = (mat, base, plan) => {
     const kt = mat !== 'K' && kuralTarama(mat || 'B'); if (kt) return kt;
     const P = C.HATCH_PATTERNS || {}, b = P[base] ? base : 'ANSI31';
+    if (mat === 'KA') return C.pstil && C.pstil() && P.SOLID ? { pat: 'SOLID', ang: 0, sc: 1, ann: true } : null; // kesilen çatı ahşabı (makas, aşık, mertek): beton olmayan kesilen parça → dolu (kural tablosu: diger SOLID)
     if (mat === 'D') return { pat: b, ang: 90, sc: 1, ann: true };
     if (mat === 'G') return { pat: 'AR-CONC', ang: 0, sc: 0.5, ann: true };
     if (mat === 'K') return null;
@@ -220,13 +221,14 @@
       if (e.type === 'blk' && kv.EKIPMAN !== 'KES' && C.projectModel) { let mm = null; try { mm = C.T.blk.mesh(e); } catch (er) { } if (mm && mm.length) { eqEnts.push(e); secEnts.add(e); continue; } } // 3B ekipman: kesilmez, görünüşü çizilir
       const t = C.entTris(e); if (!t) continue;
       const P = t.pos, eCut = [];
+      const kdD = e.type === 'kiris' && C.kirisDoseme ? C.kirisDoseme(e) : null; // döşemeyle birlikte dökülen kiriş: kesitte döşemeyle tek gövde (tek dış hat, tek tarama)
       for (let i = 0; i < P.length; i += 9) {
         const p0 = [P[i], P[i + 1], P[i + 2]], p1 = [P[i + 3], P[i + 4], P[i + 5]], p2 = [P[i + 6], P[i + 7], P[i + 8]];
         const d0 = dist(p0), d1 = dist(p1), d2 = dist(p2);
         if ((d0 > 0 && d1 > 0 && d2 > 0) || (d0 < 0 && d1 < 0 && d2 < 0)) continue;
         const pts = [];
         for (const [x, y, dx, dy] of [[p0, p1, d0, d1], [p1, p2, d1, d2], [p2, p0, d2, d0]]) if ((dx < 0) !== (dy < 0) && dx !== dy) { const s = dx / (dx - dy); pts.push(uv(M.lerp(x, y, s))); }
-        if (pts.length === 2 && Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]) > 1e-5) { pts.g = e.id; if (e.type === 'tretuvar' && C.tretSecMat && t.col && t.col[i] >= 0) { pts.mat = C.tretSecMat(e, [t.col[i], t.col[i + 1], t.col[i + 2]]); pts.g = e.id + '|' + pts.mat; } pts.terr = e.type === 'arazi' || e.type === 'kazi'; pts.conc = CONC.has(e.type); pts.mat = pts.mat || C.secMat(e); pts.fnd = C.secFnd(e); pts.lk = lkOf(e); if (e.type === 'perde' && e.kicker) { const sp = supOf(e); if (sp) { pts.mat = C.secMat(sp); pts.lk = lkOf(sp); } } if (pts.terr ? (inU(pts[0]) && inU(pts[1])) : true) eCut.push(pts); }
+        if (pts.length === 2 && Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]) > 1e-5) { pts.g = e.id; if (e.type === 'tretuvar' && C.tretSecMat && t.col && t.col[i] >= 0) { pts.mat = C.tretSecMat(e, [t.col[i], t.col[i + 1], t.col[i + 2]]); pts.g = e.id + '|' + pts.mat; } if (e.type === 'cati' && C.catiSecMat && t.col && t.col[i] >= 0) { pts.mat = C.catiSecMat(e, [t.col[i], t.col[i + 1], t.col[i + 2]]); pts.g = e.id + '|' + pts.mat; } pts.terr = e.type === 'arazi' || e.type === 'kazi'; pts.conc = CONC.has(e.type); pts.mat = pts.mat || C.secMat(e); pts.fnd = C.secFnd(e); pts.lk = lkOf(e); if (e.type === 'perde' && e.kicker) { const sp = supOf(e); if (sp) { pts.mat = C.secMat(sp); pts.lk = lkOf(sp); } } if (kdD) { pts.mat = C.secMat(kdD); pts.lk = lkOf(kdD); } if (pts.terr ? (inU(pts[0]) && inU(pts[1])) : true) eCut.push(pts); }
       }
       if (eCut.length && (eCut[0].terr || eCut.some(q => inU(q[0]) || inU(q[1])))) { cut.push(...eCut); secEnts.add(e); } // kesit çizgisinin değdiği gövde bütün olarak kesilir (kapalı, taranabilir)
       if (e.type === 'pipe') {
@@ -241,7 +243,7 @@
         }
         continue;
       }
-      const elk = lkOf(e);
+      const elk = kdD ? lkOf(kdD) : lkOf(e);
       if (e.type === 'fit3' && C.fit3Line) for (const [p, q] of C.fit3Line(e)) { const dp = dist(p), dq = dist(q); if (Math.max(dp, dq) < -1e-6 || Math.min(dp, dq) > depth) continue; const A = uv(p), B = uv(q); if ((inU(A) || inU(B)) && Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-6) axes.push([A, B]); } // ek parça eksenleri (dirsek yayı, TE kolu)
       for (const [p, q] of t.edges.concat(C.silEdges ? C.silEdges(t, n) : [])) { const dp = dist(p), dq = dist(q); if (dp < -1e-6 || dq < -1e-6 || dp > depth || dq > depth) continue; const A = uv(p), B = uv(q); if (!inU(A) && !inU(B)) continue; if (Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-5) { const sg = [A, B]; sg.lk = elk; vis.push(sg); secEnts.add(e); } }
     }

@@ -48,6 +48,7 @@
 - Kapı ve pencereler ebatlarına göre tip numarası alır (projedeki gibi; aynı ebat aynı numara) ve numara plan ile kesitlerde yazılır.
 - Kiriş ile döşeme monolitik tek beton olarak modellenir ve çizilir (aralarında çizgi yok); çatı döşemesi ve zemin döşemesi dahil.
 - Pencere / kapı duvarı parçalara bölmez; duvar tek eleman kalır.
+- Kesitlerde çatı soluk çizilmez (14.11.2026): kesit düzleminin kestiği çatı elemanları (çatı döşemesi, makas / aşık / mertek, kaplama ve örtü) kesilen eleman çizgisiyle (kalın), arkada görünenler görünüş çizgisiyle (`Ongor`) çizilir.
 - Plan ve kesitlerde aks çizgileri ve aks başlıkları bulunur; ölçüler örnek projelerdeki gibi akslar üzerinden verilir.
 - Kesit yerleri mahalleri ayrı ayrı gösterecek şekilde seçilir (14.11.2026): uzun kesit bütün mahallerden geçer; kısa kesit iki tanedir, biri büyük hacimden (ör. pompa / montaj holü), öbürü odalardan (ör. kumanda odası) geçer. Bir oda hiçbir kesitte görünmüyorsa ek kesit alınır.
 - Görünüşlerde bina içindeki merdivenler (ve dışarıdan görünmeyen iç elemanlar) çizilmez.

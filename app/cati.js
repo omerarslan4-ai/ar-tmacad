@@ -24,6 +24,8 @@
   const ALT = { tahta18: { ad: 'Kaplama tahtası 1.8×10', t: 0.018, col: [0.76, 0.60, 0.40] }, osb: { ad: 'OSB levha (18 mm)', t: 0.018, col: [0.80, 0.68, 0.46] }, tahta: { ad: 'Ahşap tahta kaplama (2.5 cm)', t: 0.025, col: [0.74, 0.58, 0.38] }, yok: { ad: 'Kaplama altı yok', t: 0, col: null } };
   const SU = { membran: { ad: 'Nefes alan su yalıtım membranı', t: 0.003, col: [0.35, 0.40, 0.48] }, bitum: { ad: 'Bitümlü su yalıtım örtüsü (2 kat)', t: 0.006, col: [0.18, 0.18, 0.20] }, yok: { ad: 'Su yalıtımı yok', t: 0, col: null } };
   const WOOD = [0.70, 0.52, 0.32], WOOD2 = [0.62, 0.45, 0.27], XPSC = [0.93, 0.70, 0.76], TUGLA = [0.72, 0.43, 0.34];
+  /* kesitte çatı parçasının malzemesi (kesit.js): ahşap iskelet (makas, aşık, mertek, dikme) 'KA' → dolu tarama; kaplama katmanları ve örtü 'K' → taramasız. İkisi de kesilen eleman çizgisiyle çizilir */
+  C.catiSecMat = (e, rgb) => [WOOD, WOOD2].some(w => Math.abs(w[0] - rgb[0]) < 0.004 && Math.abs(w[1] - rgb[1]) < 0.004 && Math.abs(w[2] - rgb[2]) < 0.004) ? 'KA' : 'K';
   const o_ = O => Object.entries(O).map(([k, v]) => [k, typeof v === 'string' ? v : v.ad]);
   /* ---- düzlem geometri ---- */
   const area = q => M.polyArea(q);

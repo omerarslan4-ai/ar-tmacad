@@ -149,7 +149,8 @@
       [/(^|_)TARAMA(_|$).*GROBETON|GROBETON.*(^|_)TARAMA(_|$)/, 'Grobeton'], [/(^|_)TARAMA(_|$)/, 'Tarama'],
       [/(^|_)KORKULUK(_|$)/, 'Korkuluk'], [/(^|_)MERDIVEN(_|$)/, 'Merdiven'], [/(^|_)TRETUVAR(_|$)/, 'Tretuvar'], [/(^|_)GROBETON(_|$)/, 'Grobeton'], [/(^|_)SU$/, 'Su'],
       [/(^|_)(YALITIM|KAPLAMA|DOLGU)(_|$)/, 'Ongor'],        // ince katmanlar (yalıtım, kaplama, dolgu): örneklerde ayrı katmanı yok — KABUL
-      [/(^|_)(KAPI|PENCERE|CATI)$/, 'Ongor'],               // doğrama ve çatı örtüsü: kesilse de ince çizgi — KABUL
+      [/^KESIT_CATI$/, 'Beton'],                            // kesilen çatı elemanları (makas / aşık / mertek, kaplama katmanları) kesilen eleman gibi kalın — kullanıcı 14.11.2026 ("kesitlerde çatı soluk")
+      [/(^|_)(KAPI|PENCERE|CATI)$/, 'Ongor'],               // doğrama; arkada görünen çatı (GORUNEN_CATI): ince çizgi — KABUL
       [/^GORUNUS_.*_KESIT(_|$)/, 'Ongor'],                 // görünüşte (cephe) kesilen yok: çizgiler görünüş çizgisidir
       [/(^|_)KESIT(_|$)/, 'Beton'], [/(^|_)GORUNEN(_|$)/, 'Ongor'], [/(^|_)GIZLI(_|$)/, 'Arkagor'],
       [/^DETAY_BETON$/, 'Beton'],

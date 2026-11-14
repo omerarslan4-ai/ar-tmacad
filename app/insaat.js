@@ -33,6 +33,21 @@
       out.f.push(t1, t2); out.fc.push(col, col);
     }
   };
+  /* tek dörtgen yüz (iki üçgen), gövde merkezine göre dışa bakar */
+  const quadOut = (out, q4, col, cen) => {
+    const [a, b, c, d] = q4, n = M.cross(M.sub(c, a), M.sub(d, b)), qc = M.mul(M.add(M.add(a, b), M.add(c, d)), 0.25); if (M.len(n) < 1e-12) return;
+    const flip = M.dot(n, M.sub(qc, cen)) < 0, v0 = out.v.length; out.v.push(a, b, c, d);
+    if (flip) out.f.push([v0, v0 + 2, v0 + 1], [v0, v0 + 3, v0 + 2]); else out.f.push([v0, v0 + 1, v0 + 2], [v0, v0 + 2, v0 + 3]); out.fc.push(col, col);
+  };
+  /* yelpaze yüz: merkez + kenar ortaları — kenarları komşu yüzlerin kenarlarıyla aynı uçlara sahip olmaz, kesit / görünüşte ortak kenardan
+     dış hat (siluet) çizgisi doğmaz; gövde yine kapalı kalır (kesit sınırı kapanır). nW: istenen yüz normali */
+  const fanFace = (out, ring, col, nW) => {
+    const n = ring.length, c = ring.reduce((s2, q) => M.add(s2, q), [0, 0, 0]).map(t => t / n), v0 = out.v.length; out.v.push(c);
+    for (let i = 0; i < n; i++) { const a = ring[i], b = ring[(i + 1) % n], m = M.mul(M.add(a, b), 0.5); out.v.push(a, m); }
+    const ia = i => v0 + 1 + 2 * (i % n), im = i => v0 + 2 + 2 * (i % n);
+    for (let i = 0; i < n; i++) { const A = out.v[ia(i)], Bm = out.v[im(i)], nn = M.cross(M.sub(A, c), M.sub(Bm, c)), fl = M.dot(nn, nW) < 0;
+      const t1 = [v0, ia(i), im(i)], t2 = [v0, im(i), ia(i + 1)]; out.f.push(fl ? [t1[0], t1[2], t1[1]] : t1, fl ? [t2[0], t2[2], t2[1]] : t2); if (out.fc) out.fc.push(col, col); }
+  };
   const edgeLoop = (out, pts) => { for (let i = 0; i < pts.length; i++) out.edges3.push([pts[i], pts[(i + 1) % pts.length]]); };
   const newMesh = () => ({ t: 'tri', v: [], f: [], fc: [], edges3: [] });
 
@@ -149,21 +164,27 @@
       const my = ops.filter(o => (o.seg || 0) === sf.i).map(o => { const w = +o.w || 1, s0 = Math.max(0.01, (+o.s || 0) - w / 2), s1 = Math.min(sf.L - 0.01, (+o.s || 0) + w / 2), za = z0 + (o.kind === 'kapi' ? 0 : (+o.par || 0.9)), zb = Math.min(z0 + h - 0.01, za + (+o.hh || (o.kind === 'kapi' ? 2.1 : 1.4))); return { s0, s1, za, zb, o }; }).filter(q => q.s1 > q.s0 + 0.02).concat(colCuts(e, sf, F).map(([s0, s1]) => ({ s0, s1, za: z0, zb: z0 + h, o: { kind: 'kolon' } }))).concat(ops.filter(o => (o.seg || 0) === sf.i).map(o => lentoOf(e, o, sf, F)).filter(Boolean)).sort((x, y) => x.s0 - y.s0);
       // s ekseninde parçalar: boşluk dışı tam yükseklik, boşluk içi altta denizlik ve üstte lento
       // (s, z) düzleminde dikdörtgen ayrışımı: kırılma noktaları arasındaki her şeritte boşluklarca örtülmeyen z aralıkları dolu
-      const pieces = [], bps = [...new Set(my.flatMap(q => [q.s0, q.s1]).filter(v => v > 1e-6 && v < sf.L - 1e-6).map(v => +v.toFixed(6)))].sort((a, b) => a - b), xs = [null, ...bps, null];
-      for (let k = 0; k + 1 < xs.length; k++) {
-        const xa = xs[k], xb = xs[k + 1]; if (xa == null && xb != null && xb <= 0.02) continue; if (xb == null && xa != null && xa >= sf.L - 0.02) continue; if (xa != null && xb != null && xb - xa < 0.004) continue;
-        const ma = xa == null ? -1e9 : xa, mb = xb == null ? 1e9 : xb, cov = my.filter(q => q.s0 <= (xa == null ? 0 : ma) + 1e-6 && q.s1 >= (xb == null ? sf.L : mb) - 1e-6).map(q => [q.za, q.zb]).sort((a, b) => a[0] - b[0]);
-        let z = z0; for (const [ca, cb] of cov) { if (ca > z + 1e-6) pieces.push({ sa: xa, sb: xb, za: z, zb: ca }); z = Math.max(z, cb); } if (z < z0 + h - 1e-6) pieces.push({ sa: xa, sb: xb, za: z, zb: z0 + h });
-      }
+      // tek kütle (insaat-monolit.js): parçaların sırt sırta değdiği iç yüzler üretilmez — duvar 3B'de ve kesitte parça parça görünmez, yalnız boşluk yüzleri (söve, denizlik, lento altı) kalır
+      const DP = C.insMono ? C.insMono.duvarParca(sf.L, z0, h, my) : null;
+      const pieces = DP ? DP.pieces : [];
       for (const pc of pieces) {
         const sAt = (side, z, end) => end ? (pc.sb == null ? sE(side, z) : pc.sb) : (pc.sa == null ? sS(side, z) : pc.sa);
         const c8 = [];
         for (const z of [pc.za, pc.zb]) c8.push(P3(sAt('L', z, 0), 'L', z), P3(sAt('L', z, 1), 'L', z), P3(sAt('R', z, 1), 'R', z), P3(sAt('R', z, 0), 'R', z));
+        // hexa yüz sırası: 0 alt, 1 üst, 2 sol yüz, 3 son uç, 4 sağ yüz, 5 baş uç
         // yay / daire üzerindeki pürüzsüz eklemlerde iç uç kapakları atılır (yüzeyde ince çizgi gibi görünmesin)
-        const sk = []; if (pc.sa == null && smooth) sk.push(5); if (pc.sb == null && smoothN1) sk.push(3);
+        const sk = []; if (!pc.alt) sk.push(0); if (!pc.ust) sk.push(1);
+        if (pc.sa == null ? smooth : true) sk.push(5); if (pc.sb == null ? smoothN1 : true) sk.push(3);
         hexa(out, c8, col, sk);
+        // iç uçlarda yalnız açıkta kalan kısım (pencere / kapı sövesi)
+        const cen = c8.reduce((s2, q) => M.add(s2, q), [0, 0, 0]).map(t => t / 8);
+        for (const [sv, ivs] of [[pc.sa, pc.bas], [pc.sb, pc.son]]) if (sv != null && ivs) for (const [z1, z2] of ivs) quadOut(out, [P3(sv, 'L', z1), P3(sv, 'R', z1), P3(sv, 'R', z2), P3(sv, 'L', z2)], col, cen);
       }
-      for (const q of my) if (q.o.kind === 'lento') { const c8 = []; for (const z of [q.za, q.zb]) c8.push(P3(q.s0, 'L', z), P3(q.s1, 'L', z), P3(q.s1, 'R', z), P3(q.s0, 'R', z)); hexa(out, c8, MALZ.beton.col); }
+      // lento: önü ve arkası duvar yüzüyle aynı düzlemde (ayrı çizgi yok); altı yalnız boşluğun üstünde
+      if (DP) for (const lt of DP.lentolar) { const q = lt.q, c8 = []; for (const z of [q.za, q.zb]) c8.push(P3(q.s0, 'L', z), P3(q.s1, 'L', z), P3(q.s1, 'R', z), P3(q.s0, 'R', z));
+        const sk = [0]; if (!lt.ust) sk.push(1); if (!lt.son) sk.push(3); if (!lt.bas) sk.push(5); hexa(out, c8, col, sk); // duvar rengiyle: cephede ayrı parça gibi görünmez (lento verisi ve metrajı ayrı kalır)
+        const cen = c8.reduce((s2, v) => M.add(s2, v), [0, 0, 0]).map(t => t / 8);
+        for (const [a, b] of lt.alt) quadOut(out, [P3(a, 'L', q.za), P3(b, 'L', q.za), P3(b, 'R', q.za), P3(a, 'R', q.za)], col, cen); }
       // kenar çizgileri: yüz alt/üst çizgileri (boşluklarda kesik), uçlar, boşluk çerçeveleri
       for (const side of ['L', 'R']) for (const z of [z0, z0 + h]) {
         let sa = sS(side, z); const segs = []; for (const q of my) { if ((z === z0 && q.o.kind === 'kapi') || q.o.kind === 'kolon') { segs.push([sa, q.s0]); sa = q.s1; } } segs.push([sa, sE(side, z)]);
@@ -173,7 +194,7 @@
       if (cutS) { } else if (sf.openS) edgeLoop(out, [P3(sS('L', z0), 'L', z0), P3(sS('R', z0), 'R', z0), P3(sS('R', z0 + h), 'R', z0 + h), P3(sS('L', z0 + h), 'L', z0 + h)]);
       else if (!smooth) out.edges3.push([P3(sS('L', z0), 'L', z0), P3(sS('L', z0 + h), 'L', z0 + h)], [P3(sS('R', z0), 'R', z0), P3(sS('R', z0 + h), 'R', z0 + h)]);
       if (sf.openE && !cutE) edgeLoop(out, [P3(sE('L', z0), 'L', z0), P3(sE('R', z0), 'R', z0), P3(sE('R', z0 + h), 'R', z0 + h), P3(sE('L', z0 + h), 'L', z0 + h)]);
-      for (const q of my) for (const side of ['L', 'R']) edgeLoop(out, [P3(q.s0, side, q.za), P3(q.s1, side, q.za), P3(q.s1, side, q.zb), P3(q.s0, side, q.zb)]);
+      for (const q of my) if (q.o.kind !== 'lento') for (const side of ['L', 'R']) edgeLoop(out, [P3(q.s0, side, q.za), P3(q.s1, side, q.za), P3(q.s1, side, q.zb), P3(q.s0, side, q.zb)]); // lento duvarın içinde: dış hattı çizilmez (sıvalı tek yüzey)
     }
     try { seamFix(out, perdeJoints(e)); } catch (er) { console.error(er); }
     return out;
@@ -288,10 +309,68 @@
   T.kiris = {
     label: 'Kiriş', ifc: 'IfcBeam',
     prims: e => { const [a, b] = kAxis(e), u = M.norm(M.sub(b, a)), n = [-u[1], u[0], 0], w = (+e.bw || 0.3) / 2; return [L(M.add(a, M.mul(n, w)), M.add(b, M.mul(n, w)), { lt: 'HIDDEN', lw: 25 }), L(M.sub(a, M.mul(n, w)), M.sub(b, M.mul(n, w)), { lt: 'HIDDEN', lw: 25 }), L(M.add(a, M.mul(n, w)), M.sub(a, M.mul(n, w)), { lt: 'HIDDEN' }), L(M.add(b, M.mul(n, w)), M.sub(b, M.mul(n, w)), { lt: 'HIDDEN' })]; },
-    mesh: e => { const B = beamCuts(e), out = newMesh(); if (!B.pcs) return [out]; for (const [s0, s1] of B.pcs) { const c8 = [], Pq = (s2, o, z) => [B.a[0] + B.u[0] * s2 + B.nn[0] * o, B.a[1] + B.u[1] * s2 + B.nn[1] * o, z]; for (const z of [B.zb, B.zt]) c8.push(Pq(s0, B.w, z), Pq(s1, B.w, z), Pq(s1, -B.w, z), Pq(s0, -B.w, z)); hexa(out, c8, MALZ.beton.col); edgeLoop(out, c8.slice(0, 4)); edgeLoop(out, c8.slice(4)); for (let k = 0; k < 4; k++) out.edges3.push([c8[k], c8[k + 4]]); } return [out]; },
+    mesh: e => kirisMesh(e),
     xf: (e, X) => { e.zt = (+e.zt || 0) + dzOf(X); e.a = flat(X.p(flat(e.a))); e.b = flat(X.p(flat(e.b))); },
     snaps: e => { const [a, b] = kAxis(e), u = M.norm(M.sub(b, a)), n = [-u[1], u[0], 0], w = (+e.bw || 0.3) / 2; return [{ p: M.p3(e.a), k: 'end' }, { p: M.p3(e.b), k: 'end' }, { p: M.lerp(M.p3(e.a), M.p3(e.b), 0.5), k: 'mid' }, ...[a, b].flatMap(q => [{ p: M.add(q, M.mul(n, w)), k: 'end' }, { p: M.sub(q, M.mul(n, w)), k: 'end' }])]; },
     info: e => `Kiriş ${M.fmt((+e.bw || 0.3) * 100, 0)}×${M.fmt((+e.hb || 0.5) * 100, 0)} cm · ${e.beton || 'C30/37'} · üst kot ${M.fmt(+e.zt || 3, 2)} · L=${M.fmt(M.dist2(e.a, e.b), 2)} m · hacim ${M.fmt(kirisVol(e), 3)} m³`,
+  };
+  /* KİRİŞ + DÖŞEME TEK PARÇA (monolitik döküm): döşemeyle birlikte dökülen kirişin döşeme içindeki kısmı görünümde döşemeye gömülür.
+     Veri ayrı kalır (kiriş ve döşeme ayrı nesne: statik modele çevirme, INSMETRAJ, statik-model-denetci kirişi ve döşemeyi ayrı okur);
+     yalnız 3B ağ ve kesit birleşik: kirişin üstü döşeme altında biter, ortak yüzler ve ara çizgiler çizilmez, kesitte ikisi tek dış hat + tek tarama. */
+  const dosemeD = p => { let pts = p.pts.map(p2); if (M.polyArea(pts) < 0) pts = pts.reverse(); const zt = +p.zt || 0; return { poly: pts, zt, za: zt - (+p.t || 0.3) }; };
+  const kirisMono = e => {
+    if (!C.doc || !C.insMono || e.monolit === false) return null; const B = beamCuts(e); if (!B.u) return null; let best = null;
+    for (const p of C.doc.ents) { if (p.type !== 'plak' || p.kind === 'radye' || p.monolit === false || !p.pts || p.pts.length < 3 || !C.lyLive(p.layer)) continue; const r = C.insMono.kirisDoseme(B, dosemeD(p)); if (r && (!best || (r.ust && !best.r.ust))) best = { D: p, r, B }; if (best && best.r.ust) break; }
+    return best;
+  };
+  C.kirisDoseme = e => { try { const m = e && e.type === 'kiris' ? kirisMono(e) : null; return m ? m.D : null; } catch (er) { return null; } };
+  const dosemeRenk = p => { try { const a = C.entColor(p), c = C.aciRgb(a === 7 ? 9 : a); return [c[0] / 255, c[1] / 255, c[2] / 255]; } catch (er) { return MALZ.beton.col; } }; // 3B görünümün (view3d) döşemeye verdiği renk
+  const kirisMesh = e => {
+    const B = beamCuts(e), out = newMesh(); if (!B.pcs) return [out];
+    const mo = kirisMono(e), col = mo ? dosemeRenk(mo.D) : MALZ.beton.col; // döşemeyle tek parça: 3B'de döşemenin rengiyle (ayrı eleman gibi görünmesin)
+    const Pq = (s2, o, z) => [B.a[0] + B.u[0] * s2 + B.nn[0] * o, B.a[1] + B.u[1] * s2 + B.nn[1] * o, z];
+    for (const [s0, s1] of B.pcs) {
+      // parçayı döşeme altında kalan / kalmayan aralıklara böl
+      const ust = mo ? C.insMono.kesisim([[s0, s1]], mo.r.ivs) : [], acik = C.insMono ? C.insMono.cikar(s0, s1, ust) : [[s0, s1]];
+      const subs = ust.map(q => ({ a: q[0], b: q[1], z: mo.r.zc, gom: true })).concat(acik.map(q => ({ a: q[0], b: q[1], z: B.zt, gom: false }))).sort((x, y) => x.a - y.a);
+      if (!subs.length) continue;
+      subs.forEach((sb, i) => {
+        if (sb.z <= B.zb + 1e-4) return;
+        const c8 = []; for (const z of [B.zb, sb.z]) c8.push(Pq(sb.a, B.w, z), Pq(sb.b, B.w, z), Pq(sb.b, -B.w, z), Pq(sb.a, -B.w, z));
+        const sk = []; if (sb.gom) sk.push(1); if (i > 0) sk.push(5); if (i < subs.length - 1) sk.push(3); // hexa: 1 üst, 3 son uç, 5 baş uç
+        hexa(out, c8, col, sk);
+        if (sb.gom) fanFace(out, c8.slice(4), col, [0, 0, 1]); // döşemeye değen üst yüz: gövde kapalı (kesit sınırı kapanır) ama yan yüzlerle ortak kenar çizgisi yok
+        // üst kenarlar: döşemeye gömülü kısımda yalnız döşeme kenarıyla aynı hizada olmayan yüzlerde (iç köşe çizgisi)
+        const ucMu = s => sb.gom && mo.r.uc.some(u => Math.abs(u - s) < 1e-6);
+        for (const yan of [1, -1]) { const ks = sb.gom ? mo.r.kenar.filter(k => k.yan === yan).map(k => [k.s0, k.s1]) : []; for (const [x0, x1] of C.insMono.cikar(sb.a, sb.b, ks)) out.edges3.push([Pq(x0, yan * B.w, sb.z), Pq(x1, yan * B.w, sb.z)]); }
+        if (i === 0 && !ucMu(sb.a)) out.edges3.push([c8[4], c8[7]]); if (i === subs.length - 1 && !ucMu(sb.b)) out.edges3.push([c8[5], c8[6]]);
+        if (i > 0 && subs[i - 1].z !== sb.z) { const zl = Math.min(subs[i - 1].z, sb.z), zh = Math.max(subs[i - 1].z, sb.z); out.edges3.push([Pq(sb.a, B.w, zl), Pq(sb.a, B.w, zh)], [Pq(sb.a, -B.w, zl), Pq(sb.a, -B.w, zh)]); }
+      });
+      // alt kenarlar ve uç düşey çizgileri (parça boyunca tek çizgi)
+      const zA = subs[0].z, zB = subs[subs.length - 1].z;
+      out.edges3.push([Pq(s0, B.w, B.zb), Pq(s1, B.w, B.zb)], [Pq(s0, -B.w, B.zb), Pq(s1, -B.w, B.zb)], [Pq(s0, B.w, B.zb), Pq(s0, -B.w, B.zb)], [Pq(s1, B.w, B.zb), Pq(s1, -B.w, B.zb)]);
+      out.edges3.push([Pq(s0, B.w, B.zb), Pq(s0, B.w, zA)], [Pq(s0, -B.w, B.zb), Pq(s0, -B.w, zA)], [Pq(s1, B.w, B.zb), Pq(s1, B.w, zB)], [Pq(s1, -B.w, B.zb), Pq(s1, -B.w, zB)]);
+    }
+    return [out];
+  };
+  /* döşemenin altına gömülü kirişler: alt yüz kiriş izleri kadar açılır (sırt sırta yüz kalmaz), döşeme kenarıyla aynı hizadaki kiriş yüzünde alt kenar çizgisi silinir */
+  const plakKirisleri = p => (C.doc && C.insMono ? C.doc.ents.filter(k => k.type === 'kiris' && C.lyLive(k.layer)).map(k => kirisMono(k)).filter(m => m && m.D === p) : []);
+  const monoSlabFix = (p, out, pts, za, zt, ek) => {
+    const KB = plakKirisleri(p); if (!KB.length) return out;
+    const rects = [], kes = [];
+    for (const m of KB) { const B = m.B, P = (s, o) => [B.a[0] + B.u[0] * s + B.nn[0] * o, B.a[1] + B.u[1] * s + B.nn[1] * o];
+      for (const [s0, s1] of C.insMono.kesisim(B.pcs || [[0, B.Lb]], m.r.ivs)) rects.push([P(s0, -B.w), P(s1, -B.w), P(s1, B.w), P(s0, B.w)]);
+      for (const kn of m.r.kenar) kes.push([P(kn.s0, kn.yan * B.w), P(kn.s1, kn.yan * B.w)]);
+      for (const s of m.r.uc) kes.push([P(s, -B.w), P(s, B.w)]); }
+    const onZ = v => Math.abs(v[2] - za) < 1e-6;
+    out.f = out.f.filter(f => !f.every(i => onZ(out.v[i])));
+    for (const R of polyMinusKolon(pts, za, zt, (ek || []).concat(rects))) {
+      let r; try { r = C.earClipHoles(R.outer, R.holes.map(h => h.slice().reverse())); } catch (err) { try { r = { pts: R.outer, tris: C.earClip(R.outer) }; } catch (e2) { continue; } }
+      const v0 = out.v.length; for (const q of r.pts) out.v.push([q[0], q[1], za]); for (const t of r.tris) out.f.push([v0 + t[0], v0 + t[2], v0 + t[1]]);
+    }
+    for (const q of rects) fanFace(out, q.map(v => [v[0], v[1], za]), null, [0, 0, -1]); // kiriş izi: alt yüz kapalı kalsın (kesit sınırı), kenarı döşeme yan yüzüyle ortak olmasın
+    if (kes.length) { const E3 = []; for (const [a, b] of out.edges3) { if (!onZ(a) || !onZ(b)) { E3.push([a, b]); continue; } for (const [x, y] of C.insMono.parcaCikar(a, b, kes, 2e-3)) E3.push([[x[0], x[1], za], [y[0], y[1], za]]); } out.edges3 = E3; }
+    return out;
   };
   const kirisVol = e => { const B = beamCuts(e); return (B.pcs ? B.pcs.reduce((s2, [x0, x1]) => s2 + x1 - x0, 0) : B.Lb) * (+e.bw || 0.3) * (+e.hb || 0.5); }; // kolon içi hariç (net boy)
 
@@ -299,13 +378,13 @@
   T.plak = {
     label: 'Radye / döşeme', ifc: 'IfcSlab',
     prims: e => { const q = e.pts.map(p => [p[0], p[1], 0]), out = [P(q, true, { lw: e.kind === 'radye' ? 50 : 35, lt: e.kind === 'doseme' ? 'HIDDEN' : undefined })]; if (e.kind === 'doseme' && q.length >= 3) { out.push(L(q[0], q[2], { lw: 13, color: 8 })); if (q.length >= 4) out.push(L(q[1], q[3], { lw: 13, color: 8 })); } return out; },
-    mesh: e => { let pts = e.pts.map(p2); if (M.polyArea(pts) < 0) pts = pts.reverse(); const zt = +e.zt || 0, za = zt - (+e.t || 0.3); if (!kolonsIn(za, zt).length) return [{ t: 'ext', o: [0, 0, za], ux: [1, 0, 0], uz: [0, 0, 1], prof: pts, h: +e.t || 0.3 }]; return [slabMesh(pts, za, zt)]; },
+    mesh: e => { let pts = e.pts.map(p2); if (M.polyArea(pts) < 0) pts = pts.reverse(); const zt = +e.zt || 0, za = zt - (+e.t || 0.3), kb = e.kind !== 'radye' && plakKirisleri(e).length > 0; if (!kb && !kolonsIn(za, zt).length) return [{ t: 'ext', o: [0, 0, za], ux: [1, 0, 0], uz: [0, 0, 1], prof: pts, h: +e.t || 0.3 }]; const m = slabMesh(pts, za, zt); return [kb ? monoSlabFix(e, m, pts, za, zt) : m]; },
     xf: (e, X) => { e.zt = (+e.zt || 0) + dzOf(X); e.pts = e.pts.map(q => X.p([q[0], q[1], 0]).slice(0, 2)); },
     snaps: e => e.pts.map(q => ({ p: [q[0], q[1], 0], k: 'end' })),
     info: e => `${e.kind === 'radye' ? 'Radye temel' : 'Döşeme'} · ${e.beton || 'C30/37'} · kalınlık ${M.fmt((+e.t || 0.3) * 100, 0)} cm · üst kot ${M.fmt(+e.zt || 0, 2)} · alan ${M.fmt(Math.abs(M.polyArea(e.pts.map(p2))), 2)} m² · hacim ${M.fmt(plakVol(e), 2)} m³`,
   };
   /* boşluklu döşeme / radye: düşey boşluklar 2B çokgen farkıyla (kolon çentikleriyle aynı yöntem) açılır — insaat-bosluk.js kullanır */
-  C.insPlakDelikliAg = (e, ek) => { let pts = e.pts.map(p2); if (M.polyArea(pts) < 0) pts = pts.reverse(); const zt = +e.zt || 0, za = zt - (+e.t || 0.3); return slabMesh(pts, za, zt, ek); };
+  C.insPlakDelikliAg = (e, ek) => { let pts = e.pts.map(p2); if (M.polyArea(pts) < 0) pts = pts.reverse(); const zt = +e.zt || 0, za = zt - (+e.t || 0.3), m = slabMesh(pts, za, zt, ek); return e.kind !== 'radye' ? monoSlabFix(e, m, pts, za, zt, ek) : m; };
   const plakVol = e => { const zt = +e.zt || 0, t = +e.t || 0.3; let q = e.pts.map(p2); if (M.polyArea(q) < 0) q = q.reverse(); return slabArea(q, zt - t, zt) * t; }; // kolon izleri hariç
 
   /* ---------- TEKİL TEMEL ---------- */
@@ -353,6 +432,8 @@
   /* aynı anda gelen değişiklikleri tek seferde işle (yüzlerce nesne eklenince her biri için baştan tarama yapılmasın) */
   const coalesce = fn => { let p = false; return () => { if (p) return; p = true; Promise.resolve().then(() => { p = false; try { fn(); } catch (er) { console.error(er); } }); }; };
   let kolSig = ''; C.on('change', coalesce(() => { if (!C.doc) return; const ks = JSON.stringify(C.doc.ents.filter(k => k.type === 'kolon' || (k.type === 'perde' && (k.malz || 'beton') === 'beton' && !k.temel)).map(k => k.type === 'kolon' ? [k.id, k.p, k.b, k.d, k.D, k.sek, k.rot, k.z0, k.h, C.lyLive(k.layer)] : [k.id, k.pts, k.tb, k.tt, k.h, k.z0, k.hiza, k.ofs, k.egim, k.closed, C.lyLive(k.layer)])); if (ks !== kolSig) { kolSig = ks; for (const w of C.doc.ents) if (w.type === 'perde' || w.type === 'plak' || w.type === 'kiris') delete w._c; } }));
+  /* kiriş + döşeme tek parça: biri değişince ikisinin de görünümü yeniden hesaplansın */
+  let kdSig = ''; C.on('change', coalesce(() => { if (!C.doc) return; const ks = JSON.stringify(C.doc.ents.filter(k => k.type === 'kiris' || (k.type === 'plak' && k.kind !== 'radye')).map(k => k.type === 'kiris' ? [k.id, k.a, k.b, k.bw, k.hb, k.zt, k.hiza, k.monolit, C.lyLive(k.layer)] : [k.id, k.pts, k.zt, k.t, k.kind, k.monolit, C.lyLive(k.layer), C.entColor ? C.entColor(k) : 0])); if (ks !== kdSig) { kdSig = ks; for (const w of C.doc.ents) if (w.type === 'plak' || w.type === 'kiris') delete w._c; } }));
   C.on('change', coalesce(() => { if (!C.doc) return; const sig = {}; for (const o of C.doc.ents) if (o.type === 'acik') (sig[o.host] = sig[o.host] || []).push([o.seg, o.s, o.w, o.hh, o.par, o.kind, o.kanat, o.yon, o.el, o.lento, o.lb, o.lh].join(',')); for (const e of C.doc.ents) if (e.type === 'perde') { const s = (sig[e.id] || []).join('|'); if (e._osig !== s) { e._osig = s; delete e._c; } } for (const o of C.doc.ents) if (o.type === 'acik') delete o._c; }));
 
   /* ---------- ayar penceresi ---------- */
