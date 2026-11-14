@@ -55,6 +55,7 @@
 - Plan ve kesitlerde aks çizgileri ve aks başlıkları bulunur; ölçüler örnek projelerdeki gibi akslar üzerinden verilir.
 - Kesit yerleri mahalleri ayrı ayrı gösterecek şekilde seçilir (14.11.2026): uzun kesit bütün mahallerden geçer; kısa kesit iki tanedir, biri büyük hacimden (ör. pompa / montaj holü), öbürü odalardan (ör. kumanda odası) geçer. Bir oda hiçbir kesitte görünmüyorsa ek kesit alınır.
 - Ölçü sıraları üst üste binmez; sıralar arası modelde 25 cm, her ölçekte aynı (1/50'de kâğıtta 5 mm, 1/25'te 10 mm, 1/100'de 2,5 mm; 1/20 detayda 12,5 mm). Plan, kesit, görünüş ve detay, bütün ölçülendirmede geçerli (14.11.2026).
+- Korkuluklar Çokal'daki gibi ara birleşimli çizilir (dikme–küpeşte ve dikme–ara küpeşte birleşimleri görünür); korkuluk detayı Çokal örneğine göre (14.11.2026).
 - Görünüşlerde bina içindeki merdivenler (ve dışarıdan görünmeyen iç elemanlar) çizilmez; toprak altında kalan yapı kısımları (temel, radye, gömülü perdeler) da çizilmez, görünüş tabii / tesviye zemin çizgisinde biter (14.11.2026).
 
 ## Proses ve ünite tasarımı
