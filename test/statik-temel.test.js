@@ -65,14 +65,17 @@ t('kısmi temasta zımbalama q_net gerçek temas dağılımından: kolon temas d
 t('perde üstündeki tuğla duvar bütün kabuk yollarında perdeye yüklenir (su yapısı: ara perde üstünde duvarlı sığ hazne — duvar ağırlığı radye tepkisinde)', () => {
   const ents = [{ type: 'plak', kind: 'radye', pts: [[-0.5, -0.5], [8.5, -0.5], [8.5, 5.5], [-0.5, 5.5]], t: 0.4, zt: 0.4 },
     ...[[[0, 0], [8, 0]], [[8, 0], [8, 5]], [[8, 5], [0, 5]], [[0, 5], [0, 0]], [[4, 0], [4, 5]]].map(pts => ({ type: 'perde', pts, closed: false, tb: 0.3, tt: 0.3, egim: 'R', hiza: 'O', ofs: 0, malz: 'beton', z0: 0.4, h: 1.0 })),
-    { type: 'perde', pts: [[4, 0.15], [4, 4.85]], closed: false, tb: 0.2, tt: 0.2, egim: 'R', hiza: 'O', ofs: 0, malz: 'tugla', z0: 1.4, h: 2.5 }]
+    { type: 'perde', pts: [[4, 0.15], [4, 4.85]], closed: false, tb: 0.2, tt: 0.2, egim: 'R', hiza: 'O', ofs: 0, malz: 'tugla', z0: 1.4, h: 2.5 },
+    { type: 'perde', pts: [[2, 2], [2, 3]], closed: false, tb: 0.2, tt: 0.2, egim: 'R', hiza: 'O', ofs: 0, malz: 'tugla', z0: 3.0, h: 1.0, no: 'Askıda duvar' }]                  // hiçbir şeye oturmuyor
     .map((e, i) => Object.assign({ id: i + 1, layer: '0' }, e));
   const { d: dh } = O.modelCevir({ ents, layers: {}, set: {} }), Sh = O.uygula(P.ornekSaray(), JSON.parse(JSON.stringify(dh)));
   assert.strictEqual(Sh.yapi.tur, 'su'); const du = dh.temel.ek.find(e => e.tur === 'duvar'); assert.ok(du && P.duvarPerdeUstu(du, Sh.kabuk.walls), 'duvar ara perdenin üstünde');
-  const Wd = du.V * P.TEMEL_GAMMA_TUGLA, PU = P.perdeUstuDuvarYuk(Sh); yak(-PU.reduce((s, q) => s + q.F.G[2], 0), Wd, 1e-9); assert.ok(!P.radyeUstYuk(Sh).some(y => y.tur === 'duvar'), 'radye yükünde değil');
+  const Wd = du.V * P.TEMEL_GAMMA_TUGLA, PU = P.perdeUstuDuvarYuk(Sh); assert.strictEqual(PU.filter(q => q.hedef).reduce((s, q) => s - q.F.G[2], 0) > 0, true); yak(-PU.reduce((s, q) => s + q.F.G[2], 0), Wd, 1e-9); assert.ok(!P.radyeUstYuk(Sh).some(y => y.tur === 'duvar'), 'radye yükünde değil');
   Sh.tas.kmesh = 0.5; Sh.dep.SDS = 0; const r = P.kabukHesap(Sh), AG = r.AG, kz = Sh.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
   let yay = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) yay += -kz * trib[i] * r.U.G[i * 6 + 2]; let W = 0; for (const e of AG.els) W += Sh.mal.gc * e.t * e.A;
   yak(yay, W + Wd, 1e-3 * (W + Wd), 'radye tepkisi = kabuk öz ağırlığı + duvar');
+  // yeri bulunamayan duvar sessizce düşmez: görünür uyarı (sonuç ve rapor), yeterliliği değiştirmez
+  assert.ok(PU.dusen.length === 1 && /Askıda duvar/.test(PU.uyar[0]) && /bulunamadı/.test(PU.uyar[0])); assert.ok(r.duvarUyar.length === 1 && r.uyar.some(u => /Askıda duvar/.test(u)));
 });
 t('kolon tepkisinin radyeye dağıtımı düzensiz düğüm kümesinde (Sxy ≠ 0) de bileşkeyi korur', () => {
   // 45° kesik köşeli radye; kolon kesik kenarın yanında → kolon izi düğüm kümesi simetrik değil

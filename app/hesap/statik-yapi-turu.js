@@ -101,7 +101,7 @@
     // tuğla duvar (zemin döşemesi / dolgu üstünde, hazne içinde): ağırlığı iç bölgeye yayılı (kabul — duvar altı şerit yükü ayrıca alınmaz)
     // perdenin üstündeki duvar (ekseninin her parçası bir kabuk perdesi ekseninden ≤ yarı kalınlık + 15 cm) radye yükü değildir: perde üstüne
     // ayrıca yüklenir (P.temelKabuk) — sınırdaki pip belirsizliğine bırakılmaz
-    const ekL = T.ek.filter(e => e.tur === 'duvar' && IC.length >= 3 && !P.duvarPerdeUstu(e, S.kabuk.walls) && !duvarYeri(e, S.kabuk) && pipq([e.x, e.y], IC) && !(Array.isArray(e.eksen) && e.eksen.some(q => !pipq(q, IC)))).map(e => Object.assign({}, e, { pts: IC, tur: 'duvar' }));
+    const ekL = T.ek.filter(e => e.tur === 'duvar' && IC.length >= 3 && !duvarYeri(e, S.kabuk) && /* perde / döşeme üstü (kotla, ± 0,30 m) değilse radye yükü */ pipq([e.x, e.y], IC) && !(Array.isArray(e.eksen) && e.eksen.some(q => !pipq(q, IC)))).map(e => Object.assign({}, e, { pts: IC, tur: 'duvar' }));
     return T.ek.filter(e => (e.tur === 'dolgu' || e.tur === 'doseme') && Array.isArray(e.pts) && e.pts.length >= 3 && !haric.has(e.id) && (IC.length < 3 || pipq(merkez(e.pts), IC))).concat(ekL).map(e => { const A = alan(e.pts), gam = e.tur === 'dolgu' ? gD0 : e.tur === 'duvar' ? (P.TEMEL_GAMMA_TUGLA || 12) : gc, G = e.V * gam + (e.tur === 'doseme' ? (e.g != null ? e.g : gD) * A : 0), Q = e.tur === 'doseme' ? (e.q != null ? e.q : qD) * A : 0;
       return { id: e.id, ad: e.ad, tur: e.tur, pts: e.pts, A, V: e.V, gam, G, Q, pG: A > 0 ? G / A : 0, pQ: A > 0 ? Q / A : 0 }; }).filter(y => y.A > 0);
   };
@@ -128,12 +128,21 @@
      değildir (kiriş duvar yükü gd kullanıcı girişi; duvarın ALTINDAKİ kiriş duvarı taşımaz), iki kez sayılmaz. Kaynak: S.temel.duvar (bütün
      duvarlar), yoksa S.temel.ek içindeki duvarlar (eski model verisi). */
   P.perdeUstuDuvarYuk = S => {
-    const T = (S && S.temel) || {}, K = S && S.kabuk, out = [], z0 = [0, 0, 0, 0, 0, 0], ls = Array.isArray(T.duvar) ? T.duvar : (T.ek || []).filter(x => x.tur === 'duvar');
-    for (const e of ls) { if (!Array.isArray(e.eksen) || e.eksen.length < 2) continue; const yer = duvarYeri(e, K); if (!yer) continue;
+    const T = (S && S.temel) || {}, K = S && S.kabuk, out = [], ls = Array.isArray(T.duvar) ? T.duvar : (T.ek || []).filter(x => x.tur === 'duvar');
+    /* deprem: duvar kütlesinin ataleti kh·W (kabuktaki öbür elemanlarla aynı kh), duvarın ağırlık merkezi yüksekliğinde — perde / döşeme üst
+       düğümüne yatay kuvvet; kaçıklık momenti (kuvvet × yükseklik) düğüme moment olarak eklenir (kabukAg: M + r × F). Kabukta ESX "zemin +X"
+       durumudur, atalet −X yönündedir. */
+    const kh = P.itki && S && S.zemin && S.dep ? (+((P.itki(S) || {}).kh) || 0) : 0, dusen = [];
+    let ryId = null; const ryde = e => { if (ryId == null) { try { ryId = new Set(P.radyeUstYuk(S).filter(y => y.tur === 'duvar').map(y => y.id)); } catch (er) { ryId = new Set(); } } return ryId.has(e.id); };
+    for (const e of ls) { if (!Array.isArray(e.eksen) || e.eksen.length < 2) continue; const yer = duvarYeri(e, K);
+      if (!yer) { if (!ryde(e)) dusen.push(e); continue; }                               // radye yükü olarak alınmışsa (iç bölme) düşmüş sayılmaz
       const E = e.eksen, n = e.kapali ? E.length : E.length - 1; let L = 0; for (let i = 0; i < n; i++) L += Math.hypot(E[(i + 1) % E.length][0] - E[i][0], E[(i + 1) % E.length][1] - E[i][1]);
-      if (!(L > 0)) continue; const W = e.V * (P.TEMEL_GAMMA_TUGLA || 12);
-      for (let i = 0; i < n; i++) { const a = E[i], b = E[(i + 1) % E.length], Li = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(Li)); for (let k = 0; k < m; k++) { const u = (k + 0.5) / m;
-        out.push({ id: null, no: `${e.ad || 'Duvar'} (${yer === 'perde' ? 'perde' : 'döşeme'} üstü)`, hedef: yer, duvar: e.id, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: e.za != null ? e.za : null, F: { G: [0, 0, -W * Li / L / m, 0, 0, 0], Q: z0, ESX: z0, ESY: z0 } }); } } }
+      if (!(L > 0)) continue; const W = e.V * (P.TEMEL_GAMMA_TUGLA || 12), zg = e.za != null && e.zt != null ? (e.za + e.zt) / 2 : null;
+      for (let i = 0; i < n; i++) { const a = E[i], b = E[(i + 1) % E.length], Li = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(Li)); for (let k = 0; k < m; k++) { const u = (k + 0.5) / m, w = W * Li / L / m, z0 = [0, 0, 0, 0, 0, 0];
+        out.push({ id: null, no: `${e.ad || 'Duvar'} (${yer === 'perde' ? 'perde' : 'döşeme'} üstü)`, hedef: yer, duvar: e.id, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: zg, zTaban: e.za != null ? e.za : null,
+          F: { G: [0, 0, -w, 0, 0, 0], Q: z0, ESX: [-kh * w, 0, 0, 0, 0, 0], ESY: [0, -kh * w, 0, 0, 0, 0] } }); } } }
+    out.dusen = dusen;
+    out.uyar = dusen.map(e => `${e.ad || 'Duvar'} (taban ${e.za != null ? f2(e.za) : '—'}, ${f2(e.V * (P.TEMEL_GAMMA_TUGLA || 12), 1)} kN): kabukta oturduğu perde / döşeme bulunamadı ve radye üstünde değil — ağırlığı hesaba girmedi; duvarın oturduğu elemanı modelde kontrol edin.`);
     return out;
   };
   P.ayarUyariHtml = (S, rapor) => (S && S.ayarUyari ? (rapor ? `<p><b>UYARI:</b> ${S.ayarUyari}</p>` : `<div class="msg">${S.ayarUyari}</div>`) : '');

@@ -303,12 +303,12 @@
             (dugumYuk[c] = dugumYuk[c] || []).push({ n: k, f: [F[0] / m, F[1] / m, fz, ok2 ? 0 : Mx / m, ok2 ? 0 : My / m, Mz / m], ad: q.no }); } }
         continue; }
       // döşeme üstündeki duvar yükü (hedef 'doseme'): döşeme ağının en yakın düğümü (kotu duvar tabanına en yakın döşeme)
-      else if (q.hedef === 'doseme' && DG.length) { let bd = Infinity; for (let gi = 0; gi < DG.length; gi++) { if (q.z != null && Math.abs(dos[gi].zt - q.z) > 0.3) continue; for (const e of DG[gi].list) for (const k of e.n) { const p0 = nodes[k], dd = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (dd < bd) { bd = dd; n = k; } } } }
+      else if (q.hedef === 'doseme' && DG.length) { const zT = q.zTaban != null ? q.zTaban : q.z; let bd = Infinity; for (let gi = 0; gi < DG.length; gi++) { if (zT != null && Math.abs(dos[gi].zt - zT) > 0.3) continue; for (const e of DG[gi].list) for (const k of e.n) { const p0 = nodes[k], dd = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (dd < bd) { bd = dd; n = k; } } } }
       else if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;
       else { let bd = Infinity; for (const w of W) for (const p0 of w.S) { const d = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (d < bd) { bd = d; n = nod(p0[0], p0[1], w.ztm); } } if (n != null && q.id != null) yukUyar.push(`${q.no || 'Kolon'} (${q.x}; ${q.y}) tepkisi en yakın perde üst düğümüne uygulandı.`); } // kimliksiz (perde mesnedi, perdenin kotun üstündeki kısmı): perde üst düğümüne
       if (n == null) continue; const p0 = nodes[n], r = [(+q.x) - p0[0], (+q.y) - p0[1], (q.z != null ? +q.z : p0[2]) - p0[2]];
       for (const [c, F] of Object.entries(q.F || {})) { if (!F) continue; const m = cross(r, [F[0], F[1], F[2]]); (dugumYuk[c] = dugumYuk[c] || []).push({ n, f: [F[0], F[1], F[2], F[3] + m[0], F[4] + m[1], F[5] + m[2]], ad: q.no }); } }
-    if ((M.kolonYuk || []).length) { const nk = (M.kolonYuk || []).filter(q => q.id != null).length, np = (M.kolonYuk || []).length - nk; uyarC.push(`Üst yapıdan ${nk} kolon ayağı tepkisi${np ? ` ve ${np} ek yük (perde üstündeki duvar, kotun üstündeki perde kısmı ya da perdeye mesnetli kiriş ucu)` : ''} alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar); }
+    if ((M.kolonYuk || []).length) { const nk = (M.kolonYuk || []).filter(q => q.id != null).length, np = (M.kolonYuk || []).length - nk; uyarC.push(`Üst yapıdan ${nk} kolon ayağı tepkisi${np ? ` ve ${np} ek yük (perde ya da döşeme üstündeki duvar, kotun üstündeki perde kısmı ya da perdeye mesnetli kiriş ucu)` : ''} alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar); }
     for (const e of els) e.F = cerceve(e.n.map(i => nodes[i]));
     return { nodes, els, ties, W, RG, DG, Z, zr, h, mes, bars, uyarC, dugumYuk };
   };

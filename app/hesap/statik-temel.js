@@ -196,7 +196,7 @@
     const R = r.tasarim.find(T => T.grup.tur === 'radye'), radye = R ? ['M11', 'M22'].map(y => { const k = R.katman.filter(x => x.yon.startsWith(y)), Mu = Math.max(...k.filter(x => x.yuz === 'üst').map(x => x.Meq || x.M)), Ma = Math.max(...k.filter(x => x.yuz === 'alt').map(x => x.Meq || x.M)), M = Math.max(Mu, Ma);
       return { yon: y === 'M11' ? 'X' : 'Y', Mu, Ma, sec: ortak(M, R.grup.t, R.grup.c) }; }) : [];
     const ok = perde.every(q => q.dusey && q.dusey.ok && q.yatay && q.yatay.ok && q.kesme.ok) && radye.every(q => q.sec && q.sec.ok) && (!R || R.kesme.ok) && r.qmax <= S.zemin.sig;
-    return { r, sb, perde, radye, radyeT: R ? R.grup.t : null, radyeKesme: R ? R.kesme : null, qmax: r.qmax, sig: S.zemin.sig, ok, uyar: [...new Set(sb.flatMap(q => q.uyar || []))] };
+    return { r, sb, perde, radye, radyeT: R ? R.grup.t : null, radyeKesme: R ? R.kesme : null, qmax: r.qmax, sig: S.zemin.sig, ok, uyar: [...new Set(sb.flatMap(q => q.uyar || []).concat(r.duvarUyar || []))] };
   };
   const cmS = v => String(Math.round(v * 1000) / 10).replace('.', ',');
   P.temelKabukOzet = TK => { if (!TK) return ''; const d = ok => `<span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'UYGUN' : 'YETERSİZ'}</span>`, sc = q => (q && q.ok ? `Ø${q.F}/${cmS(q.s)}` : '—');

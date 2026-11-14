@@ -61,7 +61,16 @@ t('alt yapı kabuğu: tepkiler kolonun oturduğu perde üst düğümüne; düşe
   let rG = 0, rQ = 0; for (const e of AG.els) if (e.tur === 'radye') { const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; for (const y of RY) { let ic = false; const q = y.pts; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > c[1]) !== (q[j][1] > c[1]) && c[0] < (q[j][0] - q[i][0]) * (c[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) ic = !ic; if (ic) { rG += y.pG * e.A; rQ += y.pQ * e.A; } } }
   yak(rG, RY.reduce((s, y) => s + y.G, 0), 0.03 * rG, 'radye üstü yük ağda (ızgara yaklaşığı)');
   // cephe ve bölme tuğla duvarları (galeri kotunda, perde / galeri döşemesi üstünde): 44,388 m³ × 12 kN/m³ = 532,7 kN — kabuğa yük
-  const tW = DY.reduce((s, q) => s - q.f[2], 0); yak(tW, 44.388 * P.TEMEL_GAMMA_TUGLA, 0.01, 'duvar ağırlığı'); assert.ok(DY.some(q => /bölme duvarı \(döşeme üstü\)/.test(q.ad)) && DY.filter(q => /perde üstü/.test(q.ad)).length > 30);
+  /* duvar hacimleri elle (araclar/konya-terfi-uret.js ölçüleri): cephe B 19,70 × 5,00 (galeri +205,41 → boyuna kiriş altı +210,41) × 0,20 = 19,70 m³
+     − 11 alt pencere 0,70 × 1,50 (9 cephe + 2 kumanda odası) − 3 üst pencere 3,00 × 0,60 − 5 kolon izi 0,50 × 0,20 × 5,00 = 19,70 − 2,31 − 1,08 − 2,50 = 13,81 m³;
+     cephe A aynı, kumanda odası pencereleri yok: 19,70 − 1,89 − 1,08 − 2,50 = 14,23 m³ */
+  const DV = IA.S.temel.duvar, vB = DV.find(e => /Cephe duvarı B/.test(e.ad)).V, vA = DV.find(e => /Cephe duvarı A/.test(e.ad)).V;
+  yak(vB, 19.7 - 11 * 0.7 * 1.5 * 0.2 - 3 * 3.0 * 0.6 * 0.2 - 5 * 0.5 * 0.2 * 5.0, 1e-3, 'cephe B net hacim'); yak(vA, 19.7 - 9 * 0.7 * 1.5 * 0.2 - 3 * 3.0 * 0.6 * 0.2 - 5 * 0.5 * 0.2 * 5.0, 1e-3, 'cephe A net hacim');
+  const tW = DY.reduce((s, q) => s - q.f[2], 0); yak(tW, DV.reduce((s, e) => s + e.V, 0) * P.TEMEL_GAMMA_TUGLA, 1e-6, 'duvar ağırlığı'); yak(tW, 44.388 * P.TEMEL_GAMMA_TUGLA, 0.01);
+  // deprem: duvar ataleti kh·W (kabuğun kh'si), ESX / ESY'de −X / −Y yönünde; kaçıklık momenti düğümde
+  const kh = P.itki(IA.S).kh, ex = (AG.dugumYuk.ESX || []).filter(q => / üstü\)$/.test(q.ad || '')), ey = (AG.dugumYuk.ESY || []).filter(q => / üstü\)$/.test(q.ad || ''));
+  yak(ex.reduce((s, q) => s + q.f[0], 0), -kh * tW, 1e-6, 'ESX duvar ataleti'); yak(ey.reduce((s, q) => s + q.f[1], 0), -kh * tW, 1e-6, 'ESY duvar ataleti'); assert.ok(ex.some(q => Math.abs(q.f[4]) > 1e-6), 'ağırlık merkezi yüksekliğinden moment');
+  assert.ok(r.bilgi.some(s => /perde ya da döşeme üstündeki duvar/.test(s)) && !(r.duvarUyar || []).length, 'Konya: yeri bulunamayan duvar yok'); assert.ok(DY.some(q => /bölme duvarı \(döşeme üstü\)/.test(q.ad)) && DY.filter(q => /perde üstü/.test(q.ad)).length > 30);
   const tG = -P.tepkiToplam(T, 'G')[2]; yak(yay('G'), Wk + rG + tG + tW, 1e-3 * (Wk + rG + tG + tW), 'G dengesi');
   let Wq = 0; for (const e of AG.els) if (e.tur === 'doseme') Wq += (IA.S.kabuk.dosemeler[+e.grp.slice(1)].q || 0) * e.A; const tQ = -P.tepkiToplam(T, 'Q')[2]; yak(yay('Q'), Wq + rQ + tQ, 1e-3 * (Wq + rQ + tQ), 'Q dengesi');
   // tepkisiz çözümle fark = yalnız aktarılan yük (doğrusal)

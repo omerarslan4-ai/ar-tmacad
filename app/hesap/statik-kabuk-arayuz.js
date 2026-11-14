@@ -141,6 +141,7 @@
   P.kabukHesap = (S, ilerle) => {
     // perde üstündeki tuğla duvarların ağırlığı (radye yükünden çıkarılanlar) bütün yollarda perde üstüne düğüm yükü olarak
     const PU = P.perdeUstuDuvarYuk ? P.perdeUstuDuvarYuk(S) : []; if (PU.length) S = Object.assign({}, S, { kabuk: Object.assign({}, S.kabuk, { kolonYuk: (S.kabuk.kolonYuk || []).concat(PU) }) });
+    const duvarUyar = (PU && PU.uyar) || []; // yeri bulunamayan duvar: sonuç uyarısı ve raporda
     const t0 = Date.now(), M = S.kabuk, MAL = P.malzeme(S.mal), g = S.geo;
     const Atop = M.walls.reduce((s, w) => { let L = 0; const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); } return s + L * (w.zt - M.radye.kAlt); }, 0) + area(M.radye.pts) + (M.dosemeler || []).reduce((s, d) => s + area(d.pts), 0);
     const h = +(S.tas.kmesh > 0 ? S.tas.kmesh : Math.min(1.0, Math.max(0.25, Math.round(Math.sqrt(Atop / 5000) * 20) / 20)));
@@ -262,7 +263,7 @@
     }
     YT.nanUyar.forEach(u => uyar.push(u));
     if (qmax > S.zemin.sig) uyar.push(`Zemin gerilmesi ${f2(qmax, 1)} > ${S.zemin.sig} kN/m²`);
-    KR = { AG, o, Q, Z, KV, YT, U: coz.sonuc, gruplar, tasarim, uyar, cubuk, QB, bilgi: (AG.uyarC || []).concat(yerelMsg), yerel: yerelMsg, qz, qmax, h, sure: Date.now() - t0, dof: coz.N, prof: coz.prof, MAL, ok: !uyar.length };
+    KR = { AG, o, Q, Z, KV, YT, U: coz.sonuc, gruplar, tasarim, uyar: uyar.concat(duvarUyar), duvarUyar, cubuk, QB, bilgi: (AG.uyarC || []).concat(yerelMsg), yerel: yerelMsg, qz, qmax, h, sure: Date.now() - t0, dof: coz.N, prof: coz.prof, MAL, ok: !uyar.length }; // duvar uyarısı yeterliliği değiştirmez, görünür ileti
     return KR;
   };
 
@@ -372,7 +373,7 @@
     kabukGoster(r); if (S.ayarUyari && P.ayarUyariHtml) $('#sonuc').insertAdjacentHTML('afterbegin', P.ayarUyariHtml(S)); if (IA && P.ikiAsamaOzet) $('#sonuc').insertAdjacentHTML('afterbegin', P.ikiAsamaOzet(IA));
     ['#bCiz', '#bDxf', '#bDon3'].forEach(s => { const b = $(s); if (b) b.disabled = true; }); const by = $('#bYaz'); if (by) by.disabled = false;
     try { R = P.kabukAdaptor ? P.kabukAdaptor(r, S) : null; if (R && typeof rapor === 'function') rapor();
-      $('#rapor').insertAdjacentHTML('beforeend', (P.ayarUyariHtml ? P.ayarUyariHtml(S, true) : '') + (IA && P.ikiAsamaRapor ? P.ikiAsamaRapor(IA, f2) : '') + (P.elemanListesiHtml ? P.elemanListesiHtml(S, f2) : '') + (IA && RC ? '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' : ''));
+      $('#rapor').insertAdjacentHTML('beforeend', (P.ayarUyariHtml ? P.ayarUyariHtml(S, true) : '') + (r.duvarUyar || []).map(u => `<p><b>UYARI:</b> ${esc(u)}</p>`).join('') + (IA && P.ikiAsamaRapor ? P.ikiAsamaRapor(IA, f2) : '') + (P.elemanListesiHtml ? P.elemanListesiHtml(S, f2) : '') + (IA && RC ? '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' : ''));
       if (RC && P.cerceveRapor) { try { if (typeof cerGoster === 'function') cerGoster(); } catch (e2) { } $('#rapor').insertAdjacentHTML('beforeend', P.cerceveRapor(RC, f2)); $('#raporKutu').style.display = 'block'; } } catch (er) { console.error(er); $('#rapor').innerHTML = `<div class="msg">Rapor hatası: ${esc(er.message)}</div>`; $('#raporKutu').style.display = 'block'; }
   };
 
