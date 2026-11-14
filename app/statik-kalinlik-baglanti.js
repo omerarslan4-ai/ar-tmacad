@@ -56,7 +56,7 @@
       D.forEach((x, ix) => { if (x === e) return; for (const s of P[ix]) { const dn = uc.u[0] * s.nn[0] + uc.u[1] * s.nn[1]; if (Math.abs(dn) < 0.95 || !ortus(zAr(e), s.z, -0.01)) continue;
         const q = yerel(s, p); for (const fd of [s.lB, s.rB]) { const m = (fd - q.d) / dn; if (m < 0.02 || m > MAX) continue; /* ≤ 2 cm: derz olabilir */ const tt = q.t + (uc.u[0] * s.u[0] + uc.u[1] * s.u[1]) * m; if (tt < -0.01 || tt > s.L + 0.01) continue; if (!en || m < en.m) en = { m }; } } });
       if (en) { const pt = p.slice(); pt[0] = r4(p[0] + uc.u[0] * en.m); pt[1] = r4(p[1] + uc.u[1] * en.m); e.pts[uc.i] = pt; dok.add(e); n++; log.push(`${e.no || 'Perde #' + e.id} ucu ${Math.round(en.m * 100)} cm uzatıldı`); } } });
-    for (const pl of C.doc.ents) { if (pl.type !== 'plak' || pl.kind === 'radye' || !pl.pts || pl.pts.length < 3 || !canli(pl)) continue; const N = pl.pts.length;
+    for (const pl of C.doc.ents) { if (pl.type !== 'plak' || pl.kind === 'radye' || pl.kenarSabit || !pl.pts || pl.pts.length < 3 || !canli(pl)) continue; const N = pl.pts.length;
       // kenar bazında: perdeye paralel ve ≤ MAX uzakta, perdenin içine girmeyen kenar → yakın yüze
       let alan = 0; for (let i = 0; i < N; i++) { const a = pl.pts[i], b = pl.pts[(i + 1) % N]; alan += a[0] * b[1] - b[0] * a[1]; }
       for (let i = 0; i < N; i++) { const j = (i + 1) % N, a = pl.pts[i], b = pl.pts[j], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 0.05) continue; const ue = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], dis = alan > 0 ? [ue[1], -ue[0]] : [-ue[1], ue[0]];
@@ -65,11 +65,12 @@
           if (Math.min(qa.t, qb.t) > s.L - 0.05 || Math.max(qa.t, qb.t) < 0.05) continue; const lo = Math.min(s.lB, s.rB), hi = Math.max(s.lB, s.rB); if (qa.d > lo - 0.005 && qa.d < hi + 0.005) continue;
           const fd = Math.abs(qa.d - lo) < Math.abs(qa.d - hi) ? lo : hi, m = (fd - qa.d) / dn; if (m < 0.02 || m > MAX) continue; /* ≤ 2 cm: derz olabilir */ if (!en || m < en.m) en = { m }; } });
         if (en) { for (const k of [i, j]) { const p = pl.pts[k]; pl.pts[k] = [r4(p[0] + dis[0] * en.m), r4(p[1] + dis[1] * en.m), ...p.slice(2)]; } dok.add(pl); nd++; log.push(`Döşeme #${pl.id} kenarı ${Math.round(en.m * 100)} cm perde yüzüne kaydırıldı`); } } }
+    // pl.kenarSabit: kenarları çizimden bilerek bu yerde olan döşemeler (ör. kenarı alttaki perdeye oturan, üstünde başka hizada duvar duran) kaydırılmaz
     // döşeme ÜSTÜNDE duran (askı) perde kenara paralelse döşeme kenarı perdenin dış yüzüyle aynı hizada olsun (diş kalmasın)
     const kolonKose = k => { const c = k.p; if (k.sek === 'D') { const r = (+k.D || 0.5) / 2; return Array.from({ length: 16 }, (_, i) => [c[0] + r * Math.cos(i * Math.PI / 8), c[1] + r * Math.sin(i * Math.PI / 8)]); }
       const b = +k.b || 0.4, d = +k.d || 0.4, R = (k.rot || 0) * Math.PI / 180, cs = Math.cos(R), sn = Math.sin(R); return [[-b / 2, -d / 2], [b / 2, -d / 2], [b / 2, d / 2], [-b / 2, d / 2]].map(([x, y]) => [c[0] + x * cs - y * sn, c[1] + x * sn + y * cs]); };
     const taban = x => Math.min(+x.z0 || 0, ...C.doc.ents.filter(k => k.type === 'perde' && k.kicker && k.kOf === x.id).map(k => +k.z0 || 0));
-    for (const pl of C.doc.ents) { if (pl.type !== 'plak' || pl.kind === 'radye' || !pl.pts || pl.pts.length < 3 || !canli(pl)) continue; const N = pl.pts.length, zt = +pl.zt || 0;
+    for (const pl of C.doc.ents) { if (pl.type !== 'plak' || pl.kind === 'radye' || pl.kenarSabit || !pl.pts || pl.pts.length < 3 || !canli(pl)) continue; const N = pl.pts.length, zt = +pl.zt || 0;
       const ust = D.map((x, ix) => Math.abs(taban(x) - zt) < 0.03 ? ix : -1).filter(ix => ix >= 0);
       const kol = C.doc.ents.filter(k => k.type === 'kolon' && k.p && canli(k) && (() => { const kt = (+k.z0 || 0) + (+k.h || 0); return kt > zt - (+pl.t || 0.2) - 0.05 && kt < zt + 0.01; })()).map(kolonKose);
       if (!ust.length && !kol.length) continue;
