@@ -203,4 +203,15 @@ t('oklu açıklama yeri: delikli bölge (çatı kaplama bandı dış + iç çevr
   assert.ok(r2.maliyet >= 1e6, 'g yoksa eski davranış');
 });
 
+/* Konya ±0.00 planı (kesme +1,20, pencere parapeti 1,00): duvar halkası pencerede açılır; doğrama boşluğu duvar sayılınca oda bulunur ve kot konur
+   (gorunus.js → planKots; tarayıcıda Konya ±0.00: −0,26 / ±0,00 çift kot montaj holü ve kumanda odasında, galeriden −5,90 / −5,85 / −6,31, sahanlık −2,32,
+   tretuvar −0,11, rampa −0,03 / −0,18) */
+t('oda bulma: pencereden kesilen planda doğrama boşluğu duvar sayılır (Konya ±0.00)', () => {
+  const R = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  const duvar = [R(0, 0, 5.45, 0.2), R(6.15, 0, 19.7, 0.2), R(0, 7.8, 19.7, 8), R(0, 0, 0.2, 8), R(19.5, 0, 19.7, 8)]; // B cephesinde 70 cm pencere boşluğu (5,45 – 6,15)
+  assert.strictEqual(A.mahalBul(duvar, [0, 0, 19.7, 8], { h: 0.1, enAz: 1 }).length, 0, 'boşluktan dışarı taşar');
+  const r = A.mahalBul(duvar.concat([R(5.45, 0, 6.15, 0.2)]), [0, 0, 19.7, 8], { h: 0.1, enAz: 1 });
+  assert.strictEqual(r.length, 1); assert.ok(Math.abs(r[0].alan - 19.3 * 7.6) < 1.5, 'alan ' + r[0].alan);
+});
+
 console.log(`\n${n} test geçti.`);

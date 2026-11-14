@@ -152,7 +152,10 @@
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const b of LB) { x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]); }
       const MR = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e), b = C.bbox(e); return { b, z: [Gm.z0, Gm.zTop].concat((Gm.pieces || []).filter(q => q.kind === 'sah').map(q => +q.z)).filter(isFinite) }; } catch (er) { return null; } }).filter(Boolean);
       const merdivenKolu = (q, zb) => MR.some(m => q[0] >= m.b[0] && q[0] <= m.b[2] && q[1] >= m.b[1] && q[1] <= m.b[3] && !m.z.some(z => Math.abs(z - zb) < 0.02));
-      const odalar = OA.mahalBul(loops, [x0, y0, x1, y1], { h: 0.1, enAz: 1 }), konan = [];
+      /* kesme kotu pencereden geçince (Konya ±0.00 planı: +1,20, parapet 1,00) duvar halkaları pencerede açılır, oda dışarı taşar ve kot konmazdı:
+         doğrama boşlukları (planda duvar içindeki dikdörtgen) oda bulmada duvar sayılır */
+      const bosluk = C.doc.ents.filter(e => e.type === 'acik' && !e.gv && C.layer(e.layer).on).map(e => { let b = null; try { b = C.bbox(e); } catch (er) { } return b && isFinite(b[0]) ? [[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]] : null; }).filter(Boolean);
+      const odalar = OA.mahalBul(loops.concat(bosluk), [x0, y0, x1, y1], { h: 0.1, enAz: 1 }), konan = [];
       for (const o of odalar) { const [a0, b0, a1, b1] = o.bb, st = Math.max(0.2, Math.min(a1 - a0, b1 - b0) / 14), G = new Map();
         for (let x = a0 + st / 2; x < a1; x += st) for (let y = b0 + st / 2; y < b1; y += st) { const q = [x, y]; if (inAny(q)) continue; const zs = zsAt(x, y).filter(z => z <= h + 1e-6); if (!zs.length) continue;
           const zb = Math.round(Math.max(...zs) * 100) / 100; if (!G.has(zb)) G.set(zb, []); G.get(zb).push(q); }
@@ -161,6 +164,20 @@
           konan.push(q); const kp = kaplamaUst ? kaplamaUst(q, zb) : null;
           if (kp != null && kp > (kabaAlt(q, zb) == null ? zb : kabaAlt(q, zb)) + 0.005) { const kab = kabaAlt(q, zb); C.add(C.newEnt('kot', { gv, pk: true, p: W(q), v: +(kab != null ? kab : zb).toFixed(3), v2: +kp.toFixed(3), txt: '', layer: lay })); } else put(q, zb); n++; } }
     } catch (er) { console.error('plan kotları', er); } }
+    /* bina dışı (kullanıcı 14.11.2026: "tretuvar ve döşeme kotları, onları da unutma"): tretuvarın üstüne bir kot (en uzun kenarın ortasında, bandın ortası),
+       kapı önü rampasına alt ve üst kot. Yalnız plan kesme kotunun altında görünenler */
+    try {
+      const ust = q => { const z = zsAt(q[0], q[1]).filter(v => v <= h + 1e-6); return z.length ? Math.max(...z) : null; };
+      for (const e of ents) { if (n >= 40) break;
+        if (e.type === 'tretuvar' && Array.isArray(e.pts) && e.pts.length > 1) { const P = e.pts, w = +e.w || 0.8, kap = P.length > 2; let en = null;
+          for (let i = 0; i < P.length - (kap ? 0 : 1); i++) { const A = P[i], B = P[(i + 1) % P.length], L = Math.hypot(B[0] - A[0], B[1] - A[1]); if (!en || L > en.L) en = { A, B, L }; }
+          if (!en || en.L < 0.5) continue; const u = [(en.B[0] - en.A[0]) / en.L, (en.B[1] - en.A[1]) / en.L], m = [(en.A[0] + en.B[0]) / 2, (en.A[1] + en.B[1]) / 2];
+          for (const sg of [1, -1]) { const q = [m[0] + u[0] * en.L * 0.15 - sg * u[1] * w / 2, m[1] + u[1] * en.L * 0.15 + sg * u[0] * w / 2], z = ust(q); if (z == null || inAny(q) || (kap && C.pointInPoly(q, P))) continue; put(q, z); n++; break; } }
+        else if (e.type === 'kati' && (/rampa/i.test(e.ad || '') || /RAMPA/.test(e.layer || ''))) { let b; try { b = C.bbox(e); } catch (er) { continue; } if (!b || !isFinite(b[0])) continue;
+          let lo = null, hi = null; for (let i = 1; i < 8; i++) for (let j = 1; j < 8; j++) { const q = [b[0] + (b[2] - b[0]) * i / 8, b[1] + (b[3] - b[1]) * j / 8], z = ust(q); if (z == null) continue; if (!lo || z < lo.z) lo = { q, z }; if (!hi || z > hi.z) hi = { q, z }; }
+          if (lo && hi && hi.z - lo.z > 0.02) { put(hi.q, hi.z); put(lo.q, lo.z); n += 2; } else if (hi) { put(hi.q, hi.z); n++; } }
+      }
+    } catch (er) { console.error('plan dış kotları', er); }
     return n;
   };
   C.makeView = (def) => { // def: {kind:'plan'|'view', h, depth, dir, title, place:[x,y]|'yerinde', ref, gv}
