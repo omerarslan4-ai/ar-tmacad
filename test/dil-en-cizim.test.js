@@ -94,6 +94,11 @@ dene('kısa kelimeler: yalnız tam satır ya da sayının ardında', () => {
   const yanlis = B.filter(([t, e]) => tx(t) !== e).map(([t, e]) => `${t} → ${tx(t)} ≠ ${e}`); assert(!yanlis.length, yanlis.join('; '));
   assert(!/pcs/.test(tx('Proje ad.')), tx('Proje ad.')); assert(!/bottom/.test(tx('Proje alt başlığı')), tx('Proje alt başlığı'));
 });
+dene('açılım kodları İngilizcede FL / WL (kullanıcı kararı 14.11.2026)', () => {
+  assert.strictEqual(tx('DÖ01'), 'FL01'); assert.strictEqual(tx('DU03'), 'WL03');
+  assert.ok(/^FL02 /.test(tx('DÖ02 - 15 cm Betonarme döşeme')), tx('DÖ02 - 15 cm Betonarme döşeme'));
+  assert.strictEqual(tx('ARC-01'), 'ARC-01');
+});
 dene('harf biçimi kaynak kelimeye uyar (C.txL ve DIL.t)', () => {
   assert.strictEqual(tx('Oda adı'), 'Room name'); assert.strictEqual(tx('Duvar'), 'Wall'); assert.strictEqual(tx('duvar'), 'wall'); assert.strictEqual(tx('DUVAR'), 'WALL');
   assert.strictEqual(tx('Tavan'), 'Ceiling'); assert.strictEqual(tx('Oda'), 'Room'); assert.strictEqual(DIL.t('Oda adı'), 'Room name');

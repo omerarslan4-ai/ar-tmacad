@@ -93,6 +93,8 @@
     /* kısa kelimeler yalnız tek başına satır olarak ya da sayının hemen ardında ('ic': "+3.90 üst", "34 ad. Ø25", "28 düz + 799 yay");
        metin içinde serbestçe çevrilmez ("alt yapı" → "bottom yapı", "Düz çatı" → "straight çatı" oluyordu) */
     ['üst', 'top', 'satir'], ['alt', 'bottom', 'satir'], ['yay', 'arc', 'satir'], ['düz', 'straight', 'satir'],
+    /* açılım kodları (kullanıcı kararı 14.11.2026): döşeme DÖ01 → FL01, duvar DU01 → WL01 */
+    ['DÖ#', 'FL#', 'ic'], ['DU#', 'WL#', 'ic'],
     ['# üst', '# top', 'ic'], ['#  üst', '#  top', 'ic'], ['# alt', '# bottom', 'ic'], ['#  alt', '#  bottom', 'ic'], ['# ad.', '# pcs', 'ic'], ['# yay', '# arc', 'ic'], ['# düz', '# straight', 'ic'], ['üst #', 'top #', 'ic'], ['alt #', 'bottom #', 'ic'], ['düz # m', 'straight # m', 'ic'],
     ['Düz çatı', 'Flat roof'], ['alt yapı', 'infrastructure'], ['altyapı', 'infrastructure'], ['üst yapı', 'superstructure'], ['üstyapı', 'superstructure'],
     ['kiriş boyuna', 'beam longitudinal'], ['kolon boyuna', 'column longitudinal'], ['kiriş etriyesi', 'beam stirrups'], ['kolon etriyesi', 'column stirrups'], ['etr.', 'stirr.'], ['etriye', 'stirrups'],

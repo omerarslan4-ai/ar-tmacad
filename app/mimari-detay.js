@@ -104,6 +104,7 @@
   /* 2-2 KESİTİ (düşey, duvara dik): yerel x 0 = iç yüz, td = dış yüz; y 0 = boşluğun altı (denizlik / eşik), H = boşluğun üstü.
      o: { sc, duvar (true: parapet ve lento parçası, tarama, sıva — detay paftası; kesitte duvarı kesit kendisi çizer), yazi (true: açıklamalar, tavan rayı, motor) }.
      Kapıda üst kasa ve kanat (detay paftasında kapının 2-2 kesiti yok; bina kesitinde kesilen kapı için). Döner: { items, alt, lus, ic, dis } */
+  const SIVA = 0.028; /* iç ve dış sıva kalınlığı (m) — Çokal R2 doğrama detayı 2,8 cm; kullanıcı onayı 14.11.2026 */
   const dograma22 = (t, o = {}) => {
     const D = liste(o.sc || 20), { H, td, kapi, sek, f } = olc(t), duvar = o.duvar !== false, yazi = o.yazi !== false;
     const ic = 0, dis = td, fx0 = dis - 0.03 - (kapi ? td - 0.03 : 0.07), fx1 = dis - 0.03;
@@ -111,12 +112,12 @@
     const d0 = D.o.length; // duvar parçası (parapet, lento): detay paftasında duvar katmanında kalır, öbür çizgiler doğrama (Kapi_Pencere)
     if (duvar) {
       if (!sek && !kapi) { D.P([[ic, alt], [ic, 0], [dis, 0], [dis, alt]], false, 'DETAY_KESIT'); D.KIRIK([ic, alt], [dis, alt], 'DETAY_KESIT'); D.H([[ic, alt], [dis, alt], [dis, 0], [ic, 0]], 'tugla');
-        D.L([ic - 0.02, alt], [ic - 0.02, -0.03]); D.L([dis + 0.02, alt], [dis + 0.02, -0.03]); }
+        D.L([ic - SIVA, alt], [ic - SIVA, -0.03]); D.L([dis + SIVA, alt], [dis + SIVA, -0.03]); }
       else D.L([ic - 0.6, 0], [dis + 0.3, 0], 'DETAY_KESIT');
       D.P([[ic, lus], [ic, H], [dis, H], [dis, lus]], false, 'DETAY_KESIT'); D.KIRIK([ic, lus], [dis, lus], 'DETAY_KESIT'); D.H([[ic, H], [dis, H], [dis, lus], [ic, lus]], 'beton');
       /* sıva söve dönüşü (kullanıcı isteği 14.11.2026): lento altında iç ve dış sıva yüzden doğrama kasasına kadar döner (L) */
-      const sv = !sek && !kapi; D.L([ic - 0.02, sv ? H - 0.02 : H], [ic - 0.02, lus]); D.L([dis + 0.02, sv ? H - 0.02 : H], [dis + 0.02, lus]);
-      if (sv) { D.L([ic - 0.02, H - 0.02], [fx0, H - 0.02]); D.L([fx1, H - 0.02], [dis + 0.02, H - 0.02]); }
+      const sv = !sek && !kapi; D.L([ic - SIVA, sv ? H - SIVA : H], [ic - SIVA, lus]); D.L([dis + SIVA, sv ? H - SIVA : H], [dis + SIVA, lus]);
+      if (sv) { D.L([ic - SIVA, H - SIVA], [fx0, H - SIVA]); D.L([fx1, H - SIVA], [dis + SIVA, H - SIVA]); }
     }
     for (let i = d0; i < D.o.length; i++) D.o[i].duvar = true;
     if (sek) { // panel perdesi; detayda kılavuz ray ve tavan rayı (açık konum kesikli), motor
@@ -152,7 +153,7 @@
       for (const [a, b] of [[-uz, 0], [W, W + uz]]) { D.P([[a, py], [b, py], [b, pi], [a, pi]], true, 'DETAY_KESIT'); D.H([[a, py], [b, py], [b, pi], [a, pi]], 'tugla'); }
       D.KIRIK([-uz, py], [-uz, pi], 'DETAY_KESIT'); D.KIRIK([W + uz, py], [W + uz, pi], 'DETAY_KESIT');
       /* iç ve dış sıva (2 cm), pencerede yanakta doğrama kasasına kadar döner (söve dönüşü, kullanıcı isteği 14.11.2026); kapıda kasa duvar boyunca: yüzde biter */
-      const pen = !kapi && !sek, ya0 = py + 0.03, yb0 = py + 0.10, s2 = 0.02;
+      const pen = !kapi && !sek, ya0 = py + 0.03, yb0 = py + 0.10, s2 = SIVA;
       for (const [a, b, j] of [[-uz, 0, 1], [W + uz, W, -1]]) { const xj = b + j * s2;
         D.L([a, pi + s2], [pen ? xj : b, pi + s2]); D.L([a, py - s2], [pen ? xj : b, py - s2]);
         if (pen) { D.L([xj, pi + s2], [xj, yb0]); D.L([xj, py - s2], [xj, ya0]); } }
