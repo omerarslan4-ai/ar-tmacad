@@ -189,7 +189,7 @@
     ['Net pas payları: perde # cm, radye # cm, döşeme # cm. Su ile temas eden yüzlerde izin verilen çatlak genişliği w', 'Net covers: wall # cm, raft # cm, slab # cm. Allowable crack width on water-retaining faces w'],
     ['Su tutucu yapıların çatlak kontrolleri kombinasyondaki kesit tesirleri dikkate alınarak, TS #\'deki esaslar ve DSİ\'ye ait Su Tutucu Betonarme Yapıların Yapımına Ait Genel Teknik Şartnamesindeki A ve B sınıf tesir için W', 'Crack checks of water-retaining structures consider the section forces of the combinations, following TS # and the DSİ General Technical Specification for Water-Retaining RC Structures, using W for exposure classes A and B'],
     ['= # mm çatlak genişliği değerlerine göre yapılmıştır. Bu yapıda W', '= # mm crack width limits. For this structure W'], ['= # mm, C sınıf tesir için W', '= # mm, for exposure class C W'], ['= # mm (DSİ şartnamesi, tesir sınıfı A).', '= # mm (DSİ specification, exposure class A).'],
-    ['alınmıştır. Çatlak genişliği hesabında aşağıdaki formül kullanılmıştır.', 'is used. The following formula is used to calculate crack width.'], ['alınmalıdır.', 'shall be taken.'],
+    ['alınmıştır. Çatlak genişliği hesabında aşağıdaki formül kullanılmıştır.', 'is used. The following formula is used to calculate crack width.'], ['alınmalıdır.', 'shall be taken.', 'satir'],
     ['Çatlak genişliği, seçilen donatı ve işletme (yük katsayısız) momenti ile çatlamış kesitten hesaplanmıştır.', 'Crack width is calculated from the cracked section with the selected reinforcement and the service (unfactored) moment.'],
     ['Çatlamış kesit varsayımı ile hesaplanmış olan, yük katsayısı ile çarpılmamış donatı gerilmesi (MPa). Gerilme hesaplarında eksenel basınç ihmal edilmiştir.', 'Steel stress (MPa) from the cracked section, unfactored. Axial compression is neglected in stress calculations.'],
     ['En dış donatı merkezinden ölçülen beton örtüsü (mm)', 'Concrete cover to the centre of the outermost bar (mm)'], ['Çekme donatısı ağırlık merkezinden ölçülen beton örtüsü (mm)', 'Concrete cover to the centroid of tension reinforcement (mm)'],
@@ -328,7 +328,7 @@
     ['Pafta ölçeği 1:', 'Sheet scale 1:'],
     ['üretildi (# nesne) ve Mimari paftasına yerleştirildi', 'generated (# objects) and placed on the Architecture sheet'], ["Tasarım'da görmek: GORUNUSGOSTER.", 'To view in Design: GORUNUSGOSTER.'],
     ['Yalnız mimari kesit (kullanıcı kararı): # disiplin kesit penceresi, # Statik / Mekanik / Elektrik kesit görünümü kaldırıldı', 'Architectural sections only (user decision): # discipline section viewports and # Structural / Mechanical / Electrical section views removed'],
-    ['; boşalan otomatik kesit paftaları silindi:', '; emptied automatic section sheets deleted:'],
+    ['boşalan otomatik kesit paftaları silindi:', 'emptied automatic section sheets deleted:'],
     ['Hiçbir paftada kullanılmayan # eski kesit / kot planı silindi (# nesne, plandaki işaretleri dahil; geri almak için U):', 'Deleted # old sections / level plans not used on any sheet (# objects, incl. their plan marks; U to undo):'],
     ['Oda adı', 'Room name'], ['Oda', 'Room'], ['ZEMİN KAT PLANI', 'GROUND FLOOR PLAN'], ['KAT PLANI', 'FLOOR PLAN'], ['BODRUM KAT PLANI', 'BASEMENT PLAN'],
   ]);
