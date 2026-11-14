@@ -154,19 +154,26 @@
       return best; };
     const BW = b => b.w + 2 * pay, BH = q => q.h + 2 * pay;
     /* grubun tamamı S'ye sığıyor mu (S değişmez): yerler ya da null */
-    const sigar = (S, G) => { const T = Object.assign({}, S, { r: S.r.slice() }), Q = []; for (const b of G) { const q = yerBul(T, BW(b), BH(b)); if (!q) return null; T.r.push({ x: q.x, y: q.y, w: BW(b), h: BH(b) }); T.wc = Math.max(T.wc, q.x + BW(b)); Q.push(q); } return { Q, wc: T.wc }; };
+    const sigar1 = (S, G) => { const T = Object.assign({}, S, { r: S.r.slice() }), P = []; for (const b of G) { const q = yerBul(T, BW(b), BH(b)); if (!q) return null; T.r.push({ x: q.x, y: q.y, w: BW(b), h: BH(b) }); T.wc = Math.max(T.wc, q.x + BW(b)); P.push({ b, q }); } return { P, wc: T.wc }; };
+    /* boşluklar dolsun, pafta gereksiz uzamasın (kullanıcı 14.11.2026: "paftayı gereksiz uzatmışsın; DETAY-B'yi DETAY-A'nın altına alabilirsin"):
+       grubun blokları birkaç sırayla denenir (verilen sıra, yüksekten alçağa, genişten dara, büyükten küçüğe) — sütunlar dikey istiflenir; en dar sonuç seçilir */
+    const SIRALAR = [null, (p, q) => BH(q) - BH(p) || BW(q) - BW(p), (p, q) => BW(q) - BW(p) || BH(q) - BH(p), (p, q) => BW(q) * BH(q) - BW(p) * BH(p)];
+    const sigar = (S, G) => { let en = null; for (const f of SIRALAR) { const r = sigar1(S, f ? G.slice().sort(f) : G); if (r && (!en || r.wc < en.wc - 1e-6)) en = r; } return en; };
     const koy = (S, b, q) => { S.r.push({ id: b.id, x: q.x, y: q.y, w: BW(b), h: BH(b), grup: b.grup }); S.wc = Math.max(S.wc, q.x + BW(b)); };
     const yeni = ad => { const S = Object.assign({ kagit: ad, r: [], wc: 0, tasan: [] }, olc(ad)); sh.push(S); return S; };
     /* grup grup (aynı tür görünümler bir arada): önce açık paftaların boşluğu; sığmazsa yeni pafta — grubun tamamını alan en küçük kâğıt (A1, sonra A0);
        hiçbiri tamamını almıyorsa A1'den başlanır, taşan bloklar sonraki paftaya */
     const gruplar = []; for (const b of L) { const g = gruplar.find(q => q.ad === (b.grup || '')); if (g) g.b.push(b); else gruplar.push({ ad: b.grup || '', b: [b] }); }
     const pwOf = (ad, wc) => Math.max(KAGIT[ad].w, Math.ceil(K0.l + wc + A + K0.r));
+    /* ayrı paftalı türler (kullanıcı 14.11.2026: "görünüş paftası ile kesit paftaları ayrı olmalı"): o.ayri'daki grup başka türle aynı paftaya girmez
+       (kendi paftasının boşluğu yine kendi görünümleriyle dolar) */
+    const AYRI = new Set(o.ayri || []), uyar = (S, ad) => { const G = new Set(S.r.map(q => q.grup || '')); if (!G.size) return true; if (AYRI.has(ad)) return G.size === 1 && G.has(ad); return ![...G].some(x => AYRI.has(x)); };
     for (const g of gruplar) {
       /* maliyet = eklenen kâğıt alanı: açık paftayı uzatmak ya da yeni pafta; eşitse açık pafta (aynı paftada daha çok görünüm) */
-      const aday = KS.map(ad => { const S = Object.assign({ r: [], wc: 0 }, olc(ad)); const r = sigar(S, g.b); return r ? { ad, alan: pwOf(ad, r.wc) * KAGIT[ad].h, Q: r.Q } : null; }).filter(Boolean).sort((p, q) => p.alan - q.alan);
-      let yer = null; for (const S of sh) { const r = sigar(S, g.b); if (!r) continue; const ek = (pwOf(S.kagit, r.wc) - pwOf(S.kagit, S.wc)) * KAGIT[S.kagit].h; if (!yer || ek < yer.ek) yer = { S, Q: r.Q, ek }; }
-      if (yer && (!aday.length || yer.ek <= aday[0].alan)) { g.b.forEach((b, i) => koy(yer.S, b, yer.Q[i])); continue; }
-      if (aday.length) { const a = aday[0], S = yeni(a.ad); g.b.forEach((b, i) => koy(S, b, a.Q[i])); continue; }
+      const aday = KS.map(ad => { const S = Object.assign({ r: [], wc: 0 }, olc(ad)); const r = sigar(S, g.b); return r ? { ad, alan: pwOf(ad, r.wc) * KAGIT[ad].h, P: r.P } : null; }).filter(Boolean).sort((p, q) => p.alan - q.alan);
+      let yer = null; for (const S of sh) { if (!uyar(S, g.ad)) continue; const r = sigar(S, g.b); if (!r) continue; const ek = (pwOf(S.kagit, r.wc) - pwOf(S.kagit, S.wc)) * KAGIT[S.kagit].h; if (!yer || ek < yer.ek) yer = { S, P: r.P, ek }; }
+      if (yer && (!aday.length || yer.ek <= aday[0].alan)) { yer.P.forEach(({ b, q }) => koy(yer.S, b, q)); continue; }
+      if (aday.length) { const a = aday[0], S = yeni(a.ad); a.P.forEach(({ b, q }) => koy(S, b, q)); continue; }
       let S = yeni(KS[0]);
       for (const b of g.b) { let q = yerBul(S, BW(b), BH(b)); if (!q && S.r.length) { S = yeni(KS.find(ad => BH(b) <= olc(ad).H + 1e-6) || KS[KS.length - 1]); q = yerBul(S, BW(b), BH(b)); }
         if (!q) { q = { x: S.wc, y: 0 }; S.tasan.push(b.id); } koy(S, b, q); }
@@ -198,8 +205,12 @@
   /* DXF çizgi tipi ölçeği (Çokal R2: cm çizim, 1/50 pafta, $LTSCALE 20, $PSLTSCALE 0): desenler kâğıt mm'si olarak yazılır, model metre →
      $LTSCALE = ölçek / 1000 (1/50: 0,05), $PSLTSCALE 0 — model sekmesinde ve pafta penceresinde aynı görünür. Başka ölçekli pencerede
      (1/20 detay, 1/10 çatı detayı) görünen nesnelere nesne çizgi tipi ölçeği (kod 48) = pencere ölçeği / ana ölçek. */
+  /* yan yana çizilmiş ayrı çizimleri (ör. cati.js DETAY-A ve DETAY-B tek görünümde) ayrı görünümlere bölmek için: nesne kutuları x aralığına göre kümelenir;
+     aralarında en az `bosluk` (m) olan kümeler ayrı. kutular: [{ id, bb: [x0, y0, x1, y1] }] → [[id …] …] (soldan sağa) */
+  const yanYanaBol = (kutular, bosluk = 0.05) => { const L = (kutular || []).filter(q => q && q.bb && isFinite(q.bb[0])).sort((p, q) => p.bb[0] - q.bb[0]), out = []; let cur = null, sag = -Infinity;
+    for (const q of L) { if (cur && q.bb[0] <= sag + bosluk) { cur.push(q.id); sag = Math.max(sag, q.bb[2]); } else { cur = [q.id]; out.push(cur); sag = q.bb[2]; } } return out; };
   const dxfCizgiOlcegi = olcek => ({ ltscale: (+olcek || 50) / 1000, psltscale: 0, celtOlcek: +olcek || 50 });
-  const api = { PAFTA_R2, paftaPlanla, katKotlari, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, dxfCizgiOlcegi };
+  const api = { PAFTA_R2, paftaPlanla, katKotlari, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, dxfCizgiOlcegi, yanYanaBol };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariPaftaApi = api;
@@ -295,7 +306,7 @@
     /* merdivenli katta plan ilk ara sahanlığın üstünden kesilir (planKesmeKotu); başlık yine kat kotu */
     const merd = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e); return { z0: +Gm.z0, sahanliklar: (Gm.pieces || []).filter(p => p.kind === 'sah').map(p => +p.z) }; } catch (er) { return null; } }).filter(Boolean);
     katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
-    const planlar = katlar.map(k => { const gv = gorunus({ kind: 'plan', h: k.h, depth: Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false }); if (!gv) return null;
+    const planlar = katlar.map(k => { const gv = gorunus({ kind: 'plan', h: k.h, depth: Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false, dograma: true }); if (!gv) return null;
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
       const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
@@ -328,7 +339,7 @@
     // --- açılım tablosu (kodlu: DÖŞEMELER / DUVARLAR)
     let acGv = null, acV = null; try { if (C.acilimTablo && C.doc.ents.some(e => e.type === 'acilim')) { C.doc.set.sonKesitOlcek = SC; C.acilimTablo(true, { yerlestir: false }); const t = VL.find(v => v.tip === 'tablo' && v.unite === 'ACILIM'); acGv = t ? t.gv : null; acV = t || null; } } catch (er) { console.error('açılım tablosu', er); }
     // --- görünüşler
-    const gor = {}; for (const d of ['ON', 'ARKA', 'SAG', 'SOL']) gor[d] = gorunus({ kind: 'view', dir: d, hatch: 'YOK' });
+    const gor = {}; for (const d of ['ON', 'ARKA', 'SAG', 'SOL']) gor[d] = gorunus({ kind: 'view', dir: d, hatch: 'YOK', dograma: true });
     for (const d in gor) if (gor[d]) baslikAlta(gor[d]);
     // --- mahal listesi (zemin kaplaması verilmiş odalar varsa; modelden canlı)
     let mahGv = null; try { if (C.mahalVerisi && C.T.mahaltablo && C.mahalVerisi().rooms.length) { mahGv = 'MIM_MAHAL_' + Date.now().toString(36); const e = C.add(C.newEnt('mahaltablo', { p: [X0, Yc, 0], dis: 'Mimari', layer: 'MAHAL_LISTESI', gv: mahGv, title: yapiAdi(u) })); delete e.sp; st.gvs.push(mahGv); asagi(mahGv); } } catch (er) { console.error('mahal listesi', er); }
@@ -381,7 +392,10 @@
       try { if (C.catiDetaylari) { const gv = 'MIM_CATIDET_' + Date.now().toString(36), g0 = C._gvCur; C._gvCur = gv;
         try { C.catiDetaylari(cati, [X0 + 1, Yc - 3]); } finally { C._gvCur = g0; }
         for (const e of C.doc.ents) if (e.gv === gv) { if (e.layer === 'DETAY') e.layer = 'DETAY_KESIT'; else if (e.layer === 'DETAY_INCE') e.layer = 'DETAY_GORUNEN'; if (e.type === 'text') { e.ann = false; delete e.acs; delete e.ascales; } if (e.type === 'hatch' && e.pat === 'DOTS') e.pat = 'ZIGZAG'; if (e.type === 'text' && e.h >= 0.045) { C.ensureLayer('Yazi30', 72, 'CONTINUOUS', 30); e.layer = 'Yazi30'; } delete e._c; } /* DETAY-A / DETAY-B başlıkları (1/10'da 5 mm) başlık katmanında */ // yazılar gerçek boyda (1/10'da 2 mm); yalıtım taraması kuraldaki gibi ZIGZAG (mimari.md bölüm 5)
-        st.gvs.push(gv); catiR.detay = gv; asagi(gv); } } catch (er) { console.error('çatı detayları', er); }
+        /* DETAY-A ve DETAY-B ayrı görünüm: paftada boşluğa ayrı ayrı yerleşir (DETAY-B, DETAY-A'nın altına sığabilir) */
+        const ge = C.doc.ents.filter(e => e.gv === gv), kut = ge.map(e => { let b = null; try { delete e._c; b = C.bbox(e); } catch (er) { } return { id: e.id, bb: b }; }), parca = yanYanaBol(kut, 0.05);
+        catiR.detaylar = parca.map((ids, i) => { const g2 = i ? gv + '_' + i : gv; if (i) { const S = new Set(ids); for (const e of ge) if (S.has(e.id)) e.gv = g2; } st.gvs.push(g2); return g2; });
+        if (!catiR.detaylar.length) { st.gvs.push(gv); catiR.detaylar = [gv]; } catiR.detay = catiR.detaylar[0]; catiR.detaylar.forEach(asagi); } } catch (er) { console.error('çatı detayları', er); }
     }
 
     // --- DETAYLAR (1/20): kapı / pencere tipleri, korkuluk tipleri; sac kapaklar (plan 1/20, kenar 1/5)
@@ -404,7 +418,7 @@
         detay.kapakTip = tipler; } } catch (er) { console.error('kapak detayı', er); }
 
     /* Tasarım alanında Mimari bölgesi: görünümler ızgarada (her tür bir sıra), modelin ve öbür disiplin bölgelerinin dışında, başında "MİMARİ" */
-    try { bolgeDuzenle([[...planlar.map(p => p.gv), mahGv], [...kes.map(v => v.gv), acGv], ['ON', 'ARKA', 'SAG', 'SOL'].map(d => gor[d]), [catiR.plan, ...(catiR.kesitler || []).map(v => v.gv), catiR.detay],
+    try { bolgeDuzenle([[...planlar.map(p => p.gv), mahGv], [...kes.map(v => v.gv), acGv], ['ON', 'ARKA', 'SAG', 'SOL'].map(d => gor[d]), [catiR.plan, ...(catiR.kesitler || []).map(v => v.gv), ...(catiR.detaylar || [catiR.detay])],
       detay.dograma.map(d => d.gv), [...detay.korkuluk, ...detay.kapak].map(d => d.gv)], kes.concat(catiR.kesitler || []), st); } catch (er) { console.error('mimari bölge', er); }
     return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: yapiAdi(u), kesitBilgi, cakisma: olcuDenetle([...planlar.map(p => p.gv), ...kes.map(v => v.gv)]) };
   };
@@ -437,10 +451,11 @@
   const antetGen = () => { const tb = C.doc.set.titleBlock || C.defaultTitleBlock; return tb && tb.ents && tb.ents.length && !tb.full ? tb.bb[2] - tb.bb[0] : 0; };
   /* bloklar: [{ gv, w, h (kâğıt mm), bb, sc, v }] → bir ya da birkaç pafta (genişlik en çok 1,8 × standart; sonra yeni pafta) */
   let paftaNo = 0;
+  const AYRI_PAFTA = ['KESİTLER', 'GÖRÜNÜŞLER']; // kesit ve görünüş paftaları ayrı (kullanıcı 14.11.2026); detaylar plan ya da detay paftasında
   /* bloklar: [{ gv, w, h (kâğıt mm), bb, sc, v, grup }] → en az kâğıt yerleşimi (enAzKagit) → paftalar; pafta adı içindeki grupların adı */
   const paftaKur = (key, yapi, bloklar, ozelAd) => {
     const bl = bloklar.filter(Boolean); if (!bl.length) return [];
-    const byId = new Map(bl.map(b => [b.gv, b])), Y = enAzKagit(bl.map(b => ({ id: b.gv, w: b.w, h: b.h, grup: b.grup })), { antetW: antetGen() });
+    const byId = new Map(bl.map(b => [b.gv, b])), Y = enAzKagit(bl.map(b => ({ id: b.gv, w: b.w, h: b.h, grup: b.grup })), { antetW: antetGen(), ayri: AYRI_PAFTA });
     return Y.paftalar.map((P, i) => {
       const no = String(++paftaNo).padStart(2, '0'), adN = (ozelAd || P.gruplar.join(', ')) + (ozelAd && Y.paftalar.length > 1 ? ` (${i + 1}/${Y.paftalar.length})` : '');
       const gp = C.grpCur; C.grpCur = 'Mimari'; const L = C.newLayout(`MİMARİ-${no} ${adN}`, P.kagit, 'L'); C.grpCur = gp;
@@ -484,8 +499,8 @@
       ...[gb.ON, gb.ARKA, gb.SAG, gb.SOL].map(b => G(b, 'GÖRÜNÜŞLER')), ...det(r.detay.dograma).map(b => G(b, 'KAPI VE PENCERE DETAYLARI')),
       ...det(r.detay.korkuluk).map(b => G(b, 'KORKULUK DETAYI')), ...det(r.detay.kapak).map(b => G(b, 'SAC KAPAK DETAYLARI'))];
     paf.push(...paftaKur('M', r.yapi, ana));
-    const cd = olc(r.cati.detay, 10); if (cd) cd.sc = 10;
-    paf.push(...paftaKur('C', r.yapi, [sb(olc(r.cati.plan)), ...(r.cati.kesitler || []).map(v => sb(olc(v.gv))), cd].map(b => G(b, 'ÇATI')), 'ÇATI PLANI, KESİTLERİ VE DETAYLARI'));
+    const cd = (r.cati.detaylar || [r.cati.detay]).map(gv => { const b = olc(gv, 10); if (b) b.sc = 10; return b; });
+    paf.push(...paftaKur('C', r.yapi, [sb(olc(r.cati.plan)), ...(r.cati.kesitler || []).map(v => sb(olc(v.gv))), ...cd].map(b => G(b, 'ÇATI')), 'ÇATI PLANI, KESİTLERİ VE DETAYLARI'));
     const alan = Math.round(paf.reduce((s, L) => s + L.pw * L.ph, 0) / 1e4) / 100;
     tekKopya();
     { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Mimari')) s.grups.unshift('Mimari'); }

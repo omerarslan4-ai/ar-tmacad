@@ -77,4 +77,33 @@ t('başlık boyları kural tablosunda: görünüş 4 mm, kesit 5 mm, ölçek sat
   assert.ok(/'MIMARI=E'/.test(gr) && /kv\.MIMARI === 'E'/.test(ks));
 });
 
+/* kullanıcı 14.11.2026 (MİMARİ-04 ekran görüntüsü): "paftayı gereksiz uzatmışsın; DETAY-B'yi DETAY-A'nın altına alabilirsin".
+   Tarayıcıda ölçülen bloklar (kâğıt mm, pay dahil): çatı planı 558 × 314, A'-A' 565 × 110, B'-B' 335 × 104; DETAY-A + DETAY-B tek görünümde 631 × 226 → önce 1450 mm.
+   Doğrama detayları 177 × 181, 247 × 193, 292 × 148, 115 × 286, 123 × 271, 302 × 355 → önce 1068 mm. */
+const pd = (id, w, h, grup) => ({ id, w: w - 10, h: h - 10, grup });
+t('çatı paftası: DETAY-A ve DETAY-B ayrı görünüm, biri öbürünün altında; pafta 1450 → ≤ 1120 mm (içerikle biter)', () => {
+  const r = A.enAzKagit([pd('plan', 558, 314, 'Ç'), pd('A', 565, 110, 'Ç'), pd('B', 335, 104, 'Ç'), pd('DA', 300, 226, 'Ç'), pd('DB', 320, 180, 'Ç')]);
+  assert.strictEqual(r.adet, 1); const P = r.paftalar[0];
+  assert.ok(Math.abs(P.yer.DA[0] - P.yer.DB[0]) < 1 && P.yer.DA[1] !== P.yer.DB[1], 'DETAY-B DETAY-A ile aynı sütunda, üst üste');
+  assert.ok(P.pw <= 1120, 'genişlik ' + P.pw);
+  const sag = Math.max(...Object.entries(P.yer).map(([id, q]) => q[0] + ({ plan: 548, A: 555, B: 325, DA: 290, DB: 310 })[id] + 5));
+  assert.ok(P.pw - 200 - 10 - sag < 1, 'sağda boş şerit yok (içerik ' + sag + ', pafta ' + P.pw + ')');
+});
+t('kapı / pencere detay paftası: boşluklar dolar, sütunlar dikey istiflenir — 1068 → ≤ 900 mm', () => {
+  const r = A.enAzKagit([['d1', 177, 181], ['d2', 247, 193], ['d3', 292, 148], ['d4', 115, 286], ['d5', 123, 271], ['d6', 302, 355]].map(b => pd(b[0], b[1], b[2], 'D')));
+  assert.strictEqual(r.adet, 1); assert.ok(r.paftalar[0].pw <= 900, 'genişlik ' + r.paftalar[0].pw);
+});
+t('kesit ve görünüş paftaları ayrı (kullanıcı 14.11.2026): görünüşler kesit paftasının boşluğuna konmaz, kesit paftasına başka tür girmez; detaylar plan paftasında kalabilir', () => {
+  const B = [pd('p1', 514, 311, 'PL'), pd('p2', 563, 325, 'PL'), pd('mah', 218, 99, 'PL'), pd('kA', 626, 346, 'K'), pd('kB', 365, 346, 'K'), pd('kC', 365, 346, 'K'), pd('ac', 420, 90, 'K'),
+    pd('on', 458, 180, 'G'), pd('ar', 458, 180, 'G'), pd('sa', 194, 180, 'G'), pd('so', 194, 180, 'G'), pd('kr', 323, 136, 'KR'), pd('sk', 98, 112, 'KR')];
+  const r = A.enAzKagit(B, { ayri: ['K', 'G'] });
+  for (const P of r.paftalar) { const G = new Set(P.gruplar); if (G.has('K') || G.has('G')) assert.strictEqual(G.size, 1, 'pafta ' + [...G].join(', ')); }
+  assert.ok(r.paftalar.some(P => P.gruplar.join() === 'K') && r.paftalar.some(P => P.gruplar.join() === 'G'));
+  const K = r.paftalar.find(P => P.gruplar.join() === 'K'); assert.deepStrictEqual(K.ids.slice().sort(), ['ac', 'kA', 'kB', 'kC'], 'bütün kesitler + açılım bir paftada');
+});
+t('yan yana çizimler ayrı görünüme bölünür (DETAY-A | DETAY-B); bitişik / iç içe olanlar bölünmez', () => {
+  assert.deepStrictEqual(A.yanYanaBol([{ id: 1, bb: [0, 0, 2, 1] }, { id: 2, bb: [1.5, -1, 2.4, 0] }, { id: 3, bb: [2.6, 0, 4, 1] }, { id: 4, bb: [3, -2, 3.5, -1] }]), [[1, 2], [3, 4]]);
+  assert.deepStrictEqual(A.yanYanaBol([{ id: 1, bb: [0, 0, 2, 1] }, { id: 2, bb: [2.02, 0, 3, 1] }]), [[1, 2]]);
+});
+
 console.log(`\n${n} test geçti.`);
