@@ -144,7 +144,7 @@
     for (let i = 0; i < T.length; i++) {
       if (yalniz && T[i] !== yalniz) continue;
       const tur = T[i], once = new Set(C.doc.ents.map(e => e.id));
-      const q0 = E.queue, ok0 = C._okErtele; E.queue = [...ANAH[tur], pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt(v.yer)]; C._okErtele = tur === 'MIMARI' && C.kesitOklari ? [] : ok0;
+      const q0 = E.queue, ok0 = C._okErtele; E.queue = [...ANAH[tur], pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt((v.yerD && v.yerD[tur]) || v.yer)]; // tür görünümü kendi disiplin bölgesinde (BOLGEDUZENLE → v.yerD) C._okErtele = tur === 'MIMARI' && C.kesitOklari ? [] : ok0;
       let ertele = []; try { await def.fn(C.I, C); } finally { E.queue = q0 || []; if (tur === 'MIMARI' && C.kesitOklari) { ertele = C._okErtele || []; C._okErtele = ok0; } }
       const yeni = C.doc.ents.filter(e => !once.has(e.id));
       if (!yeni.length) { if (i === 0) return 0; continue; }
@@ -168,7 +168,7 @@
       if (ertele.length) { const o3 = new Set(C.doc.ents.map(e => e.id)); for (const K of ertele) C.kesitOklari(K); for (const e of C.doc.ents) if (!o3.has(e.id)) { e.gv = gv; delete e.sp; } } // oklu açıklamalar açılım kodlarından sonra (onlara binmez)
       top += yeni.length;
     }
-    if (v.gvD && !yalniz) for (const k of Object.keys(v.gvD)) if (!T.includes(k) || k === T[0]) { const g2 = v.gvD[k]; C.doc.ents = C.doc.ents.filter(e => e.gv !== g2); delete v.gvD[k]; } // artık gerekmeyen tür
+    if (v.gvD && !yalniz) for (const k of Object.keys(v.gvD)) if (!T.includes(k) || k === T[0]) { const g2 = v.gvD[k]; C.doc.ents = C.doc.ents.filter(e => e.gv !== g2); delete v.gvD[k]; if (v.yerD) delete v.yerD[k]; } // artık gerekmeyen tür
     return top;
   };
   const silTur = (v, tur) => { const T = turler(v), ana = tur === T[0], g = ana ? v.gv : (v.gvD || {})[tur]; if (!g) return; C.doc.ents = C.doc.ents.filter(e => e.gv !== g && !(ana && e.type === 'kesitisaret' && e.gorunum === v.id)); }; // yalnız o türün görünümü (ana türde plan işareti de: yeniden üretilir)

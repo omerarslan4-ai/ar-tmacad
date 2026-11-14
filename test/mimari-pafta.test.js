@@ -4,7 +4,7 @@
    Çalıştır: node test/mimari-pafta.test.js */
 'use strict';
 const assert = require('assert');
-const { PAFTA_R2, paftaPlanla, katKotlari, kesitHatlari, kotYaz, tekKopyaYap } = require('../app/mimari-pafta.js');
+const { PAFTA_R2, paftaPlanla, katKotlari, gercekKatlar, kesitHatlari, kotYaz, tekKopyaYap } = require('../app/mimari-pafta.js');
 let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
 const pay = PAFTA_R2.pay, blk = (id, w, h) => ({ id, w: w - 2 * pay, h: h - 2 * pay }); // örnekteki pencere boyu → blok
 const yakin = (a, b, tol, m) => assert.ok(Math.abs(a - b) <= tol, `${m}: ${a} ≠ ${b} (±${tol})`);
@@ -82,6 +82,45 @@ t('Mimari grubunda tek kopya: KESITPAFTA\'nın Mimari kesit paftasındaki A-A ve
   const R = tekKopyaYap(L, mim);
   assert.deepStrictEqual(R.map(x => x.name), ['MİMARİ — KESİTLER 2', 'STATİK — KESİTLER 1', 'MİMARİ-02']);
   assert.deepStrictEqual(R[0].vps, [{ gorunum: 'GX' }]); assert.strictEqual(R[1].vps.length, 1); assert.strictEqual(R[2].vps.length, 3);
+});
+
+t('gerçek kat süzgeci: Bekçi binasında yalnız +1.05 (temel altı -0.60 ve dolgulu radye üstü ±0.00 plan olmaz); Konya 2 plan', () => {
+  // Bekçi binası (test-proje/_gecici/bekci.aritma): radye -0,60..0,00; temel perdesi 0,10..1,05; dolgu 0,00..0,85; zemin döşemesi 0,85..1,05; duvarlar 1,05..3,90; çatı döşemesi 3,75..3,90
+  const B = [{ id: 1, tip: 'doseme', z0: -0.6, z1: 0 }, { id: 2, tip: 'dikey', z0: 0.1, z1: 1.05 }, { id: 3, tip: 'dolgu', z0: 0, z1: 0.85 }, { id: 4, tip: 'doseme', z0: 0.85, z1: 1.05 },
+    { id: 5, tip: 'dikey', z0: 1.05, z1: 3.9 }, { id: 6, tip: 'dikey', z0: 0, z1: 3.9 }, { id: 7, tip: 'doseme', z0: 3.75, z1: 3.9 }];
+  const K = katKotlari({ dosemeUst: [0, 1.05, 3.9], zmin: -0.6, zmax: 3.9, dikeyUst: 3.9 }); assert.deepStrictEqual(K.map(k => k.z), [-0.6, 0, 1.05]);
+  const at = [], S = gercekKatlar(K, B, { zTop: 3.9, atilan: at });
+  assert.deepStrictEqual(S.map(k => k.z), [1.05]); assert.deepStrictEqual(at.map(q => q.neden), ['döşeme yüzü yok', 'dolgu']);
+  // Konya terfi (konya_tam.aritma): seviyeler pompa holü -5,90, montaj holü 0,00; radye -7,36..-6,76; perde -6,76..-0,26; tuğla duvar -0,26..4,74; pencere 0,74..2,24
+  const sv = [{ ad: 'Temel altı', z: -7.36 }, { ad: 'Pompa holü', z: -5.9 }, { ad: 'Montaj holü (zemin kat)', z: 0 }, { ad: 'Çatı', z: 5.24 }];
+  const KK = katKotlari({ seviyeler: sv, zmin: -7.36, zmax: 6.66, dikeyUst: 5.09 });
+  const KO = [{ id: 1, tip: 'doseme', z0: -7.36, z1: -6.76 }, { id: 2, tip: 'doseme', z0: -6.31, z1: -5.9 }, { id: 3, tip: 'dikey', z0: -6.76, z1: -0.26 }, { id: 4, tip: 'dikey', z0: -6.76, z1: 4.44 },
+    { id: 5, tip: 'doseme', z0: -0.41, z1: -0.26 }, { id: 6, tip: 'doseme', z0: -0.26, z1: 0.1 }, { id: 7, tip: 'dikey', z0: -0.26, z1: 4.74 }, { id: 8, tip: 'acik', z0: 0.74, z1: 2.24 }, { id: 9, tip: 'dolgu', z0: -6.76, z1: -6.31 }];
+  assert.deepStrictEqual(gercekKatlar(KK, KO, { zTop: 5.09 }).map(k => k.z), [-5.9, 0]);
+  // aynı elemanları kesen seviyeler: alttaki kalır; kesilen eleman yoksa mahal yeter
+  const A = [{ id: 1, tip: 'doseme', z0: -0.2, z1: 0 }, { id: 2, tip: 'doseme', z0: 2.8, z1: 3 }, { id: 3, tip: 'dikey', z0: 0, z1: 8 }, { id: 4, tip: 'doseme', z0: 5.8, z1: 6 }];
+  assert.deepStrictEqual(gercekKatlar([{ z: 0, h: 1.2 }, { z: 3, h: 4.2 }, { z: 6, h: 7.2 }], A, { zTop: 8 }).map(k => k.z), [0]);
+  assert.deepStrictEqual(gercekKatlar([{ z: 0, h: 1.2 }], [{ id: 1, tip: 'doseme', z0: -0.2, z1: 0 }, { id: 2, tip: 'mahal', z0: 0, z1: 0 }], { zTop: 3 }).map(k => k.z), [0]);
+});
+
+t('bölge düzeni: Bekçi binası — Mimari bölgesi statik çizimlerinin üstündeydi; disiplinler ayrık, sırayla, ikinci çalıştırma boş', () => {
+  const { bolgeDuzeniPlanla } = require('../app/mimari-pafta.js');
+  // Bekçi (bekci.aritma, MIMARIPAFTA sonrası): model 0,7..10 m; Mimari bölgesi x 238..308; Statik DSİ paftaları x 248..595 (y -10..78); eski kalıp planları x 42..68; mekanik tablo / şemalar x 183..215
+  const U = [{ id: 'M1', dis: 'Mimari', bb: [238, -50, 260, 20] }, { id: 'M2', dis: 'Mimari', bb: [264, -50, 308, 20] },
+    ...[248, 290, 331, 374, 427, 489].map((x, i) => ({ id: 'S' + i, dis: 'Statik', bb: [x, -10.5, x + 22, 19.2] })), { id: 'S6', dis: 'Statik', bb: [549, -10.5, 569, 8.3] }, { id: 'S7', dis: 'Statik', bb: [549, 28, 575, 42] },
+    { id: 'S8', dis: 'Statik', bb: [549, 62, 595, 78] }, { id: 'SE0', dis: 'Statik', bb: [41.7, -0.1, 68, 29.2] }, { id: 'SE1', dis: 'Statik', bb: [41.7, 49.2, 67.9, 78.2] },
+    { id: 'K1', dis: 'Mekanik', bb: [185, -10.4, 190.9, -4.2] }, { id: 'K2', dis: 'Mekanik', bb: [183.5, 10.9, 196.6, 16.1] }, { id: 'K3', dis: 'Mekanik', bb: [205, 5, 215, 25] }];
+  const model = [0.7, -0.9, 10, 9], P = bolgeDuzeniPlanla(U, model);
+  assert.deepStrictEqual(Object.keys(P.bolgeler), ['Mimari', 'Mekanik', 'Statik']);
+  const yeni = U.map(q => { const d = P.tasi[q.id] || [0, 0]; return Object.assign({}, q, { bb: [q.bb[0] + d[0], q.bb[1] + d[1], q.bb[2] + d[0], q.bb[3] + d[1]] }); });
+  const ust = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+  for (let i = 0; i < yeni.length; i++) { assert.ok(!ust(yeni[i].bb, model), yeni[i].id + ' modelin üstünde'); for (let j = i + 1; j < yeni.length; j++) assert.ok(!ust(yeni[i].bb, yeni[j].bb), `${yeni[i].id} × ${yeni[j].id} çakışıyor`); }
+  const B = P.bolgeler; assert.strictEqual(B.Mimari.x0, 30); assert.ok(B.Mekanik.x0 >= B.Mimari.x0 + B.Mimari.w + 20 - 1e-9 && B.Statik.x0 >= B.Mekanik.x0 + B.Mekanik.w + 20 - 1e-9, 'bölgeler arası 20 m');
+  for (const q of yeni) { const b = B[q.dis]; assert.ok(q.bb[0] >= b.x0 - 1e-6 && q.bb[2] <= b.x0 + b.w + 1e-6 && q.bb[3] <= b.yUst - 4.5 + 1e-6, q.id + ' kendi bölgesinde, başlığın altında'); }
+  // Mimari ve Mekanik düzeni korunur (blok), Statik eski + yeni paftalar arası büyük boşluk → ızgara
+  const dM1 = P.tasi.M1, dM2 = P.tasi.M2; assert.deepStrictEqual(dM1, dM2);
+  assert.deepStrictEqual(P.basliklar.map(b => b.dis), ['Mimari', 'Mekanik', 'Statik']);
+  const P2 = bolgeDuzeniPlanla(yeni, model); assert.deepStrictEqual(P2.tasi, {}, 'düzenli alan ikinci kez kıpırdamaz');
 });
 
 console.log(`\n${n} test geçti.`);

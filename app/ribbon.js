@@ -79,6 +79,7 @@
       ['Düzen', [B('DUZEN YENI', 'Yeni düzen', 'sheet'), B('MVIEW M', 'Pencere ekle', 'rec', [['MVIEW M', 'Modelden alan seç'], ['MVIEW', 'Dikdörtgen çiz'], ['MVIEW C', 'Daire'], ['MVIEW P', 'Çokgen']]), s('@vpFrameDlg', 'Çerçeve', 'rec'), s('DETAY', 'Detay', 'detay'), s('VPYER', 'Yerini seç', 'move'), s('PAFTALA', 'Paftala', 'array'), s('SAYFADUZENI', 'Sayfa düzeni', 'prop')]],
       ['Antet', [B('ANTET YUKLE', 'Antet yükle', 'sheet'), s('ANTET SABITLE', 'Varsayılan yap', 'sheet'), s('PAFTA', 'Model paftası', 'sheet')]],
       ['Yazdır', [B('DUZENYAZDIR', 'Yazdır / PDF', 'print'), s('TUMUNUYAZDIR', 'Tümünü yazdır', 'print'), s('GORUNUSPAFTA', 'Görünüşü paftala', 'sheet')]],
+      ['AutoCAD', [B('DISIPLINDXF', 'Disiplin DXF dosyaları (her biri ayrı)', 'sheet'), s('BOLGEDUZENLE', 'Bölgeleri düzenle', 'array')]],
     ]],
     ['Görünüm', [
       ['Gezinme', [B('ZOOM E', 'Tümü', 'zoomE'), s('ZOOM', 'Yakınlaştır', 'zoom'), s('PLAN3B', '3B model planda', 'box')]],

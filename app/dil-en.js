@@ -305,5 +305,8 @@
     ['Alın Tahtası #x#', 'Fascia board #x#'], ['Cam Yünü Şilte (# cm)', 'Glass wool blanket (# cm)'], ['Mahya Kiremidi + Harç Dolgu', 'Ridge tile + mortar bedding'],
     ['# eski ortak kesite disiplin görünümü eklendi (Statik / Mekanik pencereleri artık kendi görünümlerini gösterir).', 'Discipline views added to # older shared section(s) (Structural / Mechanical viewports now show their own views).'],
     ['MAHAL #', 'ROOM #'],
+    ['Disiplin DXF dosyaları (her biri ayrı)', 'Discipline DXF files (one file each)'], ['Bölgeleri düzenle', 'Arrange discipline zones'],
+    ['MEKANİK', 'MECHANICAL'], ['STATİK', 'STRUCTURAL'], ['ELEKTRİK', 'ELECTRICAL'], ['GENEL', 'GENERAL'],
+    ['döşeme yüzü yok', 'no floor surface'], ['dolgu', 'fill'], ['kat yüksekliği az', 'storey height too low'], ['kesilen eleman yok', 'nothing cut'], ['başka planla aynı', 'same as another plan'],
   ]);
 })();
