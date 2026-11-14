@@ -389,7 +389,7 @@
       g(0, 'ACDBDICTIONARYWDFLT'); g(5, hPSD); g(330, hRootDict); g(100, 'AcDbDictionary'); g(281, 1); g(3, 'Normal'); g(350, hPH); g(100, 'AcDbDictionaryWithDefault'); g(340, hPH);
       g(0, 'ACDBPLACEHOLDER'); g(5, hPH); g(102, '{ACAD_REACTORS'); g(330, hPSD); g(102, '}'); g(330, hPSD);
       if (hLD) {
-        const used = new Set(['MODEL']), lname = P => { let n = C.ascii ? C.ascii(String(P.L.name || ('Pafta' + P.tab))) : String(P.L.name); n = n.replace(/[<>\/\\":;?*|=,`]/g, '_').slice(0, 250) || ('Pafta' + P.tab); let m = n, k = 2; while (used.has(m.toUpperCase())) m = n + ' (' + k++ + ')'; used.add(m.toUpperCase()); return m; };
+        const used = new Set(['MODEL']), lname = P => { let n0 = String(P.L.name || ('Pafta' + P.tab)); if (C.txL) n0 = C.txL(n0); /* proje dili İngilizce ise sekme adı da */ let n = C.ascii ? C.ascii(n0) : n0; n = n.replace(/[<>\/\\":;?*|=,`]/g, '_').slice(0, 250) || ('Pafta' + P.tab); let m = n, k = 2; while (used.has(m.toUpperCase())) m = n + ' (' + k++ + ')'; used.add(m.toUpperCase()); return m; };
         const names = PSL.map(lname);
         g(0, 'DICTIONARY'); g(5, hLD); g(102, '{ACAD_REACTORS'); g(330, hRootDict); g(102, '}'); g(330, hRootDict); g(100, 'AcDbDictionary'); g(281, 1);
         g(3, 'Model'); g(350, hLM); PSL.forEach((P, i) => { g(3, names[i]); g(350, P.hL); });

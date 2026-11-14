@@ -675,7 +675,7 @@
         V.tokens = V.tokens.map(t => { const a = String(t).split(',').map(Number); return a.length === 3 && a.every(isFinite) && a[0] > ob[0] - 2 && a[0] < ob[2] + 2 && a[1] > ob[1] - 2 && a[1] < ob[3] + 2 && !icinde([a[0], a[1], a[0], a[1]], yapi, 0) ? [a[0] + d[0], a[1] + d[1], a[2]].map(x => (+x).toFixed(6)).join(',') : t; }); } }
     // bölge başlıkları (disiplin adı) yeniden
     const bs = new Set(baslik); C.doc.ents = C.doc.ents.filter(e => !bs.has(e)); C.std && C.std('YAZI');
-    for (const b of P.basliklar) { const t = C.add(C.newEnt('text', { p: [b.p[0], b.p[1], 0], h: o.baslikH || 1.5, s: up(window.DIL && DIL.t ? DIL.t(b.dis) : b.dis), al: 'L', layer: 'YAZI', gv: 'BOLGE_' + C.ascii(up(b.dis)), ann: false })); if (t) delete t.sp; }
+    for (const b of P.basliklar) { const t = C.add(C.newEnt('text', { p: [b.p[0], b.p[1], 0], h: o.baslikH || 1.5, s: up(b.dis) /* Türkçe saklanır; proje dili İngilizce ise çizimde C.txL çevirir (DIL.t + tr büyük harf "ARCHİTECTURE" yazıyordu) */, al: 'L', layer: 'YAZI', gv: 'BOLGE_' + C.ascii(up(b.dis)), ann: false })); if (t) delete t.sp; }
     set.bolgeler = P.bolgeler; C.changed(); if (!o.sessiz) C.emit('layouts');
     return { tasinan: n, birim: birim.length, bolgeler: P.bolgeler };
   };
