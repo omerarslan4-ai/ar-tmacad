@@ -25,6 +25,7 @@
       P: (pts, cl, ly, lt) => o.push({ k: 'P', pts, cl: !!cl, ly: ly || 'DETAY_GORUNEN', lt }),
       R: (x0, y0, x1, y1, ly, lt) => f.P([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], true, ly, lt),
       C: (c, r, ly) => o.push({ k: 'C', c, r, ly: ly || 'DETAY_GORUNEN' }),
+      A: (c, r, a0, a1, ly) => o.push({ k: 'A', c, r, a0, a1, ly: ly || 'DETAY_GORUNEN' }), // yay (açılar derece, saat yönü tersine a0 → a1)
       T: (p, s, mm, al, ly, rot) => o.push({ k: 'T', p, s: String(s), mm: mm || 2, al: al || 'L', ly: ly || 'YAZI', rot: rot || 0 }),
       /* ölçü: a → b, yon 'h' | 'v', off kâğıt mm (+ yukarı / sağa), metin cm */
       D: (a, b, yon, off, txt) => o.push({ k: 'D', a, b, yon, off, txt: txt != null ? String(txt) : cmS(yon === 'h' ? Math.abs(b[0] - a[0]) : Math.abs(b[1] - a[1])) }),
@@ -44,7 +45,7 @@
     return f;
   };
   const kutu = items => { const b = [Infinity, Infinity, -Infinity, -Infinity], e = q => { if (!q) return; b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[1]); b[2] = Math.max(b[2], q[0]); b[3] = Math.max(b[3], q[1]); };
-    for (const it of items) { if (it.k === 'L' || it.k === 'D') { e(it.a); e(it.b); } else if (it.k === 'P' || it.k === 'H') it.pts.forEach(e); else if (it.k === 'C') { e([it.c[0] - it.r, it.c[1] - it.r]); e([it.c[0] + it.r, it.c[1] + it.r]); } else if (it.p) e(it.p); }
+    for (const it of items) { if (it.k === 'L' || it.k === 'D') { e(it.a); e(it.b); } else if (it.k === 'P' || it.k === 'H') it.pts.forEach(e); else if (it.k === 'C' || it.k === 'A') { e([it.c[0] - it.r, it.c[1] - it.r]); e([it.c[0] + it.r, it.c[1] + it.r]); } else if (it.p) e(it.p); }
     return b; };
 
   /* ---------- 1) KAPI / PENCERE ---------- */
@@ -178,13 +179,21 @@
     D.H([[0, -K.dos], [Ls, -K.dos], [Ls, 0], [0, 0]], 'beton');
     const xs = [x0, x0 + sp, x0 + 2 * sp];
     for (const x of xs) { D.R(x - rD, K.plakaT, x + rD, kh - K.kup / 2, 'DETAY_KORKULUK'); D.R(x - K.plaka / 2, 0, x + K.plaka / 2, K.plakaT, 'DETAY_KORKULUK'); }
-    D.R(0, kh - K.kup / 2, Ls, kh + K.kup / 2, 'DETAY_KORKULUK'); D.R(0, kh / 2 - K.ara / 2, Ls, kh / 2 + K.ara / 2, 'DETAY_KORKULUK');
+    /* ara birleştirme (Çokal 10-İdari Bina_R2 rampa korkuluğu, A-A kesiti 1/20, Korkuluk katmanı): ara küpeşte dikmeler arasında parça parça, dikme yüzünde
+       dışbükey yayla biter (yay yarıçapı 0,61 × boru çapı, merkezi yüzden 0,34 × çap dışarıda, ±55°: örnekte 4,4 cm boruda r 2,69 cm, 1,5 cm); küpeşte dikmelerin
+       üstünden kesintisiz geçer, her dikmenin üstünde birleşim yayı (merkez dikme ekseninde) */
+    D.R(0, kh - K.kup / 2, Ls, kh + K.kup / 2, 'DETAY_KORKULUK');
+    { const Dr = K.ara, yc = kh / 2, ys = [yc - Dr / 2, yc + Dr / 2], uc = [0, ...xs.flatMap(x => [x - rD, x + rD]), Ls];
+      for (let i = 0; i + 1 < uc.length; i += 2) for (const y of ys) D.L([uc[i], y], [uc[i + 1], y], 'DETAY_KORKULUK');
+      for (const x of xs) { D.A([x - rD - 0.34 * Dr, yc], 0.61 * Dr, -55, 55, 'DETAY_KORKULUK'); D.A([x + rD + 0.34 * Dr, yc], 0.61 * Dr, 125, 235, 'DETAY_KORKULUK');
+        D.A([x, kh + K.kup / 2 - 0.32 * K.kup], 0.61 * K.kup, 215, 325, 'DETAY_KORKULUK'); } }
     if (t.tk !== 'H') D.R(0, K.plakaT, Ls, K.tekH, 'DETAY_KORKULUK');
     D.KIRIK([0, kh + 0.06], [0, kh - 0.06], 'DETAY_KORKULUK'); D.KIRIK([Ls, kh + 0.06], [Ls, kh - 0.06], 'DETAY_KORKULUK');
     const SR = 250 / sc; D.Z(xs, kh + K.kup / 2, 'h', 8); D.D([xs[0], kh + K.kup / 2], [xs[2], kh + K.kup / 2], 'h', 8 + SR); // sıralar arası modelde 0,25 m
     const dz = [0, ...(t.tk !== 'H' ? [K.tekH] : []), kh / 2, kh]; D.Z(dz, 0, 'v', -8); D.D([0, 0], [0, kh], 'v', -8 - SR);
     D.AC([Ls * 0.62, kh], [Ls * 0.7, kh + 0.3], 'Ø42,4 KÜPEŞTE BORUSU', 2);
     D.AC([Ls * 0.78, kh / 2], [Ls * 0.86, kh / 2 + 0.25], 'Ø33,7 ARA KÜPEŞTE', 2);
+    D.AC([xs[0] + rD + 0.01, kh / 2 + K.ara / 2], [xs[0] + 0.35, kh / 2 + 0.2], 'ARA BİRLEŞTİRME', 2);
     D.AC([xs[1], kh * 0.3], [xs[1] + 0.35, kh * 0.33], `Ø42,4 DİKME @${Math.round(sp * 100)} cm`, 2);
     if (t.tk !== 'H') D.AC([Ls * 0.4, K.tekH * 0.6], [Ls * 0.45, -0.32], '150×4 mm TEKMELİK LAMASI', 2);
     D.ALT([Ls / 2, -K.dos - 22 * k], 'GÖRÜNÜŞ');
@@ -200,7 +209,7 @@
     D.AC([gx + 0.04, -K.dubel * 0.6], [gx + 0.35, -0.2], '2 ADET M12 KİMYASAL DÜBEL (L = 10 cm)', 2);
     D.AC([gx - 0.3, -K.dos / 2], [gx - 0.55, -0.32], 'BETONARME DÖŞEME', 2);
     D.ALT([gx, -K.dos - 22 * k], 'KESİT');
-    D.T([0, kh + 0.45], `${String(t.mal || 'SICAK DALDIRMA GALVANİZ').toLocaleUpperCase('tr')} — h = ${Math.round(kh * 100)} cm${t.boy ? ` — TOPLAM ${String((+t.boy).toFixed(2)).replace('.', ',')} m` : ''}`, 2.5, 'L');
+    D.T([0, kh + K.kup / 2 + (8 + 250 / sc + 7) * k], `${String(t.mal || 'SICAK DALDIRMA GALVANİZ').toLocaleUpperCase('tr')} — h = ${Math.round(kh * 100)} cm${t.boy ? ` — TOPLAM ${String((+t.boy).toFixed(2)).replace('.', ',')} m` : ''}`, 2.5, 'L');
     const bb = kutu(D.o), tx = (bb[0] + bb[2]) / 2, ty = bb[3] + 12 * k;
     D.B([tx, ty], `${t.kod || 'KR1'} KORKULUK DETAYI (h=${Math.round(kh * 100)} cm)`, 4, '1/' + sc);
     return { items: D.o, bb: kutu(D.o), xs };
@@ -238,6 +247,7 @@
       if (it.k === 'L') mk('line', Object.assign({ a: X(it.a), b: X(it.b), layer: ly }, lt));
       else if (it.k === 'P') mk('pline', Object.assign({ pts: it.pts.map(X), closed: it.cl, layer: ly }, lt));
       else if (it.k === 'C') mk('circle', { c: X(it.c), r: it.r, layer: ly });
+      else if (it.k === 'A') mk('arc', { c: X(it.c), r: it.r, a0: it.a0, a1: it.a1, layer: ly });
       else if (it.k === 'T') mk('text', { p: X(it.p), h: it.mm * k, s: it.s, rot: it.rot || 0, al: it.al, layer: ly, ann: false });
       else if (it.k === 'D') { const a = X(it.a), b = X(it.b), off = it.off * k, p = it.yon === 'h' ? [a[0], a[1] + off, 0] : [a[0] + off, a[1], 0]; mk('dim', { k: it.yon === 'v' ? 'v' : 'h', a, b, p, txt: it.txt, layer: 'DETAY_OLCU' }); }
       else if (it.k === 'H') { const s = taramaOf(it.mat); mk('hatch', Object.assign({ loops: [it.pts.map(q => { const w = X(q); return [w[0], w[1]]; })], pat: s.pat, sc: s.sc, ang: s.ang || 0, orig: [base[0], base[1]], layer: 'DETAY_TARAMA' }, s.ann === false ? { ann: false } : {})); }
@@ -261,6 +271,21 @@
       else if (e.type === 'merdiven' && e.kork && e.kork !== 'yok') { let L = 0; try { if (!e._q) C.meshes(e); L = (e._q && e._q.kork) || 0; } catch (er) { } out.push({ kh: e.kh, dik: e.dik, km: e.km, tk: e.tk, boy: L, yer: 'Merdiven', mal: K && K[e.km] ? K[e.km][0] : null }); }
     }
     const T = korkulukTipleri(out); for (const t of T) { const r = out.find(q => Math.round(+q.kh || 110) === t.kh && Math.round(+q.dik || 150) === t.dik); t.mal = r && r.mal; } return T;
+  };
+  /* kesitte korkuluk ara birleştirmeleri (kesit.js çağırır): korkuluk nesnesinin kesit düzlemine paralel parçaları; K: { a, u, n, depth, W, inU } (kesit koordinatı: u boyunca s, düşey z) */
+  C.korkulukBirlesimKesit = K => {
+    const L = 'GORUNEN_KORKULUK'; if (C.ensureLayer) C.ensureLayer(L, 151, 'CONTINUOUS', 25); let n = 0;
+    for (const e of C.doc.ents) { if (e.gv || e.type !== 'korkuluk' || !Array.isArray(e.pts) || e.pts.length < 2 || !C.layer(e.layer).on) continue;
+      const kh = (+e.kh || 110) / 100, sp = Math.max(0.5, Math.min(2.0, (+e.dik || 150) / 100)), rD = KORK.dikme / 2, Dr = KORK.ara, q = e.kapali ? e.pts.concat([e.pts[0]]) : e.pts;
+      for (let i = 1; i < q.length; i++) { const A = q[i - 1], B = q[i], d = [B[0] - A[0], B[1] - A[1]], l = Math.hypot(d[0], d[1]); if (l < 0.05) continue;
+        if (Math.abs((d[0] * K.u[0] + d[1] * K.u[1]) / l) < 0.9) continue; // kesit düzlemine paralel parça
+        const np = Math.max(1, Math.ceil(l / sp));
+        for (let j = 0; j <= np; j++) { const t = j / np, P = [A[0] + d[0] * t, A[1] + d[1] * t], z = (+A[2] || 0) + ((+B[2] || 0) - (+A[2] || 0)) * t;
+          const dist = (P[0] - K.a[0]) * K.n[0] + (P[1] - K.a[1]) * K.n[1], sk = (P[0] - K.a[0]) * K.u[0] + (P[1] - K.a[1]) * K.u[1]; if (dist < -0.05 || dist > K.depth || !K.inU([sk, z])) continue;
+          const yc = z + kh / 2, add = (c, r, a0, a1) => { const w = K.W(c); C.add(C.newEnt('arc', { c: [w[0], w[1], 0], r, a0, a1, layer: L })); n++; };
+          const sg = Math.sign(d[0] * K.u[0] + d[1] * K.u[1]) || 1, sol = j === 0 ? sg < 0 : j === np ? sg > 0 : true, sag = j === 0 ? sg > 0 : j === np ? sg < 0 : true; // ara küpeşte dikmenin hangi yanında
+          if (sol) add([sk - rD - 0.34 * Dr, yc], 0.61 * Dr, -55, 55); if (sag) add([sk + rD + 0.34 * Dr, yc], 0.61 * Dr, 125, 235); add([sk, z + kh + KORK.kup / 2 - 0.32 * KORK.kup], 0.61 * KORK.kup, 215, 325); } } }
+    return n;
   };
   /* döşeme boşlukları (asılı döşemelerde tam kalınlığı geçen, 3 m'den küçük): sac kapak yerleri */
   const pip = (q, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };

@@ -60,4 +60,11 @@ t('ölçü sıraları arası modelde 25 cm, her ölçekte aynı (firma kuralı):
   assert.strictEqual(A.OLCEK_ESIK, 0.4);
 });
 
+t('merdivenli katta plan kesme kotu: Konya −5.90 katı, merdiven sahanlıkları −4.11 / −2.32 → kesme −2.91 (ilk sahanlık + 1,20; ikinci sahanlığın altında); ±0.00 katında merdiven başlamıyor → değişmez', () => {
+  const M = [{ z0: -5.9, sahanliklar: [-4.112, -2.324] }];
+  assert.deepStrictEqual(A.planKesmeKotu({ z: -5.9, h: -4.7 }, M, { ust: 0 }), { h: -2.91, sahanlik: -4.11 });
+  assert.deepStrictEqual(A.planKesmeKotu({ z: 0, h: 1.2 }, M), { h: 1.2, sahanlik: null });
+  assert.strictEqual(A.planKesmeKotu({ z: 0, h: 1.2 }, [{ z0: 0, sahanliklar: [0.9, 1.6] }]).h, 1.55, 'ikinci sahanlığın 5 cm altı');
+});
+
 console.log(`\n${n} test geçti.`);

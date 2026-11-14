@@ -90,6 +90,12 @@
     return { siralar: out, balonMm };
   };
 
+  /* kesitte aks ölçüleri (plan sıralarıyla aynı düzen): o: { akslar: [s] (kesit boyunca), dis: [x0, x1] dış yüzler, ust: çizimin üstü, mm: 1 kâğıt mm'nin modeldeki boyu,
+     ilk (mm, 14), sira (model m, 0,25), balonR (6), balonOte (11) }. Döner: { noktalar: [dış yüz, akslar …, dış yüz], y1 (zincir), y2 (toplam), extp (aks çizgisi ucundan balona mm) } */
+  const kesitAksSiralari = (o = {}) => { const mm = o.mm || 0.05, x0 = o.dis[0], x1 = o.dis[1], A = (o.akslar || []).filter(v => v > x0 + 0.005 && v < x1 - 0.005).sort((p, q) => p - q);
+    const y1 = o.ust + (o.ilk == null ? 14 : o.ilk) * mm, y2 = y1 + (o.sira == null ? 0.25 : o.sira), R = o.balonR == null ? 6 : o.balonR, B = o.balonOte == null ? 11 : o.balonOte;
+    return { noktalar: [x0, ...A, x1].map(r2), y1: +y1.toFixed(4), y2: +y2.toFixed(4), extp: +((y2 + B * mm - o.ust) / mm - R).toFixed(2) }; };
+
   /* ---------- 3) MAHALLER ve KESİT YERLERİ ---------- */
   /* engeller: düşey elemanların (duvar, perde, kolon) plan izleri — üçgen ya da çokgen listesi [[x, y] …]. bb: yapının plan kutusu.
      Izgarada (h m) boş hücreler taşma doldurmayla gruplanır; kutunun kenarına değen grup dışarısıdır. Döner: [{ bb, alan, cx, cy, n }] (büyükten küçüğe) */
@@ -212,7 +218,7 @@
   /* görünüşün zemin kotu: tretuvarın oturduğu zemin (zg) en düşüğü; yoksa "toprak / zemin" adlı seviye; yoksa null (kırpılmaz) */
   const zeminKotu = (ogeler, seviyeler) => { const t = (ogeler || []).filter(e => e.type === 'tretuvar' && isFinite(+e.zg)).map(e => +e.zg);
     if (t.length) return Math.min(...t); const s = (seviyeler || []).find(q => /toprak|tabii zemin|zemin kotu/i.test(String(q.ad || q.id || ''))); return s && isFinite(+s.z) ? +s.z : null; };
-  const api = { tipNumaralari, kodYazi, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  const api = { tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;

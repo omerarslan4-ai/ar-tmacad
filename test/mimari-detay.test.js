@@ -53,6 +53,9 @@ t('korkuluk tipleri: Konya — merdiven ve galeri korkulukları aynı tip (110 c
   assert.deepStrictEqual(r.xs, [0.25, 1.75, 3.25]);
   const olc = of(r, 'D').map(q => q.txt); for (const s of ['150', '300', '110', '15']) assert.ok(olc.includes(s), s);
   assert.ok(of(r, 'B')[0].s.includes('h=110 cm'));
+  // ara birleştirme (Çokal İdari rampa korkuluğu): her dikmede ara küpeşte iki yanda dışbükey yayla biter (r = 0,61 × çap, ±55°), küpeşte altında bir yay
+  const yay = of(r, 'A'); assert.strictEqual(yay.length, 3 * r.xs.length); assert.ok(yay.every(q => Math.abs(q.r - 0.61 * (Math.abs(q.a0 - 215) < 1e-9 ? D.KORK.kup : D.KORK.ara)) < 1e-9));
+  assert.strictEqual(of(r, 'L').filter(q => q.ly === 'DETAY_KORKULUK' && Math.abs(q.a[1] - q.b[1]) < 1e-9 && Math.abs(q.a[1] - (1.1 / 2 - D.KORK.ara / 2)) < 1e-9).length, 4, 'ara küpeşte dikmeler arasında 4 parça');
   assert.strictEqual(D.KORK.kup, 0.0424); assert.strictEqual(D.KORK.ara, 0.0337); // app/merdiven.js railRun ile aynı çaplar
 });
 
@@ -71,6 +74,13 @@ t('görünüşte toprak altı kırpılır (firma kuralı): çevre, açık çizgi
   assert.strictEqual(O.zeminKotu([{ type: 'tretuvar', zg: -0.2 }, { type: 'perde' }], []), -0.2);
   assert.strictEqual(O.zeminKotu([], [{ id: 'toprak', ad: 'Toprak kotu', z: -0.2 }]), -0.2);
   assert.strictEqual(O.zeminKotu([], []), null);
+});
+
+t('kesitte aks ölçüleri: Konya A-A — dış yüz 0 · akslar 0,25 / 4,75 / 9,25 / 13,75 / 19,45 · dış yüz 19,7; toplam sıra zincirden modelde 25 cm üstte, balon onun 11 mm üstünde', () => {
+  const S = O.kesitAksSiralari({ akslar: [0.25, 4.75, 9.25, 13.75, 19.45], dis: [0, 19.7], ust: 6.65, mm: 0.05 });
+  assert.deepStrictEqual(S.noktalar, [0, 0.25, 4.75, 9.25, 13.75, 19.45, 19.7]);
+  assert.strictEqual(S.y1, 7.35); assert.strictEqual(S.y2, 7.6); assert.strictEqual(S.extp, (7.6 + 0.55 - 6.65) / 0.05 - 6);
+  assert.deepStrictEqual(O.kesitAksSiralari({ akslar: [-1, 3, 30], dis: [0, 10], ust: 0, mm: 0.05 }).noktalar, [0, 3, 10], 'dışarıdaki akslar zincire girmez');
 });
 
 t('kapı / pencere numara dairesi bütün tiplerde 3 mm (kullanıcı kararı): SEK1 daireyi büyütmez, yazı 2 mm kalır, genişlik çarpanı 0,56', () => {

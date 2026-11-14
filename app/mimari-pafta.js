@@ -72,6 +72,16 @@
     return L.map((s, i) => { const ust = L[i + 1] ? L[i + 1].z - 0.05 : zmax - 0.05, h = r2(Math.max(s.z + 0.05, Math.min(s.z + s.kh, ust)));
       return { z: s.z, h, ad: s.ad || null, baslik: `${kotYaz(s.z, o.abs0 != null ? +o.abs0 + s.z : null)} KOTU PLANI` }; });
   };
+  /* plan kesme kotu merdivenli katta (kullanıcı isteği 14.11.2026): katta başlayan merdivenin ilk ara sahanlığının üstünden kesilir — sahanlık ve ilk kol
+     tam görünür, ikinci kol kesilir. kesme = ilk sahanlık + kh (1,20), ikinci sahanlığın 5 cm altını ve üst katın altını aşmaz. Merdiven yoksa katın kesme kotu.
+     kat: { z, h }, merdivenler: [{ z0, sahanliklar: [z …] }]. Döner: { h, sahanlik (ilk sahanlık kotu ya da null) } */
+  const planKesmeKotu = (kat, merdivenler, o = {}) => {
+    const kh = o.kh || 1.2, r2 = v => Math.round(v * 100) / 100, M2 = (merdivenler || []).filter(m => Math.abs((+m.z0 || 0) - kat.z) < 0.1 && (m.sahanliklar || []).some(z => z > kat.z + 0.05));
+    if (!M2.length) return { h: kat.h, sahanlik: null };
+    const S = M2.flatMap(m => m.sahanliklar.filter(z => z > kat.z + 0.05)).sort((a, b) => a - b), s1 = S[0], s2 = S.find(z => z > s1 + 0.05);
+    let h = s1 + kh; if (s2 != null) h = Math.min(h, s2 - 0.05); if (o.ust != null) h = Math.min(h, o.ust - 0.05);
+    return { h: r2(Math.max(h, s1 + 0.05)), sahanlik: r2(s1) };
+  };
   /* kesit hatları: A-A uzun yönde, B-B kısa yönde, ikisi de yapının ortasından; bakış +y / +x, derinlik yapının öbür kenarına kadar */
   const kesitHatlari = (bb, pay = 1.5) => {
     const [x0, y0, x1, y1] = bb, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, r2 = v => Math.round(v * 1000) / 1000;
@@ -189,7 +199,7 @@
      $LTSCALE = ölçek / 1000 (1/50: 0,05), $PSLTSCALE 0 — model sekmesinde ve pafta penceresinde aynı görünür. Başka ölçekli pencerede
      (1/20 detay, 1/10 çatı detayı) görünen nesnelere nesne çizgi tipi ölçeği (kod 48) = pencere ölçeği / ana ölçek. */
   const dxfCizgiOlcegi = olcek => ({ ltscale: (+olcek || 50) / 1000, psltscale: 0, celtOlcek: +olcek || 50 });
-  const api = { PAFTA_R2, paftaPlanla, katKotlari, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, dxfCizgiOlcegi };
+  const api = { PAFTA_R2, paftaPlanla, katKotlari, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, dxfCizgiOlcegi };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariPaftaApi = api;
@@ -273,6 +283,9 @@
     const dUst = ents.filter(e => e.type === 'plak' || e.type === 'slab' || e.type === 'temel').map(ustKot).filter(isFinite);
     const dikeyUst = Math.max(...ents.filter(e => /^(perde|kolon|duvar|wall|dolgu)$/.test(e.type)).map(ustKot).filter(isFinite));
     const katlar = katKotlari({ seviyeler: svl, dosemeUst: dUst, zmin, zmax, dikeyUst, abs0: sv.abs0 });
+    /* merdivenli katta plan ilk ara sahanlığın üstünden kesilir (planKesmeKotu); başlık yine kat kotu */
+    const merd = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e); return { z0: +Gm.z0, sahanliklar: (Gm.pieces || []).filter(p => p.kind === 'sah').map(p => +p.z) }; } catch (er) { return null; } }).filter(Boolean);
+    katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
     const planlar = katlar.map(k => { const gv = gorunus({ kind: 'plan', h: k.h, depth: Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false }); if (!gv) return null;
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
       const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }

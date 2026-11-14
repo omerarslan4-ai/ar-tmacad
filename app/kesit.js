@@ -325,6 +325,9 @@
         C.add(C.newEnt('kot', Object.assign({ p: W([x, m[1]]), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, f0 < 0 ? { ters: true } : {}))); nK++; }
     }
     // otomatik ölçülendirme: altta perde / boşluk zinciri + toplam, solda temel / perde / döşeme kalınlıkları zinciri + toplam yükseklik; kapatmak için KESITAL OLCU=H
+    /* korkuluk ara birleştirmeleri (Çokal 10-İdari Bina_R2 rampa korkuluğu): kesite paralel görünen korkulukta her dikmede ara küpeşte iki yanda dışbükey yayla
+       (r = 0,61 × çap, merkez dikme yüzünden 0,34 × çap dışarıda, ±55°), küpeşte altında bir yay. Dikme yerleri ve borular 3B korkulukla aynı (merdiven.js railRun) */
+    if (C.korkulukBirlesimKesit) { try { C.korkulukBirlesimKesit({ a, u, n, depth, W, inU }); } catch (er) { console.error('korkuluk birleşimi', er); } }
     let nT = 0; if (C.dogramaEtiketKesit && kv.TIP !== 'H') { try { nT = C.dogramaEtiketKesit({ a, u, n, depth, W, inU }); } catch (er) { console.error('kesit doğrama no', er); } } // kapı / pencere tip numarası (ölçülerden önce: zincirler üstüne binmesin)
     let nD = 0, dimBot = Infinity;
     if (kv.OLCU !== 'H' && C.T.dim) {
@@ -365,7 +368,16 @@
       const { pozOf } = C.mekPozListe(); C.ensureLayer('KESIT_POZ', 2, 'CONTINUOUS', 18); const seenN = new Set(), usedQ = [];
       for (const e of secEnts) { if (!C.isMekanik(e) || !pozOf.has(e.id)) continue; const no = pozOf.get(e.id), a3 = C.pozAnchor(e), q = uv(a3); if (!inU(q) || seenN.has(no + '|' + Math.round(q[0] * 2))) continue; seenN.add(no + '|' + Math.round(q[0] * 2)); C.pozBalon(W(q), no, e.id, { sec: true, layer: 'KESIT_POZ' }, usedQ); nPz++; }
     }
-    let nA = 0; if (C.aksOnLine && kv.AKS !== 'H') { const ap = C.aksOnLine(a, u, ub[0] - 0.5, ub[2] + 0.5); if (C.aksAddSection(ap, ub[1], ub[3], W)) nA = ap.length; }
+    let nA = 0; if (C.aksOnLine && kv.AKS !== 'H') { const ap = C.aksOnLine(a, u, ub[0] - 0.5, ub[2] + 0.5), ae = C.aksAddSection(ap, ub[1], ub[3], W); if (ae) nA = ap.length;
+      /* pafta stilinde aks ölçüleri Çokal planlarındaki gibi (mimari-oto.js → planOlcuSiralari): kesitin üstünde içte dış yüz – akslar – dış yüz zinciri, dışta toplam;
+         sıralar arası modelde 0,25 m, ilk sıra çizimin üstünden 14 mm; aks balonu en dış sıranın 11 mm üstünde (balon merkezi) */
+      if (ae && C.pstil && C.pstil() && kv.OLCU !== 'H') { try {
+        const DUS = /PERDE|DUVAR|KOLON/, wl = (R.loops || []).filter(lp => DUS.test(lp.lk || '')), xs0 = wl.flatMap(lp => lp.map(q => q[0]));
+        if (xs0.length && C.mimariOtoApi && C.mimariOtoApi.kesitAksSiralari) { const k = C.annoH(1), Y = Object.assign({ ilkSira: 14, siraModel: 0.25 }, ((C.cizimKural && C.cizimKural.MIMARI.olcuYeri) || {}).genel || {}), AK = Object.assign({ balonR: 6, balonOte: 11 }, (C.cizimKural && C.cizimKural.MIMARI.aks) || {});
+          const S = C.mimariOtoApi.kesitAksSiralari({ akslar: ap.map(q => q.s), dis: [Math.min(...xs0), Math.max(...xs0)], ust: ub[3], mm: k, ilk: Y.ilkSira, sira: Y.siraModel || 0.25, balonR: AK.balonR, balonOte: AK.balonOte }), pts = S.noktalar, r1 = S.y1, r2 = S.y2, xw0 = pts[0], xw1 = pts[pts.length - 1];
+          C.ensureLayer('KESIT_OLCU', 3, 'CONTINUOUS', 18); const dm = (p0, p1, y) => { C.add(C.newEnt('dim', { k: 'h', a: W([p0, ub[3]]), b: W([p1, ub[3]]), p: W([p0, y]), layer: 'KESIT_OLCU' })); };
+          for (let i = 1; i < pts.length; i++) dm(pts[i - 1], pts[i], r1); dm(xw0, xw1, r2);
+          Object.assign(ae, { dims: false, extp: S.extp }); delete ae._c; } } catch (er) { console.error('kesit aks ölçüsü', er); } } }
     for (const pl of chain(axes, 1e-4)) C.add(C.newEnt('pline', { pts: pl.map(W), closed: false, layer: 'EKSEN', lt: 'CENTER' }));
     for (const en of ends) C.add(C.newEnt('circle', { c: W(en.c), r: en.r, layer: LV(en.lk) }));
     if (!(C.seviyeKesit && C.seviyeKesit(W, ub)) && ub[1] < 5 && ub[3] > -5) { // kat seviyeleri varsa seviye çizgileri + toprak çizgisi; mutlak kotlu yapıda (0,00 uzaksa) 0 çizgisi çizilmez

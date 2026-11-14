@@ -148,11 +148,13 @@
     const OA = C.mimariOtoApi;
     if (OA && OA.mahalBul && loops.length && n < 40) { try {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const b of LB) { x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]); }
+      const MR = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e), b = C.bbox(e); return { b, z: [Gm.z0, Gm.zTop].concat((Gm.pieces || []).filter(q => q.kind === 'sah').map(q => +q.z)).filter(isFinite) }; } catch (er) { return null; } }).filter(Boolean);
+      const merdivenKolu = (q, zb) => MR.some(m => q[0] >= m.b[0] && q[0] <= m.b[2] && q[1] >= m.b[1] && q[1] <= m.b[3] && !m.z.some(z => Math.abs(z - zb) < 0.02));
       const odalar = OA.mahalBul(loops, [x0, y0, x1, y1], { h: 0.1, enAz: 1 }), konan = [];
       for (const o of odalar) { const [a0, b0, a1, b1] = o.bb, st = Math.max(0.2, Math.min(a1 - a0, b1 - b0) / 14), G = new Map();
         for (let x = a0 + st / 2; x < a1; x += st) for (let y = b0 + st / 2; y < b1; y += st) { const q = [x, y]; if (inAny(q)) continue; const zs = zsAt(x, y).filter(z => z <= h + 1e-6); if (!zs.length) continue;
           const zb = Math.round(Math.max(...zs) * 100) / 100; if (!G.has(zb)) G.set(zb, []); G.get(zb).push(q); }
-        for (const [zb, Q] of G) { if (Q.length * st * st < 1 || n >= 40) continue; const c = Q.reduce((s2, q) => [s2[0] + q[0] / Q.length, s2[1] + q[1] / Q.length], [0, 0]);
+        for (const [zb, Q] of G) { if (Q.length * st * st < 1 || n >= 40) continue; if (merdivenKolu(Q[Math.floor(Q.length / 2)], zb)) continue; /* merdiven kolu döşeme değil (sahanlık döşeme sayılır) */ const c = Q.reduce((s2, q) => [s2[0] + q[0] / Q.length, s2[1] + q[1] / Q.length], [0, 0]);
           let q = Q[0], bd = Infinity; for (const p of Q) { const d = Math.hypot(p[0] - c[0], p[1] - c[1]); if (d < bd && !konan.some(k => Math.hypot(k[0] - p[0], k[1] - p[1]) < 1.5)) { bd = d; q = p; } }
           konan.push(q); const kp = kaplamaUst ? kaplamaUst(q, zb) : null;
           if (kp != null && kp > (kabaAlt(q, zb) == null ? zb : kabaAlt(q, zb)) + 0.005) { const kab = kabaAlt(q, zb); C.add(C.newEnt('kot', { gv, pk: true, p: W(q), v: +(kab != null ? kab : zb).toFixed(3), v2: +kp.toFixed(3), txt: '', layer: lay })); } else put(q, zb); n++; } }
