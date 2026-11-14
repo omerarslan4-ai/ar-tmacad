@@ -345,7 +345,10 @@
       return zemin.some(g => Math.abs(g.z - za) < 0.06 && Array.isArray(g.pts) && icinde(m, g.pts)); };
     const N = Y.net(ents), liste = [], top = {}; let net = 0, brut = 0;
     for (const [id, m] of N) { if (m.tur === 'duvar' || m.tur === 'dolgu') continue; const e = ents.find(x => x.id === id); if (!e || oturur(e)) continue;
-      liste.push({ id, tur: m.tur, ad: m.ad, no: e.no || e.ad || null, brut: r3(m.brut), net: r3(m.net) }); top[m.ad] = r3((top[m.ad] || 0) + m.net); net += m.net; brut += m.brut; }
+      // dz: net parçaların kot aralıkları [za, zb, plan alanı] — pencere yapıyı alt / üst yapı diye kotla bölebilsin
+      const dzm = new Map(); for (const p of m.parcalar || []) { const k = r3(p.za) + '|' + r3(p.zb), A = Y._ic.alan(p.q); dzm.set(k, (dzm.get(k) || 0) + A); }
+      liste.push({ id, tur: m.tur, ad: m.ad, no: e.no || e.ad || null, brut: r3(m.brut), net: r3(m.net), dz: [...dzm].map(([k, A]) => { const [a, b] = k.split('|').map(Number); return [a, b, Math.round(A * 1e4) / 1e4]; }) });
+      top[m.ad] = r3((top[m.ad] || 0) + m.net); net += m.net; brut += m.brut; }
     return { liste, top, net: r3(net), brut: r3(brut) };
   };
   C._statikNetHacim = netHacimler;
@@ -363,7 +366,9 @@
     const rad = G.rad ? { id: G.rad.id != null ? G.rad.id : null, pts: (G.rad.pts || []).map(q => [r3(q[0]), r3(q[1])]), t: r3(G.hr), kAlt: r3(G.zR - G.hr) } : null;
     if (!rad || rad.pts.length < 3) throw new Error('radye bulunamadı (plak radye ya da katı taban gerekli)');
     const dosDisi = [];
-    const dos = C.doc.ents.filter(vis).filter(e => e.type === 'plak' && e.kind !== 'radye' && Array.isArray(e.pts) && e.pts.length >= 3).map((e, k) => ({ id: e.id, ad: e.no || 'D' + (k + 1), pts: e.pts.map(q => [r3(q[0]), r3(q[1])]), t: r3(+e.t || 0.2), zt: r3(+e.zt || 0), g: +e.g || 1.5, q: +e.q || 5 })).filter(d => { // yalnız perde üstüne oturan döşemeler kabuk modeline girer; çatı / ara / zemine oturan döşemeler çerçeve hesabındadır
+    // döşemedeki düşey boşluklar (sac kapak, İT/ÇEK): kabuk ağından çıkarılır (eskiden döşeme boşluksuz alınıyordu — Konya galeri 100 × 100 kapak)
+    const dDelik = e => (Array.isArray(e.bosluk3) ? e.bosluk3 : []).filter(b => b && Array.isArray(b.pts) && b.pts.length >= 3 && Array.isArray(b.d) && Math.abs(+b.d[2] || 0) >= 0.7 * (+e.t || 0.2) && Math.abs(+b.d[2] || 0) > 0.7 * Math.hypot(+b.d[0] || 0, +b.d[1] || 0, +b.d[2] || 0)).map(b => b.pts.map(q => [r3(q[0]), r3(q[1])]));
+    const dos = C.doc.ents.filter(vis).filter(e => e.type === 'plak' && e.kind !== 'radye' && Array.isArray(e.pts) && e.pts.length >= 3).map((e, k) => ({ id: e.id, ad: e.no || 'D' + (k + 1), pts: e.pts.map(q => [r3(q[0]), r3(q[1])]), t: r3(+e.t || 0.2), zt: r3(+e.zt || 0), g: +e.g || 1.5, q: +e.q || 5, ...(dDelik(e).length ? { delik: dDelik(e) } : {}) })).filter(d => { // yalnız perde üstüne oturan döşemeler kabuk modeline girer; çatı / ara / zemine oturan döşemeler çerçeve hesabındadır
       const ok = walls.some(w => Math.abs(d.zt - w.zt) < d.t + 0.05); if (!ok) dosDisi.push(`${d.ad} (üst ${d.zt})`); return ok; });
     const xs = walls.flatMap(w => w.pts.map(q => q[0])), ys = walls.flatMap(w => w.pts.map(q => q[1])), kUst = Math.max(...walls.map(w => w.zt));
     const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t), 0.3), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t), tw);

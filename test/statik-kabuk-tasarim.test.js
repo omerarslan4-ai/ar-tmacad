@@ -58,6 +58,9 @@ t('eşdeğer moment aynı noktadaki N ve M ile: grubun ayrı yerlerindeki tepe N
 /* Konya terfi: galeri döşemesi A aksı perdesinde x = 3,90'da bitiyor, 40/60 kiriş x = 3,70'te perdeye saplanıyor */
 const { d } = O.modelCevir(O.konyaDoc()), SK = O.uygula(P.ornekSaray(), JSON.parse(JSON.stringify(d)));
 delete SK.kabuk.seritOrt;                                                             // varsayılan davranış: şerit ortalaması yok
+/* tekil nokta kuralını sınamak için eski (ağır) yükleme kabulü: pencere varsayılan zemini (φ 25, K0, q 15) ve iç suyu (−1,84) — Konya'nın
+   projeye kayıtlı değerleriyle (φ 30, Ka, q 5, kuru hazne, YAS −5,20) tekil noktada aşan eleman kalmayabilir; kural yükten bağımsızdır */
+Object.assign(SK.zemin, P.ornekSaray().zemin); Object.assign(SK.geo, { kZemin: -0.56, kSu: -1.84, kYAS: -3.56 }); SK.dep.r = 1;
 const rK = P.kabukHesap(SK);
 t('Konya: tekil noktalar bulunur (boşluk köşesi, döşeme kenarının perdede bittiği nokta, kirişin saplandığı düğüm); perde köşeleri tekil değil', () => {
   const G = P.kabukBolge(SK, rK.AG, rK.h), var_ = (x, y, re) => G.tekil.some(q => Math.abs(q.p[0] - x) < 0.02 && Math.abs(q.p[1] - y) < 0.02 && re.test(q.neden));

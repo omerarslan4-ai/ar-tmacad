@@ -28,6 +28,20 @@
   const yon = u => (Math.abs(u[0]) > 0.98 ? 'X' : Math.abs(u[1]) > 0.98 ? 'Y' : null);
   const kume = (vals, tol) => { const s = [...vals].sort((a, b) => a - b), o = []; for (const v of s) if (!o.length || v - o[o.length - 1].v > tol) o.push({ v, n: 1 }); else { const q = o[o.length - 1]; q.v = (q.v * q.n + v) / (q.n + 1); q.n++; } return o.map(q => q.v); };
 
+  /* perde şeridi (eksen a–b, kalınlık t) ile kolon izinin (bx × by, dairesel kolon eşdeğer kare) kesişim alanı — dışbükey kırpma */
+  const perdeKolonIz = (w, c) => {
+    const u0 = sub(w.b, w.a), L = len(u0); if (L < 1e-6) return 0; const n = [-u0[1] / L * w.t / 2, u0[0] / L * w.t / 2];
+    const Q = [[w.a[0] + n[0], w.a[1] + n[1]], [w.a[0] - n[0], w.a[1] - n[1]], [w.b[0] - n[0], w.b[1] - n[1]], [w.b[0] + n[0], w.b[1] + n[1]]];
+    let K = [[c.x - c.bx / 2, c.y - c.by / 2], [c.x + c.bx / 2, c.y - c.by / 2], [c.x + c.bx / 2, c.y + c.by / 2], [c.x - c.bx / 2, c.y + c.by / 2]];
+    const ar = q => { let s = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; s += a[0] * b[1] - b[0] * a[1]; } return s / 2; };
+    const Qc = ar(Q) < 0 ? Q.slice().reverse() : Q;
+    for (let i = 0; i < 4 && K.length >= 3; i++) { const a = Qc[i], b = Qc[(i + 1) % 4], yan = q => (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]), o = [];
+      for (let j = 0; j < K.length; j++) { const P0 = K[j], P1 = K[(j + 1) % K.length], s0 = yan(P0), s1 = yan(P1); if (s0 >= 0) o.push(P0); if ((s0 >= 0) !== (s1 >= 0)) { const t = s0 / (s0 - s1); o.push([P0[0] + (P1[0] - P0[0]) * t, P0[1] + (P1[1] - P0[1]) * t]); } }
+      K = o; }
+    return K.length >= 3 ? Math.abs(ar(K)) : 0;
+  };
+  P._perdeKolonIz = perdeKolonIz;
+
   /* bant çözücü (yarı bant genişliği hb), simetrik pozitif tanımlı */
   const bandCoz = (K, f, n, hb) => {
     const A = K.slice(), b = f.slice();
@@ -327,7 +341,9 @@
       dosemeler.filter(d => Math.abs(d.zt - k.z) < 0.15).forEach(d => { W += (d.gk + dv.n * d.qk) * d.lx * d.ly; });
       zincirler.filter(ch => Math.abs(ch.z - k.z) < 0.15).forEach(ch => ch.segs.forEach(sg => { W += (gc * sg.bw * Math.max(0.1, sg.hb - tSv(ch.z)) + (+sg.k.gd || 0)) * (sg.s1 - sg.s0); }));
       k.kol.forEach(c => { W += c.Gw / 2; if (c.ust) W += c.ust.Gw / 2; });
-      k.per.forEach(w => { W += gc * w.t * len(sub(w.b, w.a)) * k.h / 2; });
+      k.per.forEach(w => { W += gc * w.t * len(sub(w.b, w.a)) * k.h / 2;
+        // perde içindeki kolon izi iki kez sayılmasın (kolon bütün kalır, perde kolon yüzünde biter — yapi-cakisma.js birleşim önceliği)
+        k.kol.forEach(c => { const A = perdeKolonIz(w, c); if (A > 0) W -= gc * A * k.h / 2; }); });
       k.w = W;
     }
     const Wt = katlar.reduce((t, k) => t + k.w, 0), HN = katlar.length ? katlar[katlar.length - 1].H : 0;

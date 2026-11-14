@@ -390,6 +390,11 @@
       const a = P.kabukKalinlikAdim(M, yetersizler(r).map(t => grupNo(r, t))); log.push(...a.log);
       if (!a.degisti) break;
     }
+    /* ince ağla doğrulama: kaba ağ yerel kesme / eğilme tepelerini kaçırabilir (Konya galeri döşemesi: 0,8 m ağda kesme yetiyor, 0,35 m ağda
+       Vd 110 > Vcr 96 kN/m). Kaba ağda yeterli görünen sonuç asıl ağla yeniden hesaplanır; yetmeyen eleman (döşeme kesmesi dahil) büyütülür. */
+    const k0 = +S0.tas.kmesh || 0;
+    if (o.ince !== false && Math.abs((+S2.tas.kmesh || 0) - k0) > 1e-9) { S2.tas.kmesh = k0;
+      for (let it = 0; it < (o.inceTur || 3); it++) { r = P.kabukHesap(S2, o.ilerle); const Y = yetersizler(r); if (!Y.length) break; const a = P.kabukKalinlikAdim(M, Y.map(t => grupNo(r, t))); log.push(...a.log); if (!a.degisti) break; } }
     // sınır iletileri son hesaba göre: hâlâ yetersiz olup bir üst basamağı aralık dışında kalan elemanlar
     const L = P.kabukSinir(M), sinir = [];
     for (const t of yetersizler(r)) { const q = grupNo(r, t); let ad, tNow, max, ek = '', L2 = null;

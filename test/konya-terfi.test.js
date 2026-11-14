@@ -78,7 +78,9 @@ t('Konya deprem değerleri: TBDY Tablo 2.1/2.2 ZD katsayıları, projeye statik 
   yak(U.FS_ZD(0.25), 1.6, 1e-9); yak(U.FS_ZD(0.375), 1.5, 1e-9); yak(U.FS_ZD(2), 1.0, 1e-9); yak(U.F1_ZD(0.15), 2.3, 1e-9); yak(U.F1_ZD(0.05), 2.4, 1e-9);
   const D = U.KONYA_DEPREM; yak(D.SDS, 0.553, 0.001); yak(D.SD1, 0.277, 0.001);
   yak(D.Ss * 1.3, 0.477, 0.001); yak(D.S1 * 1.5, 0.175, 0.001);          // ZC'de AFAD okumasına (SDS 0,477 / SD1 0,175) döner
-  assert.deepStrictEqual(doc.set.statikAyar, D.ayar); assert.strictEqual(D.ayar.guseP, 55);
+  const A0 = Object.assign({}, doc.set.statikAyar); delete A0.zemin; delete A0.dep; delete A0.kot; assert.deepStrictEqual(A0, D.ayar);
+  assert.deepStrictEqual(doc.set.statikAyar.zemin, D.zemin); assert.deepStrictEqual(doc.set.statikAyar.dep, D.dep); assert.deepStrictEqual(doc.set.statikAyar.kot, { kZemin: -0.2, kYAS: -5.2, kSu: null }); // zemin / deprem / kot da projede (statik penceresi okur)
+  assert.strictEqual(D.ayar.guseP, 55);
 });
 
 console.log(`\n${n} test geçti.`);

@@ -94,7 +94,7 @@
     const qZarf = dep => { const q = new Float32Array(AG.nodes.length); let mx = 0, wmx = 0; for (const k of K.KV.filter(k => k.tip === 'emn' && depMi(k) === dep)) for (const n of radN) { let w = 0; for (const [c, f] of Object.entries(k.f)) if (f && K.U[c]) w += f * K.U[c][n * 6 + 2]; const v = -S.zemin.kw * w; if (v > q[n]) q[n] = v; if (v > mx) { mx = v; wmx = -w; } } return { q, mx, wmx }; };
     const qD = qZarf(false), qE = qZarf(true), rset = new Set(AG.els.map((e, i) => (e.tur === 'radye' ? i : -1)).filter(i => i >= 0));
     const qimg = (Z, bas) => P.kabukCiz(K, { deger: (i, k) => tf(Z.q[AG.els[i].n[k]]), filt: (e, i) => rset.has(i), W: 900, H: 430, az: 0, el: 90, ust: 'Soil Pressure Diagram', baslik: bas, birim: 'Ton/m²' });
-    const Arad = area(M.radye.pts), Wtop = tf(AG.els.reduce((s, e) => s + e.A * e.t * (S.mal.gc || 25), 0));
+    const Arad = area(M.radye.pts), NH = P.netAgirlik ? P.netAgirlik(S) : null, Wtop = NH ? tf(NH.G) : tf(AG.els.reduce((s, e) => s + e.A * e.t * (S.mal.gc || 25), 0)); // yapı ağırlığı: metrajla aynı net hacimler (varsa)
     h += `<h3 class="sayfa">Zemin Gerilme Kontrolü</h3>${img(qimg(qD, 'Depremsiz Durum İçin Zemin Gerilme Diyagramı'))}<div class="bas3b">Depremsiz Durum İçin Zemin Gerilme Diyagramı</div>`;
     if (qE.mx > 0) h += `${img(qimg(qE, 'Depremli Durum İçin Zemin Gerilme Diyagramı'))}<div class="bas3b">Depremli Durum İçin Zemin Gerilme Diyagramı</div>`;
     h += `<p>Sonlu elemanlar analiz programından elde edilen her bir yük kombinasyonuna ait en büyük düşey deplasman zemin yatak katsayısı ile çarpılarak temel altında oluşan zemin gerilmesi bulunmuştur.</p>` +
@@ -106,9 +106,10 @@
     if (g.kYAS != null && g.kYAS > M.radye.kAlt) {
       const Hy = g.kYAS - M.radye.kAlt, U = Hy * Arad, FSg = S.tas.FSk || 1.1, gc = tf(S.mal.gc || 25), rows = []; let top = 0;
       const ekle = (a, n, A, y) => { const w = n * A * y * gc; top += w; rows.push(D.tr(D.td(esc(a), 'class="l"'), D.td(n), D.td(n2(A)), D.td(n2(y)), D.td(n2(gc, 2)), D.td(n2(w)))); };
-      ekle('Temel (radye)', 1, Arad, M.radye.t);
-      for (const w of M.walls) { let L = 0; const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); } ekle(`${w.ad} Perde (L = ${n2(L)} m)`, 1, L * w.t, w.zt - M.radye.kAlt - M.radye.t); }
-      for (const d of M.dosemeler || []) ekle(`${d.ad} Döşeme`, 1, area(d.pts), d.t);
+      if (NH) NH.rows.forEach(q => { const w = q.V * gc; top += w; rows.push(D.tr(D.td(esc(q.ad) + ' (net hacim ' + n2(q.V) + ' m³)', 'class="l"'), D.td('—'), D.td('—'), D.td('—'), D.td(n2(gc, 2)), D.td(n2(w)))); }); // metrajla aynı net hacimler (statik eleman listesi)
+      else { ekle('Temel (radye)', 1, Arad, M.radye.t);
+        for (const w of M.walls) { let L = 0; const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); } ekle(`${w.ad} Perde (L = ${n2(L)} m)`, 1, L * w.t, w.zt - M.radye.kAlt - M.radye.t); }
+        for (const d of M.dosemeler || []) ekle(`${d.ad} Döşeme`, 1, area(d.pts), d.t); }
       h += `<h3 class="sayfa">Yüzme Tahkiki</h3><table class="sem">${D.tr(D.td('Zemin Kotu :'), D.td(n2(g.kZemin)))}${D.tr(D.td('Yeraltı Su Seviyesi :'), D.td(n2(g.kYAS)))}${D.tr(D.td('Temel Alt Kotu :'), D.td(n2(M.radye.kAlt)))}</table>` +
         D.tab([D.tr(D.td('YASS Altında Kalan Derinlik', 'class="l"'), D.td('H<sub>yass</sub>'), D.td(`= ${n2(Hy)} m`, 'class="l"')), D.tr(D.td('Temel Alanı', 'class="l"'), D.td('A'), D.td(`= ${n2(Arad)} m²`, 'class="l"')), D.tr(D.td('Yüzdürme Kuvveti', 'class="l"'), D.td('U'), D.td(`= ${n2(U)} ton`, 'class="l"')), D.tr(D.td('Güvenlik Katsayısı', 'class="l"'), D.td('GS'), D.td(`= ${n2(FSg)}`, 'class="l"'))]) +
         D.tab([D.tr(D.th(''), D.th('Adet'), D.th('Alan'), D.th('Yükseklik'), D.th('B.H.Ağ.'), D.th('Ağırlık')), D.tr(D.th(''), D.th(''), D.th('m²'), D.th('m'), D.th('ton/m³'), D.th('ton')), ...rows]) +

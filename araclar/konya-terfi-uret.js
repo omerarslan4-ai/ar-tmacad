@@ -60,7 +60,9 @@ function yeniBelge() {
       geo: { mode: 'none', lat0: 37.87, lon0: 32.48, rot: 0, cm: 33, k0: 1, fe: 500000, fn: 0, zone: 36 },
       // statik deprem ayarı (kullanıcı "Konya değerlerini sen oluştur" dedi, 13.11.2026): Konya merkez, DD-2, ZD (zemin raporu yok, güvenli taraf)
       // Ss 0,367 / S1 0,117 (AFAD TDTH okumasından: ZC'de SDS 0,477, SD1 0,175) → ZD: Fs 1,506, F1 2,366 → SDS 0,553, SD1 0,277
-      statikAyar: Object.assign({}, KONYA_DEPREM.ayar),
+      // zemin / deprem / kot değerleri de projeye yazılır (statik penceresi okur; eskiden pencere varsayılanıyla — φ 25, K0, q 15 — açılıyordu):
+      // geri dolgu φ 30, Ka Coulomb, sürşarj 5 kN/m², qt 20 t/m², k 2000 t/m³; zemin kotu toprak (+205,47), YAS zeminden 5 m (Çokal'daki gibi), pompa holü kuru
+      statikAyar: Object.assign({}, KONYA_DEPREM.ayar, { zemin: Object.assign({}, KONYA_DEPREM.zemin), dep: Object.assign({}, KONYA_DEPREM.dep), kot: { kZemin: z(K.toprak), kYAS: +(z(K.toprak) - 5).toFixed(3), kSu: null } }),
       seviye: {
         abs0: ABS0, toprak: z(K.toprak), aktif: 'Lkonyazemin',
         list: [

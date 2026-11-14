@@ -152,7 +152,16 @@
     for (const w of W) { if (w.kapali) continue;
       for (const uc of [0, 1]) { const q = uc ? w.P[w.P.length - 1] : w.P[0]; let best = null;
         for (const v of W) { if (v === w) continue; const n = v.kapali ? v.P.length : v.P.length - 1; for (let i = 0; i < n; i++) { const a = v.P[i], b = v.P[(i + 1) % v.P.length], pr = projSeg(q, a, b); if (pr.d < (v.t + w.t) / 2 + 0.15 && (!best || pr.d < best.d)) best = { v, i, r: pr.r, d: pr.d }; } }
-        if (best) { let r = best.r; const a = best.v.P[best.i], b = best.v.P[(best.i + 1) % best.v.P.length]; if (Math.hypot(r[0] - a[0], r[1] - a[1]) < 0.02) r = a.slice(); else if (Math.hypot(r[0] - b[0], r[1] - b[1]) < 0.02) r = b.slice(); else best.v.kir.push({ i: best.i, r });
+        /* uç düğüm, komşu perdenin EKSENİ ile bu perdenin kendi ekseninin kesişimine taşınır (perde kendi ekseninde kalır, yalnız uzar / kısalır).
+           Eskiden en yakın nokta (dik izdüşüm, uç noktaya kırpılmış) alınıyordu: uzun perdenin ucu kısa perdenin iç yüzde biten ucuna
+           yapışınca uzun perde bütünüyle içe kayıyordu (Konya: B aksı y 0,05 → 0,30, A aksı 8,00 → 7,70; kısa perde açıklığı 7,95 yerine 7,40). */
+        if (best) { const a = best.v.P[best.i], b = best.v.P[(best.i + 1) % best.v.P.length], q2 = uc ? w.P[w.P.length - 2] : w.P[1];
+          let r = best.r; const d1 = [q[0] - q2[0], q[1] - q2[1]], d2 = [b[0] - a[0], b[1] - a[1]], cr = d1[0] * d2[1] - d1[1] * d2[0], l1 = Math.hypot(d1[0], d1[1]), l2 = Math.hypot(d2[0], d2[1]);
+          if (l1 > 1e-9 && l2 > 1e-9 && Math.abs(cr) > 0.1 * l1 * l2) { // açılı birleşim: eksenlerin kesişimi (komşu eksen doğrultusunda en çok yarı kalınlık + 15 cm dışarıda)
+            const s = ((a[0] - q2[0]) * d2[1] - (a[1] - q2[1]) * d2[0]) / cr, X = [q2[0] + d1[0] * s, q2[1] + d1[1] * s], u = ((X[0] - a[0]) * d2[0] + (X[1] - a[1]) * d2[1]) / (l2 * l2), tol = ((best.v.t + w.t) / 2 + 0.15) / l2;
+            if (u > -tol && u < 1 + tol && Math.hypot(X[0] - q[0], X[1] - q[1]) < (best.v.t + w.t) / 2 + 0.15) r = X; }
+          const ua = ((r[0] - a[0]) * d2[0] + (r[1] - a[1]) * d2[1]) / (l2 * l2 || 1);
+          if (Math.hypot(r[0] - a[0], r[1] - a[1]) < 0.02) r = a.slice(); else if (Math.hypot(r[0] - b[0], r[1] - b[1]) < 0.02) r = b.slice(); else if (ua > 0 && ua < 1) best.v.kir.push({ i: best.i, r }); // komşunun ucunun ötesindeyse (L köşe) komşu da kendi ucunda buraya uzar
           if (uc) w.P[w.P.length - 1] = r; else w.P[0] = r; } } }
     /* kolonlar (M.kolonlar: x, y merkez, bx / by ya da D, z0, zt): perde ekseninden (t + kolon derinliği)/2 içinde olan kolon
        o perdeye gömülüdür — perde ağına o noktada düşey düğüm sırası açılır, perde dışına taşan kısmı kaburga çubuk olur
@@ -190,6 +199,17 @@
     const L0 = [...lv].sort((a, b) => a - b), duvarUst = new Set(W.map(w => +w.ztm.toFixed(4))), L1 = [L0[0]];
     for (let i = 1; i < L0.length; i++) { const z = L0[i]; if (z - L1[L1.length - 1] < 0.3 * h && !duvarUst.has(z)) continue; if (z - L1[L1.length - 1] < 0.3 * h && L1.length > 1 && !duvarUst.has(L1[L1.length - 1])) L1.pop(); L1.push(z); }
     const Z = [L1[0]]; for (let i = 1; i < L1.length; i++) { const d = L1[i] - L1[i - 1], n = Math.max(1, Math.round(d / h)); for (let k = 1; k <= n; k++) Z.push(L1[i - 1] + d * k / n); }
+    /* döşeme altındaki kirişin perdeye saplanan ucu: perde ağında o noktada düşey düğüm sırası açılır, kiriş ucu perde üst düğümüne doğrudan
+       bağlanır (eskiden uç düğüm döşemeye bağlanıyor, kiriş tepkisi perdeye döşemenin kenar şeridinden geçiyordu — Konya galeri döşemesinde
+       kiriş ucunun yanında yapay kesme tepesi, G altında 80 kN/m). */
+    const kirisUc = new Map();
+    for (const kb of (M.kirisler || [])) { const U2 = [null, null];
+      [kb.a, kb.b].forEach((q, u) => { let best = null;
+        for (const w of W) { if (!w.dos || Math.abs(w.dos.zt - kb.zt) > 0.15) continue; const n = w.kapali ? w.P.length : w.P.length - 1;
+          for (let i = 0; i < n; i++) { const a = w.P[i], b = w.P[(i + 1) % w.P.length], pr = projSeg(q, a, b); if (pr.d <= w.t / 2 + 0.05 && (!best || pr.d < best.d)) best = { w, i, r: pr.r, d: pr.d, a, b }; } }
+        if (!best) return; let r = best.r; if (Math.hypot(r[0] - best.a[0], r[1] - best.a[1]) < 0.05) r = best.a.slice(); else if (Math.hypot(r[0] - best.b[0], r[1] - best.b[1]) < 0.05) r = best.b.slice(); else best.w.kir.push({ i: best.i, r });
+        U2[u] = { r, z: best.w.ztm }; });
+      kirisUc.set(kb, U2); }
     // perde ağı
     const wallEls = [];
     W.forEach((w, wi) => {
@@ -205,20 +225,27 @@
         for (let k = 0; k < zs.length - 1; k++) { const e = { n: [nod(a[0], a[1], zs[k]), nod(b[0], b[1], zs[k]), nod(b[0], b[1], zs[k + 1]), nod(a[0], a[1], zs[k + 1])], t: w.tt != null ? w.t + (w.tt - w.t) * Math.max(0, Math.min(1, ((zs[k] + zs[k + 1]) / 2 - (rad.kAlt + rad.t)) / Math.max(0.1, w.zt - (rad.kAlt + rad.t)))) : w.t, grp: 'W' + wi, wi, tur: 'perde' }; els.push(e); wallEls.push(e); } }
       w.S = S; w.zs = zs;
     });
-    // radye ağı (X/Y düzgün ızgara, merkezi poligon içindeki hücreler)
-    const izgara = (poly, z, t, grp, tur) => {
-      const xs0 = poly.map(p => p[0]), ys0 = poly.map(p => p[1]), x0 = Math.min(...xs0), x1 = Math.max(...xs0), y0 = Math.min(...ys0), y1 = Math.max(...ys0);
-      const nx = Math.max(1, Math.round((x1 - x0) / h)), ny = Math.max(1, Math.round((y1 - y0) / h)), dx = (x1 - x0) / nx, dy = (y1 - y0) / ny, cell = new Map(), list = [];
-      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const cx = x0 + (i + 0.5) * dx, cy = y0 + (j + 0.5) * dy; if (!pip([cx, cy], poly)) continue;
-        const e = { n: [nod(x0 + i * dx, y0 + j * dy, z), nod(x0 + (i + 1) * dx, y0 + j * dy, z), nod(x0 + (i + 1) * dx, y0 + (j + 1) * dy, z), nod(x0 + i * dx, y0 + (j + 1) * dy, z)], t, grp, tur, ij: [i, j] }; els.push(e); list.push(e); cell.set(i + ',' + j, e); }
-      return { x0, y0, dx, dy, nx, ny, cell, list, z, poly };
+    /* radye / döşeme ağı: X/Y ızgara, merkezi poligon içindeki hücreler. Döşemedeki boşluklar (delik: düşey İT/ÇEK, sac kapak) ağdan
+       çıkarılır; boşluk kenarları ızgara çizgisi olur (aralık o kenarlar arasında yeniden bölünür). Boşluk yoksa ızgara eskisi gibi düzgündür. */
+    const bol = (a0, a1, ek) => { const bp = [a0, a1, ...ek.filter(v => v > a0 + 0.02 && v < a1 - 0.02)].sort((a, b) => a - b).filter((v, i, A) => !i || v - A[i - 1] > 0.02), out = [bp[0]];
+      for (let i = 1; i < bp.length; i++) { const d = bp[i] - bp[i - 1], n = Math.max(1, Math.round(d / h)); for (let k = 1; k <= n; k++) out.push(k === n ? bp[i] : bp[i - 1] + d * k / n); } return out; };
+    const izgara = (poly, z, t, grp, tur, delik) => {
+      const xs0 = poly.map(p => p[0]), ys0 = poly.map(p => p[1]), x0 = Math.min(...xs0), x1 = Math.max(...xs0), y0 = Math.min(...ys0), y1 = Math.max(...ys0), DL = (delik || []).filter(q => Array.isArray(q) && q.length >= 3);
+      // dik açılı (X / Y kenarlı) döşemede köşeler de ızgara çizgisi: kenar ve boşluk köşesi ağda yerinde (L / U döşeme alanı tam)
+      const dik = tur === 'doseme' && poly.length <= 24 && poly.every((p, i) => { const q = poly[(i + 1) % poly.length]; return Math.abs(q[0] - p[0]) < 1e-6 || Math.abs(q[1] - p[1]) < 1e-6; }), PK = dik ? poly : [];
+      const X = bol(x0, x1, DL.flatMap(q => q.map(p => p[0])).concat(PK.map(p => p[0]))), Y = bol(y0, y1, DL.flatMap(q => q.map(p => p[1])).concat(PK.map(p => p[1]))), nx = X.length - 1, ny = Y.length - 1, cell = new Map(), list = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const cx = (X[i] + X[i + 1]) / 2, cy = (Y[j] + Y[j + 1]) / 2; if (!pip([cx, cy], poly) || DL.some(q => pip([cx, cy], q))) continue;
+        const e = { n: [nod(X[i], Y[j], z), nod(X[i + 1], Y[j], z), nod(X[i + 1], Y[j + 1], z), nod(X[i], Y[j + 1], z)], t, grp, tur, ij: [i, j] }; els.push(e); list.push(e); cell.set(i + ',' + j, e); }
+      let dx = 0, dy = 0; for (let i = 0; i < nx; i++) dx = Math.max(dx, X[i + 1] - X[i]); for (let j = 0; j < ny; j++) dy = Math.max(dy, Y[j + 1] - Y[j]);
+      return { x0, y0, dx, dy, nx, ny, X, Y, cell, list, z, poly, delik: DL };
     };
     const RG = izgara(rad.pts, zr, rad.t, 'R', 'radye');
-    const DG = dos.map((d, k) => izgara(d.pts, d.zm, d.t, 'D' + k, 'doseme'));
+    const DG = dos.map((d, k) => izgara(d.pts, d.zm, d.t, 'D' + k, 'doseme', d.delik));
+    const yer = (A, v) => { let i = 0; while (i < A.length - 2 && v > A[i + 1]) i++; return i; }; // v'nin bulunduğu aralık (uçlarda kırpılır)
     const bagla = (s, grid) => { // s düğümünü grid elemanına bağla
-      const p = nodes[s], fi = (p[0] - grid.x0) / grid.dx, fj = (p[1] - grid.y0) / grid.dy; let i = Math.min(grid.nx - 1, Math.max(0, Math.floor(fi))), j = Math.min(grid.ny - 1, Math.max(0, Math.floor(fj)));
-      let e = grid.cell.get(i + ',' + j); if (!e) { let bd = Infinity; for (const c of grid.list) { const d = Math.hypot(c.ij[0] + 0.5 - fi, c.ij[1] + 0.5 - fj); if (d < bd) { bd = d; e = c; } } i = e.ij[0]; j = e.ij[1]; }
-      const xi = Math.max(-1, Math.min(1, 2 * (fi - i) - 1)), et = Math.max(-1, Math.min(1, 2 * (fj - j) - 1)), N = shp(xi, et);
+      const p = nodes[s]; let i = yer(grid.X, p[0]), j = yer(grid.Y, p[1]);
+      let e = grid.cell.get(i + ',' + j); if (!e) { let bd = Infinity; for (const c of grid.list) { const [a, b] = c.ij, d = Math.hypot((grid.X[a] + grid.X[a + 1]) / 2 - p[0], (grid.Y[b] + grid.Y[b + 1]) / 2 - p[1]); if (d < bd) { bd = d; e = c; } } i = e.ij[0]; j = e.ij[1]; }
+      const xi = Math.max(-1, Math.min(1, 2 * (p[0] - grid.X[i]) / (grid.X[i + 1] - grid.X[i]) - 1)), et = Math.max(-1, Math.min(1, 2 * (p[1] - grid.Y[j]) / (grid.Y[j + 1] - grid.Y[j]) - 1)), N = shp(xi, et);
       for (let k = 0; k < 4; k++) if (e.n[k] === s) return; // zaten ortak düğüm
       ties.push({ s, m: e.n, N }); };
     const tabanD = new Set(), ustD = new Map();
@@ -244,13 +271,13 @@
     /* döşeme altındaki kirişler: o.kirisRijit → eski kabul (eksen düğümleri rijit düşey mesnet); aksi halde kiriş, döşeme altına sarkan gövdesiyle
        döşemeye bağlı çubuk (kaburga): kiriş + kolon esnekliği hesaba girer */
     const mes = new Set(), kirisDug = [];
-    for (const kb of (M.kirisler || [])) { let bulundu = false; DG.forEach((g, k) => { const d = dos[k]; if (bulundu || !(kb.zt <= d.zt + 0.15 && kb.zt >= d.zt - d.t - 0.15)) return; const a = kb.a, b = kb.b, dd = [b[0] - a[0], b[1] - a[1]], L2 = dd[0] * dd[0] + dd[1] * dd[1] || 1, tol = Math.max(g.dx, g.dy) * 0.51;
+    for (const kb of (M.kirisler || [])) { let bulundu = false; DG.forEach((g, k) => { const d = dos[k]; if (bulundu || !(kb.zt <= d.zt + 0.15 && kb.zt >= d.zt - d.t - 0.15)) return; const KU = (kirisUc.get(kb) || []).map(x => (x && Math.abs(x.z - d.zm) < 1e-6 ? x : null)), a = KU[0] ? KU[0].r : kb.a, b = KU[1] ? KU[1].r : kb.b, dd = [b[0] - a[0], b[1] - a[1]], L2 = dd[0] * dd[0] + dd[1] * dd[1] || 1, tol = Math.max(g.dx, g.dy) * 0.51;
       if (o.kirisRijit) { for (const e of g.list) for (const n of e.n) { const p = nodes[n], u = ((p[0] - a[0]) * dd[0] + (p[1] - a[1]) * dd[1]) / L2; if (u < -0.02 || u > 1.02) continue; if (Math.hypot(a[0] + dd[0] * u - p[0], a[1] + dd[1] * u - p[1]) <= tol) mes.add(n); } bulundu = true; return; }
       const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; if (!pip(m, d.pts) && !g.list.some(e => e.n.some(n => Math.hypot(nodes[n][0] - m[0], nodes[n][1] - m[1]) < tol * 1.5))) return;
       const hb = +kb.hb || 0.5, bw = +kb.bw || 0.3, s = P.kaburgaKesit(bw, -(d.zm - (kb.zt - hb)), kb.zt - d.zm, d.t); bulundu = true; if (!s) return; // döşeme kalınlığında kiriş: döşeme taşır
       const L = Math.sqrt(L2), nb = Math.max(1, Math.round(L / h)), ids = []; for (let j = 0; j <= nb; j++) ids.push(nod(a[0] + dd[0] * j / nb, a[1] + dd[1] * j / nb, d.zm));
       for (let j = 0; j < nb; j++) cubuk(ids[j], ids[j + 1], s, [0, 0, 1], kb.no || ('K' + ((M.kirisler || []).indexOf(kb) + 1)), 'kiris', kb.id);
-      ids.forEach(n => kirisDug.push([n, k])); });
+      ids.forEach((n, j) => { if ((j === 0 && KU[0]) || (j === nb && KU[1])) return; kirisDug.push([n, k]); }); }); // perdeye saplanan uç perde düğümüdür
       if (!bulundu) uyarC.push(`${kb.no || 'Kiriş'} (üst ${kb.zt}) kabuk modelinde bir döşemenin altında değil — kabuk hesabına alınmadı.`); }
     for (const [n, k] of kirisDug) bagla(n, DG[k]);
     // serbest kolonların taban / üst bağları

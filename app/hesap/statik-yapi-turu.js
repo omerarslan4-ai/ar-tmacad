@@ -57,6 +57,51 @@
     return { tur, altUstKot: k != null ? k : o.altUstKot, oneri: { tur: o.tur, altUstKot: o.altUstKot, neden: o.neden }, elle, elleKot: A.altUstKot != null && A.altUstKot !== '' };
   };
 
+  /* ---------- projeye kayıtlı zemin / deprem / kot değerleri (C.doc.set.statikAyar → d.statikAyar) pencere girdisine ----------
+     A.zemin {g, gs, phi, dR, K, kw, sig, q}, A.dep {yon, SDS, r, I, yontem, eYAS}, A.kot {kZemin, kYAS (null = yok), kSu (null = kuru hazne)}.
+     Eskiden yalnız deprem (SDS) okunuyordu; zemin pencerenin varsayılanıyla (φ 25, K0, q 15) kalıyor, sonuç projeden projeye değişiyordu. */
+  P.statikAyarUygula = (S, d) => {
+    const A = (d && (d.statikAyar || (d.cerceve && d.cerceve.ayar))) || {}, out = [];
+    if (A.zemin && typeof A.zemin === 'object') { S.zemin = Object.assign({}, S.zemin || {}, A.zemin); out.push('zemin'); }
+    if (A.dep && typeof A.dep === 'object') { S.dep = Object.assign({}, S.dep || {}, A.dep); out.push('deprem'); } else if (+A.SDS > 0) S.dep = Object.assign({}, S.dep || {}, { SDS: +A.SDS });
+    if (A.kot && typeof A.kot === 'object' && S.geo) { const g = S.geo, K = S.kabuk && S.kabuk.radye, zTop = K ? K.kAlt + K.t : (+g.kAlt || 0) + (+g.hr || 0);
+      if (A.kot.kZemin != null && isFinite(+A.kot.kZemin)) g.kZemin = +A.kot.kZemin;
+      if ('kYAS' in A.kot) g.kYAS = A.kot.kYAS == null || A.kot.kYAS === '' ? null : +A.kot.kYAS;
+      if ('kSu' in A.kot) g.kSu = A.kot.kSu == null || A.kot.kSu === '' ? r3(zTop) : +A.kot.kSu;
+      out.push('kotlar'); }
+    return out;
+  };
+
+  /* ---------- statik eleman listesi: metrajla aynı NET hacimler (STATIKMODEL › d.hacim, app/yapi-cakisma.js) ----------
+     Hesap ağı eksen modelidir (perdeler eksenden eksene, köşelerde ve kolon izlerinde üst üste biner); yapı ağırlığı, yüzme tahkiki ve
+     eleman listesi bu net hacimlerle verilir. netHacimBol: alt yapı üst kotunda (kot) ikiye böler — kolon kotun altındaki kısmıyla alt yapıya. */
+  P.netHacimBol = (H, kot) => {
+    const alt = {}, ust = {}; let a = 0, u = 0;
+    for (const e of (H && H.liste) || []) { let va = 0, vu = 0;
+      for (const [za, zb, A] of (e.dz || [])) { va += A * Math.max(0, Math.min(zb, kot) - za); vu += A * Math.max(0, zb - Math.max(za, kot)); }
+      if (!(e.dz && e.dz.length)) va = e.net;
+      if (va > 1e-6) alt[e.ad] = r3((alt[e.ad] || 0) + va); if (vu > 1e-6) ust[e.ad] = r3((ust[e.ad] || 0) + vu); a += va; u += vu; }
+    return { alt, ust, altTop: r3(a), ustTop: r3(u) };
+  };
+  P.netAgirlik = S => {
+    const H = S && S.hacim; if (!H || !Array.isArray(H.liste) || !H.liste.length) return null;
+    const gc = (S.mal && S.mal.gc) || 25, kot = S.yapi && S.yapi.tur === 'altUst' && S.yapi.altUstKot != null ? +S.yapi.altUstKot : null;
+    const top = kot != null ? P.netHacimBol(H, kot).alt : H.top, rows = Object.entries(top).filter(([, v]) => v > 1e-6).map(([ad, V]) => ({ ad, V }));
+    const V = rows.reduce((s, q) => s + q.V, 0); return { rows, V: r3(V), G: V * gc, gc, kot };
+  };
+  // rapor bölümü: tür tür brüt / net hacim (ve alt + üst yapıda kotla ayrımı)
+  P.elemanListesiHtml = (S, f) => {
+    const H = S && S.hacim; if (!H || !Array.isArray(H.liste) || !H.liste.length) return '';
+    f = f || f2; const gc = (S.mal && S.mal.gc) || 25, kot = S.yapi && S.yapi.tur === 'altUst' && S.yapi.altUstKot != null ? +S.yapi.altUstKot : null, B = kot != null ? P.netHacimBol(H, kot) : null;
+    const tur = {}; for (const e of H.liste) { const o = tur[e.ad] = tur[e.ad] || { n: 0, brut: 0, net: 0 }; o.n++; o.brut += e.brut; o.net += e.net; }
+    let h = `<h3>Statik eleman listesi (net hacim)</h3><p>Hacimler metrajla aynı net parçalardan alınmıştır (birleşim önceliği: temel / radye &gt; kolon &gt; perde &gt; kiriş &gt; döşeme; aynı hacim iki kez sayılmaz). Tuğla duvar, dolgu ve zemine oturan döşemeler (taban betonu, kaide) statik eleman değildir. Sonlu eleman ağı eleman eksenlerinden kurulduğu için ağdaki öz ağırlık bu listeden biraz farklı olabilir; yapı ağırlığı ve yüzme tahkikinde bu liste kullanılır.</p>`;
+    h += `<table><tr><th class="l">Eleman</th><th>Adet</th><th>Brüt (m³)</th><th>Net (m³)</th>${B ? `<th>Alt yapı (m³)</th><th>Üst yapı (m³)</th>` : ''}<th>Ağırlık (kN)</th></tr>`;
+    let tb = 0, tn = 0; for (const [ad, o] of Object.entries(tur)) { tb += o.brut; tn += o.net; h += `<tr><td class="l">${ad}</td><td>${o.n}</td><td>${f(o.brut)}</td><td>${f(o.net)}</td>${B ? `<td>${f(B.alt[ad] || 0)}</td><td>${f(B.ust[ad] || 0)}</td>` : ''}<td>${f(o.net * gc, 0)}</td></tr>`; }
+    h += `<tr><th class="l">Toplam</th><th></th><th>${f(tb)}</th><th>${f(tn)}</th>${B ? `<th>${f(B.altTop)}</th><th>${f(B.ustTop)}</th>` : ''}<th>${f(tn * gc, 0)}</th></tr></table>`;
+    if (B) h += `<p>Alt yapı üst kotu ${f(kot)}: kolonların bu kotun altındaki kısmı alt yapıya (perde içinde), üstündeki kısmı üst yapıya sayılmıştır.</p>`;
+    return h;
+  };
+
   /* ================= PENCERE (yalnız tarayıcıda) ================= */
   if (typeof document === 'undefined' || typeof G.buildForm !== 'function' || typeof G.modelUygula !== 'function') return;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -83,7 +128,8 @@
   const model0 = G.modelUygula;
   G.modelUygula = function (d) {
     const r = model0.apply(this, arguments);
-    try { const s = Sx(); if (s && d && !d.hata) { s.yapi = P.yapiSecim(d); if (typeof save === 'function') save(); G.buildForm();
+    try { const s = Sx(); if (s && d && !d.hata) { s.yapi = P.yapiSecim(d); s.hacim = d.hacim || null; const ay = P.statikAyarUygula(s, d);
+      if (ay.length) { const m0 = $('#pMsg'); if (m0) m0.insertAdjacentHTML('afterbegin', `<div class="msg info">Projeye kayıtlı ${ay.join(', ')} değerleri alındı (zemin φ ${f2(s.zemin.phi, 0)}°, ${esc(s.zemin.K)}, sürşarj ${f2(s.zemin.q, 1)} kN/m², emniyet ${f2(s.zemin.sig, 0)} kN/m²${s.geo ? ` · zemin kotu ${f2(s.geo.kZemin)}, YAS ${s.geo.kYAS != null ? f2(s.geo.kYAS) : 'yok'}` : ''}).</div>`); } if (typeof save === 'function') save(); G.buildForm();
       const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">Yapı türü: <b>${esc(P.YAPI_TURU_KISA[s.yapi.tur] || '—')}</b>${s.yapi.elle ? ' (projede elle seçilmiş)' : ' (program önerisi)'}${s.yapi.tur === 'altUst' ? ` · alt yapı üst kotu ${f2(s.yapi.altUstKot)}` : ''}. Formun başındaki <b>Yapı türü</b> bölümünden değiştirebilirsiniz.</div>`); } } catch (er) { console.error('yapı türü', er); }
     return r;
   };
