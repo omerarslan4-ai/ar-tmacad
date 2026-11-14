@@ -76,8 +76,8 @@ t('Konya: birleşim kuralından sonra hiçbir hacim iki kez sayılmaz', () => {
   const N = Y.net(E); yak(Y.netCakisma(N), 0, 1e-6);
   const top = {}; for (const [, m] of N) top[m.ad] = (top[m.ad] || 0) + m.net;
   yak(top.Kolon, 10 * 0.5 * 0.5 * 11.2, 1e-6);                             // kolonlar bütün
-  yak(top.Temel, 20.7 * 9.0 * 0.4, 1e-6);
-  assert.ok(top.Perde < 115.31 - 11.8 + 0.05 && top.Perde > 103.4, 'perde: kolon izleri düşülmüş ' + top.Perde);
+  yak(top.Temel, 20.7 * 9.5 * 0.6, 1e-6);                                 // radye 60 cm (Konya statik, perdeler dışa kalınlaştı: B 50, A 60)
+  assert.ok(top.Perde < 179.34 - 11.8 + 0.05 && top.Perde > 167.4, 'perde: kolon izleri düşülmüş ' + top.Perde); // brüt 179,34 m³ (B 50, A 60, kısa 40 cm × 6,50 m)
   assert.ok(top['Kiriş'] < 27.18 - 0.9 && top['Kiriş'] > 25.5, 'kiriş: kolon, perde ve çapraz kiriş içi düşülmüş, döşeme içi kirişte ' + top['Kiriş']);
 });
 t('Konya: her elemanın neti brütünden büyük değil; kesen türler öncelik sırasına uyar', () => {

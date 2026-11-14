@@ -14,15 +14,16 @@ t('kotlar: ±0.00 = +205,67, toprak −0,20', () => {
   assert.strictEqual(doc.set.seviye.abs0, 205.67); yak(doc.set.seviye.toprak, -0.20, 1e-9);
   yak(U.z(199.77), -5.90, 1e-9); yak(U.z(210.91), 5.24, 1e-9);
 });
-t('radye 40 cm, 50 cm taşar; grobeton ayrı nesne değil (kesit otomatik çizer); şap zemin kaplaması', () => {
+t('radye 60 cm (statik), dış yüzden 50 cm taşar; grobeton ayrı nesne değil (kesit otomatik çizer); şap zemin kaplaması', () => {
   const r = tip('plak').filter(e => e.kind === 'radye'); assert.strictEqual(r.length, 1);
-  yak(r[0].t, 0.40, 1e-9); yak(r[0].zt, U.z(198.91), 1e-9); yak(alan(r[0].pts), 20.7 * 9.0, 1e-6);
+  yak(r[0].t, 0.60, 1e-9); yak(r[0].zt, U.z(198.91), 1e-9); yak(alan(r[0].pts), 20.7 * 9.5, 1e-6);
   const k = tip('kaplama'); assert.strictEqual(k.length, 1); yak(k[0].z0 + (k[0].zbt + k[0].sap + k[0].kt) / 100, U.z(205.67), 1e-9);
   assert.ok(!tip('plak').some(e => /şap|grobeton/i.test(e.ad || '')));
 });
-t('perdeler: uzun kenar 30, kısa kenar 40 cm, radye üstünden +205,41', () => {
+t('perdeler: B 50, A 60, kısa kenar 40 cm (statik), radye üstünden +205,41', () => {
   const p = tip('perde').filter(e => e.malz === 'beton');
-  assert.strictEqual(p.length, 4); assert.deepStrictEqual(p.map(e => e.tb), [0.3, 0.3, 0.4, 0.4]);
+  assert.strictEqual(p.length, 4); assert.deepStrictEqual(p.map(e => e.tb), [0.5, 0.6, 0.4, 0.4]);                     // statik hesaptan (çizimde 30/30/40/40)
+  yak(p[0].pts[0][1] - 0.25, -0.20, 1e-9); yak(p[1].pts[0][1] + 0.30, 8.30, 1e-9);  // dışa kalınlaşır: iç yüzler 0,30 / 7,70 yerinde
   for (const e of p) { yak(e.z0, U.z(198.91), 1e-9); yak(e.z0 + e.h, U.z(205.41), 1e-6); }
 });
 t('kolonlar: 10 × 50/50 kiriş altına (+210,11)', () => {

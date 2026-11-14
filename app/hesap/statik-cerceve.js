@@ -83,7 +83,8 @@
     const kolonlar = (CF.kolonlar || []).map(c => Object.assign({}, c, { bx: c.D ? c.D * 0.886 : c.bx, by: c.D ? c.D * 0.886 : c.by }));
     const kirisler = (CF.kirisler || []).map(k => Object.assign({}, k));
     const perdeler = (CF.perdeler || []).map(w => Object.assign({}, w));
-    const dosemeler0 = (CF.dosemeler || []).map(d => Object.assign({ g: dv.gD, q: dv.qD }, d));
+    const sayi = (v, v0) => (v === '' || v == null || !isFinite(+v) ? v0 : +v);   // boş / tanımsız yük (form boş bırakılmış, ör. modelden yeni alınmış döşeme) → varsayılan
+    const dosemeler0 = (CF.dosemeler || []).map(d => Object.assign({}, d, { g: sayi(d.g, dv.gD), q: sayi(d.q, dv.qD) }));
     if (!kirisler.length && !kolonlar.length) return null;
     kolonlar.forEach(c => { if (c.D) uyar.push(`${c.no || 'Kolon'}: dairesel kolon eşdeğer kare (${Math.round(c.bx * 100)} cm) kabul edildi.`); });
 

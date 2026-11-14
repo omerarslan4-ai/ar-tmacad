@@ -3,7 +3,7 @@
    Kaynak çizim: test-proje/konya/Konyaİsale_Terfi_mim+mek.dwg (Pompa holü planı, Montaj holü planı, A-A ve B-B kesitleri, 1/50).
    Yalnız inşaat kısımları: grobeton, radye, betonarme perdeler, kolonlar, kirişler, döşemeler, pompa kaideleri, kanallar (döşemede boşluk),
    tuğla duvarlar, pencere / kapı boşlukları, U merdiven, korkuluklar, kırma çatı, tretuvar ve rampa. Pompa, boru, vana, vinç gibi mekanik kısımlar YOK.
-   Yerel çerçeve: x = uzun kenar (1 aksının dış yüzü = 0, 5 aksı dış yüzü = 19,70), y = kısa kenar (B aksı dış yüzü = 0, A aksı dış yüzü = 8,00).
+   Yerel çerçeve: x = uzun kenar (1 aksının dış yüzü = 0, 5 aksı dış yüzü = 19,70), y = kısa kenar (üst yapıda B aksı dış yüzü = 0, A aksı dış yüzü = 8,00; gömülü perdeler dışa kalınlaştığı için onların dış yüzleri −0,20 ve 8,30).
    Kotlar: ±0.00 = +205,67 (montaj holü bitmiş zemin); z = mutlak kot − 205,67. Saf fonksiyonlar test/konya-terfi.test.js ile denenir. */
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -17,7 +17,8 @@ const OLCU = {
   boy: 1970, en: 800,                                 // dış ölçüler
   kolonX: [0, 450, 900, 1350, 1920],                  // 50×50 kolonların sol kenarları (aks 1…5)
   kot: {
-    grobetonAlt: 198.41, radyeAlt: 198.51, radyeUst: 198.91, dolguUst: 199.36, pompaHolu: 199.77,
+    grobetonAlt: 198.21, radyeAlt: 198.31,                   // statik: radye 60 cm (çizimde 40: +198,51)
+    radyeUst: 198.91, dolguUst: 199.36, pompaHolu: 199.77,
     galeriUst: 205.41, mimariZemin: 205.67, toprak: 205.47, tretuvar: 205.57, sah1: 201.56, sah2: 203.35,
     kirisAltEnine: 210.11, kirisAltBoyuna: 210.41, catiDoseme: 210.91, guseUst: 208.81,
   },
@@ -33,11 +34,20 @@ const KONYA_DEPREM = (() => {
   const Ss = 0.367, S1 = 0.117, FS = FS_ZD(Ss), F1 = F1_ZD(S1), SDS = +(Ss * FS).toFixed(3), SD1 = +(S1 * F1).toFixed(3);
   return {
     Ss, S1, FS: +FS.toFixed(3), F1: +F1.toFixed(3), SDS, SD1, zs: 'ZD', dd: 'DD-2',
-    ayar: { SDS, SD1, R: 8, D: 3, I: 1, n: 0.3, guseP: 55, guseG: 5 },             // çerçeve: R 8 D 3, BKS 3; 5 t vinç (Çokal ile aynı)
+    ayar: { SDS, SD1, R: 8, D: 3, I: 1, n: 0.3, guseP: 55, guseG: 5, wmax: 0.2, seritOrt: 1.0 }, // kabuk: çatlak 0,20 mm (Çokal SR), 1 m şerit ortalaması; çerçeve: R 8 D 3, BKS 3; 5 t vinç (Çokal ile aynı)
     zemin: { g: 18, gs: 20, phi: 30, dR: 0.667, K: 'KA', kw: 19620, sig: 196, q: 5 }, // qt 20 t/m², k 2000 t/m³
     dep: { yon: 'TBDY2018', SDS, r: 1.5, I: 1, yontem: 'MO', eYAS: true },
   };
 })();
+
+/* ---------- statik hesaptan gelen kalınlıklar (13.11.2026, Konya değerleri, 3B kabuk hesabı; kullanıcı "büyüt" dedi) ----------
+   Çizimde uzun perdeler 30, kısa perdeler 40, radye 40 cm. Toprak itkisi (6,5 m) altında 30 cm uzun perdeler yetmedi; firma basamaklarıyla:
+   B aksı perdesi 50, A aksı perdesi 60 (üst kenarı galeri döşemesi bitince serbest), kısa perdeler 40, radye 60 (en kalın perdeye eşit).
+   Perdeler DIŞA doğru kalınlaşır: iç yüzler (pompa holü net ölçüsü 7,40 m) ve galeri döşemesi yerinde kalır; radye yeni dış yüzden 50 cm taşar.
+   Hesap kabulleri: çatlak sınırı 0,20 mm (Çokal su yapıları raporu), tasarım değerleri 1 m şerit ortalaması (köşe / birleşim tepeleri yerine).
+   DURUM (14.11.2026): kabuk tasarımı mesnet yüzünden d içeride kesme ve aynı noktadaki M–N ile güncellenince bu kalınlıklarla Konya kabuk hesabı
+   YETMİYOR (P1 / P2 dış yüz düşey donatı, P2 kesme, D5 galeri döşemesi kesme). Çözüm yapı türüne göre statik yol (alt + üst yapı, iki aşama) ile ele alınacak. */
+const STATIK_T = { B: 0.5, A: 0.6, kisa: 0.4, radye: 0.6 };
 
 /* ---------- belge kurucu ---------- */
 function yeniBelge() {
@@ -119,19 +129,20 @@ function uret() {
   const P1 = { w: 0.7, hh: 1.5, par: +(206.41 - K.galeriUst).toFixed(2) };            // 70/150 pencere, denizlik +206,41
 
   // 1) grobeton ve radye (radye dış yüzden 50 cm taşar, grobeton 60 cm)
-  // 10 cm grobeton (+198,41 → +198,51) ayrı nesne değildir: programın kesitleri radye altına otomatik çizer, statik paftası notunda yazar
-  plak('INS_TEMEL_RADYE', dik(-50, -50, 2020, 850), K.radyeUst, K.radyeUst - K.radyeAlt, { kind: 'radye' });
+  // 10 cm grobeton (+198,21 → +198,31) ayrı nesne değildir: programın kesitleri radye altına otomatik çizer, statik paftası notunda yazar
+  const yB = 30 - STATIK_T.B * 100, yA = 770 + STATIK_T.A * 100;                        // perde dış yüzleri (cm): iç yüzler 30 / 770 sabit
+  plak('INS_TEMEL_RADYE', dik(-50, yB - 50, 2020, yA + 50), K.radyeUst, K.radyeUst - K.radyeAlt, { kind: 'radye' });
 
-  // 2) pompa holü betonarme perdeleri: uzun kenarlar 30 cm, kısa kenarlar 40 cm, radye üstünden +205,41'e
+  // 2) pompa holü betonarme perdeleri (kalınlıklar STATIK_T): radye üstünden +205,41'e
   const hP = +(K.galeriUst - K.radyeUst).toFixed(3), zP = z(K.radyeUst);
   const perdeler = [
-    perde('INS_PERDE', [[0, 15], [1970, 15]], { tb: 0.3, tt: 0.3, z0: zP, h: hP, ad: 'Perde B aksı' }),
-    perde('INS_PERDE', [[0, 785], [1970, 785]], { tb: 0.3, tt: 0.3, z0: zP, h: hP, ad: 'Perde A aksı' }),
-    perde('INS_PERDE', [[20, 30], [20, 770]], { tb: 0.4, tt: 0.4, z0: zP, h: hP, ad: 'Perde 1 aksı' }),
-    perde('INS_PERDE', [[1950, 30], [1950, 770]], { tb: 0.4, tt: 0.4, z0: zP, h: hP, ad: 'Perde 5 aksı' }),
+    perde('INS_PERDE', [[0, 30 - STATIK_T.B * 50], [1970, 30 - STATIK_T.B * 50]], { tb: STATIK_T.B, tt: STATIK_T.B, z0: zP, h: hP, ad: 'Perde B aksı' }),
+    perde('INS_PERDE', [[0, 770 + STATIK_T.A * 50], [1970, 770 + STATIK_T.A * 50]], { tb: STATIK_T.A, tt: STATIK_T.A, z0: zP, h: hP, ad: 'Perde A aksı' }),
+    perde('INS_PERDE', [[20, 30], [20, 770]], { tb: STATIK_T.kisa, tt: STATIK_T.kisa, z0: zP, h: hP, ad: 'Perde 1 aksı' }),
+    perde('INS_PERDE', [[1950, 30], [1950, 770]], { tb: STATIK_T.kisa, tt: STATIK_T.kisa, z0: zP, h: hP, ad: 'Perde 5 aksı' }),
   ];
   // radye–perde birleşiminde PVC su tutucu bant (perde eksenlerinde)
-  ekle('yalitim', 'INS_SU_TUTUCU_BANT', { kind: 'bant', dz: 0, pts: [[0.2, 0.15], [19.5, 0.15], [19.5, 7.85], [0.2, 7.85]], closed: true, z: zP, tip: 'pvc_i25', w: 20, t: 5 });
+  ekle('yalitim', 'INS_SU_TUTUCU_BANT', { kind: 'bant', dz: 0, pts: [[0.2, cm(30 - STATIK_T.B * 50)], [19.5, cm(30 - STATIK_T.B * 50)], [19.5, cm(770 + STATIK_T.A * 50)], [0.2, cm(770 + STATIK_T.A * 50)]], closed: true, z: zP, tip: 'pvc_i25', w: 20, t: 5 });
 
   // 3) kolonlar 50×50: radye üstünden enine kiriş altına (+210,11); aks 2…5 kolonlarında vinç yolu gusesi (B-B kesiti):
   //    kolon yüzünden 40 cm çıkma, üst +208,81 (vinç rayı altı), ön yüz 30 cm, alt yüz eğimli — kolon yüzünde 50 cm yükseklik
@@ -203,7 +214,7 @@ function uret() {
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, say } };
 }
 
-module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, GUSE, guse, KONYA_DEPREM, FS_ZD, F1_ZD, uret };
+module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, GUSE, guse, STATIK_T, KONYA_DEPREM, FS_ZD, F1_ZD, uret };
 
 if (require.main === module) {
   const cikti = process.argv[2] || path.join(__dirname, '..', 'test-proje', 'konya', 'Konya-terfi-insaat.aritma');

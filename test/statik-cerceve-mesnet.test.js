@@ -50,4 +50,14 @@ t('kabuk (su yapısı) kolon momenti kolon kombinasyonlarına eklenir: perde X b
   assert.ok(R1.uyar.some(u => /kabuk\) modelinden/.test(u)));
 });
 
+t('döşeme yükü boş (undefined / NaN / "") ise varsayılan kaplama ve hareketli yük alınır, deprem ağırlığı hesaplanır', () => {
+  const S = temel({
+    kolonlar: [[0.25, 0.25], [7.75, 0.25], [0.25, 5.75], [7.75, 5.75]].map(([x, y], i) => ({ id: i + 1, no: 'S' + (i + 1), x, y, bx: 0.5, by: 0.5, z0: 0, zt: 3.2 })),
+    kirisler: [], dosemeler: [{ id: 9, no: 'D1', pts: [[0, 0], [8, 0], [8, 6], [0, 6]], t: 0.15, zt: 3.2, g: undefined, q: NaN }] });
+  S.cer.ayar.SDS = 0.5; S.cer.ayar.SD1 = 0.2; S.dep.SDS = 0.5;
+  const v = P.cerceveVars(), RC = P.cerceveHesap(S), d = RC.dosemeler[0];
+  assert.strictEqual(d.g, v.gD); assert.strictEqual(d.q, v.qD); assert.ok(RC.deprem.W > 0, 'W = ' + RC.deprem.W);
+  S.cer.dosemeler[0].g = ''; S.cer.dosemeler[0].q = 0; const d2 = P.cerceveHesap(S).dosemeler[0]; assert.strictEqual(d2.g, v.gD); assert.strictEqual(d2.q, 0);
+});
+
 console.log(`\n${n} test geçti.`);

@@ -28,10 +28,10 @@ t('kabukSinir: perde aralığı yüksekliğe göre, radye iki basamak üstü, d�
   const L2 = P.kabukSinir(M); assert.strictEqual(L2.perde[0].max, 0.70); assert.strictEqual(L2.perde[4].max, 0.60, 'ara perde dış perdeden kalın olmaz'); assert.strictEqual(L2.radyeMax, 0.80);
 });
 
-t('Konya terfi modeli: sınırlar (6,50 m perde → en çok 70 cm; radye 40 cm perdeyle en çok 60 cm)', () => {
+t('Konya terfi modeli: sınırlar (6,50 m perde → en çok 70 cm; en kalın dış perde 60 cm → radye en çok 80 cm)', () => {
   const { d } = O.modelCevir(O.konyaDoc()), L = P.kabukSinir(d.kabuk);
   assert.strictEqual(d.kabuk.walls.length, 4); for (const a of L.perde) { assert.ok(Math.abs(a.H - 6.5) < 1e-6); assert.strictEqual(a.max, 0.70); }
-  assert.strictEqual(L.radyeMax, 0.60); assert.strictEqual(L.dosemeMax, 0.30);
+  assert.strictEqual(L.radyeMax, 0.80); /* Konya statik: perdeler B 50 / A 60 cm → radye en çok 80 */ assert.strictEqual(L.dosemeMax, 0.30);
 });
 
 t('aşırı yüklü ince perde: öneri basamakla büyür, üst sınırı aşmaz, yetmiyorsa nedenini söyler; girdi değişmez', () => {
