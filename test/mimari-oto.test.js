@@ -226,4 +226,8 @@ t('kesit iç düşey zincirleri: kaba zincir atılır, aynı ölçü bir kez (Ko
   assert.strictEqual(say(-6.31, -5.9), 1); assert.strictEqual(say(-5.9, -0.26), 1); assert.strictEqual(say(-5.9, 4.74), 1);
 });
 
+t('lento yazısı: Çokal 6-Blower biçimi "Lento" / "(20x20)" — en (duvar kalınlığı) x yükseklik', () => {
+  assert.deepStrictEqual(A.lentoYazisi(0.2, 0.2), ['Lento', '(20x20)']); assert.deepStrictEqual(A.lentoYazisi(0.25, 0.3), ['Lento', '(25x30)']);
+});
+
 console.log(`\n${n} test geçti.`);

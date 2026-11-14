@@ -284,6 +284,8 @@
     const s = k.tur === 'ortu' && /panel/i.test(k.ad || '') ? `${ad} (${+(k.t * 100).toFixed(1)} cm)` : ad + (par && k.tur !== 'ortu' ? ` (${par[1]})` : '');
     return ikiSatir(s); };
   const olukYazisi = dn => [`DN${dn} Çinko Yağmur Oluğu`];
+  /* lento (Çokal 6-Blower_R2 kesit detayı: MTEXT Yazi25 "Lento" / "(20x20)", ok _ClosedBlank): en (duvar kalınlığı) x yükseklik, cm */
+  const lentoYazisi = (en, h) => ['Lento', `(${Math.round(en * 100)}x${Math.round(h * 100)})`];
   const inisBorusuYazisi = dn => [`DN${dn} Çinko Yağmur`, 'İniş Borusu'];
 
   /* ---------- 6) GÖRÜNÜŞTE TOPRAK ALTI (firma kuralı 14.11.2026: toprak altında kalan yapı kısımları görünmez) ----------
@@ -340,7 +342,7 @@
     for (const g of D) { if (at.has(g)) continue; for (const q of g.q) { const k = yuv(Math.min(q.a[1], q.b[1])) + '|' + yuv(Math.max(q.a[1], q.b[1])); if (gor.has(k)) continue; gor.add(k); out.push(q); } }
     return O.concat(out);
   };
-  const api = { siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  const api = { siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, lentoYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
@@ -605,7 +607,20 @@
     return G.length ? okKoy(G, C.doc.ents.filter(e => e.gv === gv), { gv }, OKC) : 0;
   };
   /* kesitin oklu açıklamaları: korkuluk, sonra çatı elemanları (kesit.js; disiplin görünümünde açılımdan sonra — gorunumler.js) */
-  C.kesitOklari = K => { let n = 0; for (const [f, ad] of [[C.korkulukOkKesit, 'korkuluk oku'], [C.catiOkKesit, 'çatı oku']]) if (f) try { n += f(K) || 0; } catch (er) { console.error(ad, er); } return n; };
+  /* KESİT: kesilen doğramanın lentosu (firma kuralı 14.11.2026: "lentoları da okla, ebatı ile birlikte yaz"); aynı ebattaki lentolara tek ok (tip başına).
+     Lento: doğrama boşluğunun üstünde, yükseklik lh (yoksa duvar kalınlığı), en duvar kalınlığı; Çokal planlarında lento yazısı yok — yalnız kesitte */
+  C.lentoOkKesit = K => {
+    const S = p => (p[0] - K.a[0]) * K.u[0] + (p[1] - K.a[1]) * K.u[1], N = p => (p[0] - K.a[0]) * K.n[0] + (p[1] - K.a[1]) * K.n[1], G = new Map();
+    for (const e of C.doc.ents) { if (e.gv || e.type !== 'acik' || e.lento === false || !C.layer(e.layer).on) continue; const h = C.byId(e.host); if (!h || !Array.isArray(h.pts) || h.pts.length < 2) continue;
+      const i = Math.max(0, Math.min(h.pts.length - 2, +e.seg || 0)), A = h.pts[i], B = h.pts[i + 1], L = Math.hypot(B[0] - A[0], B[1] - A[1]); if (L < 1e-6) continue;
+      const u = [(B[0] - A[0]) / L, (B[1] - A[1]) / L], w = +e.w || 1, lb = +e.lb || 0, td = +h.tb || +h.t || 0.2, lh = +e.lh > 0 ? +e.lh : td;
+      const P0 = [A[0] + u[0] * (+e.s - w / 2 - lb), A[1] + u[1] * (+e.s - w / 2 - lb)], P1 = [A[0] + u[0] * (+e.s + w / 2 + lb), A[1] + u[1] * (+e.s + w / 2 + lb)], d0 = N(P0), d1 = N(P1);
+      let P; if ((d0 < 0) !== (d1 < 0) && Math.abs(d0 - d1) > 1e-9) { const t = d0 / (d0 - d1); P = [P0[0] + (P1[0] - P0[0]) * t, P0[1] + (P1[1] - P0[1]) * t]; } else continue; // yalnız kesilen lento
+      const z = (+h.z0 || 0) + (+e.par || 0) + (+e.hh || +e.h || 2) + lh / 2, s = S(P); if (!K.inU([s, z])) continue; const w2 = K.W([s, z]), k = Math.round(td * 100) + 'x' + Math.round(lh * 100);
+      if (!G.has(k)) G.set(k, { adaylar: [], satir: lentoYazisi(td, lh) }); G.get(k).adaylar.push([w2[0], w2[1]]); }
+    return G.size ? okKoy([...G.values()], C.doc.ents.slice(K.i0 || 0), {}) : 0;
+  };
+  C.kesitOklari = K => { let n = 0; for (const [f, ad] of [[C.korkulukOkKesit, 'korkuluk oku'], [C.lentoOkKesit, 'lento oku'], [C.catiOkKesit, 'çatı oku']]) if (f) try { n += f(K) || 0; } catch (er) { console.error(ad, er); } return n; };
   /* AKS: modelde aks yoksa kolon merkezlerinden (yoksa betonarme perde eksenlerinden) türetilir; MIMARIPAFTA her çalıştığında yeniler (oto: 'MIMARIPAFTA') */
   C.mimariAksHazirla = ents => {
     C.doc.ents = C.doc.ents.filter(e => !(e.type === 'aks' && e.oto === 'MIMARIPAFTA'));

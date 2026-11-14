@@ -381,9 +381,9 @@
           const nm = h.nm, v = { id: 'G' + Date.now().toString(36) + 'CATI' + catiR.kesitler.length, tip: 'kesit', kaynak: 'MIMARIPAFTA', ad: `${nm}-${nm} ÇATI KESİTİ`, nm, a: h.a, b: h.b, sp: h.sp, depth: h.depth, yer: [X0, Yc], olcek: SC, acilim: false };
           /* öbür elemanların 3B ağı kesit süresince gizlenir (C.doc.ents değiştirilmez: canlı görünüm imzası — proje.js — bozulmasın), doğrama numarası yazılmaz;
              işaret planda (aşağıda), modelde değil; canlı görünüm kaydı silinir (MIMARIPAFTA her çalışmada yeniden üretir) */
-          const once = new Set(C.doc.ents.map(e => e.id)), ms0 = C.meshes, de0 = C.dogramaEtiketKesit, dc0 = C.dogramaCizKesit, ko0 = C.korkulukOkKesit;
-          C.meshes = function (e) { return e && (sec.has(e.id) || e.gv) ? ms0.apply(this, arguments) : null; }; C.dogramaEtiketKesit = () => 0; C.dogramaCizKesit = () => []; C.korkulukOkKesit = () => 0; // çatı kesitinde doğrama ve korkuluk yok
-          try { await G.kesitUret(v); } finally { C.meshes = ms0; C.dogramaEtiketKesit = de0; C.dogramaCizKesit = dc0; C.korkulukOkKesit = ko0; }
+          const once = new Set(C.doc.ents.map(e => e.id)), ms0 = C.meshes, de0 = C.dogramaEtiketKesit, dc0 = C.dogramaCizKesit, ko0 = C.korkulukOkKesit, lo0 = C.lentoOkKesit;
+          C.meshes = function (e) { return e && (sec.has(e.id) || e.gv) ? ms0.apply(this, arguments) : null; }; C.dogramaEtiketKesit = () => 0; C.dogramaCizKesit = () => []; C.korkulukOkKesit = () => 0; C.lentoOkKesit = () => 0; // çatı kesitinde doğrama, lento ve korkuluk yok
+          try { await G.kesitUret(v); } finally { C.meshes = ms0; C.dogramaEtiketKesit = de0; C.dogramaCizKesit = dc0; C.korkulukOkKesit = ko0; C.lentoOkKesit = lo0; }
           const yeni = C.doc.ents.filter(e => !once.has(e.id));
           const canli = C.doc.set.canli || {}; for (const e of yeni) if (e.canli) { delete canli[e.canli]; delete e.canli; }
           /* yalnız çatı seviyesi çizgisi kalır; çatı döşemesinin 1 m altından aşağıda kalan (su tutucu bant vb.) atılır */
