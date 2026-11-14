@@ -64,12 +64,18 @@
     [/^(.+?)\s+GÖRÜNÜŞÜ$/u, (m, a) => `ELEVATION ${a}`],
     [/^(.+?)\s+KOTU PLANI$/u, (m, a) => `PLAN AT LEVEL ${a}`],
     [/^SU TUTUCU BANT\s*\((.*)\)$/u, (m, a) => `WATERSTOP (${a})`],
+    [/^ÖL\s*:\s*(1\/\d+)$/u, (m, a) => `SC:${a}`],
   ];
+  /* ortak sözlük (app/dil-en.js, DIL.ekle ile her modülün eklediği terimler: kapı / pencere detayları, çatı, yağmur, pafta listesi …) çizim çevirisine de katılır;
+     bu tablodaki (EN) ve kullanıcının ÇEVİRİ tablosundaki karşılıklar önceliklidir */
+  const dilEN = () => { try { const z = typeof window !== 'undefined' && window.DIL && window.DIL.sz && window.DIL.sz.en; return z || null; } catch (e) { return null; } };
+  const dilTam = () => { const z = dilEN(), o = {}; if (z && z.tam) for (const [k, v] of z.tam) if (k && v != null && !k.includes('#')) o[k] = v; return o; };
+  const dilKalip = t => { const z = dilEN(); if (!z || !z.sab) return null; for (const p of z.sab) { if (!p.tam) continue; const m = t.match(p.tam); if (m) { let i = 0; return p.en.replace(/\{(\d)\}|#/g, (x, d) => (d ? (m[+d] || '') : (m[++i] != null ? m[i] : ''))); } } return null; };
   const lowTR = s => s.toLocaleLowerCase('tr'), upTR = s => s.toLocaleUpperCase('tr');
   let LOW = null, PHR = null;
   const build = () => {
     const user = (C.doc && C.doc.set && C.doc.set.ceviri) || {};
-    const all = Object.assign({}, EN, user); LOW = new Map(); for (const [k, v] of Object.entries(all)) LOW.set(lowTR(k.trim()), v);
+    const all = Object.assign({}, dilTam(), EN, user); LOW = new Map(); for (const [k, v] of Object.entries(all)) LOW.set(lowTR(k.trim()), v);
     const keys = Object.keys(all).filter(k => k.length >= 3).sort((a, b) => b.length - a.length);
     PHR = keys.length ? new RegExp('(?<![\\p{L}\\p{N}])(' + keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\p{L}])', 'giu') : null;
   };
@@ -80,6 +86,7 @@
     const t = s.trim(); if (!t) return s;
     const ex = LOW.get(lowTR(t)); if (ex != null) return s.replace(t, caseLike(t, ex));
     for (const [rx, fn] of RX) { const m = rx.exec(t) || rx.exec(upTR(t)); if (m) return s.replace(t, caseLike(t, fn(...m).replace(/\b(\w)-\1\b/, '$&'))); }
+    { const k = dilKalip(t); if (k != null) return s.replace(t, k); } // ortak sözlüğün sayı yer tutuculu kalıpları ("# ALÜMİNYUM PENCERE", "(# ADET)" …)
     let o = PHR ? s.replace(PHR, w => { const v = LOW.get(lowTR(w)); return v == null ? w : caseLike(w, v); }) : s;
     o = o.replace(/(\d),(\d)/g, '$1.$2').replace(/\bKot\b/g, 'Level');
     return o;
