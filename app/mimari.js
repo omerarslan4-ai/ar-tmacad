@@ -92,7 +92,7 @@
   };
   { const tl0 = C.textLayout; C.textLayout = function (pr) { if (C.lang() === 'en' && pr && pr.s != null) { const s = C.txL(pr.s); if (s !== pr.s) return tl0.call(this, Object.assign({}, pr, { s })); } return tl0.apply(this, arguments); }; }
   const clearAll = () => { for (const e of C.doc.ents) if (e._c) { delete e._c.p; delete e._c.b; } if (C.views) for (const w of Object.values(C.views)) if (w && 'dirty' in w) w.dirty = true; C.emit('layouts'); };
-  C.setLang = v => { v = v === 'en' ? 'en' : 'tr'; C.undoStack && C.undoStack.push(C.snapshot()); C.doc.set.lang = v; C.langReset(); clearAll(); C.changed(); C.log(v === 'en' ? '🌐 Proje dili: English — çizimdeki yazılar İngilizce gösterilir / kaydedilir.' : '🌐 Proje dili: Türkçe.'); };
+  C.setLang = v => { v = v === 'en' ? 'en' : 'tr'; C.undoStack && C.undoStack.push(C.snapshot()); C.doc.set.lang = v; C.langReset(); clearAll(); C.changed(); try { if (typeof window !== 'undefined' && window.DIL && window.DIL.kod && window.DIL.kod() !== v) window.DIL.set(v); } catch (e) { } /* program / rapor dili de birlikte */ C.log(v === 'en' ? '🌐 Proje dili: English — çizimdeki yazılar İngilizce gösterilir / kaydedilir.' : '🌐 Proje dili: Türkçe.'); };
   C.addCommand(['DIL', 'LANG', 'PROJEDILI', 'LANGUAGE'], 'Proje dili: DIL TR | EN — çizimdeki tüm yazılar (malzeme adları, başlıklar, tablolar, kot açıklamaları, sizin yazılarınız) seçilen dilde gösterilir ve DXF/PDF\'e öyle yazılır. Sözlükte olmayanlar için CEVIRI.', async (I) => {
     const v = await I.kw('Proje dili', [['TR', 'Türkçe'], ['EN', 'English']], C.lang() === 'en' ? 'EN' : 'TR'); C.setLang(String(v).toLowerCase());
   }, { noUndo: true });

@@ -8,8 +8,13 @@
   C.addCommand(['DIL', 'LANGUAGE', 'LANG'], 'Çizim / pafta / rapor dilini seçer', async (I) => {
     const ks = Object.keys(DIL.diller), sec = ks.map(k => [k.toUpperCase(), DIL.diller[k]]);
     const k = await I.kw('Dil / Language', sec, DIL.kod().toUpperCase()); if (!k || typeof k !== 'string') return;
-    DIL.set(k.toLowerCase()); C.log(`Dil: ${DIL.diller[DIL.kod()]} — yeni üretilen paftalar ve raporlar bu dilde olur; mevcut yazıları çevirmek için CEVIR.`);
-  });
+    const y = k.toLowerCase();
+    // iki dil düzeni birlikte değişir: program / rapor dili (DIL) ve projenin çizim dili (C.setLang → doc.set.lang; çizimdeki yazılar, paftalar, DXF/PDF)
+    DIL.set(y); if (C.setLang) C.setLang(y === 'en' ? 'en' : 'tr');
+    C.log(`Dil: ${DIL.diller[DIL.kod()]} — çizim, paftalar ve raporlar bu dilde gösterilir; yazıları kalıcı olarak çevirmek için CEVIR.`);
+  }, { noUndo: true });
+  // proje açılınca program dili projenin diline uyar (EN kaydedilmiş proje EN açılır)
+  if (C.on) C.on('doc', () => { try { const l = C.doc && C.doc.set && C.doc.set.lang; if (l && DIL.kod() !== l && DIL.diller[l]) DIL.set(l); } catch (e) { } });
   C.addCommand(['CEVIR', 'TRANSLATE', 'DILCEVIR'], 'Yazıları seçili dile çevirir (seçim yoksa tümü)', async (I) => {
     if (DIL.kod() === 'tr') { C.log('Seçili dil Türkçe — önce DIL komutuyla hedef dili seçin.'); return; }
     const ents = Array.isArray(C.sel) && C.sel.length ? C.sel.slice() : C.doc.ents;
