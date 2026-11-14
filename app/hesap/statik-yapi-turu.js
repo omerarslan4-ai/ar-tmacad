@@ -4,7 +4,8 @@
      su     : su yapısı (havuz, hazne, tank)         → yalnız 3B kabuk (perde, radye, döşeme)
      altUst : gömülü alt yapı + üst yapı (terfi merkezi) → iki aşama: üst yapı çerçeve (kolon ayakları alt yapı üst kotunda ankastre),
               alt yapı 3B kabuk (toprak + su + üst yapının kolon ayağı tepkileri)
-     ust    : yalnız üst yapı (bekçi, idari bina)    → çerçeve + temel hesabı, kabuk yok
+     ust    : yalnız üst yapı (bekçi, idari bina)    → çerçeve + temel hesabı; üst yapı için kabuk modeli kurulmaz, radye ile subasman
+              perdeleri birlikte Winkler zeminli küçük kabukla (şerit perde hesabıyla birlikte, büyüğü) çözülür
    Öneri ölçütleri (P.yapiTuru, saf): zeminin altında betonarme perde var mı (perde üstü ≤ en yüksek toprak / tretuvar kotu), haznede su
    var mı, alt yapının üstünde kolonlu / kirişli kat var mı. Alt yapı üst kotu = zeminin altında kalan perdelerin en yüksek üst kotu.
    Seçim projeye yazılır: C.doc.set.statikAyar.yapiTuru / altUstKot (eski projelerde alan yoksa öneri kullanılır). */
@@ -12,7 +13,7 @@
   'use strict';
   const P = G.STATIK = G.STATIK || {};
   const r3 = v => Math.round(v * 1000) / 1000, f2 = (v, d = 2) => (v == null || !isFinite(v) ? '—' : (+v).toFixed(d).replace('.', ','));
-  P.YAPI_TURU = { su: 'Su yapısı — 3B kabuk (perde, radye, döşeme)', altUst: 'Gömülü alt yapı + üst yapı — iki aşama (üst yapı çerçeve, alt yapı 3B kabuk)', ust: 'Yalnız üst yapı — çerçeve + temel (kabuk yok)' };
+  P.YAPI_TURU = { su: 'Su yapısı — 3B kabuk (perde, radye, döşeme)', altUst: 'Gömülü alt yapı + üst yapı — iki aşama (üst yapı çerçeve, alt yapı 3B kabuk)', ust: 'Yalnız üst yapı — çerçeve + temel (radye ve subasman perdesi küçük kabukla)' };
   P.YAPI_TURU_KISA = { su: 'Su yapısı', altUst: 'Alt yapı + üst yapı', ust: 'Yalnız üst yapı' };
 
   /* hazır proje yeri değerleri (zemin + deprem): kaynak raporlardan, elle seçilir ve projeye yazılır
@@ -21,9 +22,9 @@
      sürşarj 5 kN/m²; perde dinamik toprak itkisinde r = 1,5. */
   P.HAZIR_YER = {
     cokal: { ad: 'Çokal AAT — Saray / Tekirdağ (CKL_AAT_GB_R0, ÇOKAL_AAT_SR_R2)', ayar: { SDS: 1.624, SD1: 0.549, SDS3: 0.668, SD13: 0.196, R: 8, D: 3, I: 1, n: 0.3 },
-      zemin: { g: 18, gs: 20, phi: 30, dR: 0.667, K: 'KA', kw: 23544, sig: 140.2, q: 5 }, dep: { yon: 'TBDY2018', SDS: 1.624, r: 1.5, I: 1, yontem: 'MO', eYAS: true } },
+      zemin: { g: 18, gs: 20, phi: 30, dR: 0.667, K: 'KA', kw: 23544, sig: 140.2, q: 5 }, dep: { yon: 'TBDY2018', SDS: 1.624, r: 1.5, I: 1, yontem: 'MO', eYAS: true }, mal: { fck: 30, fyk: 420 } },   // C30 / S420 (B420C)
   };
-  P.hazirYerAyar = k => { const H = P.HAZIR_YER[k]; return H ? Object.assign({}, H.ayar, { zemin: Object.assign({}, H.zemin), dep: Object.assign({}, H.dep), yer: k }) : null; };
+  P.hazirYerAyar = k => { const H = P.HAZIR_YER[k]; return H ? Object.assign({}, H.ayar, { zemin: Object.assign({}, H.zemin), dep: Object.assign({}, H.dep), ...(H.mal ? { mal: Object.assign({}, H.mal) } : {}), yer: k }) : null; };
   /* d: STATIKMODEL verisi { kabuk?, geo?, cerceve?, zeminKot?, su?, statikAyar? } → { tur, altUstKot, zeminKot, su, ustVar, gomulu, neden[] } */
   P.yapiTuru = d => {
     d = d || {}; const K = d.kabuk || null, CF = d.cerceve || {}, neden = [];
@@ -74,6 +75,7 @@
     /* projede kayıt yoksa ÖNCEKİ projenin pencere değerleri devralınmaz: örnek varsayılanlara dönülür ve görünür uyarı verilir (S.ayarUyari) */
     if (A.zemin && typeof A.zemin === 'object') { S.zemin = Object.assign({}, V ? V.zemin : {}, A.zemin); out.push('zemin'); } else { if (V) S.zemin = Object.assign({}, V.zemin); eksik.push('zemin'); }
     if (A.dep && typeof A.dep === 'object') { S.dep = Object.assign({}, V ? V.dep : {}, A.dep); out.push('deprem'); } else { if (V) S.dep = Object.assign({}, V.dep); if (+A.SDS > 0) S.dep.SDS = +A.SDS; else eksik.push('deprem'); }
+    if (A.mal && typeof A.mal === 'object') { S.mal = Object.assign({}, S.mal || {}, A.mal); out.push('malzeme'); }
     S.yer = A.yer || null;
     S.ayarUyari = eksik.length ? `${eksik.join(' ve ')} değerleri projede kayıtlı değil — varsayılanlar kullanılıyor (zemin emniyet gerilmesi ${f2(S.zemin.sig, 0)} kN/m², φ ${f2(S.zemin.phi, 0)}°, S<sub>DS</sub> ${f2(S.dep.SDS, 3)}); lütfen statik penceresinde girin (ArıtmaCAD penceresi açıksa projeye kaydedilir).` : null;
     if (A.kot && typeof A.kot === 'object' && S.geo) { const g = S.geo, K = S.kabuk && S.kabuk.radye, zTop = K ? K.kAlt + K.t : (+g.kAlt || 0) + (+g.hr || 0);
@@ -97,7 +99,12 @@
     const kap = (S.kabuk.walls || []).filter(w => w.tip === 'dis' && w.kapali).sort((a, b) => alan(b.pts) - alan(a.pts)), IC = kap.length ? kap[0].pts : hull((S.kabuk.walls || []).filter(w => w.tip === 'dis').flatMap(w => w.pts));
     const merkez = q => { let A = 0, x = 0, y = 0; for (let i = 0; i < q.length; i++) { const [x0, y0] = q[i], [x1, y1] = q[(i + 1) % q.length], c = x0 * y1 - x1 * y0; A += c; x += (x0 + x1) * c; y += (y0 + y1) * c; } return Math.abs(A) > 1e-12 ? [x / (3 * A), y / (3 * A)] : q[0]; };
     // tuğla duvar (zemin döşemesi / dolgu üstünde, hazne içinde): ağırlığı iç bölgeye yayılı (kabul — duvar altı şerit yükü ayrıca alınmaz)
-    const ekL = T.ek.filter(e => e.tur === 'duvar' && IC.length >= 3 && pipq([e.x, e.y], IC) && !(Array.isArray(e.eksen) && e.eksen.some(q => !pipq(q, IC)))).map(e => Object.assign({}, e, { pts: IC, tur: 'duvar' }));
+    // perdenin üstündeki duvar (ekseninin her parçası bir kabuk perdesi ekseninden ≤ yarı kalınlık + 15 cm) radye yükü değildir: perde üstüne
+    // ayrıca yüklenir (P.temelKabuk) — sınırdaki pip belirsizliğine bırakılmaz
+    const dsg = (q, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)); return Math.hypot(a[0] + dx * u - q[0], a[1] + dy * u - q[1]); };
+    const perdeUstu = q => (S.kabuk.walls || []).some(w => { const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) if (dsg(q, w.pts[i], w.pts[(i + 1) % w.pts.length]) <= w.t / 2 + 0.15) return true; return false; });
+    P.duvarPerdeUstu = e => { const E = e.eksen; if (!Array.isArray(E) || E.length < 2) return false; const n = e.kapali ? E.length : E.length - 1; for (let i = 0; i < n; i++) { const a = E[i], b = E[(i + 1) % E.length]; if (!perdeUstu([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])) return false; } return true; };
+    const ekL = T.ek.filter(e => e.tur === 'duvar' && IC.length >= 3 && !P.duvarPerdeUstu(e) && pipq([e.x, e.y], IC) && !(Array.isArray(e.eksen) && e.eksen.some(q => !pipq(q, IC)))).map(e => Object.assign({}, e, { pts: IC, tur: 'duvar' }));
     return T.ek.filter(e => (e.tur === 'dolgu' || e.tur === 'doseme') && Array.isArray(e.pts) && e.pts.length >= 3 && !haric.has(e.id) && (IC.length < 3 || pipq(merkez(e.pts), IC))).concat(ekL).map(e => { const A = alan(e.pts), gam = e.tur === 'dolgu' ? gD0 : e.tur === 'duvar' ? (P.TEMEL_GAMMA_TUGLA || 12) : gc, G = e.V * gam + (e.tur === 'doseme' ? (e.g != null ? e.g : gD) * A : 0), Q = e.tur === 'doseme' ? (e.q != null ? e.q : qD) * A : 0;
       return { id: e.id, ad: e.ad, tur: e.tur, pts: e.pts, A, V: e.V, gam, G, Q, pG: A > 0 ? G / A : 0, pQ: A > 0 ? Q / A : 0 }; }).filter(y => y.A > 0);
   };
@@ -151,7 +158,7 @@
     sel.onchange = () => { y.tur = sel.value; y.elle = y.tur !== o.tur; if (y.tur === 'altUst' && y.altUstKot == null) y.altUstKot = o.altUstKot; const ok = projeyeYaz({ yapiTuru: y.elle ? y.tur : null }); bildir(ok); G.buildForm(); changed(); };
     const inp = w.querySelector('#inAltUst'); if (inp) inp.onchange = () => { const v = parseFloat(String(inp.value).replace(',', '.')); if (isFinite(v)) { y.altUstKot = r3(v); y.elleKot = Math.abs(v - (o.altUstKot != null ? o.altUstKot : NaN)) > 1e-4; } else { y.altUstKot = o.altUstKot; y.elleKot = false; } const ok = projeyeYaz({ altUstKot: y.elleKot ? y.altUstKot : null }); bildir(ok); G.buildForm(); changed(); };
     const yer = w.querySelector('#selYer'); if (yer) { const s0 = Sx(); yer.value = (s0 && s0.yer) || ''; yer.onchange = () => { const A = P.hazirYerAyar(yer.value); if (!A) return; const s1 = Sx();
-      s1.zemin = Object.assign({}, s1.zemin, A.zemin); s1.dep = Object.assign({}, s1.dep, A.dep); if (s1.cer) s1.cer.ayar = Object.assign({}, s1.cer.ayar || {}, P.HAZIR_YER[yer.value].ayar); s1.yer = yer.value; s1.ayarUyari = null; s1._ayarImza = JSON.stringify([s1.zemin, s1.dep]);
+      s1.zemin = Object.assign({}, s1.zemin, A.zemin); s1.dep = Object.assign({}, s1.dep, A.dep); if (A.mal) s1.mal = Object.assign({}, s1.mal, A.mal); if (s1.cer) s1.cer.ayar = Object.assign({}, s1.cer.ayar || {}, P.HAZIR_YER[yer.value].ayar); s1.yer = yer.value; s1.ayarUyari = null; s1._ayarImza = JSON.stringify([s1.zemin, s1.dep]);
       const ok = projeyeYaz(A); bildir(ok); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">${esc(P.HAZIR_YER[yer.value].ad)} zemin ve deprem değerleri uygulandı${ok ? ' ve projeye yazıldı' : ''}.</div>`); G.buildForm(); changed(); }; }
     const geri = w.querySelector('#yapiOneri'); if (geri) geri.onclick = ev => { ev.preventDefault(); y.tur = o.tur; y.altUstKot = o.altUstKot; y.elle = false; y.elleKot = false; bildir(projeyeYaz({ yapiTuru: null, altUstKot: null })); G.buildForm(); changed(); };
     return w;

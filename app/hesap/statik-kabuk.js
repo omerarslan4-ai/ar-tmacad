@@ -297,7 +297,7 @@
         if (!ns.length) { let bd = Infinity, n0 = null; for (const k of radN) { const p0 = nodes[k], dd = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (dd < bd) { bd = dd; n0 = k; } } ns = n0 != null ? [n0] : []; }
         if (!ns.length) continue; const m = ns.length, cx = ns.reduce((t, k) => t + nodes[k][0], 0) / m, cy = ns.reduce((t, k) => t + nodes[k][1], 0) / m, Sxx = ns.reduce((t, k) => t + (nodes[k][0] - cx) ** 2, 0), Syy = ns.reduce((t, k) => t + (nodes[k][1] - cy) ** 2, 0), zc = nodes[ns[0]][2];
         for (const [c, F] of Object.entries(q.F || {})) { if (!F) continue; const r = [(+q.x) - cx, (+q.y) - cy, (+q.z) - zc], mm = cross(r, [F[0], F[1], F[2]]), Mx = F[3] + mm[0], My = F[4] + mm[1], Mz = F[5] + mm[2];
-          for (const k of ns) { const dx = nodes[k][0] - cx, dy = nodes[k][1] - cy, fz = F[2] / m + (Syy > 1e-9 ? -Mx * dy / Syy : 0) + (Sxx > 1e-9 ? My * dx / Sxx : 0);
+          for (const k of ns) { const dx = nodes[k][0] - cx, dy = nodes[k][1] - cy, fz = F[2] / m + (Syy > 1e-9 ? Mx * dy / Syy : 0) - (Sxx > 1e-9 ? My * dx / Sxx : 0); /* Σ dy·fz = Mx, −Σ dx·fz = My */
             (dugumYuk[c] = dugumYuk[c] || []).push({ n: k, f: [F[0] / m, F[1] / m, fz, Syy > 1e-9 ? 0 : Mx / m, Sxx > 1e-9 ? 0 : My / m, Mz / m], ad: q.no }); } }
         continue; }
       else if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;

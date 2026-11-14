@@ -1,7 +1,7 @@
 /* Yapı türüne göre statik çözüm yolu — tür önerisi (app/hesap/statik-yapi-turu.js › P.yapiTuru, P.yapiSecim).
    Kural: docs/tasarim-standartlari.md › "Yapı türüne göre statik çözüm yolu" (14.11.2026): su yapısı / gömülü alt yapı + üst yapı / yalnız üst yapı.
    Gerçek modeller: Konya isale terfi merkezi (araclar/konya-terfi-uret.js → alt + üst, alt yapı üst kotu −0,26 = perde üstü),
-   bekçi binası (test-proje/_gecici/bekci.aritma → yalnız üst yapı: 20 cm temel perdesinin üstü +1,05 tretuvar üstünün +0,90 üstünde),
+   bekçi binası (test/veri/bekci-statik.json → yalnız üst yapı: 20 cm temel perdesinin üstü +1,05 tretuvar üstünün +0,90 üstünde),
    kolonsuz dikdörtgen hazne (→ su yapısı), yalnız kolon / kirişli model (kabuk kurulamaz → yalnız üst yapı).
    Çalıştır: node test/statik-yapi-turu.test.js */
 'use strict';
@@ -17,14 +17,14 @@ t('Konya terfi: gömülü alt yapı + üst yapı; alt yapı üst kotu = zeminin 
   assert.ok(y.neden.some(s => /zeminin altında/.test(s)) && y.neden.some(s => /kolonlu/.test(s)));
 });
 
-const bekciYol = path.join(O.KOK, 'test-proje/_gecici/bekci.aritma');
-if (fs.existsSync(bekciYol)) {
+const bekciYol = path.join(O.KOK, 'test/veri/bekci-statik.json');
+{
   t('Bekçi binası: yalnız üst yapı (temel perdesi zeminin üstüne çıkıyor, 4 kolon + 4 kiriş)', () => {
     const d = O.modelCevir(JSON.parse(fs.readFileSync(bekciYol, 'utf8')).doc).d, y = P.yapiTuru(d);
     assert.strictEqual(y.tur, 'ust', JSON.stringify(y)); assert.strictEqual(y.altUstKot, null); assert.strictEqual(d.zeminKot, 0.9);
     assert.strictEqual(d.cerceve.kolonlar.length, 4); assert.strictEqual(d.cerceve.kirisler.length, 4);
   });
-} else console.log('- Bekçi dosyası yok, atlandı: ' + bekciYol);
+}
 
 /* basit model belgeleri (ArıtmaCAD nesneleri) */
 const belge = ents => ({ ents: ents.map((e, i) => Object.assign({ id: i + 1, layer: '0' }, e)), layers: {}, set: {} });

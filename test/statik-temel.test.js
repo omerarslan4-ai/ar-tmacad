@@ -4,7 +4,7 @@
         σ = (1000 + 2·2·0,5·25) / 4 = 262,5 kN/m²; My = 100 kNm → σmaks = 262,5 + 100 / (2·2²/6) = 337,5
         zımbalama (1,4G): d = 0,44, b = 0,84, up = 3,36; q_net = 1,4·1050/4 − 1,4·50/4 = 350; Vpd = 1400 − 350·0,84² = 1153,0 kN
         eğilme: l = 0,80 m, M = 350·0,8²/2 = 112 kNm/m
-   2) Bekçi binası (test-proje/_gecici/bekci.aritma): 5,8 × 5,8 × 0,6 m radye, 4 kolon 30/30, 20 cm temel perdesi, dolgu, zemin kat döşemesi:
+   2) Bekçi binası (test/veri/bekci-statik.json — test-proje/_gecici/bekci.aritma'nın taşıyıcı / duvar / temel geometrisi ve statikAyar'ı): 5,8 × 5,8 × 0,6 m radye, 4 kolon 30/30, 20 cm temel perdesi, dolgu, zemin kat döşemesi:
         N_G = radye öz + üstündekiler (net hacim) + kolon tepkileri; σ ≤ σem; zımbalama yeterli.
    Çalıştır: node test/statik-temel.test.js */
 'use strict';
@@ -67,8 +67,8 @@ t('temel yoksa hesap yapılmaz, uyarı verilir; kolon temelin dışındaysa söy
   const S2 = tekilS(), RC = RCf(0); RC.kolonlar[0].x = 5; const T2 = P.temelHesap(S2, RC); assert.ok(T2.uyar.some(u => /altında temel bulunamadı/.test(u)));
 });
 
-const bekciYol = path.join(O.KOK, 'test-proje/_gecici/bekci.aritma');
-if (fs.existsSync(bekciYol)) {
+const bekciYol = path.join(O.KOK, 'test/veri/bekci-statik.json');
+{
   const { d } = O.modelCevir(JSON.parse(fs.readFileSync(bekciYol, 'utf8')).doc), S = O.uygula(P.ornekSaray(), d);
   t('Bekçi binası: yalnız üst yapı; çerçeve (4 kolon, 4 kiriş) + radye temel; kabuk / iki aşama yok', () => {
     assert.strictEqual(S.yapi.tur, 'ust'); assert.strictEqual(P.ikiAsamaHazirla(S), null);
@@ -85,23 +85,31 @@ if (fs.existsSync(bekciYol)) {
     assert.ok(o.zOk && TH.ok, TH.uyar.join(' | ')); assert.ok(o.zimb.length === 4 && o.zimb.every(z => z.ok));
     const h = P.temelRapor(TH); assert.ok(/TEMEL HESABI/.test(h) && /Zımbalama/.test(h) && /radye eğilme donatısı bu hesapta yapılmamıştır/.test(h));
   });
-} else console.log('- Bekçi dosyası yok, atlandı: ' + bekciYol);
+}
 
 t('şerit perde (elle): üçgen yük K·γ·(H − z), H 1,05 — konsol M = Kγ H³/6, V = Kγ H²/2; alt ankastre üst mafsal M = Kγ H³/15, V = 0,4·Kγ H²', () => {
   const H = 1.05, Kg = 0.333 * 18, p = z => Kg * (H - z), a = P.seritPerde(H, p, 'serbest'), b = P.seritPerde(H, p, 'mafsal');
   yak(Math.abs(a.Mt), Kg * H ** 3 / 6, 1e-3); yak(a.Vt, Kg * H * H / 2, 1e-6); yak(Math.abs(b.Mt), Kg * H ** 3 / 15, 1e-3); yak(b.Vt, 0.4 * Kg * H * H, 1e-6);
   yak(Math.abs(b.V[b.V.length - 1]), 0.1 * Kg * H * H, 1e-6, 'mafsal tepkisi');
 });
-if (fs.existsSync(path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'))) {
-  const { d: dB } = O.modelCevir(JSON.parse(fs.readFileSync(path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'), 'utf8')).doc), SB = O.uygula(P.ornekSaray(), dB);
+{
+  const { d: dB } = O.modelCevir(JSON.parse(fs.readFileSync(bekciYol, 'utf8')).doc), SB = O.uygula(P.ornekSaray(), dB);
   t('Bekçi: Çokal AAT değerleri projede (CKL_AAT_GB_R0: SDS 1,624, SD1 0,549, R 8, D 3, qt 14,29 t/m², k 2400 t/m³) — uyarı yok', () => {
     assert.strictEqual(SB.ayarUyari, null); assert.strictEqual(SB.dep.SDS, 1.624); yak(SB.zemin.sig, 140.2, 1e-9); yak(SB.zemin.kw, 23544, 1e-9); assert.strictEqual(SB.yer, 'cokal');
     assert.strictEqual(SB.cer.ayar.SD1, 0.549); assert.strictEqual(SB.cer.ayar.R, 8); assert.strictEqual(SB.geo.kZemin, 0.75);
+    assert.strictEqual(SB.mal.fck, 30); assert.strictEqual(SB.mal.fyk, 420); // C30 / S420 (hazır değerlerle malzeme de)
   });
   t('Bekçi subasman perdesi (20 cm, H 1,05; dış toprak +0,75 kotuna kadar): şerit konsol taban momenti = 1,6·Ks·(γ·Hs³/6 + q·Hs²/2)', () => {
     const sb = P.subasmanHesap(SB)[0], IT = P.itki(SB), Hs = 0.75; assert.strictEqual(sb.ust, 'mafsal', 'zemin döşemesi perde üstünde');
-    yak(sb.H, 1.05, 1e-9); yak(sb.konsolMt, 1.6 * IT.Ks * (18 * Hs ** 3 / 6 + 5 * Hs * Hs / 2), 0.015 * sb.konsolMt) // %1,5: yük kırığı (+0,75) eleman sınırında değil; assert.ok(sb.sec && sb.sec.ok && sb.kesme.ok);
+    yak(sb.H, 1.05, 1e-9); yak(sb.konsolMt, 1.6 * IT.Ks * (18 * Hs ** 3 / 6 + 5 * Hs * Hs / 2), 0.015 * sb.konsolMt); // %1,5: yük kırığı (+0,75) eleman sınırında değil
+    assert.ok(sb.sec && sb.sec.ok && sb.kesme.ok);
     assert.ok(/H ≤ 2 m: düşey donatı filizsiz tek parça/.test(sb.not));
+  });
+  t('subasman deprem itkisi: Wood seçilince ΔP = kh·γ·H² (S.dep.yontem), M-O tanımsızsa 0 + uyarı (NaN yok)', () => {
+    const mo = P.subasmanHesap(SB)[0], SW = JSON.parse(JSON.stringify(SB)); SW.dep.yontem = 'WOOD'; const wd = P.subasmanHesap(SW)[0];
+    assert.strictEqual(wd.yontem, 'Wood'); assert.ok(isFinite(wd.Md) && Math.abs(wd.Md - mo.Md) > 1e-3, 'yöntem seçimi sonucu değiştirir');
+    const SN = JSON.parse(JSON.stringify(SB)); SN.zemin.phi = 5; SN.dep.SDS = 2.5; SN.dep.r = 1; const nn = P.subasmanHesap(SN)[0];
+    assert.ok(isFinite(nn.Md) && isFinite(nn.Vd) && nn.uyar.some(u => /Mononobe-Okabe dinamik toprak itkisi tanımsız/.test(u)));
   });
   t('Bekçi temel kabuğu (radye + subasman): yeterli; perde iç / dış ve radye alt / üst aynı çap, 15 cm; düşey denge; kabuk paftaları çıkar', () => {
     const RC = P.cerceveHesap(Object.assign({}, SB, { suYapisi: false })), TK = P.temelKabukHesap(SB, RC); assert.ok(TK && TK.ok, 'temel kabuğu yeterli');
@@ -113,6 +121,18 @@ if (fs.existsSync(path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'))) {
     let ry = 0; for (const e of AG.els) if (e.tur === 'radye') { const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; for (const y of P.radyeUstYuk(Object.assign({}, SB, { kabuk: Object.assign({}, SB.kabuk, { dosemeler: [] }) }))) { let ic = false; const q = y.pts; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > c[1]) !== (q[j][1] > c[1]) && c[0] < (q[j][0] - q[i][0]) * (c[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) ic = !ic; if (ic) ry += y.pG * e.A; } }
     yak(yay, W + ry, 1e-3 * (W + ry), 'zemin tepkisi = öz ağırlık + kolon / duvar yükleri + radye üstü yük');
     assert.ok(r.bilgi.some(s => /4 kolon ayağı tepkisi ve \d+ ek yük/.test(s)), 'perde üstündeki tuğla duvarlar perde üstüne');
+    // perde üstündeki 4 tuğla duvar yalnız perde yükü; radye yükünde yalnız iç bölme duvarı (iki kez sayılmaz)
+    const ekD = dB.temel.ek.filter(e => e.tur === 'duvar'); assert.strictEqual(ekD.filter(e => P.duvarPerdeUstu(e)).length, 4);
+    const RYd = P.radyeUstYuk(Object.assign({}, SB, { kabuk: Object.assign({}, SB.kabuk, { dosemeler: [] }) })).filter(y => y.tur === 'duvar'); assert.strictEqual(RYd.length, 1);
+    assert.ok(!RYd.some(y => ekD.filter(e => P.duvarPerdeUstu(e)).some(e => e.id === y.id)));
+    // kolon tepkisinin radye düğümlerine dağıtımı: her kolon ve durum için dağıtılan kuvvetlerin bileşkesi (kuvvet ve kolon noktasına göre
+    // moment) girilen tepkiye eşit — Mx = Σ dy·fz, My = −Σ dx·fz (eski hatada moment çifti ters işaretliydi)
+    const Tk = P.kabukKolonYuku(P.kolonTepki(RC)); let sayM = 0;
+    for (const q of Tk) for (const c of ['G', 'Q', 'ESX', 'ESY']) { const F = q.F[c], L = (AG.dugumYuk[c] || []).filter(x => x.ad === q.no); if (!F || !L.length) continue;
+      const R = [0, 0, 0, 0, 0, 0]; for (const x of L) { const p = AG.nodes[x.n], rr = [p[0] - q.x, p[1] - q.y, p[2] - q.z], f = x.f; for (let k = 0; k < 3; k++) R[k] += f[k];
+        R[3] += f[3] + rr[1] * f[2] - rr[2] * f[1]; R[4] += f[4] + rr[2] * f[0] - rr[0] * f[2]; R[5] += f[5] + rr[0] * f[1] - rr[1] * f[0]; }
+      for (let k = 0; k < 6; k++) yak(R[k], F[k], 1e-6 * (1 + Math.abs(F[k])), `${q.no} ${c} bileşen ${k}`); if (Math.abs(F[3]) + Math.abs(F[4]) > 1) sayM++; }
+    assert.ok(sayM >= 8, 'momentli tepkiler denetlendi: ' + sayM);
     const paf = P.kabukPaftalar(r, SB, 50, {}, SB.proj); assert.ok(paf.length >= 4 && paf.some(p => /TEMEL DONATI/.test(p.ad)) && paf.some(p => /PERDE DONATI/.test(p.ad)), paf.map(p => p.ad).join(' | '));
     assert.ok(/TEMEL VE SUBASMAN PERDESİ/.test(P.temelKabukRapor(TK)) && /Temel ve subasman/.test(P.temelKabukOzet(TK)));
   });

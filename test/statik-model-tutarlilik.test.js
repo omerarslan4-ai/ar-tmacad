@@ -61,7 +61,7 @@ t('statik eleman listesi yalnız hesaplanan yapıyı sayar: belgede ayrı bir bi
 });
 t('perde ayağı (kicker, temelle birlikte dökülür) temeldir — metrajla aynı sınıf (yapi-cakisma.js tek yer)', () => {
   const Y = O.modelCevir(O.konyaDoc()).C.yapiCakisma; assert.strictEqual(Y.turu({ type: 'perde', malz: 'beton', kicker: true }), 'temel'); assert.strictEqual(Y.turu({ type: 'perde', malz: 'beton' }), 'perde');
-  const B = path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'); if (!fs.existsSync(B)) return;
+  const B = path.join(O.KOK, 'test/veri/bekci-statik.json'); // git'teki test verisi (yoksa test başarısız olur)
   const D = O.modelCevir(JSON.parse(fs.readFileSync(B, 'utf8')).doc).d.hacim;
   yak(D.top.Perde, 3.42, 1e-3, 'Bekçi perde (temel perdesi hariç)'); yak(D.top.Temel, 20.184 + 0.36 + 0.04, 1e-3, 'radye + perde ayağı (temel > kolon: kolon izleri temelde)'); yak(D.top.Kolon, 1.404 - 0.032, 1e-3);
 });
