@@ -49,6 +49,7 @@
 - Kiriş ile döşeme monolitik tek beton olarak modellenir ve çizilir (aralarında çizgi yok); çatı döşemesi ve zemin döşemesi dahil.
 - Pencere / kapı duvarı parçalara bölmez; duvar tek eleman kalır.
 - Plan ve kesitlerde aks çizgileri ve aks başlıkları bulunur; ölçüler örnek projelerdeki gibi akslar üzerinden verilir.
+- Kesit yerleri mahalleri ayrı ayrı gösterecek şekilde seçilir (14.11.2026): uzun kesit bütün mahallerden geçer; kısa kesit iki tanedir, biri büyük hacimden (ör. pompa / montaj holü), öbürü odalardan (ör. kumanda odası) geçer. Bir oda hiçbir kesitte görünmüyorsa ek kesit alınır.
 - Görünüşlerde bina içindeki merdivenler (ve dışarıdan görünmeyen iç elemanlar) çizilmez.
 
 ## Proses ve ünite tasarımı
