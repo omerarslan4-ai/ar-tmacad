@@ -510,6 +510,7 @@
 
   /* ======================= PAFTALAR ======================= */
   const antetGen = () => { const tb = C.doc.set.titleBlock || C.defaultTitleBlock; return tb && tb.ents && tb.ents.length && !tb.full ? tb.bb[2] - tb.bb[0] : 0; };
+  C.antetGen = antetGen; // öbür disiplinlerin otomatik paftalaması için (mt-pafta.js)
   /* bloklar: [{ gv, w, h (kâğıt mm), bb, sc, v }] → bir ya da birkaç pafta (genişlik en çok 1,8 × standart; sonra yeni pafta) */
   let paftaNo = 0;
   const AYRI_PAFTA = ['KESİTLER', 'GÖRÜNÜŞLER']; // kesit ve görünüş paftaları ayrı (kullanıcı 14.11.2026); detaylar plan ya da detay paftasında
@@ -534,7 +535,7 @@
   const antetKalin = () => { const k = C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.katmanlar['Antet Kalın']; return k ? Math.round(k.kal * 100) : 40; };
   const VARSAYILAN_ANTET = 180; // app/entities.js T.sheet (bw)
   if (C.titlePrims && !C._mimPaftaTP) { const tp0 = C.titlePrims; C._mimPaftaTP = true;
-    C.titlePrims = L => { const out = tp0(L); if (!L || !L.mimPafta) return out; const fr = C.layoutFrame(L), A = L.antetSutun || PAFTA_R2.antetSutun, x = fr.x1 - A;
+    C.titlePrims = L => { const out = tp0(L); if (!L || !(L.mimPafta || L.disPafta)) return out; const fr = C.layoutFrame(L), A = L.antetSutun || PAFTA_R2.antetSutun, x = fr.x1 - A; // disPafta: öbür disiplinlerin otomatik paftaları (Mekanik: mt-pafta.js) aynı antet sütunuyla
       const tb = C.doc.set.titleBlock || C.defaultTitleBlock;
       if (!(tb && tb.ents && tb.ents.length)) { const sk = A / VARSAYILAN_ANTET, X = q => [fr.x1 - (fr.x1 - q[0]) * sk, fr.y0 + (q[1] - fr.y0) * sk, q[2] || 0];
         out.forEach((pr, i) => { if (i < 2) return; if (pr.a) { pr.a = X(pr.a); pr.b = X(pr.b); } if (pr.pts) pr.pts = pr.pts.map(X); if (pr.p) pr.p = X(pr.p); if (pr.c) pr.c = X(pr.c); if (pr.h) pr.h *= sk; if (pr.r) pr.r *= sk; }); }
@@ -630,8 +631,9 @@
     const r = C.bolgeDuzenle(); C.log(`Bölge düzeni: ${r.tasinan} / ${r.birim} çizim taşındı · bölgeler: ${Object.entries(r.bolgeler).map(([d, b]) => `${d} (${Math.round(b.w)}×${Math.round(b.h)} m)`).join(', ') || '—'}.`); setTimeout(() => C.emit('zoomExtents'), 50); });
   /* pafta üreten öbür komutlardan sonra bölge düzeni kendiliğinden (statik DSİ paftaları, tesisat paftaları, ısı yalıtım detayı, disiplin kesiti):
      yeni çizimler kendi disiplin bölgesine geçer, öbür bölgelere binmez */
-  setTimeout(() => { for (const ad of ['STATIKCIZ', 'TESISATPAFTA', 'ISIYALITIMDETAY', 'KESITPAFTA', 'GORUNUMPAFTA', 'MEKTABLO', 'ACILIMTABLO', 'ISTASYONPAFTA']) { const d = C.cmds && C.cmds[ad]; if (!d || d._bolge) continue; const f0 = d.fn; d._bolge = true;
-    d.fn = async function () { const r = await f0.apply(this, arguments); try { C.bolgeDuzenle({ sessiz: true }); C.emit('layouts'); } catch (er) { console.error('bölge düzeni', er); } return r; }; } }, 0);
+  const bolgeSar = () => { for (const ad of ['STATIKCIZ', 'TESISATPAFTA', 'ISIYALITIMDETAY', 'KESITPAFTA', 'GORUNUMPAFTA', 'MEKTABLO', 'ACILIMTABLO', 'ISTASYONPAFTA']) { const d = C.cmds && C.cmds[ad]; if (!d || d._bolge) continue; const f0 = d.fn; d._bolge = true;
+    d.fn = async function () { const r = await f0.apply(this, arguments); try { C.bolgeDuzenle({ sessiz: true }); C.emit('layouts'); } catch (er) { console.error('bölge düzeni', er); } return r; }; } };
+  setTimeout(bolgeSar, 0); if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', bolgeSar); // sonra yüklenen modüllerin komutları (mt-ek.js TESISATPAFTA): betikler ayrı ayrı yüklenirken setTimeout onlardan önce çalışabiliyor
   C.mimariPaftalari = MIMARIPAFTA;
   /* AutoCAD çıktısı (Mimari grubu, 2B): çizgi tipi ölçeği seçilen pafta ölçeğine göre (dxfCizgiOlcegi); öbür disiplinlerin çıktısına dokunulmaz */
   if (C.dxfWrite && !C._mimLtSarili) { C._mimLtSarili = true; const w0 = C.dxfWrite;

@@ -2,7 +2,8 @@
    1) YALITIMUYGULA   : ısı yalıtım hesabındaki yapı elemanlarına göre modele yalıtımı uygular (dış cephe mantolama, çatı / teras, zemin altı)
                         — malzeme ve kalınlık hesaptaki katmanlardan alınır; ardından yalıtım detaylarını çizer.
    2) ISIYALITIMDETAY : kullanılan her yapı elemanının katman kesiti (kalınlık, λ), U değeri – TS 825 sınırı, yoğuşma sonucu.
-   3) TESISATPAFTA    : Mekanik grubunda ısıtma / soğutma / havalandırma paftaları: kat planları (öteki sistemler gizli), kolon şeması ya da cihaz listesi, 3B görünüş. */
+   3) TESISATPAFTA    : Mekanik grubunda ısı yalıtımı / ısıtma / soğutma / havalandırma / sıhhi tesisat paftaları: kat planları (öteki sistemler gizli), kolon şeması ya da cihaz listesi, 3B görünüş.
+                        Ölçek ve yerleşim Mimari paftalamanın altyapısıyla (mt-pafta.js: olcekSec, enAzKagit, antet sütunu, MEK-01 numaraları). */
 (function (C) {
   'use strict';
   const M = C.M, MT = C.MT, V = C.MTV, E = C.cmd; if (!MT || !C.addCommand) return;
@@ -143,44 +144,45 @@
       const h = MT.paftaPunto() * 0.3528, h2 = h * 0.6; for (const vp of vs) { const x = vp.x + vp.w / 2, y = vp.y - h - 2, w1 = C.measureText ? C.measureText(vp.label, h) : vp.label.length * h * 0.8; out.push(TX([x, y, 0], h, vp.label, 0, 'BC'), TX([x, y - h * 0.9, 0], h2, vp.g3 && vp.g3.tip === 'PERSPEKTIF' ? 'ÖLÇEKSİZ' : 'Ö: 1/' + vp.scale, 0, 'TC'), Ln([x - w1 / 2 - 2, y - h * 0.24, 0], [x + w1 / 2 + 2, y - h * 0.24, 0], { lw: 50 })); } return out; };
     C._mtEtiket = true; }
 
-  MT.tesisatPafta = (tur) => {
+  /* sistem paftası (firma kuralı 14.11.2026: Mimari gibi otomatik): kat planları (modelden +1,20 kesit planı, yerinde; yalnız o sistemin tesisatı),
+     3B dış / iç görünüş, kolon şeması ve cihaz listeleri — pencereler pafta ölçeğinde (SC: MT.paftaOlcek, bina ebatına göre) ve en az kâğıtla (MT.paftaKur) */
+  MT.tesisatPafta = (tur, SC) => {
     const S = SIS[tur]; if (!S || !S.var()) return null; const bb0 = binaKutu(); if (!bb0) return null; MT.goc();
+    SC = +SC || (MT.paftaOlcek ? MT.paftaOlcek().olcek : 50);
     const st = MT.set(); st.planGv = st.planGv || {}; const eski = st.planGv[tur] || []; if (eski.length) C.doc.ents = C.doc.ents.filter(e => !(e.gv && eski.includes(e.gv))); st.planGv[tur] = [];
     const lays = C.doc.layouts = C.doc.layouts || []; C.doc.layouts = lays.filter(L => L.mtPafta !== tur);
-    const gp = C.grpCur; C.grpCur = 'Mekanik'; const L = C.newLayout(`MEKANİK — ${S.ad}`, 'A1', 'L'); C.grpCur = gp; L.grp = 'Mekanik'; L.mtPafta = tur; L.vps = []; L.f = Object.assign(L.f || {}, { baslik: S.ad + ' PROJESİ' });
-    const AN = C.doc.set.anno, fr = C.layoutFrame(L), X0 = fr.x0 + 10, Y0 = fr.tbTop + 10, X1 = fr.x1 - 10, Y1 = fr.y1 - 10, WW = X1 - X0, HH = Y1 - Y0, solW = WW * 0.55, sagX = X0 + solW + 14, sagW = X1 - sagX;
+    const AN = C.doc.set.anno, bl = [];
     /* kat planları: modelden +1,20 kesit planı (yerinde) + tesisat */
-    const zs = [...new Set(C.doc.ents.filter(S.ents).map(e => +e.z0 || 0))].sort((a, b) => a - b), sv = svList(), kats = zs.slice(0, 4), n = Math.max(1, kats.length), cols = n > 2 ? 2 : 1, rows = Math.ceil(n / cols), cw = (solW - (cols - 1) * 12) / cols, ch = (HH - rows * 16) / rows;
-    const pad = 1.6, bb = [bb0[0] - pad, bb0[1] - pad, bb0[2] + pad, bb0[3] + pad], sc = C.fitScale(bb, cw, ch), vw = Math.min(cw, (bb[2] - bb[0]) * 1000 / sc + 6), vh = Math.min(ch, (bb[3] - bb[1]) * 1000 / sc + 6);
+    const zs = [...new Set(C.doc.ents.filter(S.ents).map(e => +e.z0 || 0))].sort((a, b) => a - b), sv = svList(), kats = zs.slice(0, 4), n = Math.max(1, kats.length);
+    const pad = 1.6, bb = [bb0[0] - pad, bb0[1] - pad, bb0[2] + pad, bb0[3] + pad], vw = (bb[2] - bb[0]) * 1000 / SC + 6, vh = (bb[3] - bb[1]) * 1000 / SC + 6;
     const mk = Object.values(st.katlar || {}), yapiE = yapiEnts().filter(e => e.type !== 'cati' && e.type !== 'yalitim' && e.type !== 'kaplama');
-    kats.forEach((z, i) => { const c = i % cols, r = Math.floor(i / cols), lv = sv.find(l => Math.abs((+l.z || 0) - z) < 0.05), kt = mk.find(q => Math.abs((q.z || 0) - z) < 1e-6), ad = (lv && lv.ad) || (kt && kt.ad) || (n > 1 ? `kot ${z >= 0 ? '+' : ''}${f(z, 2)}` : '');
+    kats.forEach((z, i) => { const lv = sv.find(l => Math.abs((+l.z || 0) - z) < 0.05), kt = mk.find(q => Math.abs((q.z || 0) - z) < 1e-6), ad = (lv && lv.ad) || (kt && kt.ad) || (n > 1 ? `kot ${z >= 0 ? '+' : ''}${f(z, 2)}` : '');
       let gv = null; try { if (C.makeView) { const once = new Set(C.doc.ents.map(e => e.id)), pl = C.makeView({ kind: 'plan', h: z + 1.2, depth: 1.22, place: 'yerinde', hatch: 'ANSI31', ents: yapiE }); if (pl) { gv = pl.gv; st.planGv[tur].push(gv); for (const e of C.doc.ents) if (!once.has(e.id)) { delete e.sp; delete e.sv2; if (e.type === 'baslik' || e.type === 'text') e._mtSil = 1; } C.doc.ents = C.doc.ents.filter(e => !e._mtSil); } } } catch (er) { console.error(er); }
-      const vp = { x: X0 + c * (cw + 12) + (cw - vw) / 2, y: Y1 - (r + 1) * (ch + 16) + 16 + (ch - vh) / 2, w: vw, h: vh, cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, scale: sc, lock: true, disiplin: 'Mekanik', label: `${S.kisa} — ${ad ? ad.toLocaleUpperCase('tr') + ' ' : ''}KESİT PLANI`, mtPlan: tur, mtZ: z, mtH: (kats[i + 1] != null ? kats[i + 1] - z : 3.4) }; if (gv) vp.mtGv = gv; else if (lv && sv.length) vp.sv = lv.id; L.vps.push(vp); });
+      const vp = { cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, scale: SC, lock: true, disiplin: 'Mekanik', label: `${S.kisa} — ${ad ? ad.toLocaleUpperCase('tr') + ' ' : ''}KESİT PLANI`, mtPlan: tur, mtZ: z, mtH: (kats[i + 1] != null ? kats[i + 1] - z : 3.4) }; if (gv) vp.mtGv = gv; else if (lv && sv.length) vp.sv = lv.id;
+      bl.push({ vp, w: vw, h: vh, grup: 'KAT PLANLARI' }); });
     let sl = []; try { sl = (S.sema() || []).filter(q => q && q[1]).map(q => [q[0], gOlcek(q[1], yaziK())]); } catch (er) { console.error(er); }
-    const semaH = sl.reduce((t, q) => { const b = gKutu(q[1]); return t + (b ? b[3] - b[1] + 16 : 0); }, 0);
-    /* 3B görünüş (sağ üst) */
+    /* 3B görünüş: dış görünüş cihazın dış ünitesi / fanı hangi cephedeyse o köşeden; iç görünüş cihazların olduğu mahalin içinden perspektif (ölçeksiz) */
     const zTop = Math.max(...MT.mahaller().map(e => (+e.z0 || 0) + (+e.h || 3))), ustu = C.doc.ents.some(e => e.type === 'mthv' && (e.kind === 'catifan' || e.kind === 'rooftop')) && tur === 'hava', cati = e => !ustu && (e.type === 'cati' || (e.type === 'plak' && (+e.zt || 0) > zTop - 0.6));
-    const yapi = e => !/^mt/.test(e.type) && e.type !== 'yalitim' && e.type !== 'kaplama' && e.dis !== 'Elektrik' && !cati(e), ids = C.doc.ents.filter(e => !e.gv && (S.ents(e) || yapi(e))).map(e => e.id), ph = Math.max(95, Math.min(HH * 0.3, (HH - semaH - 24) / 2));
-    /* dış görünüş: cihazın dış ünitesi / fanı hangi cephedeyse o köşeden; iç görünüş: cihazların olduğu mahalin içinden perspektif */
+    const yapi = e => !/^mt/.test(e.type) && e.type !== 'yalitim' && e.type !== 'kaplama' && e.dis !== 'Elektrik' && !cati(e), ids = C.doc.ents.filter(e => !e.gv && (S.ents(e) || yapi(e))).map(e => e.id);
     const cih = C.doc.ents.filter(e => !e.gv && S.ents(e) && e.p && e.mid != null), say = new Map(); cih.forEach(e => say.set(e.mid, (say.get(e.mid) || 0) + 1));
     const oda = MT.mahaller().find(o => o.id === ([...say].sort((a, b) => b[1] - a[1])[0] || [])[0]), ic = oda ? cih.filter(e => e.mid === oda.id) : [];
     let yon = 'GB'; { let nx = 0, ny = 0; for (const e of cih) { const d = e.dp ? [e.dp[0] - e.p[0], e.dp[1] - e.p[1]] : (oda && e.mid === oda.id ? [e.p[0] - (oda.lp || MT.icNokta(oda.pts))[0], e.p[1] - (oda.lp || MT.icNokta(oda.pts))[1]] : null); if (d) { const l = Math.hypot(d[0], d[1]) || 1; nx += d[0] / l; ny += d[1] / l; } } if (Math.hypot(nx, ny) > 0.2) yon = (ny >= 0 ? 'K' : 'G') + (nx >= 0 ? 'D' : 'B'); }
-    const w3 = Math.min(sagW, (ph - 14) * 1.5), v3 = { _yeni: true, x: sagX, y: Y1 - ph, w: sagW, h: ph - 14, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, g3: { mod: 'MEKANIK', yon, tip: 'PERSPEKTIF', kam: null, olcek: null, ids, gv: null }, label: `${S.kisa} — DIŞ GÖRÜNÜŞ`, mtG3: tur };
-    L.vps.push(v3);
+    const G3 = { w: 180, h: 120 }, G3I = { w: 150, h: 110 };
+    bl.push({ vp: { _yeni: true, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, olceksiz: true, g3: { mod: 'MEKANIK', yon, tip: 'PERSPEKTIF', kam: null, olcek: null, ids, gv: null }, label: `${S.kisa} — DIŞ GÖRÜNÜŞ`, mtG3: tur }, w: G3.w, h: G3.h, grup: '3B GÖRÜNÜŞLER' });
     if (ic.length) { const zb = +oda.z0 || 0, hO = +oda.h || 3, zc = e => e.type === 'mtrad' ? zb + 0.5 : e.type === 'mtarm' ? zb + 0.7 : e.type === 'mtfc' && e.tip === 'split' ? zb + (e.zm != null ? +e.zm : hO - 0.42) + 0.15 : zb + hO - 0.35;
       const e1 = ic.slice().sort((a, b) => (b.Qn || b.V || b.sb || 0) - (a.Qn || a.V || a.sb || 0))[0], T3 = [e1.p[0], e1.p[1], zc(e1)]; /* en büyük cihaza bakılır */
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const q of oda.pts) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); }
       let cam = oda.lp || MT.icNokta(oda.pts), bd = -1; for (let a = 1; a < 12; a++) for (let b = 1; b < 12; b++) { const q = [x0 + (x1 - x0) * a / 12, y0 + (y1 - y0) * b / 12]; if (!MT.inPoly(q, oda.pts)) continue; let dk = Infinity; for (let t = 0; t < oda.pts.length; t++) { const A = oda.pts[t], Bq = oda.pts[(t + 1) % oda.pts.length], l2 = (Bq[0] - A[0]) ** 2 + (Bq[1] - A[1]) ** 2 || 1, kk = Math.max(0, Math.min(1, ((q[0] - A[0]) * (Bq[0] - A[0]) + (q[1] - A[1]) * (Bq[1] - A[1])) / l2)); dk = Math.min(dk, Math.hypot(q[0] - A[0] - (Bq[0] - A[0]) * kk, q[1] - A[1] - (Bq[1] - A[1]) * kk)); } if (dk < 0.35) continue; const d = Math.hypot(q[0] - T3[0], q[1] - T3[1]); if (d > bd) { bd = d; cam = q; } }
-      const cz = zb + Math.min(hO - 0.3, 1.6), dx = cam[0] - T3[0], dy = cam[1] - T3[1], dz = cz - T3[2], dist = Math.max(1.2, Math.hypot(dx, dy, dz)), asp = w3 / (ph - 14);
+      const cz = zb + Math.min(hO - 0.3, 1.6), dx = cam[0] - T3[0], dy = cam[1] - T3[1], dz = cz - T3[2], dist = Math.max(1.2, Math.hypot(dx, dy, dz)), asp = G3I.w / G3I.h;
       const idsIc = C.doc.ents.filter(e => !e.gv && (S.ents(e) || (!/^mt/.test(e.type) && e.type !== 'yalitim' && e.dis !== 'Elektrik'))).map(e => e.id);
-      L.vps.push({ x: sagX + (sagW - w3) / 2, y: Y1 - 2 * ph, w: w3, h: ph - 14, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, g3: { mod: 'TUMU', yon: 'EKRAN', tip: 'PERSPEKTIF', kam: { yaw: Math.atan2(dy, dx), pitch: Math.asin(Math.max(-0.9, Math.min(0.9, dz / dist))), persp: true, dist, t: T3, asp }, olcek: null, ids: idsIc, gv: null }, label: `${S.kisa} — İÇ GÖRÜNÜŞ (${(oda.no || '') + ' ' + (oda.ad || '')})`.replace(/\s+\)/, ')'), mtG3: tur + 'ic' }); }
-    /* kolon şeması + cihaz / radyatör listesi: sağ sütunda 3B görünüşün altında, alt alta (kağıtta kendi boyutunda) */
-    let yTop = Y1 - (ic.length ? 2 : 1) * ph - 10; const k = AN / 1000;
-    for (const [st2, g] of sl) { const e = semaKoy(st2, g); e.layer = MT._lay('MT_SEMA', 7, 25); const gb = gKutu(g), gw = gb[2] - gb[0] + 8, gh = gb[3] - gb[1] + 8, kalan = yTop - Y0; let w = Math.min(gw, sagW), h = gh, x = sagX + (sagW - w) / 2, y = yTop - h;
-      if (h > kalan + 1) { /* sağda yer kalmadı: planların altına / sayfanın soluna sığdır */ h = Math.min(gh, Math.max(30, kalan)); y = yTop - h; }
-      L.vps.push({ x, y, w, h, cx: e.p[0] + (gb[0] + (w - 8) / 2 + (gw > sagW ? 0 : 0)) * k + (gw <= sagW ? 0 : 0), cy: e.p[1] + (gb[3] - (h - 8) / 2) * k, scale: AN, lock: true, frame: { on: false }, frozen: [], disiplin: 'Genel', mtSema: tur }); yTop = y - 8; if (yTop - Y0 < 30) break; }
+      bl.push({ vp: { cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, olceksiz: true, g3: { mod: 'TUMU', yon: 'EKRAN', tip: 'PERSPEKTIF', kam: { yaw: Math.atan2(dy, dx), pitch: Math.asin(Math.max(-0.9, Math.min(0.9, dz / dist))), persp: true, dist, t: T3, asp }, olcek: null, ids: idsIc, gv: null }, label: `${S.kisa} — İÇ GÖRÜNÜŞ (${(oda.no || '') + ' ' + (oda.ad || '')})`.replace(/\s+\)/, ')'), mtG3: tur + 'ic' }, w: G3I.w, h: G3I.h, grup: '3B GÖRÜNÜŞLER' }); }
+    /* kolon şeması + cihaz / radyatör listesi: modelde Mekanik bölgesinde, paftada kendi boyunda (ölçeksiz şema / tablo) */
+    const k = AN / 1000;
+    for (const [st2, g] of sl) { const e = semaKoy(st2, g); e.layer = MT._lay('MT_SEMA', 7, 25); const gb = gKutu(g); if (!gb) continue; const gw = gb[2] - gb[0] + 8, gh = gb[3] - gb[1] + 8;
+      bl.push({ vp: { cx: e.p[0] + (gb[0] + gb[2]) / 2 * k, cy: e.p[1] + (gb[1] + gb[3]) / 2 * k, scale: AN, lock: true, frame: { on: false }, frozen: [], disiplin: 'Genel', mtSema: tur, olceksiz: true }, w: gw, h: gh, grup: 'ŞEMA VE LİSTELER' }); }
+    const Ls = MT.paftaKur(tur, S.ad, S.ad + ' PROJESİ', bl);
     try { if (C.g3Guncelle) C.g3Guncelle(true); } catch (er) { console.error(er); }
-    return L;
+    return Ls.length ? Ls : null;
   };
 
   /* ====================================================================
@@ -189,8 +191,8 @@
   const gvSil = () => { const st = MT.set(), g = st.yalGv || []; if (g.length) C.doc.ents = C.doc.ents.filter(e => !(e.gv && g.includes(e.gv)) && !(e.type === 'kesitisaret' && e.name === 'Y')); st.yalGv = []; };
   const yapiEnts = () => C.doc.ents.filter(e => C.layer(e.layer).on && !e.gv && C.in3D(e) && !/^mt/.test(e.type) && !['arazi', 'kazi', 'sheet'].includes(e.type));
   const not = (gv, a, b, s, h) => { const ly = MT._lay('MT_ISI_NOT', 6, 18), d = b[0] >= a[0] ? 1 : -1; const l1 = C.add(C.newEnt('line', { layer: ly, a: [a[0], a[1], 0], b: [b[0], b[1], 0], gv })), l2 = C.add(C.newEnt('line', { layer: ly, a: [b[0], b[1], 0], b: [b[0] + d * h * 2, b[1], 0], gv })), t = C.add(C.newEnt('text', { layer: ly, p: [b[0] + d * h * 2.4 - (d < 0 ? s.length * h * 0.62 : 0), b[1] - h * 0.4, 0], h, s, rot: 0, gv })); for (const x of [l1, l2, t]) { delete x.sp; delete x.sv2; } };
-  MT.yalitimPafta = async (I) => {
-    const bb0 = binaKutu(); if (!bb0 || !C.makeView) return null; const st = MT.set(), all = MT.mahaller(), z0 = Math.min(...all.map(e => +e.z0 || 0)), p = MT.yalitimPlan(), sc = 50, th = 2.5 * yaziK() * sc / 1000;
+  MT.yalitimPafta = async (I, SC) => {
+    const bb0 = binaKutu(); if (!bb0 || !C.makeView) return null; const st = MT.set(), all = MT.mahaller(), z0 = Math.min(...all.map(e => +e.z0 || 0)), p = MT.yalitimPlan(), sc = +SC || (MT.paftaOlcek ? MT.paftaOlcek().olcek : 50), th = 2.5 * yaziK() * sc / 1000;
     gvSil(); const lays = C.doc.layouts = C.doc.layouts || []; C.doc.layouts = lays.filter(L => L.mtPafta !== 'yalitim');
     const BG = bolge(), yx = BG.gx, yy = BG.gy;
     /* a) kesit planı: zemin kat +1,20 */
@@ -211,16 +213,17 @@
         } } } catch (er) { console.error(er); C.warn('Kesit üretilemedi: ' + (er && er.message || er)); }
     /* c) detaylar */
     let dg = null, de = null; try { dg = gOlcek(MT.yalitimDetay(1), yaziK()); if (dg) { de = semaKoy('yaldetay', dg); de.layer = MT._lay('MT_ISI_DETAY', 6, 25); } } catch (er) { console.error(er); }
-    /* pafta */
-    const gp = C.grpCur; C.grpCur = 'Mekanik'; const L = C.newLayout('MEKANİK — ISI YALITIMI', 'A1', 'L'); C.grpCur = gp; L.grp = 'Mekanik'; L.mtPafta = 'yalitim'; L.vps = []; L.f = Object.assign(L.f || {}, { baslik: 'ISI YALITIM PROJESİ' });
-    const fr = C.layoutFrame(L), X0 = fr.x0 + 10, Y0 = fr.tbTop + 10, X1 = fr.x1 - 10, Y1 = fr.y1 - 10, WW = X1 - X0, HH = Y1 - Y0, solW = WW * 0.41, midX = X0 + solW + 10, midW = 240, sagX = midX + midW + 10, sagW = X1 - sagX;
-    const gvVp = (gv, x, y, w, h, label) => { const es = C.doc.ents.filter(e => e.gv === gv); if (!es.length) return; const b = C.extents(es); if (!b) return; const s2 = Math.max(sc, C.fitScale(b, w, h - 14)), vw = Math.min(w, (b[2] - b[0]) * 1000 / s2 + 8), vh = Math.min(h - 14, (b[3] - b[1]) * 1000 / s2 + 8); L.vps.push({ x: x + (w - vw) / 2, y: y + 14 + (h - 14 - vh) / 2, w: vw, h: vh, cx: (b[0] + b[2]) / 2, cy: (b[1] + b[3]) / 2, scale: s2, gvOnly: gv, lock: true, frame: { on: false }, disiplin: 'Mekanik', label }); };
-    if (pl) gvVp(pl.gv, X0, Y0 + HH * 0.5, solW, HH * 0.5, 'ISI YALITIMI — KESİT PLANI (+1,20)');
-    if (ks) gvVp(ks.gv, X0, Y0, solW, HH * 0.5, 'ISI YALITIMI — Y-Y KESİTİ');
-    if (de) { const AN = C.doc.set.anno, k = AN / 1000, gb = gKutu(dg), gw = gb[2] - gb[0] + 8, gh = gb[3] - gb[1] + 8, w = Math.min(gw, midW), h = Math.min(gh, HH - 4); L.vps.push({ x: midX + (midW - w) / 2, y: Y1 - h, w, h, cx: de.p[0] + (gb[0] + gb[2]) / 2 * k, cy: de.p[1] + (gb[3] - h / 2 + 4) * k, scale: AN, lock: true, frame: { on: false }, frozen: [], disiplin: 'Genel', mtSema: 'yalitim' }); }
-    const ids = yapiEnts().filter(e => e.type !== 'cati' && e.dis !== 'Elektrik').map(e => e.id), v3 = { _yeni: true, x: sagX, y: Y1 - HH * 0.42, w: sagW, h: HH * 0.42 - 16, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, g3: { mod: 'TUMU', yon: 'GB', tip: 'IZOMETRIK', kam: null, olcek: null, ids, gv: null }, label: 'ISI YALITIMI — 3B GÖRÜNÜŞ', mtG3: 'yalitim' };
-    L.vps.push(v3); try { C.g3Guncelle && C.g3Guncelle(true); } catch (er) { console.error(er); }
-    return L;
+    /* pafta: pencereler pafta ölçeğinde (sc), en az kâğıtla (MT.paftaKur) */
+    const bl = [], gvBlok = (gv, label, grup) => { C.doc.ents = C.doc.ents.filter(e => !(e.gv === gv && e.type === 'baslik')); /* başlık pencere etiketinde (çift başlık olmasın) */ const es = C.doc.ents.filter(e => e.gv === gv); if (!es.length) return; es.forEach(e => { delete e._c; }); const b = C.withAnno ? C.withAnno(sc, () => C.extents(es)) : C.extents(es); if (!b) return;
+      bl.push({ vp: { cx: (b[0] + b[2]) / 2, cy: (b[1] + b[3]) / 2, scale: sc, gvOnly: gv, lock: true, frame: { on: false }, disiplin: 'Mekanik', label }, w: (b[2] - b[0]) * 1000 / sc + 8, h: (b[3] - b[1]) * 1000 / sc + 8, grup }); };
+    if (pl) gvBlok(pl.gv, 'ISI YALITIMI — KESİT PLANI (+1,20)', 'PLAN VE KESİT');
+    if (ks) gvBlok(ks.gv, 'ISI YALITIMI — Y-Y KESİTİ', 'PLAN VE KESİT');
+    if (de) { const AN = C.doc.set.anno, k = AN / 1000, gb = gKutu(dg), gw = gb[2] - gb[0] + 8, gh = gb[3] - gb[1] + 8; bl.push({ vp: { cx: de.p[0] + (gb[0] + gb[2]) / 2 * k, cy: de.p[1] + (gb[1] + gb[3]) / 2 * k, scale: AN, lock: true, frame: { on: false }, frozen: [], disiplin: 'Genel', mtSema: 'yalitim', olceksiz: true }, w: gw, h: gh, grup: 'DETAYLAR' }); }
+    const ids = yapiEnts().filter(e => e.type !== 'cati' && e.dis !== 'Elektrik').map(e => e.id);
+    bl.push({ vp: { _yeni: true, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, olceksiz: true, g3: { mod: 'TUMU', yon: 'GB', tip: 'IZOMETRIK', kam: null, olcek: null, ids, gv: null }, label: 'ISI YALITIMI — 3B GÖRÜNÜŞ', mtG3: 'yalitim' }, w: 180, h: 140, grup: '3B GÖRÜNÜŞLER' });
+    const Ls = MT.paftaKur('yalitim', 'ISI YALITIMI', 'ISI YALITIM PROJESİ', bl);
+    try { C.g3Guncelle && C.g3Guncelle(true); } catch (er) { console.error(er); }
+    return Ls.length ? Ls : null;
   };
 
   /* ====================================================================
@@ -263,7 +266,7 @@
       const ents = C.doc.ents.filter(e => (e.gv && gs.has(e.gv)) || (!e.gv && ((S && S.ents(e)) || (S && (e.type === 'mtmahal' || e.type === 'mtdelik' || e.type === 'mtcakis')) || (e.type === 'mtsema' && TUR[t].includes(e.tur)))));
       const L2 = JSON.parse(JSON.stringify(L)); L2.vps = L2.vps.filter(v => !v.g3); /* 3B resim pencereleri DXF'e yazılamaz */
       let txt = null; try { C.doc.layouts = [L2]; txt = C.dxfWrite({ ents, plain: '2b', withLayouts: true }); } catch (er) { C.warn(`${L.name}: DXF yazılamadı — ${er && er.message || er}`); } finally { C.doc.layouts = all; }
-      if (txt) { C.download(txt, `${ad}_tesisat_${EK[t]}.dxf`, 'application/dxf'); n++; await new Promise(r => setTimeout(r, 400)); } }
+      if (txt) { C.download(txt, `${ad}_tesisat_${EK[t]}${L.mtParca ? '_' + (L.mtParca + 1) : ''}.dxf`, 'application/dxf'); n++; await new Promise(r => setTimeout(r, 400)); } }
     if (n) C.log(`${n} DXF dosyası indirildi (her tesisat paftası ayrı dosya). Tarayıcı "birden çok dosya indirme" izni sorarsa izin verin. 3B görünüşler resim olduğu için DXF'te yer almaz; onlar için TESISATCIKTI (PDF) kullanın.`);
   }, { noUndo: true });
   C.addCommand(['TESISATYAZI', 'PAFTAYAZI', 'PAFTAPUNTO'], 'Tesisat paftalarındaki yazı boyutu (punto): görünüş başlıkları, kolon şemaları, tablolar ve yalıtım detayları bu orana göre büyür / küçülür (14 punto = 5 mm başlık, varsayılan). Örnek: TESISATYAZI 10', async (I) => {
@@ -272,17 +275,26 @@
     if ((C.doc.layouts || []).some(L => L.mtPafta)) { E.queue = []; const s0 = E.scriptMode; try { E.queue = ['T']; E.scriptMode = true; await C.cmds.TESISATPAFTA.fn(I, C); } finally { E.queue = []; E.scriptMode = s0; } }
     C.log(`Pafta yazı boyutu ${v} punto (başlık ${f(v * 0.3528, 1)} mm; şema ve tablo yazıları aynı oranda). Plan içindeki cihaz ve mahal yazıları için sol paneldeki Çizim ayarları ▸ "Yazı yük. (mm)" kullanılır.`);
   });
-  C.addCommand(['TESISATPAFTA', 'MEKANIKPAFTA'], 'Tesisat paftaları (Mekanik grubu): I = ısıtma, S = soğutma, H = havalandırma, T = hepsi. Her paftada kat planları, kolon şeması / cihaz listesi ve 3B görünüş bulunur; yeniden çalıştırınca yenilenir.', async (I) => {
+  C.addCommand(['TESISATPAFTA', 'MEKANIKPAFTA'], 'Mekanik paftalar (Mekanik grubu, otomatik): T = hepsi (çizilmiş sistemler), Y = ısı yalıtımı, I = ısıtma, S = soğutma, H = havalandırma, W = sıhhi tesisat. Ölçek bina ebatına göre (1/50; çok küçükse 1/25, A0\'a sığmazsa 1/100), görünümler en az kâğıtla paftalara; kat planları, kolon şeması / cihaz listesi ve 3B görünüş; pafta no MEK-01 …; yeniden çalıştırınca yenilenir (PAFTAELLE ile işaretli paftalar korunur).', async (I) => {
     const k = await I.kw('Pafta', [['T', 'Hepsi (çizilmiş olan sistemler)'], ['Y', 'Isı yalıtımı (kesit planı + kesit + detay)'], ['I', 'Isıtma'], ['S', 'Soğutma'], ['H', 'Havalandırma'], ['W', 'Sıhhi tesisat (temiz su + pis su)']], 'T'); if (!k) return;
-    const turler = k === 'I' ? ['isitma'] : k === 'S' ? ['sogutma'] : k === 'H' ? ['hava'] : k === 'W' ? ['sihhi'] : ['isitma', 'sogutma', 'hava', 'sihhi']; let son = null; const ad = [];
+    const turler = k === 'I' ? ['isitma'] : k === 'S' ? ['sogutma'] : k === 'H' ? ['hava'] : k === 'W' ? ['sihhi'] : ['isitma', 'sogutma', 'hava', 'sihhi']; let son = null; const ad = [], korunan = [];
     C.undoStack.push(C.snapshot());
-    /* hepsi yenilenirken önceki otomatik şema / tablo / detaylar kaldırılır, yenileri temiz düzende konur */
-    if (k === 'T') C.doc.ents = C.doc.ents.filter(e => !(e.type === 'mtsema' && OTO_SEMA.has(e.tur)));
-    if (k === 'Y' || k === 'T') { try { const L = await MT.yalitimPafta(I); if (L) { son = L; ad.push(L.name); } } catch (er) { console.error(er); C.warn('Isı yalıtım paftası: ' + (er && er.message || er)); } }
-    if (k !== 'Y') for (const t of turler) { if (!SIS[t]) continue; const L = MT.tesisatPafta(t); if (L) { son = L; ad.push(L.name); } else if (turler.length === 1) C.warn(`${SIS[t].ad}: bu sistemin tesisatı henüz çizilmemiş.`); }
-    if (!son) { if (turler.length > 1) C.warn('Pafta oluşturulacak tesisat yok: önce kalorifer / soğutma / havalandırma tesisatını oluşturun.'); return; }
-    C.changed(); C.emit && C.emit('layouts'); C.emit && C.emit('layers');
-    try { C.layoutIdx = C.doc.layouts.indexOf(son); C.grpCur = 'Mekanik'; C.setView('layout'); C.emit('layouts'); if (C.views && C.views.lay && C.views.lay.zoomExtents) C.views.lay.zoomExtents(); } catch (er) { }
-    C.log(`${ad.length} pafta hazır: ${ad.join(', ')}. Sol alttaki Mekanik grubundan açılır; tesisat değişince TESISATPAFTA ile yenileyin.`);
+    /* ölçek bina ebatına göre (Mimari ile aynı kural: 1/50; çok küçükse 1/25, A0'a sığmazsa 1/100) — bütün tesisat paftalarında aynı */
+    const os = MT.paftaOlcek ? MT.paftaOlcek() : { olcek: 50, neden: '' }, SC = os.olcek;
+    /* elle düzeltilmiş paftalar (PAFTAELLE: L.elle) korunur: o sistem yeniden üretilmez */
+    const elle = t => (C.doc.layouts || []).some(L => L.mtPafta === t && L.elle);
+    const ekle = Ls => { for (const L of [].concat(Ls || [])) { son = son || L; ad.push(`${L.name} (${L.kagit || ''} ${Math.round(L.pw || 0)}×${Math.round(L.ph || 0)} mm, ${L.f && L.f.olcek ? L.f.olcek : '1/' + SC})`); } };
+    /* hepsi yenilenirken önceki otomatik şema / tablo / detaylar kaldırılır (elle korunan sistemlerinki kalır), yenileri temiz düzende konur */
+    const SEMA_TUR = { isitma: ['kolon', 'ellist', 'radlist'], sogutma: ['sog', 'soglist'], hava: ['hvlist'], yalitim: ['yaldetay'], sihhi: ['shkolon', 'shlist'] }, sakla = new Set(Object.keys(SEMA_TUR).filter(elle).flatMap(t => SEMA_TUR[t]));
+    if (k === 'T') C.doc.ents = C.doc.ents.filter(e => !(e.type === 'mtsema' && OTO_SEMA.has(e.tur) && !sakla.has(e.tur)));
+    if (k === 'Y' || k === 'T') { if (elle('yalitim')) korunan.push('ISI YALITIMI'); else try { ekle(await MT.yalitimPafta(I, SC)); } catch (er) { console.error(er); C.warn('Isı yalıtım paftası: ' + (er && er.message || er)); } }
+    if (k !== 'Y') for (const t of turler) { if (!SIS[t]) continue; if (elle(t)) { korunan.push(SIS[t].ad); continue; } const Ls = MT.tesisatPafta(t, SC); if (Ls) ekle(Ls); else if (turler.length === 1) C.warn(`${SIS[t].ad}: bu sistemin tesisatı henüz çizilmemiş.`); }
+    if (korunan.length) C.log(`Elle düzeltilmiş olarak işaretli paftalar korundu (yeniden üretilmedi): ${korunan.join(', ')}. İşareti kaldırmak için paftayı açıp PAFTAELLE.`);
+    if (!son) { if (turler.length > 1 && !korunan.length) C.warn('Pafta oluşturulacak tesisat yok: önce kalorifer / soğutma / havalandırma tesisatını oluşturun.'); return; }
+    if (MT.paftaNumarala) MT.paftaNumarala(); // MEK-01 …, sistem sırasıyla
+    { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Mekanik')) s.grups.push('Mekanik'); }
+    MT.set().paftaOlcek = SC; C.changed(); C.emit && C.emit('layouts'); C.emit && C.emit('layers');
+    try { C.layoutIdx = C.doc.layouts.indexOf(son); C.grpCur = 'Mekanik'; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60); } catch (er) { }
+    C.log(`${ad.length} Mekanik pafta hazır, ölçek 1/${SC}${os.neden ? ` (${os.neden})` : ''}: ${ad.join(' · ')}. Sol alttaki Mekanik grubundan açılır; tesisat değişince Mekanik ▸ Mekanik paftalar ile yenileyin.`);
   });
 })(typeof window !== 'undefined' ? (window.C = window.C || {}) : (globalThis.C = globalThis.C || {}));

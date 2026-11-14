@@ -308,5 +308,12 @@
     ['Disiplin DXF dosyaları (her biri ayrı)', 'Discipline DXF files (one file each)'], ['Bölgeleri düzenle', 'Arrange discipline zones'],
     ['MEKANİK', 'MECHANICAL'], ['STATİK', 'STRUCTURAL'], ['ELEKTRİK', 'ELECTRICAL'], ['GENEL', 'GENERAL'],
     ['döşeme yüzü yok', 'no floor surface'], ['dolgu', 'fill'], ['kat yüksekliği az', 'storey height too low'], ['kesilen eleman yok', 'nothing cut'], ['başka planla aynı', 'same as another plan'],
+    /* ---------- Mekanik sekmesi: otomatik mekanik paftalama (mt-pafta.js) ---------- */
+    ['Mekanik paftalar', 'Mechanical sheets'], ['Paftaları DXF kaydet', 'Save sheets as DXF'], ['Elle düzeltildi (koru)', 'Edited by hand (keep)'], ['Çıktı al (PDF)', 'Print (PDF)'], ['Yazı boyutu', 'Text size'],
+    ['Sistem paftaları', 'System sheets'], ['Isı yalıtımı', 'Thermal insulation'], ['Isıtma', 'Heating'], ['Soğutma', 'Cooling'], ['Havalandırma', 'Ventilation'], ['Sıhhi tesisat', 'Plumbing'],
+    ['Şema ve tablolar', 'Diagrams and schedules'], ['Kolon şeması', 'Riser diagram'], ['Soğutma şeması', 'Cooling diagram'], ['Akış şeması', 'Flow diagram'], ['Yalıtım detayı', 'Insulation detail'], ['Ekipman tabloları', 'Equipment schedules'],
+    ['Denetim', 'Checks'], ['Çakışma denetimi', 'Clash check'], ['Geçiş delikleri', 'Penetrations'], ['Pafta listesi', 'Sheet list'],
+    ['MEKANİK — ISI YALITIMI', 'MECHANICAL — THERMAL INSULATION'], ['MEKANİK — ISITMA TESİSATI', 'MECHANICAL — HEATING'], ['MEKANİK — SOĞUTMA TESİSATI', 'MECHANICAL — COOLING'], ['MEKANİK — HAVALANDIRMA', 'MECHANICAL — VENTILATION'], ['MEKANİK — SIHHİ TESİSAT', 'MECHANICAL — PLUMBING'],
+    ['ISI YALITIM PROJESİ', 'THERMAL INSULATION DESIGN'], ['ISITMA TESİSATI PROJESİ', 'HEATING DESIGN'], ['SOĞUTMA TESİSATI PROJESİ', 'COOLING DESIGN'], ['HAVALANDIRMA PROJESİ', 'VENTILATION DESIGN'], ['SIHHİ TESİSAT PROJESİ', 'PLUMBING DESIGN'],
   ]);
 })();
