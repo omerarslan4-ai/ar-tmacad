@@ -66,4 +66,13 @@ t('rapor bölümü: çözüm yolu, aktarılan tepkiler tablosu (10 kolon + topla
   const l = P.elemanListesiHtml(S); assert.ok(/Statik eleman listesi/.test(l) && /Alt yapı \(m³\)/.test(l));
 });
 
+t('Konya sonucu (14.11.2026): üst yapı UYGUN; alt yapıda perde ve radye mevcut kalınlıklarla yeterli, yalnız galeri döşemesi kesmesi; öneri firma aralığında', () => {
+  assert.ok(RC.ok, 'üst yapı çerçevesi'); assert.ok(RC.kolonlar.every(c => c.ok));
+  const yet = r.tasarim.filter(T => T.katman.some(k => !k.sec.ok) || !T.kesme.ok).map(T => T.eleman); assert.deepStrictEqual(yet, ['D5 döşeme'], 'yetmeyen: ' + yet.join(', '));
+  assert.ok(r.qmax <= S.zemin.sig, 'zemin gerilmesi ' + r.qmax);
+  const o = P.kabukOnerHesap(S); assert.ok(o.yeterli, o.sinir.join(' | ')); assert.deepStrictEqual(o.log, ['D5 25 cm']);
+  const L = P.kabukSinir(o.kabuk); o.kabuk.walls.forEach((w, i) => assert.ok(w.t <= Math.min(0.70, L.perde[i].max) + 1e-9, w.ad));
+  assert.deepStrictEqual(o.kabuk.walls.map(w => w.t), [0.5, 0.6, 0.4, 0.4], 'perdeler değişmez'); assert.strictEqual(o.kabuk.radye.t, 0.6);
+});
+
 console.log(`\n${n} test geçti.`);

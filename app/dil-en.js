@@ -333,3 +333,17 @@
     ['Oda adı', 'Room name'], ['Oda', 'Room'], ['ZEMİN KAT PLANI', 'GROUND FLOOR PLAN'], ['KAT PLANI', 'FLOOR PLAN'], ['BODRUM KAT PLANI', 'BASEMENT PLAN'],
   ]);
 })();
+/* Statik — yapı türüne göre çözüm yolu (alt + üst yapı iki aşama, yalnız üst yapı + temel), statik eleman listesi */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['ALT YAPI + ÜST YAPI — İKİ AŞAMALI ÇÖZÜM', 'SUBSTRUCTURE + SUPERSTRUCTURE — TWO-STAGE SOLUTION'], ['ÜST YAPI — ÇERÇEVE HESABI', 'SUPERSTRUCTURE — FRAME ANALYSIS'],
+    ['YAPI TÜRÜ VE ÇÖZÜM YOLU', 'STRUCTURE TYPE AND SOLUTION METHOD'], ['TEMEL HESABI', 'FOUNDATION DESIGN'],
+    ['Üst yapıdan alt yapıya aktarılan kolon ayağı tepkileri', 'Column base reactions transferred from the superstructure to the substructure'],
+    ['Statik eleman listesi (net hacim)', 'Structural member list (net volume)'], ['Alt yapı (m³)', 'Substructure (m³)'], ['Üst yapı (m³)', 'Superstructure (m³)'],
+    ['Brüt (m³)', 'Gross (m³)'], ['Net (m³)', 'Net (m³)'], ['Ağırlık (kN)', 'Weight (kN)'], ['Toplam', 'Total'], ['Kolon', 'Column'], ['Kombinasyon', 'Combination'],
+    ['Temel öz ağırlığı', 'Foundation self-weight'], ['Toplam N', 'Total N'], ['Eğilme (kolon yüzü)', 'Bending (column face)'], ['Seçilen', 'Selected'],
+    ['UYGUN', 'ADEQUATE'], ['YETERSİZ', 'INADEQUATE'], ['KALKMA', 'UPLIFT'],
+  ]);
+})();

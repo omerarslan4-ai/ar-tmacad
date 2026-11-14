@@ -45,8 +45,11 @@ const KONYA_DEPREM = (() => {
    B aksı perdesi 50, A aksı perdesi 60 (üst kenarı galeri döşemesi bitince serbest), kısa perdeler 40, radye 60 (en kalın perdeye eşit).
    Perdeler DIŞA doğru kalınlaşır: iç yüzler (pompa holü net ölçüsü 7,40 m) ve galeri döşemesi yerinde kalır; radye yeni dış yüzden 50 cm taşar.
    Hesap kabulleri: çatlak sınırı 0,20 mm (Çokal su yapıları raporu), tasarım değerleri 1 m şerit ortalaması (köşe / birleşim tepeleri yerine).
-   DURUM (14.11.2026): kabuk tasarımı mesnet yüzünden d içeride kesme ve aynı noktadaki M–N ile güncellenince bu kalınlıklarla Konya kabuk hesabı
-   YETMİYOR (P1 / P2 dış yüz düşey donatı, P2 kesme, D5 galeri döşemesi kesme). Çözüm yapı türüne göre statik yol (alt + üst yapı, iki aşama) ile ele alınacak. */
+   DURUM (14.11.2026, yapı türüne göre statik yol — alt + üst yapı, iki aşama; perde eksenleri, Konya zemini ve net hacimler düzeltildikten sonra):
+   üst yapı çerçevesi (kolon ayakları −0,26'da ankastre) UYGUN, kolonlar 8Ø20; alt yapı kabuğunda (kolon tepkileri yük olarak) perdeler ve radye
+   bu kalınlıklarla YETERLİ (B dış düşey Ø28/10, A Ø25/10 – Ø32/15, radye alt Ø25/10). Yetmeyen yalnız galeri döşemesi (15 cm) kesmesi:
+   merdiven boşluğunun perdede bittiği köşe yanında Vd 132 > Vcr 96 kN/m — "Kalınlık öner" 25 cm diyor; karar kullanıcıda (25 cm döşeme ya da
+   o köşede kenar kirişi / kesme donatısı), model 15 cm bırakıldı. Perde ve radye kalınlıkları değişmedi. */
 const STATIK_T = { B: 0.5, A: 0.6, kisa: 0.4, radye: 0.6 };
 
 /* ---------- belge kurucu ---------- */
