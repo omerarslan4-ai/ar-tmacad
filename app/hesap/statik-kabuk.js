@@ -283,8 +283,18 @@
     // serbest kolonların taban / üst bağları
     for (const K of KOL) { if (K.bagT == null) continue; bagla(K.bagT, RG); const k = dos.findIndex(d => Math.abs(d.zm - K.zU) < 0.05 && pip([K.c.x, K.c.y], d.pts)); if (k >= 0) bagla(K.bagU, DG[k]); }
     const gomulu = KOL.filter(K => K.gomulu).length; if (KOL.length) uyarC.push(`Kabuk modeli: ${KOL.length} kolon (${gomulu} perde içinde kaburga, ${KOL.length - gomulu - KOL.filter(K => K.g && !K.gomulu).length} serbest), ${new Set(bars.filter(b => b.tur === 'kiris').map(b => b.ad)).size} kiriş çubuk eleman olarak alındı.`);
+    /* üst yapı kolon ayağı tepkileri (M.kolonYuk, alt + üst yapı iki aşamalı çözüm — statik-iki-asama.js): kolonun oturduğu düğüme
+       (perdeye gömülü kolonda perde üst düğümü, serbest kolonda kolon üst düğümü) düğüm yükü; kolon ekseni ile düğüm arasındaki kaçıklık
+       momente katılır (M + r × F). dugumYuk: { durum: [{ n, f:[6] }] } */
+    const dugumYuk = {}, yukUyar = [];
+    for (const q of (M.kolonYuk || [])) { const K = KOL.find(k => q.id != null && k.c.id === q.id); let n = null;
+      if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;
+      else { let bd = Infinity; for (const w of W) for (const p0 of w.S) { const d = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (d < bd) { bd = d; n = nod(p0[0], p0[1], w.ztm); } } if (n != null) yukUyar.push(`${q.no || 'Kolon'} (${q.x}; ${q.y}) tepkisi en yakın perde üst düğümüne uygulandı.`); }
+      if (n == null) continue; const p0 = nodes[n], r = [(+q.x) - p0[0], (+q.y) - p0[1], (q.z != null ? +q.z : p0[2]) - p0[2]];
+      for (const [c, F] of Object.entries(q.F || {})) { if (!F) continue; const m = cross(r, [F[0], F[1], F[2]]); (dugumYuk[c] = dugumYuk[c] || []).push({ n, f: [F[0], F[1], F[2], F[3] + m[0], F[4] + m[1], F[5] + m[2]], ad: q.no }); } }
+    if ((M.kolonYuk || []).length) uyarC.push(`Üst yapıdan ${(M.kolonYuk || []).length} kolon ayağı tepkisi alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar);
     for (const e of els) e.F = cerceve(e.n.map(i => nodes[i]));
-    return { nodes, els, ties, W, RG, DG, Z, zr, h, mes, bars, uyarC };
+    return { nodes, els, ties, W, RG, DG, Z, zr, h, mes, bars, uyarC, dugumYuk };
   };
 
   /* ================= ÇÖZÜM ================= */
@@ -326,6 +336,8 @@
       // çubuk yükleri: o.cubukYuk(durum, çubuk) → düzgün yayılı [qx, qy, qz] kN/m (global); eşdeğer düğüm yükü (kuvvet + moment)
       if (o.cubukYuk) for (const br of bars) { const qg = o.cubukYuk(ad, br); if (!qg) continue; const ql = br.R.map(r => dot(r, qg)), fe = cubukFeq(br.L, ql); br.q = br.q || {}; br.q[ad] = ql;
         for (let u = 0; u < 2; u++) for (let t = 0; t < 2; t++) for (let p = 0; p < 3; p++) { let v = 0; for (let k = 0; k < 3; k++) v += br.R[k][p] * fe[u * 6 + t * 3 + k]; b[dof(br.n[u], t * 3 + p)] += v; } }
+      // düğüm yükleri (üst yapı kolon tepkileri): AG.dugumYuk[durum] = [{ n, f:[Fx Fy Fz Mx My Mz] }]
+      for (const q of ((AG.dugumYuk || {})[ad] || [])) for (let d = 0; d < 6; d++) b[dof(q.n, d)] += q.f[d];
       const u = K.solve(b), U = new Float64Array(N); for (let i = 0; i < nn; i++) for (let d = 0; d < 6; d++) U[i * 6 + d] = u[dof(i, d)];
       sonuc[ad] = U;
     }

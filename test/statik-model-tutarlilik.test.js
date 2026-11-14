@@ -82,7 +82,7 @@ t('Konya galeri döşemesi: 100 × 100 sac kapak boşluğu kabuk ağından çık
   assert.ok(uc >= 0 && AG.els.some(e => e.tur === 'perde' && e.n.includes(uc)) && AG.bars.some(b => b.tur === 'kiris' && b.n.includes(uc)), 'kiriş ucu perde düğümünde');
 });
 t('Kalınlık öner kaba ağdan sonra asıl ağla doğrular: Konya galeri döşemesi kesmesi 15 → 20 cm', () => {
-  const S1 = JSON.parse(JSON.stringify(S)); S1.tas.kmesh = 0.35;
+  const S1 = JSON.parse(JSON.stringify(S)); S1.tas.kmesh = 0.35; S1.yapi = { tur: 'su' }; // kabuk tek başına (kolon tepkisiz) — mekanizma sınaması
   const o = P.kabukOnerHesap(S1, { maxTur: 1 });
   assert.ok(o.log.some(s => /^D5 20 cm$/.test(s)), o.log.join(' | ')); assert.strictEqual(o.kabuk.dosemeler[0].t, 0.2);
   assert.strictEqual(o.r.h, 0.35, 'son hesap asıl ağla');

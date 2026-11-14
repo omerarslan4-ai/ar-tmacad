@@ -1,0 +1,69 @@
+/* Gömülü alt yapı + üst yapı iki aşamalı çözüm (app/hesap/statik-iki-asama.js; kabuk düğüm yükleri app/hesap/statik-kabuk.js;
+   kolon ayağı tepkileri app/hesap/statik-cerceve3b.js). Kural: docs/tasarim-standartlari.md › "Yapı türüne göre statik çözüm yolu", 2.
+   Konya isale terfi merkezi: alt yapı üst kotu −0,26 (pompa holü perdeleri), üst yapı 10 kolon 50/50 (−0,26 → +5,24), 5 + 2 çatı kirişi,
+   15 cm çatı döşemesi, 8 vinç gusesi. Denetimler:
+     • üst yapı çerçevesinde yalnız kotun üstündekiler; kolon ayakları kotta;
+     • kolon ayağı tepkileri toplamı = üst yapıya uygulanan düşey yük (G, Q) ve deprem tepkileri toplamı = taban kesme kuvveti;
+       elle kaba ağırlık (çatı döşemesi + kirişler + kolonlar + guse) ile %6 içinde;
+     • alt yapı kabuğunda düşey denge: radye yay tepkileri toplamı = kabuk öz ağırlığı + aktarılan G tepkileri.
+   Çalıştır: node test/statik-iki-asama.test.js */
+'use strict';
+const assert = require('assert');
+const O = require('./statik-ortam.js'), P = O.pencere();
+let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
+const yak = (a, b, e, m) => assert.ok(Math.abs(a - b) <= e, `${m || ''} ${a} ≉ ${b} (±${e})`);
+
+const { d } = O.modelCevir(O.konyaDoc()), S = O.uygula(P.ornekSaray(), JSON.parse(JSON.stringify(d)));
+const IA = P.ikiAsamaHazirla(S);
+
+t('yalnız alt + üst yapıda çalışır (su yapısı / yalnız üst yapıda null)', () => {
+  assert.ok(IA && IA.kot === -0.26);
+  for (const tur of ['su', 'ust']) assert.strictEqual(P.ikiAsamaHazirla(Object.assign({}, S, { yapi: { tur, altUstKot: -0.26 } })), null);
+});
+t('Konya üst yapı çerçevesi: 10 kolon −0,26 kotunda başlar, yalnız çatı kirişleri ve çatı döşemesi; galeri elemanları alt yapıda', () => {
+  assert.strictEqual(IA.cer.kolonlar.length, 10); assert.ok(IA.cer.kolonlar.every(c => c.z0 === -0.26 && c.altKes));
+  assert.strictEqual(IA.cer.kirisler.length, 7); assert.ok(IA.cer.kirisler.every(k => k.zt === 5.24));
+  assert.deepStrictEqual(IA.cer.dosemeler.map(x => x.zt), [5.24]); assert.strictEqual(IA.cer.perdeler.length, 0);
+  assert.ok(IA.S.kabuk.kirisler.every(k => k.zt <= -0.26 + 0.15) && IA.S.kabuk.kirisler.length === 7, 'kabukta yalnız galeri kirişleri');
+  assert.ok(IA.RC && IA.RC.deprem.cer3B, '3B çerçeve analizi yapılmış olmalı');
+});
+const RC = IA.RC, D3 = RC.deprem.cer3B, T = IA.T;
+t('kolon ayağı tepkileri: ΣG / ΣQ = üst yapıya uygulanan yük; deprem ΣF = taban kesme kuvveti; 3B sonuçtan', () => {
+  assert.strictEqual(T.length, 10); assert.ok(T.every(q => q.k3B && q.z === -0.26));
+  const g = P.tepkiToplam(T, 'G'), q = P.tepkiToplam(T, 'Q');
+  yak(g[2], D3.yukTop.G, 1e-3 * Math.abs(D3.yukTop.G), 'ΣG'); yak(q[2], D3.yukTop.Q, 1e-3 * Math.abs(D3.yukTop.Q), 'ΣQ');
+  yak(g[0], 0, 0.5); yak(g[1], 0, 0.5);
+  for (const [c, k, dd] of [['EX+', 0, 'X'], ['EY+', 1, 'Y']]) { const e = P.tepkiToplam(T, c); yak(e[k], D3.yon[dd].Vt, 1e-3 * D3.yon[dd].Vt, 'taban kesmesi ' + dd); yak(e[2], 0, 0.5, 'deprem düşey toplamı'); }
+  // elle kaba üst yapı ağırlığı: çatı döşemesi (25·0,15 + 1,5 kaplama) · 20,7 · 9,0 + enine kirişler 5 · 0,5 · 0,65 · 8 · 25 + boyuna 2 · 0,3 · 0,35 · 19,7 · 25
+  //                               + kolonlar 10 · 0,25 · 5,5 · 25 + guse 8 · 5 kN  ≈ 1790 kN
+  const el = (25 * 0.15 + 1.5) * 20.7 * 9.0 + 5 * 0.5 * 0.65 * 8 * 25 + 2 * 0.3 * 0.35 * 19.7 * 25 + 10 * 0.25 * 5.5 * 25 + 8 * 5;
+  assert.ok(Math.abs(-g[2] - el) < 0.06 * el, `ΣG ${-g[2]} ≈ elle ${el}`);
+  // vinç tekerlek yükü Q: 8 guse · 55 kN = 440 kN Q'nun içinde
+  assert.ok(-q[2] > 8 * 55, 'ΣQ guse yüklerini içermeli: ' + (-q[2]));
+});
+t('kabuk yüklerine eşleme: G, Q aynen; ESX / ESY = −(EX+ / EY+) — kabuktaki atalet yönü', () => {
+  const Y = IA.S.kabuk.kolonYuk; assert.strictEqual(Y.length, 10);
+  for (let i = 0; i < Y.length; i++) { assert.deepStrictEqual(Y[i].F.G, T[i].F.G); assert.deepStrictEqual(Y[i].F.ESX, T[i].F['EX+'].map(v => -v)); assert.deepStrictEqual(Y[i].F.ESY, T[i].F['EY+'].map(v => -v)); }
+});
+
+const r = P.kabukHesap(IA.S), AG = r.AG;
+t('alt yapı kabuğu: tepkiler kolonun oturduğu perde üst düğümüne; düşey denge (radye yayları = kabuk öz ağırlığı + aktarılan G)', () => {
+  assert.ok(r.bilgi.some(s => /10 kolon ayağı tepkisi/.test(s)));
+  assert.strictEqual(AG.dugumYuk.G.length, 10); for (const q of AG.dugumYuk.G) { const p = AG.nodes[q.n]; assert.ok(AG.els.some(e => e.tur === 'perde' && e.n.includes(q.n)), 'perde düğümü'); yak(p[2], -0.26 - 0.075, 1e-6, 'perde üstü = galeri döşemesi orta düzlemi'); }
+  const kz = S.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
+  const yay = c => { let s = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) s += -kz * trib[i] * r.U[c][i * 6 + 2]; return s; };
+  const gc = S.mal.gc; let Wk = 0; for (const e of AG.els) Wk += gc * e.t * e.A + (e.tur === 'doseme' ? (IA.S.kabuk.dosemeler[+e.grp.slice(1)].g || 0) * e.A : 0); for (const b of AG.bars) Wk += gc * b.s.A * b.L;
+  const tG = -P.tepkiToplam(T, 'G')[2]; yak(yay('G'), Wk + tG, 1e-3 * (Wk + tG), 'G dengesi');
+  let Wq = 0; for (const e of AG.els) if (e.tur === 'doseme') Wq += (IA.S.kabuk.dosemeler[+e.grp.slice(1)].q || 0) * e.A; const tQ = -P.tepkiToplam(T, 'Q')[2]; yak(yay('Q'), Wq + tQ, 1e-3 * (Wq + tQ), 'Q dengesi');
+  // tepkisiz çözümle fark = yalnız aktarılan yük (doğrusal)
+  const S0 = Object.assign({}, IA.S, { kabuk: Object.assign({}, IA.S.kabuk, { kolonYuk: [] }) }), r0 = P.kabukHesap(S0);
+  let fark = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) fark += -kz * trib[i] * (r.U.G[i * 6 + 2] - r0.U.G[i * 6 + 2]); yak(fark, tG, 1e-3 * tG, 'aktarılan G');
+});
+t('rapor bölümü: çözüm yolu, aktarılan tepkiler tablosu (10 kolon + toplam) ve denge satırı', () => {
+  const h = P.ikiAsamaRapor(IA); assert.ok(/İKİ AŞAMALI ÇÖZÜM/.test(h) && /Üst yapıdan alt yapıya aktarılan kolon ayağı tepkileri/.test(h) && /Denge:/.test(h));
+  assert.strictEqual((h.match(/<tr><td class="l">/g) || []).length, 10);
+  const o = P.ikiAsamaOzet(IA); assert.ok(/iki aşama/.test(o) && /10 kolon ayağı tepkisi/.test(o));
+  const l = P.elemanListesiHtml(S); assert.ok(/Statik eleman listesi/.test(l) && /Alt yapı \(m³\)/.test(l));
+});
+
+console.log(`\n${n} test geçti.`);

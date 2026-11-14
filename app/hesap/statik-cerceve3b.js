@@ -151,8 +151,9 @@
       return f; // esnek uç kuvvetleri (yerel)
     };
     const yuk = { G: new Array(N).fill(0), Q: new Array(N).fill(0) }, femEl = new Map(); // femEl: eleman → {G: f12 yerel esnek, Q}
+    const yukTop = { G: 0, Q: 0 }; // uygulanan toplam düşey yük (kN, + yukarı) — denge denetimi: kolon ayağı tepkileri toplamı buna eşittir
     const elYuk = (e, cas, Pz, sAbs) => { // kiriş elemanına noktasal yük
-      const kl = e.ku, a = (sAbs - e.s0) - e.a; const f = sabitUc(e, kl, Pz, a), F = femEl.get(e) || { G: new Array(12).fill(0), Q: new Array(12).fill(0) }; for (let i = 0; i < 12; i++) F[cas][i] += f[i]; femEl.set(e, F);
+      yukTop[cas] += Pz; const kl = e.ku, a = (sAbs - e.s0) - e.a; const f = sabitUc(e, kl, Pz, a), F = femEl.get(e) || { G: new Array(12).fill(0), Q: new Array(12).fill(0) }; for (let i = 0; i < 12; i++) F[cas][i] += f[i]; femEl.set(e, F);
     };
     const nodYuk = (n, cas, Fz) => { for (const [ix, cf] of map[n][2]) yuk[cas][ix] += cf * Fz; };
     for (const e of els) if (e.tip === 'kiris') {
@@ -160,12 +161,12 @@
       for (const [cas, arr] of [['G', ch.yG], ['Q', ch.yQ]]) for (const [s, Pz] of arr) { if (s >= s0 - 1e-6 && (s < s1 - 1e-6 || (s1 >= ch.L - 1e-6 && s <= s1 + 1e-6))) elYuk(e, cas, Pz, s); }
       const w = gc * e.bw * Math.max(0.1, e.hb - tSv(ch.z)) + (+e.sg.k.gd || 0), L = s1 - s0, n = Math.max(2, Math.ceil(L / 0.25)); for (let k = 0; k < n; k++) elYuk(e, 'G', -w * L / n, s0 + (k + 0.5) * L / n);
     }
-    for (const e of els) if (e.tip === 'kolon') { const pi = nodes[e.i], pj = nodes[e.j], W = gc * e.A * (pj.z - pi.z); nodYuk(e.i, 'G', -W / 2); nodYuk(e.j, 'G', -W / 2); }
+    for (const e of els) if (e.tip === 'kolon') { const pi = nodes[e.i], pj = nodes[e.j], W = gc * e.A * (pj.z - pi.z); yukTop.G -= W; nodYuk(e.i, 'G', -W / 2); nodYuk(e.j, 'G', -W / 2); }
     // guse (vinç kirişi) yükleri: düşey kuvvet + kolon eksenine göre dışmerkezlik momenti (G: kiriş ağırlığı, Q: vinç tekerlek yükü)
     const nodKuv = (n, cas, k, v) => { for (const [ix, cf] of map[n][k]) yuk[cas][ix] += cf * v; };
     for (const c of kolonlar) for (const g of (c.guse || [])) {
       const n = (kolDug.get(c) || []).find(i => Math.abs(nodes[i].z - g.zt) < 0.02); if (n == null) continue; const e = g.f0 + (dv.guseA != null && dv.guseA !== '' ? +dv.guseA : g.gL / 2), rx = g.yon[0] * e, ry = g.yon[1] * e;
-      for (const [cas, P0] of [['G', +dv.guseG || 0], ['Q', +dv.guseP || 0]]) { if (!P0) continue; nodKuv(n, cas, 2, -P0); nodKuv(n, cas, 3, -ry * P0); nodKuv(n, cas, 4, rx * P0); }
+      for (const [cas, P0] of [['G', +dv.guseG || 0], ['Q', +dv.guseP || 0]]) { if (!P0) continue; yukTop[cas] -= P0; nodKuv(n, cas, 2, -P0); nodKuv(n, cas, 3, -ry * P0); nodKuv(n, cas, 4, rx * P0); }
     }
     // eleman sabit uç kuvvetleri → düğüm yükleri (−Oᵀ f, global)
     const femNode = (e, f) => { const kl = e.ku, O = kl.O, T = T12(kl.R), fn = O[0].map((_, j) => O.reduce((t, r, k) => t + r[j] * f[k], 0)), fg = T[0].map((_, j) => T.reduce((t, r, k) => t + r[j] * fn[k], 0)); return fg; };
@@ -224,8 +225,13 @@
         c.ME[d] = best; c.NE[d] = NE; c.NEt = c.NEt || {}; c.NEt[d] = NE;
       }
       c.k3B = true;
+      /* kolon ayağı tepkisi (alt yapıya / temele aktarılan yük, global eksenler, kN · kNm): kolonun tabandaki ucundan mesnede etkiyen kuvvet
+         = −(eleman uç kuvveti), G'de taban düğümüne düşen yarım kolon ağırlığı da eklenir. [Fx, Fy, Fz, Mx, My, Mz] (Fz < 0: aşağı) */
+      if (nodes[tab.i].fix) { const R0 = tab.ku.R, glob = (f, o) => [0, 1, 2].map(k => R0[0][k] * f[o] + R0[1][k] * f[o + 1] + R0[2][k] * f[o + 2]);
+        c.tabanYuk = {}; for (const cas of ['G', 'Q', 'EX+', 'EX-', 'EY+', 'EY-']) { const f = elKuv(tab, cas), F = glob(f, 0), Mm = glob(f, 3); c.tabanYuk[cas] = [-F[0], -F[1], -F[2], -Mm[0], -Mm[1], -Mm[2]]; }
+        const pi = nodes[tab.i], pj = nodes[tab.j]; c.tabanYuk.G[2] -= gc * tab.A * (pj.z - pi.z) / 2; c.tabanZ = pi.z; }
     }
-    return { dugum: nodes.length, eleman: els.length, sb: N, kat, modlar, yon, ote, Wt, HN, Temp, TA, TB, SDS, SD1, R: dv.R, D: dv.D, I: dv.I, n: dv.n, kC, kB };
+    return { yukTop, dugum: nodes.length, eleman: els.length, sb: N, kat, modlar, yon, ote, Wt, HN, Temp, TA, TB, SDS, SD1, R: dv.R, D: dv.D, I: dv.I, n: dv.n, kC, kB };
   };
   P.cerceve3BHook = ctx => { if (ctx.dv.analiz3B === false || !ctx.kolonlar.length || !ctx.zincirler.length) return null; const r = P.cerceve3B(ctx); if (ctx.deprem) ctx.deprem.cer3B = r; return r; };
 })();

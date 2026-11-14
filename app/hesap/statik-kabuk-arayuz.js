@@ -355,11 +355,18 @@
   window.hepsi = function (o) {
     if (kabukMu() && !tazeleniyor && !atlaTazele && !o) { const ok = modelTazele(); if (ok === 'eski') return; if (ok && !kabukMu()) return hepsi0.apply(this, arguments); if (!ok) { const m = $('#pMsg'); if (m && !m.querySelector('.eskiModel')) m.insertAdjacentHTML('afterbegin', `<div class="msg eskiModel">Bu hesap statik penceresine en son alınan modele göre yapılıyor; ArıtmaCAD'deki çizim değiştiyse önce <b>Modelden al</b>'a basın.</div>`); } }
     if (!kabukMu()) return hepsi0.apply(this, arguments);
-    const r = P.kabukHesap(S);
-    RC = null; window._KR = r; P.kabukKolonYuk = (r.cubuk || []).filter(c => c.tur === 'kolon'); try { if (typeof cerVar === 'function' && cerVar() && P.cerceveHesap) RC = P.cerceveHesap(S); } catch (er) { console.error('çerçeve', er); } finally { P.kabukKolonYuk = null; } // kolon / kiriş: ayrı çerçeve hesabı (döşeme yükü kirişlere aktarılır)
-    kabukGoster(r);
+    // alt + üst yapı (yapı türü, statik-iki-asama.js): önce üst yapı çerçevesi, kolon ayağı tepkileri alt yapı kabuğuna yük olur
+    let IA = null; try { IA = P.ikiAsamaHazirla ? P.ikiAsamaHazirla(S) : null; } catch (er) { console.error('iki aşama', er); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg">Üst yapı çerçevesi çözülemedi (${esc(er.message)}): alt yapı kolon tepkisiz hesaplanıyor.</div>`); }
+    P.ikiAsamaSon = IA;
+    const r = P.kabukHesap(IA ? IA.S : S);
+    RC = null; window._KR = r;
+    if (IA) RC = IA.RC;
+    else { P.kabukKolonYuk = (r.cubuk || []).filter(c => c.tur === 'kolon'); try { if (typeof cerVar === 'function' && cerVar() && P.cerceveHesap) RC = P.cerceveHesap(S); } catch (er) { console.error('çerçeve', er); } finally { P.kabukKolonYuk = null; } } // kolon / kiriş: ayrı çerçeve hesabı (döşeme yükü kirişlere aktarılır)
+    kabukGoster(r); if (IA && P.ikiAsamaOzet) $('#sonuc').insertAdjacentHTML('afterbegin', P.ikiAsamaOzet(IA));
     ['#bCiz', '#bDxf', '#bDon3'].forEach(s => { const b = $(s); if (b) b.disabled = true; }); const by = $('#bYaz'); if (by) by.disabled = false;
-    try { R = P.kabukAdaptor ? P.kabukAdaptor(r, S) : null; if (R && typeof rapor === 'function') rapor(); if (RC && P.cerceveRapor) { try { if (typeof cerGoster === 'function') cerGoster(); } catch (e2) { } $('#rapor').insertAdjacentHTML('beforeend', P.cerceveRapor(RC, f2)); $('#raporKutu').style.display = 'block'; } } catch (er) { console.error(er); $('#rapor').innerHTML = `<div class="msg">Rapor hatası: ${esc(er.message)}</div>`; $('#raporKutu').style.display = 'block'; }
+    try { R = P.kabukAdaptor ? P.kabukAdaptor(r, S) : null; if (R && typeof rapor === 'function') rapor();
+      $('#rapor').insertAdjacentHTML('beforeend', (IA && P.ikiAsamaRapor ? P.ikiAsamaRapor(IA, f2) : '') + (P.elemanListesiHtml ? P.elemanListesiHtml(S, f2) : '') + (IA && RC ? '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' : ''));
+      if (RC && P.cerceveRapor) { try { if (typeof cerGoster === 'function') cerGoster(); } catch (e2) { } $('#rapor').insertAdjacentHTML('beforeend', P.cerceveRapor(RC, f2)); $('#raporKutu').style.display = 'block'; } } catch (er) { console.error(er); $('#rapor').innerHTML = `<div class="msg">Rapor hatası: ${esc(er.message)}</div>`; $('#raporKutu').style.display = 'block'; }
   };
 
   /* ---------- kabuk modunda Kalınlık öner / Kalınlıkları modele yansıt ---------- */
@@ -382,7 +389,8 @@
      Dönen: { kabuk (yeni kalınlıklar), log, sinir, r (son hesap, kaba ağ), yeterli } */
   const grupNo = (r, t) => { const g = t.grup, e = r.AG.els[g.ids[0]]; return g.tur === 'radye' ? { tur: 'radye', i: 0 } : g.tur === 'doseme' ? { tur: 'doseme', i: +e.grp.slice(1) } : { tur: 'perde', i: e.wi }; };
   P.kabukOnerHesap = (S0, o) => {
-    o = o || {}; const S2 = JSON.parse(JSON.stringify(S0)), M = S2.kabuk, B = P.kalinlikBasamak, log = [];
+    o = o || {}; const IA0 = P.ikiAsamaHazirla ? P.ikiAsamaHazirla(S0) : null; // alt + üst yapı: alt yapı kabuğu üst yapı kolon tepkileriyle
+    const S2 = JSON.parse(JSON.stringify(IA0 ? IA0.S : S0)), M = S2.kabuk, B = P.kalinlikBasamak, log = [];
     S2.tas.kmesh = Math.max(+S2.tas.kmesh || 0, o.kabaAg == null ? 0.8 : +o.kabaAg); // denemelerde kaba ağ (hızlı)
     let r = null; const maxTur = o.maxTur || 12;
     for (let it = 0; it <= maxTur; it++) {
@@ -409,7 +417,7 @@
   /* pencere: öneriyi S.kabuk'a uygular (modele yazmaz — "Kalınlıkları modele yansıt") */
   P.kabukOner = (ilerle) => {
     const o = P.kabukOnerHesap(S, { ilerle }), M = S.kabuk;
-    o.kabuk.walls.forEach((w, i) => { if (M.walls[i]) M.walls[i].t = w.t; }); M.radye.t = o.kabuk.radye.t; M.radye.kAlt = o.kabuk.radye.kAlt; (o.kabuk.dosemeler || []).forEach((d, i) => { if (M.dosemeler && M.dosemeler[i]) M.dosemeler[i].t = d.t; });
+    o.kabuk.walls.forEach((w, i) => { if (M.walls[i]) M.walls[i].t = w.t; }); M.radye.t = o.kabuk.radye.t; M.radye.kAlt = o.kabuk.radye.kAlt; (o.kabuk.dosemeler || []).forEach((d, i) => { const h = (M.dosemeler || []).find(x => d.id != null && x.id === d.id) || (d.id == null && M.dosemeler ? M.dosemeler[i] : null); if (h) h.t = d.t; }); // alt + üst yapıda öneri alt yapı döşemeleriyle yapılır: kimlikle eşle
     if (M.radye) S.geo.kAlt = M.radye.kAlt; save();
     const out = o.log.slice(); out.sinir = o.sinir; return out;
   };
