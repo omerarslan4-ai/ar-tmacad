@@ -21,6 +21,14 @@
     ACAD_ISO04W100: { d: 'ISO long-dash dot ____ . ____ .', p: [24, -3, 0.5, -3] },
   };
   for (const [n, v] of Object.entries(LT_EK)) if (C.LT && !C.LT[n]) C.LT[n] = v;
+  /* örnek çizimlerin kâğıttaki desenleri (MIMARI.cizgiTipi, mm): aks, gizli çizgi, kesit çizgisi, zemin çizgisi pafta ölçeğinden bağımsız aynı görünür */
+  if (C.LT) for (const [n, p] of Object.entries(R().cizgiTipi || {})) C.LT[n] = Object.assign({}, C.LT[n] || { d: n }, { p: p.slice() });
+  C.vpCizgiOlcegi = K.vpCizgiOlcegi;
+  /* AutoCAD çıktısı ($PSLTSCALE = 1 ile yazılır): desenler kâğıt mm'si olduğundan 2B mimari çıktıda $LTSCALE = 1 — pafta pencerelerinde
+     çizgi tipi her ölçekte örnekteki gibi görünür (eskiden $LTSCALE = ölçek / 1000 yazılıyordu: desen kâğıtta 20 kat küçülüp noktalı görünüyordu) */
+  if (C.dxfWrite && !C._ltOlcekSarili) { C._ltOlcekSarili = true; const w0 = C.dxfWrite;
+    C.dxfWrite = function (opts = {}) { const d = C.doc && C.doc.set; if (!d || opts.plain !== '2b' || !etkin() || (opts.grp && !/M[İI]MAR[İI]|GENEL/i.test(opts.grp))) return w0.apply(this, arguments);
+      const l0 = d.ltscale; d.ltscale = 1; try { return w0.apply(this, arguments); } finally { d.ltscale = l0; } }; }
   const MODEL = /^(INS_|ARI_|MEK_)|^(BETON|DUVAR|BORU|POMPA|VANA|SU|ARAZI|HARITA|SEVIYE)$/; // model ve genel çizim katmanları: ekranda kendi rengiyle kalır
   /* program katmanının ekrandaki özellikleri (kural yoksa null) */
   const ekran = ad => { if (!ad || MODEL.test(ad)) return null; const h = K.esle(R(), ad); if (!h) return null; const t = R().katmanlar[h]; /* yalnız mimari kural katmanları (mekanik katmanların kuralı henüz yok) */ if (!t) return null; const o = K.ozellik(t); if (!C.LT[o.lt]) o.lt = 'CONTINUOUS'; return o; };

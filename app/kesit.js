@@ -272,6 +272,7 @@
     const LC = lk => { const n = lk ? 'KESIT_' + lk : 'KESIT'; if (lk) C.ensureLayer(n, srcCol(lk), 'CONTINUOUS', cutLw); return n; };
     const LV = lk => { const n = lk ? 'GORUNEN_' + lk : 'GORUNEN'; if (lk) C.ensureLayer(n, srcCol(lk), 'CONTINUOUS', visLw); return n; };
     const LH = lk => { const n = lk ? 'KESIT_' + lk + '_TARAMA' : 'KESIT_TARAMA'; C.ensureLayer(n, 8, 'CONTINUOUS', 13); return n; };
+    const i0 = C.doc.ents.length; // bu kesitin çizim nesneleri buradan sonra (ölçüler yazı / kot üstüne binmesin diye)
     for (const lp of R.loops.concat(R.equip)) { if (C.addFitted(lp, true, W, { layer: LC(lp.lk) })) nC++; }
     for (const pl of R.open) { if (pl.terr) { C.add(C.newEnt(pl.length === 2 ? 'line' : 'pline', pl.length === 2 ? { a: W(pl[0]), b: W(pl[1]), layer: 'ZEMIN' } : { pts: pl.map(W), closed: false, layer: 'ZEMIN' })); nC++; } else if (C.addFitted(pl, false, W, { layer: LC(pl.lk) })) nC++; }
     { const vg = new Map(); for (const sg of R.vis) { const k = sg.lk || ''; if (!vg.has(k)) vg.set(k, []); vg.get(k).push(sg); } for (const [k, vs] of vg) nV += C.addFittedSegs(vs, W, { layer: LV(k || null) }); }
@@ -317,6 +318,7 @@
       for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m); C.add(C.newEnt('kot', Object.assign({ p: W(m), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, m[0] < (ub[0] + ub[2]) / 2 ? { ters: true } : {}))); nK++; }
     }
     // otomatik ölçülendirme: altta perde / boşluk zinciri + toplam, solda temel / perde / döşeme kalınlıkları zinciri + toplam yükseklik; kapatmak için KESITAL OLCU=H
+    let nT = 0; if (C.dogramaEtiketKesit && kv.TIP !== 'H') { try { nT = C.dogramaEtiketKesit({ a, u, n, depth, W, inU }); } catch (er) { console.error('kesit doğrama no', er); } } // kapı / pencere tip numarası (ölçülerden önce: zincirler üstüne binmesin)
     let nD = 0, dimBot = Infinity;
     if (kv.OLCU !== 'H' && C.T.dim) {
       const SKIPD = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON', 'TRETUVAR']), LPD = R.loops.filter(lp => !SKIPD.has(lp.lk));
@@ -334,9 +336,13 @@
         const dim = (k, a, b, p) => { C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; };
         /* ilk sıranın yeri: pafta stilinde çizimin en dış çizgisinden (tretuvar dahil) ilk mm uzakta (kural tablosu → olcuYeri.ilkSira); eski görünümde betondan bir sıra aralığı */
         let yA = zb - dd, xA = x0 - dd * 1.6;
-        if (psD && psD.ilk) { let ax = x0, az = zb; for (const lp of R.loops) { if (lp.lk === 'KORKULUK') continue; for (const q of lp) { ax = Math.min(ax, q[0]); az = Math.min(az, q[1]); } } yA = az - C.annoH(psD.ilk); xA = ax - C.annoH(psD.ilk); }
+        /* bu kesitte daha önce konan yazı ve kotlar (kesit koordinatı): dış ölçü sırası bunların dışına, iç zincirler bunların üstüne binmez */
+        const Q = q => [q[0] - q0[0], q[1] - q0[1]], yaziKot = []; for (const e of C.doc.ents.slice(i0)) { if (e.type !== 'text' && e.type !== 'kot' && e.type !== 'circle') continue; let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (b && isFinite(b[0])) { const a = Q([b[0], b[1]]), c = Q([b[2], b[3]]); yaziKot.push([a[0], a[1], c[0], c[1]]); } }
+        if (psD && psD.ilk) { let ax = x0, az = zb; for (const lp of R.loops) { if (lp.lk === 'KORKULUK') continue; for (const q of lp) { ax = Math.min(ax, q[0]); az = Math.min(az, q[1]); } }
+          for (const b of yaziKot) { if (b[0] < ax) ax = b[0]; } yA = az - C.annoH(psD.ilk); xA = ax - C.annoH(psD.ilk); }
         /* pafta stili (kullanıcı 13.11.2026): ölçüler yapının içinden zincir olarak verilir; dışarıda yalnız toplam boy ve toplam yükseklik kalır */
-        const icO = psD && C.cizimKural && C.cizimKural.kesitIcOlculer ? C.cizimKural.kesitIcOlculer(LPD.map(lp => ({ lk: lp.lk || '', pts: lp })), C.annoH(1), (C.cizimKural.MIMARI.olcuYeri || {}).genel) : [];
+        const engelX = []; for (const sg of R.vis || []) if (Math.abs(sg[0][0] - sg[1][0]) < 1e-3 && Math.abs(sg[0][1] - sg[1][1]) > 1) engelX.push(sg[0][0]); /* arkada görünen kolon / kiriş kenarı: düşey zincir üstüne binmesin */
+        const icO = psD && C.cizimKural && C.cizimKural.kesitIcOlculer ? C.cizimKural.kesitIcOlculer(LPD.map(lp => ({ lk: lp.lk || '', pts: lp })), C.annoH(1), Object.assign({}, (C.cizimKural.MIMARI.olcuYeri || {}).genel, { engelX, engelK: yaziKot })) : [];
         const disH = !icO.length && XS.length > 2, disV = (!icO.length || icO.eksikDusey) && ZS.length > 2; /* üstü açık hacim varsa dıştaki düşey zincir de çizilir */
         if (disH) for (let i = 1; i < XS.length; i++) dim('h', [XS[i - 1], z0], [XS[i], z0], [0, yA]);
         dim('h', [x0, z0], [x1, z0], [0, yA - (disH ? dd : 0)]);
@@ -364,7 +370,7 @@
     // plandaki kesit işareti
     if (C.makeSectionMark) C.makeSectionMark(a, b, n, nm);
     else { const ah = C.annoH(4), m1 = M.add(a, M.mul(n, ah * 1.5)), m2 = M.add(b, M.mul(n, ah * 1.5)); C.add(C.newEnt('line', { a, b, layer: 'EKSEN', lt: 'PHANTOM', lw: 35 })); for (const [p, m] of [[a, m1], [b, m2]]) { C.add(C.newEnt('line', { a: p, b: m, layer: 'EKSEN', lw: 35 })); C.add(C.newEnt('text', { p: M.add(m, M.mul(n, ah * 0.4)), h: ah, s: nm, rot: 0, al: 'C', layer: 'YAZI' })); } }
-    C.log(`${nm}-${nm} kesiti üretildi: ${R.loops.length} yapı kesit sınırı + ${R.equip.length} ekipman (tek parça), ${nV} görünen çizgi${nA ? `, ${nA} aks` : ''}${nK ? `, ${nK} yüzey kotu (kapatmak: KESITAL KOT=H)` : ''}${nD ? `, ${nD} ölçü (kapatmak: KESITAL OLCU=H)` : ''}${nH ? `, ${nH} malzeme grubu ayrı tarandı (${C.pstil && C.pstil() ? `desenler örnek projedeki gibi (beton ANSI36, tuğla AR-B816, grobeton AR-CONC, dolgu AR-SAND), grobeton ${gb * 100} cm${gb ? '' : ' yok'}; taramasız: KESITAL T=YOK` : `betonarme ${pat}, döşeme/kiriş ters yön, duvar tuğla, grobeton ${gb * 100} cm${gb ? '' : ' yok'}; desen: KESITAL T=AR-CONC ya da T=YOK`}; sonradan taramaya çift tıklayın)` : ''}. Gizli çizgiler ayıklanmaz.`);
+    C.log(`${nm}-${nm} kesiti üretildi: ${R.loops.length} yapı kesit sınırı + ${R.equip.length} ekipman (tek parça), ${nV} görünen çizgi${nA ? `, ${nA} aks` : ''}${nT ? `, ${nT} kapı / pencere numarası` : ''}${nK ? `, ${nK} yüzey kotu (kapatmak: KESITAL KOT=H)` : ''}${nD ? `, ${nD} ölçü (kapatmak: KESITAL OLCU=H)` : ''}${nH ? `, ${nH} malzeme grubu ayrı tarandı (${C.pstil && C.pstil() ? `desenler örnek projedeki gibi (beton ANSI36, tuğla AR-B816, grobeton AR-CONC, dolgu AR-SAND), grobeton ${gb * 100} cm${gb ? '' : ' yok'}; taramasız: KESITAL T=YOK` : `betonarme ${pat}, döşeme/kiriş ters yön, duvar tuğla, grobeton ${gb * 100} cm${gb ? '' : ' yok'}; desen: KESITAL T=AR-CONC ya da T=YOK`}; sonradan taramaya çift tıklayın)` : ''}. Gizli çizgiler ayıklanmaz.`);
     letter++;
   });
 })(window.C);

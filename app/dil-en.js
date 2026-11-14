@@ -232,6 +232,10 @@
     ['(yeraltı suyu)', '(groundwater)'], ['(kesit genişliği)', '(section width)'], ['(pas payı)', '(cover)'], ['(dolgu yüksekliği)', '(fill height)'], ['(iç su)', '(internal water)'], ['(perde)', '(wall)'],
     ['bileşkeler # m perde genişliği içindir.', 'resultants are per # m of wall width.'], ['Statik Zemin İtkisi:', 'Static Earth Pressure:'], ['Dinamik Zemin İtkisi:', 'Dynamic Earth Pressure:'],
     ['……….Statik Toprak Basıncı', '……….Static Earth Pressure'], ['……….Statik Sürşarj Basıncı', '……….Static Surcharge Pressure'], ['s(seç)', 's(sel)'], ['s(hes)', 's(calc)'], ['pas payı', 'cover'],
+    /* ---------- mimari: kapı / pencere tipleri, kesit yerleri, ölçü denetimi (mimari-oto.js) ---------- */
+    ['SEKSİYONEL KAPI', 'SECTIONAL DOOR'], ['ALÜMİNYUM PENCERE', 'ALUMINIUM WINDOW'], ['ALÜMİNYUM KAPI', 'ALUMINIUM DOOR'], ['ÇELİK KAPI', 'STEEL DOOR'], ['ALÜMİNYUM PANJUR', 'ALUMINIUM LOUVRE'],
+    ['PENCERE', 'WINDOW'], ['KAPI', 'DOOR'], ['PANJUR', 'LOUVRE'], ['ALÜMİNYUM', 'ALUMINIUM'], ['SEKSİYONEL', 'SECTIONAL'], ['MAHAL', 'ROOM'],
+    ['kapı / pencere numarası', 'door / window numbers'], ['kesit yerleri', 'section locations'], ['ölçü başka bir ölçü ya da yazıyla çakışıyor', 'dimension(s) overlap another dimension or text'],
   ];
   const W = { // tek kelime yedeği (cümle sözlükte yoksa)
     'perde': 'wall', 'perdeler': 'walls', 'perdesi': 'wall', 'perdeleri': 'walls', 'döşeme': 'slab', 'döşemesi': 'slab', 'döşemeler': 'slabs', 'radye': 'raft', 'temel': 'foundation', 'temeli': 'foundation',

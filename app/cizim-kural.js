@@ -79,15 +79,30 @@
       },
     },
     /* ÖLÇÜ YERLEŞİMİ (kâğıt mm) — Çokal R2 paftalarındaki 2.224 doğrusal ölçüden ölçüldü (13.11.2026).
-       genel (1/50, "50" stili): sıralar 5 mm arayla; uzatma çizgisi ölçülen noktadan değil ölçü çizgisinin 1 mm berisinden başlar,
-       ölçü çizgisini 4,1 mm aşar (toplam 5,1 mm); ölçü çizgisi tiki 0,5 mm aşar; parça ölçüler içte, toplam ölçü en dış sırada.
+       genel (1/50, "50" stili): sıralar 5 mm arayla; uzatma çizgisi sabit boylu (Çokal $DIMFXLON = 1): ölçü çizgisinden ölçülen noktaya
+       doğru 4,1 mm (uzatmaIc) iner, öbür yanda 1 mm (uzatmaDis) taşar (toplam 5,1 mm; 14.11.2026 düzeltme: yön ters uygulanmıştı); ölçü çizgisi tiki 0,5 mm aşar; parça ölçüler içte, toplam ölçü en dış sırada.
        detay (1/25 ve büyük, "1-20" stili): sıralar 6,5 – 7,5 mm arayla (program 7); uzatma çizgisi ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar; ölçü çizgisi taşması 1 mm. */
+    /* sıra aralığı (firma kuralı 14.11.2026): ölçü sıraları üst üste binmez, aralar 25 cm (1/50'de 5 mm) — plan, kesit, görünüş ve detayda aynı
+       (detay için örneklerde ölçülen 6,5 – 7,5 mm bu kuralla 5 mm'ye indi). */
     /* ilkSira: ilk ölçü sırası çizimin en dış çizgisinden (tretuvar dahil; tretuvarın dışında) 14 mm uzakta — kullanıcı kararı 13.11.2026, "çizime göre revize ederiz" */
     olcuYeri: {
-      genel: { ilkSira: 14, siraAraligi: 5, uzatmaSabit: 1, uzatmaBosluk: 0, uzatmaTasma: 4.1, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
-      detay: { ilkSira: 14, siraAraligi: 7, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
+      genel: { ilkSira: 14, siraAraligi: 5, uzatmaIc: 4.1, uzatmaDis: 1, uzatmaBosluk: 0, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
+      detay: { ilkSira: 14, siraAraligi: 5, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
     },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
+    /* ÇİZGİ TİPİ — kâğıtta görünen desen (mm), ölçekten bağımsız (14.11.2026, Çokal R2'den hesaplandı): örnekler cm çizilmiş, $LTSCALE 20,
+       $CELTSCALE 1, $PSLTSCALE 0 (k1, k5, k6) / 1 (k10); nesne çizgi tipi ölçeği en sık Aks 0,125, Arkagor / Beton_Kesik 2, Kesit_Cizgisi 1, ZMN 2.
+       1/50 kâğıtta: Aks (ACAD_ISO04W100 24,-3,0,-3 × 20 × 0,125 cm) 12 mm çizgi · 1,5 mm boşluk · nokta; Arkagor / Beton_Kesik (HIDDEN 0,25",-0,125" × 20 × 2 cm)
+       2 mm çizgi · 1 mm boşluk; Kesit_Cizgisi (CENTER2 0,75,-0,125,0,125,-0,125 × 20 cm) 3 · 0,5 · 0,5 · 0,5 mm; ZMN (PHANTOM2 × 20 × 2 cm) 5 · 1 · 1 · 1 · 1 · 1 mm.
+       Program bu desenleri kâğıt mm'si olarak tanımlar; pafta penceresinde ölçek ne olursa olsun kâğıtta aynı görünür (PSLTSCALE = 1 davranışı). */
+    cizgiTipi: { ACAD_ISO04W100: [12, -1.5, 0, -1.5], HIDDEN: [2, -1], CENTER2: [3, -0.5, 0.5, -0.5], PHANTOM2: [5, -1, 1, -1, 1, -1] },
+    /* AKS (Çokal 10-İdari Bina_R2 ve 6-Blower Binası_R2 planları, 14.11.2026): balon yarıçapı 30 cm = 6 mm, harf ARIAL 25 = 5 mm;
+       numaralar soldan sağa, harfler yukarıdan aşağıya (A üstte; Konya planında da). Plan ölçü sıraları içten dışa: doğrama zinciri ·
+       aks zinciri (dış yüz – akslar – dış yüz) · toplam; balon merkezi en dış sıranın 11 mm dışında (İdari: 44 → 55, 63 → 74 mm). */
+    aks: { balonR: 6, yaziMm: 5, balonOte: 11 },
+    /* KAPI / PENCERE TİP NUMARASI (Çokal 10-İdari Bina_R2 kat planı; biçim Konya planında da aynı): daire yarıçapı 15 birim = 3 mm, kod YZ 2 mm,
+       daireden doğramaya çizgi renk 243, çizginin üstünde genişlik, altında yükseklik (2 mm); daire merkezi duvar ekseninden 15,7 mm. Katman YZ. */
+    dogramaNo: { balonR: 3, kodMm: 2, yaziMm: 2, cizgiRenk: 243, mesafe: 15.7, katman: 'DOGRAMA_NO' },
     /* KESİT TARAMALARI — kullanıcı kararı 14.11.2026: "taramalar örnek projede ne ise o şekilde taranacak" (12.11'deki "yalnız DASH ya da SOLID" kararının yerine).
        Çokal R2 setinden ölçüldü (11 dosya, 1/50 kesitler; cm çizim, desenler acadiso). olcek / aci: örnekteki desen ölçeği ve açısı;
        sc: programdaki karşılığı — açıklama ölçeği (kâğıt üstü; örnekteki desen aralığı ÷ programdaki desen tanımı × 0,2, AR-SAND / AR-CONC tanım çarpanı 0,05 dahil),
@@ -126,7 +141,7 @@
         girinti: 4, sutun: 84, kenar: 3.6, baslikAlt: 12, kutuAlt: 15.6, grupBosluk: 6, satirHarf: 40 },
     },
     /* katmandan bağımsız kalan nesne renkleri (örnek çizimlerde de nesnede yazılıdır) */
-    renkKorunur: { 'Mim_Yazi25': [243], 'Yazi25': [94] },
+    renkKorunur: { 'Mim_Yazi25': [243], 'Yazi25': [94], 'YZ': [243] },
     /* nesne türü → çizim katmanı (katman adından önce gelir) */
     tipKatman: { baslik: 'Yazi30', kot: 'Kot', dim: 'ÖL', aks: 'Aks', kesitisaret: 'Kesit_Cizgisi', seviyecizgi: 'ZMN' },
     yaziKatmani: 'Mim_Yazi25',                            // çizgi katmanına düşen yazılar (eleman etiketleri) buraya alınır
@@ -139,6 +154,7 @@
        AutoCAD çıktısında ve ekrandaki renk / çizgi tipi / kalınlıkta örnek çizimlerin katmanı kullanılır. Sıra önemlidir: ilk uyan geçerlidir. null = eşleme yok. */
     esleme: [
       [/^PAFTA_PENCERE/, 'Defpoints'],
+      [/(^|_)DOGRAMA_NO$/, 'YZ'],                         // kapı / pencere tip numarası (Çokal İdari: YZ katmanı)
       [/^(PAFTA_ANTET|PFT_CERCEVE|PFT_TABLO|PFT_BASLIK)$/, 'ANTET'], [/^(PAFTA_YAZI|PFT_YAZI)$/, 'YAZI GENEL'],
       [/^(KESIT_DUZLEMI|KAZI.*|STA_.*|STATIK.*|DONATI.*|MT_.*|AC_.*|SAHA_.*|PENCERE|DETAY|PAFTA_INDEKS)$/, null], // başka disiplinin ve programın kendi yardımcı katmanları (PENCERE: pafta penceresi çerçevesi)
       [/(^|_)OLCU$/, 'ÖL'], [/(^|_)KOT$/, 'Kot'], [/(^|_)AKS(_BLOK)?$/, 'Aks'], [/^KESIT_ISARET$/, 'Kesit_Cizgisi'],
@@ -225,6 +241,10 @@
       [/^STA_ZEMIN$/, 'TP'], [/^STA_BANT$/, 'ST'], [/^STA_KIRIS$/, 'KR'], [/^STA_DOSEME$/, 'DSM'], [/^STA_GORUNEN$/, 'ÖN'],
     ],
   };
+  /* ÇİZGİ TİPİ ÖLÇEĞİ (saf): pafta penceresinde (1/vpOlcek) desen birimi başına model metresi — desen kâğıtta mm olarak görünür.
+     Ekranda / SVG'de çizgi = desen × ölçek × (model m → kâğıt mm: 1000 / vpOlcek) = desen mm. */
+  K.vpCizgiOlcegi = vpOlcek => (+vpOlcek || 50) / 1000;
+  K.kagitDesen = (desen, vpOlcek) => desen.map(v => +(v * K.vpCizgiOlcegi(vpOlcek) * 1000 / (+vpOlcek || 50)).toFixed(6));
   K.disiplin = ad =>K[String(ad || '').toLocaleUpperCase('en').replace('İ', 'I')] || null;
   /* katmanın kuralı; yoksa null. es: eski ad verildiyse standart adı da döner */
   K.katman = (kural, ad) => kural.katmanlar[ad] || null;
@@ -251,7 +271,8 @@
        yatay : her kat aralığında, döşemeden icYatay mm yukarıda tek zincir — duvar kalınlığı · net açıklık · duvar kalınlığı …
        düşey : kesilen iki duvar arasındaki her hacimde, sol duvardan icDusey mm içeride tek zincir — alt döşeme kalınlığı · net yükseklik
                (sol duvardaki pencere / kapı boşluğu varsa parçalarıyla) · üst döşeme kalınlığı.
-     Dışarıda yalnız toplam boy ve toplam yükseklik kalır. mm: kâğıtta 1 mm'nin modeldeki boyu; yer: { icYatay, icDusey } (kural tablosu → olcuYeri).
+     Doğramalı duvarın yanında ikinci düşey sıra (net yükseklik) 25 cm (siraAraligi) içeride. yer.engelX: arkada görünen düşey çizgiler (kolon, kiriş kenarı);
+     zincir bunların üstüne binmez. Dışarıda yalnız toplam boy ve toplam yükseklik kalır. mm: kâğıtta 1 mm'nin modeldeki boyu; yer: { icYatay, icDusey, siraAraligi, engelX }.
      Döner: [{ k: 'h' | 'v', a, b, p }] (kesit koordinatı [x, z]). */
   K.kesitIcOlculer = (halkalar, mm, yer) => {
     const B = []; for (const h of halkalar || []) { if (!h.pts || !h.pts.length) continue; let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
@@ -259,21 +280,33 @@
     const dos = B.filter(b => DOSEME.test(b.lk) && b.x1 - b.x0 >= 1.5), duv = B.filter(b => DUVAR.test(b.lk) && !DOSEME.test(b.lk));
     const birles = (v, tol) => { v.sort((a, b) => a[0] - b[0]); const o = []; for (const q of v) { const l = o[o.length - 1]; if (l && q[0] <= l[1] + tol) l[1] = Math.max(l[1], q[1]); else o.push(q.slice()); } return o; };
     const tek = v => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > 0.045) o.push(x); return o; };
-    const Y = Object.assign({ icYatay: 25, icDusey: 20 }, yer || {}), K2 = birles(dos.map(b => [b.z0, b.z1]), 0.02), out = [], e = mm || 0.05;
+    const Y = Object.assign({ icYatay: 25, icDusey: 20, sira: (yer && yer.siraAraligi) || 5 }, yer || {}), K2 = birles(dos.map(b => [b.z0, b.z1]), 0.02), out = [], e = mm || 0.05;
     for (let i = 1; i < K2.length; i++) { const zA = K2[i - 1][1], zB = K2[i][0], H = zB - zA; if (H < 1.2) continue; const zM = (zA + zB) / 2;
       /* kat aralığına giren her duvar sınırdır: pencereyle bölünen duvar da, kapının üstünde kalan lento parçası da */
       const W = birles(duv.filter(b => Math.min(b.z1, zB) - Math.max(b.z0, zA) > 0.005).map(b => [b.x0, b.x1]), 0.02); if (W.length < 2) continue;
-      const yH = zA + Math.min(H * 0.5, Y.icYatay * e), X = tek(W.reduce((a, w) => a.concat(w), []));
+      const X = tek(W.reduce((a, w) => a.concat(w), [])), xL = X[0], xR = X[X.length - 1];
+      /* yatay zincir döşemeden icYatay mm yukarıda; kot / yazı şeridine (çizgi altı 1 mm, yazı üstü 3 mm) düşüyorsa 1 mm adımlarla yukarı */
+      let yH = zA + Math.min(H * 0.5, Y.icYatay * e); for (let g = 0; g < 40 && yH < zA + H * 0.6; g++) { if (!(Y.engelK || []).some(b => b[2] > xL && b[0] < xR && b[3] > yH - e - 0.5 * e && b[1] < yH + 3 * e)) break; yH += e; }
       for (let j = 1; j < X.length; j++) out.push({ k: 'h', a: [X[j - 1], yH - e], b: [X[j], yH - e], p: [X[j - 1], yH] });
       for (let j = 1; j < W.length; j++) { const xA = W[j - 1][1], xB = W[j][0], L = xB - xA; if (L < 0.8) continue; const d = Math.min(L * 0.5, Y.icDusey * e); let tamam = false;
         const bos = (kenar, yuz, zA1, zB1) => { const o = []; for (const b of duv) if (Math.abs(b[kenar] - yuz) < 0.03) for (const z of [b.z0, b.z1]) if (z > zA1 + 0.05 && z < zB1 - 0.05) o.push(z); return o; };
         const sagda = !bos('x1', xA, zA, zB).length && bos('x0', xB, zA, zB).length > 0; /* boşluk (pencere / kapı) yalnız sağ duvardaysa zincir sağ duvarın yanına konur */
-        for (const xV of sagda ? [xB - d, (xA + xB) / 2, xA + d] : [xA + d, (xA + xB) / 2, xB - d]) { const ic = b => b.x0 <= xV && b.x1 >= xV;
+        /* Çokal R2 kesitleri (Blower A-A / B-B, İdari A-A): düşey ölçüler hacmin içinde, doğramalı duvarın yanında iki sıra, 25 cm (5 mm) arayla —
+           duvara yakın sıra: alt döşeme · parapet · doğrama · lento · üst döşeme; içerideki sıra: net kat yüksekliği. Doğrama yoksa tek sıra.
+           Hat arkada görünen kolon / kiriş / doğrama çizgisinin (engelX) üstüne binmez: duvardan içeri doğru ilk boş yere kayar (boş yer yoksa en az çizgi kesen yer). */
+        const sg = sagda ? -1 : 1, x0V = sagda ? xB : xA, sira = (Y.sira || 5) * e, yazi = 2.5 * e;
+        const KB = (Y.engelK || []).filter(b => b[1] < zB); /* hacmin altındaki ve içindeki kot / yazı kutuları (zincir alttaki boşluğa da inebilir) */
+        const carp = x => (Y.engelX || []).filter(q => q > x - yazi - e && q < x + 1.5 * e).length + 3 * KB.filter(b => b[2] > x - yazi - e && b[0] < x + 1.5 * e).length; /* ölçü çizgisi ve yazı şeridine düşen çizgi / kot sayısı */
+        /* adaylar: duvardan içeri her 1 mm'de bir; önce en az çakışan, sonra duvara en yakın. Alt ve üst döşemesi olan ilk aday seçilir */
+        const aday = []; for (let t = d; t + sira <= L - d + 1e-9; t += e) aday.push({ x: x0V + sg * t, c: carp(x0V + sg * t) + carp(x0V + sg * (t + sira)), t });
+        aday.sort((p, q) => p.c - q.c || p.t - q.t); if (!aday.length) aday.push({ x: x0V + sg * Math.min(d, L * 0.5) });
+        for (const { x: xV } of aday) { const ic = b => b.x0 <= xV && b.x1 >= xV;
           const alt = dos.filter(b => ic(b) && b.z1 <= zM).sort((p, q) => q.z1 - p.z1)[0], ust = dos.filter(b => ic(b) && b.z0 >= zM).sort((p, q) => p.z0 - q.z0)[0]; if (!alt || !ust) continue;
           const Z = [alt.z0, alt.z1, ust.z0]; if (i === K2.length - 1) Z.push(ust.z1); /* ara döşemenin kalınlığı yalnız üst katın zincirinde ölçülür (iki kez yazılmaz) */
           tamam = true;
-          Z.push(...(sagda ? bos('x0', xB, alt.z1, ust.z0) : bos('x1', xA, alt.z1, ust.z0)));
+          const Bz = sagda ? bos('x0', xB, alt.z1, ust.z0) : bos('x1', xA, alt.z1, ust.z0); Z.push(...Bz);
           const T = tek(Z); for (let q = 1; q < T.length; q++) out.push({ k: 'v', a: [xV + e, T[q - 1]], b: [xV + e, T[q]], p: [xV, T[q - 1]] });
+          if (tek(Bz).length) { const x2 = xV + sg * sira; out.push({ k: 'v', a: [x2 + e, alt.z1], b: [x2 + e, ust.z0], p: [x2, alt.z1], sira: 2 }); } /* ikinci sıra: net yükseklik */
           break; }
         if (!tamam) out.eksikDusey = true; /* üstü açık hacim: düşey zincir kurulamadı → dıştaki düşey zincir kalır (kesit.js) */ } }
     return out;

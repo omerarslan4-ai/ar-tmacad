@@ -101,7 +101,7 @@
       const cpts = (C.vpClipPoly ? C.vpClipPoly(vp) : [[vp.x, vp.y], [vp.x + vp.w, vp.y], [vp.x + vp.w, vp.y + vp.h], [vp.x, vp.y + vp.h]]).map(q => q[0].toFixed(3) + ',' + (h - q[1]).toFixed(3)).join(' ');
       out.push(`<defs><clipPath id="vp${i}"><polygon points="${cpts}"/></clipPath></defs><g clip-path="url(#vp${i})">`);
       const P = p => [vp.x + vp.w / 2 + (p[0] - vp.cx) * k, h - (vp.y + vp.h / 2 + (p[1] - vp.cy) * k)];
-      const ltk = C.doc.set.ltscale * (vp.scale / C.doc.set.anno) * k;
+      const ltk = (C.vpCizgiOlcegi ? C.vpCizgiOlcegi(vp.scale) : C.doc.set.ltscale * (vp.scale / C.doc.set.anno)) * k; // kâğıtta desen mm'si ölçekten bağımsız
       C.vpPrims(vp, (e, pr) => C.primsSvg(out, pr, e, P, k, mono, ltk));
       out.push('</g>');
       const fe = C.vpFrame(vp); if (fe) C.primsSvg(out, [C.prim.P(C.vpClipPoly(vp).map(q => [q[0], q[1], 0]), true)], fe, p => [p[0], h - p[1]], 1, mono, fe.lts || 1);
@@ -137,7 +137,7 @@
         ctx.save(); path(); ctx.clip();
         const k = 1000 / vp.scale, self = this;
         const proxy = Object.create(C.View2D.prototype);
-        Object.assign(proxy, { ctx, dark: false, rot: 0, s: this.s * k, W: this.W, H: this.H });
+        Object.assign(proxy, { ctx, dark: false, rot: 0, s: this.s * k, W: this.W, H: this.H, ltk: C.vpCizgiOlcegi ? C.vpCizgiOlcegi(vp.scale) : null }); // çizgi tipi kâğıtta her ölçekte aynı (PSLTSCALE = 1)
         proxy.w2s = p => self.w2s([vp.x + vp.w / 2 + (p[0] - vp.cx) * k, vp.y + vp.h / 2 + (p[1] - vp.cy) * k]);
         proxy.lwPx = lw => self.lwPx(lw);
         C.vpPrims(vp, (e, pr) => proxy.drawPrims(pr, {}, e));

@@ -86,8 +86,21 @@ t('yapının içinde: her hacmin net genişliği ve net yüksekliği (R2: 480 / 
   assert.deepStrictEqual(h.map(d => yv(d.p[1])), [1.25, 1.25, 1.25, 1.25, 1.25]);                    // döşemeden 25 mm yukarıda (1/50: 1,25 m)
   assert.deepStrictEqual(v.filter(d => yv(d.p[0]) === 1.3).map(d => yv(d.b[1] - d.a[1])), [0.5, 3, 0.2]);  // sol hacim: temel · net yükseklik · döşeme; sol duvardan 20 mm içeride (1,00 m)
   assert.deepStrictEqual(v.filter(d => yv(d.p[0]) === 4.7).map(d => yv(d.b[1] - d.a[1])), [0.5, 1, 1.2, 0.8, 0.2]); // sağ hacim: pencere sağ duvarda → zincir sağ duvarın yanında, parapet · pencere · lento
-  assert.strictEqual(v.length, 8);
+  assert.deepStrictEqual(v.filter(d => yv(d.p[0]) === 4.45).map(d => yv(d.b[1] - d.a[1])), [3]);     // ikinci sıra (Çokal R2): net yükseklik, birinciden 25 cm (5 mm) içeride
+  assert.strictEqual(v.length, 9);
+  // arkada görünen kolon çizgisi (x 1,30) zincirin üstüne gelmesin: sol hacmin zinciri 25 cm adımla içeri kayar
+  const r2 = K.kesitIcOlculer([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 3), kutu('PERDE', 5.7, 0, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2)], 0.05, { engelX: [1.3, 1.32] });
+  assert.ok(r2.filter(d => d.k === 'v').every(d => Math.abs(d.p[0] - 1.3) > 0.07), 'kolon çizgisinin üstünde');
   assert.deepStrictEqual(K.kesitIcOlculer([kutu('TEMEL_RADYE', 0, -0.5, 6, 0), kutu('PERDE', 0, 0, 0.3, 3)], 0.05), []); // üstü açık tek duvar: iç ölçü yok
   assert.deepStrictEqual(K.kesitIcOlculer([kutu('TEMEL_RADYE', -0.5, -0.5, 6.5, 0), kutu('PERDE', 0, 0, 0.3, 3), kutu('PERDE', 5.7, 0, 6, 3), kutu('DOSEME', 0, 3, 6, 3.2)], 0.05, { icYatay: 10, icDusey: 30 }).map(d => d.k + yv(d.k === 'h' ? d.p[1] : d.p[0])).filter((x, i, a) => a.indexOf(x) === i), ['h0.5', 'v1.8']); // yerler kural tablosundan
+});
+t('çizgi tipi kâğıtta ölçekten bağımsız: aks 12 / 1,5 mm, gizli çizgi 2 / 1 mm — Çokal R2 (cm çizim, LTSCALE 20, nesne ölçeği) ile aynı', () => {
+  const M = K.MIMARI.cizgiTipi, cokal = (desen, nesne) => desen.map(v => +(v * 20 * nesne * 10 / 50).toFixed(4) + 0); // cm model → 1/50 kâğıt mm
+  assert.deepStrictEqual(cokal([24, -3, 0, -3], 0.125), M.ACAD_ISO04W100);   // AKS katmanı, nesne ölçeği 0,125 (10-İdari, 1-Kaba-İnce, 5-Çamursuzlaştırma)
+  assert.deepStrictEqual(cokal([0.25, -0.125], 2), M.HIDDEN);                // HIDDEN (10-İdari tanımı 0,25 / -0,125) × 2 (Arkagor, Beton_Kesik)
+  assert.deepStrictEqual(cokal([0.75, -0.125, 0.125, -0.125], 1), M.CENTER2); // Kesit_Cizgisi
+  assert.deepStrictEqual(cokal([0.625, -0.125, 0.125, -0.125, 0.125, -0.125], 2), M.PHANTOM2); // ZMN
+  for (const sc of [25, 50, 100]) { assert.deepStrictEqual(K.kagitDesen(M.ACAD_ISO04W100, sc), M.ACAD_ISO04W100, '1/' + sc); assert.deepStrictEqual(K.kagitDesen(M.HIDDEN, sc), M.HIDDEN); }
+  assert.strictEqual(K.vpCizgiOlcegi(50), 0.05); assert.strictEqual(K.vpCizgiOlcegi(100), 0.1);
 });
 console.log(`\n${n} test geçti.`);

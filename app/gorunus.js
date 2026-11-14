@@ -139,6 +139,8 @@
   C.makeView = (def) => { // def: {kind:'plan'|'view', h, depth, dir, title, place:[x,y]|'yerinde', ref, gv}
     let ents = def.ents || modelEnts();
     if (def.ids && def.ids.length) { const S = new Set(def.ids); ents = ents.filter(e => S.has(e.id)); }
+    /* görünüşte (cephe) bina içindeki elemanlar çizilmez: merdiven, iç duvar, ara döşeme, ekipman … (firma kuralı; pencere camı opak sayılır) */
+    if (def.kind !== 'plan' && /^(ON|ARKA|SAG|SOL)$/.test(def.dir || '') && def.ic !== true && C.gorunusIcElemanlar) { const ic = C.gorunusIcElemanlar(ents); if (ic.size) ents = ents.filter(e => !ic.has(e.id)); }
     if (def.area) { const a = def.area, m = 0.01; ents = ents.filter(e => { const b = C.bbox(e); return !(b[2] < a[0] - m || b[0] > a[2] + m || b[3] < a[1] - m || b[1] > a[3] + m); }); }
     const opts = def.kind === 'plan' ? { ents, d: [0, 0, -1], cutW: -def.h, depth: def.depth } : { ents, d: VIEWS[def.dir].d };
     const r = C.projectModel(opts);

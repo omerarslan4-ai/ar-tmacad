@@ -14,21 +14,23 @@
       const k = C.doc.set.anno / 1000, r = (e.bp || 4) * k, ext = (e.extp || 22) * k, rot = (e.rot || 0) * RAD, cs = Math.cos(rot), sn = Math.sin(rot);
       const W = (x, y) => [e.o[0] + x * cs - y * sn, e.o[1] + x * sn + y * cs, 0];
       const xs = e.xs || [0], ys = e.ys || [0], x0 = xs[0], x1 = xs[xs.length - 1], y0 = ys[0], y1 = ys[ys.length - 1], out = [];
-      const ax = { lt: 'CENTER' }, th = r * 1.0, dcol = (C.doc.layers.OLCU && C.doc.layers.OLCU.color) || 3;
-      const xl = e.xl || 'num', lab = (i, isX) => (isX ? (xl === 'num' ? String(i + 1) : letters(i)) : (xl === 'num' ? letters(i) : String(i + 1)));
+      const ax = { lt: 'CENTER' }, th = e.thp ? e.thp * k : r * 1.0, dcol = (C.doc.layers.OLCU && C.doc.layers.OLCU.color) || 3;
+      const lab = (i, isX) => C.aksLabel(e, i, isX);
       if (e.sec) { // kesit / görünüşteki akslar: düşey çizgiler + üstte balon + zincir ölçü
         const yb = ys[0], yt = ys[ys.length - 1], dcol2 = dcol;
         xs.forEach((x, i) => { out.push(L(W(x, yb - ext * 0.3), W(x, yt + ext), ax)); const c = W(x, yt + ext + r); out.push(CI(c, r), TX(c, th, (e.lx && e.lx[i]) || String(i + 1), 0, 'MC')); });
         if (e.dims !== false && xs.length > 1) { for (let i = 1; i < xs.length; i++) { try { out.push(...C.T.dim.prims({ type: 'dim', k: 'rot', ang: deg0(e), a: W(xs[i - 1], yt), b: W(xs[i], yt), p: W(xs[i - 1], yt + ext * 0.45), layer: e.layer }).map(pr => Object.assign(pr, { color: pr.color != null ? pr.color : dcol2, lt: 'CONTINUOUS' }))); } catch (err) { } } }
         return out;
       }
+      /* extK: kenar kenar uzatma (mm; ALT / UST / SOL / SAG) — MIMARIPAFTA balonu her kenarda en dış ölçü sırasının dışına koyar */
+      const eK = kn => (e.extK && e.extK[kn] != null ? e.extK[kn] * k : ext), eA = eK('ALT'), eU = eK('UST'), eS = eK('SOL'), eG = eK('SAG');
       xs.forEach((x, i) => {
-        out.push(L(W(x, y0 - ext), W(x, y1 + ext), ax));
-        for (const end of e.both === false ? [-1] : [-1, 1]) { const c = W(x, end < 0 ? y0 - ext - r : y1 + ext + r); out.push(CI(c, r), TX(c, th, lab(i, true), 0, 'MC')); }
+        out.push(L(W(x, y0 - eA), W(x, y1 + eU), ax));
+        for (const end of e.both === false ? [-1] : [-1, 1]) { const c = W(x, end < 0 ? y0 - eA - r : y1 + eU + r); out.push(CI(c, r), TX(c, th, lab(i, true), 0, 'MC')); }
       });
       ys.forEach((y, i) => {
-        out.push(L(W(x0 - ext, y), W(x1 + ext, y), ax));
-        for (const end of e.both === false ? [-1] : [-1, 1]) { const c = W(end < 0 ? x0 - ext - r : x1 + ext + r, y); out.push(CI(c, r), TX(c, th, lab(i, false), 0, 'MC')); }
+        out.push(L(W(x0 - eS, y), W(x1 + eG, y), ax));
+        for (const end of e.both === false ? [-1] : [-1, 1]) { const c = W(end < 0 ? x0 - eS - r : x1 + eG + r, y); out.push(CI(c, r), TX(c, th, lab(i, false), 0, 'MC')); }
       });
       if (e.dims !== false) { // zincir + toplam ölçü (alt ve sol)
         const dim = (a, b, p, ang) => { try { return C.T.dim.prims({ type: 'dim', k: 'rot', ang, a, b, p, layer: e.layer }).map(pr => Object.assign(pr, { color: pr.color != null ? pr.color : dcol, lt: 'CONTINUOUS' })); } catch (err) { return []; } };
@@ -44,7 +46,8 @@
   };
   if (C.ANNO_TYPES) C.ANNO_TYPES.add('aks');
   /* aks çizgileri (dünya koordinatında): {p: çizgi üzerinde nokta, d: doğrultu, lab} */
-  C.aksLabel = (e, i, isX) => { const xl = e.xl || 'num'; return isX ? (xl === 'num' ? String(i + 1) : letters(i)) : (xl === 'num' ? letters(i) : String(i + 1)); };
+  /* yTers: Y doğrultusundaki akslar yukarıdan aşağıya adlanır (A en üstte) — Çokal ve Konya planlarındaki gibi (MIMARIPAFTA'nın türettiği aks) */
+  C.aksLabel = (e, i, isX) => { const xl = e.xl || 'num', j = !isX && e.yTers ? (e.ys || [0]).length - 1 - i : i; return isX ? (xl === 'num' ? String(j + 1) : letters(j)) : (xl === 'num' ? letters(j) : String(j + 1)); };
   C.aksLines = e => {
     if (e.sec) return [];
     const rot = (e.rot || 0) * RAD, cs = Math.cos(rot), sn = Math.sin(rot), W = (x, y) => [e.o[0] + x * cs - y * sn, e.o[1] + x * sn + y * cs], out = [];
@@ -67,7 +70,8 @@
   C.aksAddSection = (pos, v0, v1, W, props) => {
     if (!pos.length) return null; C.ensureLayer('AKS', 1, 'CENTER', 18);
     const o = W([pos[0].s, 0]);
-    return C.add(C.newEnt('aks', Object.assign({ sec: true, o: [o[0], o[1]], xs: pos.map(p => +(p.s - pos[0].s).toFixed(6)), ys: [v0, v1], lx: pos.map(p => p.lab), rot: 0, bp: 4, extp: 14, dims: true, layer: 'AKS' }, props || {})));
+    const AK = C.pstil && C.pstil() && C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.aks, bal = AK ? { bp: AK.balonR, thp: AK.yaziMm } : { bp: 4 }; // pafta stilinde balon ölçüsü kural tablosundan (Çokal: yarıçap 6 mm, harf 5 mm)
+    return C.add(C.newEnt('aks', Object.assign({ sec: true, o: [o[0], o[1]], xs: pos.map(p => +(p.s - pos[0].s).toFixed(6)), ys: [v0, v1], lx: pos.map(p => p.lab), rot: 0, extp: 14, dims: true, layer: 'AKS' }, bal, props || {})));
   };
   C.aksSync = e => { e.xsS = spTxt(e.xs); e.ysS = spTxt(e.ys); return e; };
   C.aksSet = (e, k, v) => { const sp = parseSp(v); if (k === 'xsS') e.xs = toPos(sp); else e.ys = toPos(sp); C.aksSync(e); delete e._c; };

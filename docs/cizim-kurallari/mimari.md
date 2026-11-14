@@ -108,10 +108,10 @@ Kullanıcı kararı (13.11.2026): **ölçülendirme yönteminin ölçütü Çoka
 | | 1/50 çizimler ("50" stili) | Detaylar, 1/25 ve büyük ("1-20" stili) |
 | --- | --- | --- |
 | İlk sıranın çizime uzaklığı | **14 mm**, çizimin en dış çizgisinden; tretuvar varsa **tretuvarın dışından** (kullanıcı kararı 13.11.2026; çizime göre revize edilecek) | aynı |
-| Ölçü sıraları arası | **5 mm** (159 aralığın 112'si; kalanlar 5,5 – 6) | 6,5 – 7,5 mm (program 7 kullanır) |
+| Ölçü sıraları arası | **5 mm** (159 aralığın 112'si; kalanlar 5,5 – 6) | örneklerde 6,5 – 7,5 mm; **firma kuralı 14.11.2026: 25 cm, sıralar üst üste binmez** → program 5 mm |
 | Sıra sayısı | 1, 2 ya da 3 (yalnız 2 yerde 4) | aynı |
 | Toplam ölçü | **en dış sırada** (104 yığının 98'i); parça ölçüler içte | aynı |
-| Uzatma çizgisi | ölçülen noktaya kadar inmez: ölçü çizgisinin **1 mm** berisinden başlar, ölçü çizgisini **4,1 mm** aşar (toplam 5,1 mm; 1.950 çizginin 1.950'si) | ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar |
+| Uzatma çizgisi | sabit boylu ($DIMFXLON = 1): ölçü çizgisinden **ölçülen noktaya doğru 4,1 mm** iner, öbür yanda **1 mm** taşar (toplam 5,1 mm; 1.950 çizginin 1.950'si). 14.11.2026 düzeltme: program yönü ters çiziyordu (10-İdari Bina_R2 plan altı ölçüleri: çizgi ölçü çizgisinin 5 birim dışından başlayıp binaya doğru 20,4 birim gidiyor) | ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar |
 | Ölçü çizgisinin tiki aşması | 0,5 mm | 1 mm |
 | Ölçü türü | hizalı (aligned), eğik tik | aynı |
 
@@ -119,12 +119,14 @@ Programda: ölçü çizimi ve kesitlerin otomatik ölçüleri bu değerleri kull
 
 **Örneklerde tek bir değer çıkmayan, kullanıcıya sorulanlar:**
 - İlk ölçü sırasının çizime uzaklığı örneklerde 6 – 77 mm arasında değişiyordu; kullanıcı 14 mm ve "tretuvarın dışı" dedi (yukarıdaki tablo).
-- Planlarda ölçü sıralarının hangi kenarlara konacağı henüz çıkarılmadı.
+- Planlarda ölçü sıraları (14.11.2026, 10-İdari Bina_R2 kat planından ölçüldü; dört kenarda aynı düzen): içten dışa **1) doğrama zinciri** (dış yüz · pencere / kapı boşluk kenarları · dış yüz), **2) aks zinciri** (dış yüz · akslar · dış yüz; ör. 110 · 480 · 425 · 425 · 220 · 425 · 480 · 110), **3) toplam**. Sıralar 5 mm arayla; aks balonu en dış sıranın **11 mm** dışında (balon merkezi). Doğrama olmayan kenarda o sıra yoktur. Program ilk sırayı çizimin (tretuvar ve doğrama etiketleri dahil) en dış çizgisinden 14 mm dışarı koyar.
 
 **Neyin ölçülendirileceği (kullanıcı kuralı, 13.11.2026):** ölçü, mimari olarak ne varsa onu gösterir — **duvar / perde, pencere / kapı, döşeme, boşluk**. Her kenarı ölçen, bir şey ifade etmeyen zincir verilmez.
 Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile aralarındaki boşluklar; düşey zincirde temel ve döşeme kalınlıkları, aralarındaki yükseklikler ve sol dış duvardaki pencere / kapı boşlukları; her iki yönde en dışta toplam ölçü. Merdiven basamağı, kiriş kenarı, pah, korkuluk ölçülmez.
 
 **Örneklerde yapının içindeki ölçüler:** Çokal R2'de 1/50 ölçülerin yaklaşık üçte biri yapının içindedir (ör. Kaba-İnce: 211 iç / 396 dış) ve çoğu zincir değil tek ölçüdür: hacmin net genişliği (480, 500, 600, 1100 cm) ve net yüksekliği (365, 500, 600, 870 cm), yanında duvar / döşeme kalınlıkları (20, 30, 40 cm).
+**Kesitte düşey ölçüler (14.11.2026, Çokal 6-Blower Binası_R2 A-A / B-B ve 10-İdari Bina_R2 A-A kesitlerinden ölçüldü):** düşey ölçüler yapının **içinde**, doğramalı duvarın yanında (duvar yüzünden 75 – 100 cm içeride) **iki sıra, 25 cm (5 mm) arayla** verilir: duvara yakın sıra döşeme katmanları / alt döşeme · parapet · pencere · lento · üst döşeme (ör. 170 · 130 · 320), içerideki sıra net kat yüksekliği (ör. 620, 300). Doğrama kotları (+1,95, +3,25) zincirin yanına, zemin ve çatı kotları dışarıya yazılır. Program: aynı düzen; zincir arkada görünen kolon / kiriş / doğrama çizgisinin, kot işaretinin ve yazının üstüne binmez — duvardan içeri doğru ilk boş yere kayar; MIMARIPAFTA sonunda ölçü çakışma denetimi yapar (`app/mimari-oto.js → olcuCakisma`, test: `test/mimari-oto.test.js`).
+
 **Ölçüler içeriden verilir (kullanıcı kuralı, 13.11.2026: "ölçüler içerden verilsin"):** kesitte ölçüler yapının içinden zincir olarak verilir; dışarıda yalnız toplam boy ve toplam yükseklik kalır (ilk sıra kuralı: tretuvarın dışından 14 mm).
 - **Yatay zincir:** her kat aralığında tek sıra — duvar kalınlığı · net açıklık · duvar kalınlığı … Pencereyle bölünen duvar ve kapının üstünde kalan lento parçası da sınır sayılır.
 - **Düşey zincir:** kesilen iki duvar arasındaki her hacimde tek sıra — alt döşeme kalınlığı · net yükseklik · üst döşeme kalınlığı. Yandaki duvarda pencere / kapı boşluğu varsa net yükseklik parapet · boşluk · lento olarak bölünür (boşluk yalnız sağ duvardaysa zincir sağ duvarın yanına konur).
@@ -158,7 +160,11 @@ Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile ar
 
 ## 4. Kot, aks, kesit işaretleri
 - Kot işareti **`CK_TR1` bloğu** ile konur (**Karar 7**; örneklerde 5 dosyada 287 adet). `KOT101` bloğu kullanılmaz. Katman `Kot`, yazı YZ 2 mm.
-- Aks: daire + harf (ARIAL, 5 mm), çizgi tipi ACAD_ISO04W100, kalınlık 0,13, renk 17.
+- Aks: daire + harf (ARIAL, 5 mm), çizgi tipi ACAD_ISO04W100, kalınlık 0,13, renk 17. Balon yarıçapı **6 mm** (30 birim; 10-İdari, 6-Blower). Numaralar soldan sağa (1, 2 …), harfler **yukarıdan aşağıya** (A en üstte; Konya planında da). Modelde aks yoksa MIMARIPAFTA kolon merkezlerinden (kolonsuz yapıda betonarme perde eksenlerinden) aks türetir. Sayılar: `MIMARI.aks`.
+- **Kapı / pencere tip numarası** (14.11.2026): aynı türde aynı ebat aynı numara; numara genişliğe sonra yüksekliğe göre. Önek kullanıcının Konya projesinden: **P** pencere, **K** kapı (çelik dahil), **SEK** seksiyonel kapı, **PA** panjur (Çokal'da P, PA, AK alüminyum kapı, SK seksiyonel). Planda (10-İdari Bina_R2): daire (yarıçap 3 mm) içinde kod (YZ 2 mm), daireden doğramaya çizgi (renk 243), çizginin üstünde genişlik, altında yükseklik (cm, 2 mm); daire duvar ekseninden 15,7 mm dışarıda; katman `YZ`. Kesitte doğramanın üstünde daire içinde kod. Detay başlığı "P1 150/130 ALÜMİNYUM PENCERE" biçiminde. Sayılar: `MIMARI.dogramaNo`. Planda yalnız plan kesit düzleminin kestiği doğramalar numaralanır (yüksek pencereler kesit ve görünüşte).
+- **Çizgi tipi ölçeği** (14.11.2026): örnekler cm, `$LTSCALE` 20 (3 dosya; Blower 1), `$CELTSCALE` 1, `$PSLTSCALE` 0 (3 dosya) / 1 (İdari); nesne ölçeği Aks 0,125, Arkagor / Beton_Kesik 2, Kesit_Cizgisi 1, ZMN 2. 1/50 kâğıtta: aks 12 mm çizgi · 1,5 mm boşluk · nokta; gizli çizgi 2 · 1 mm; kesit çizgisi 3 · 0,5 · 0,5 · 0,5 mm; zemin çizgisi 5 · 1 · 1 · 1 · 1 · 1 mm. Program bu desenleri kâğıt mm'si olarak tutar (`MIMARI.cizgiTipi`): pafta penceresinde 1/25, 1/50, 1/100 ölçekte kâğıtta aynı görünür; 2B mimari DXF'te `$LTSCALE` 1, `$PSLTSCALE` 1.
+- **Görünüşte iç elemanlar** (14.11.2026): bina içindeki merdiven, bölme duvarı, ara döşeme, iç kiriş ve ekipman çizilmez (planda dış zarfın içinde kalan ve zarfın üst kotuna ulaşmayan her eleman; zarf elemanın kendi kot aralığındaki düşey elemanlardan). Pencere camı opak sayılır — Çokal görünüşlerinde pencereden içerisi çizilmemiş.
+- **Kesit yerleri** (firma kuralı 14.11.2026): uzun kesit bütün mahallerden; kısa kesitler büyük hacimden (ör. montaj holü) ve odalardan (ör. kumanda odası); hiçbir kesitte görünmeyen oda için ek kesit. Hat doğramadan geçmeyi tercih eder, kolonun ve kesite paralel kirişin üstüne gelmez. Mahaller düşey elemanlarla çevrili bölgelerden çıkarılır.
 - Kesit çizgisi: CENTER2, renk 133; uçta daire + harf (ARIAL, 5 mm).
 - Su tutucu: `sututuc` / `sututucu` bloğu, `Sututucu` katmanı.
 - Mimari notlar: `MIMARI NOTLAR` bloğu, `YZ` katmanı.

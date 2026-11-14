@@ -21,7 +21,8 @@
   const mimariMi = e => !e || (!/^(STA_|MT_|MEK_)/.test(e.layer || '') && !(e.dis && e.dis !== 'Mimari'));
   const COKAL = {
     ad: 'Çokal AAT paftaları', yazi: 'YZ', kalin: 'ARIAL', yaziH: 2.0, kodH: 2.5,
-    dim: (e) => { const Y = mimariMi(e) ? oy() : ESKI; return ({ exo: Y.uzatmaBosluk, exe: Y.uzatmaTasma, dle: Y.cizgiTasma, exf: Y.uzatmaSabit, sira: Y.siraAraligi, ilk: Y.ilkSira, tik: true, th: buyuk() ? 3.0 : 2.0, ah: 2.0, st: buyuk() ? 'OL 20' : 'OL' }); },
+    dim: (e) => { const Y = mimariMi(e) ? oy() : ESKI; /* sabit boylu uzatma (Çokal R2, 1/50): ölçü çizgisinden ölçülen noktaya doğru uzatmaIc mm, öbür yana uzatmaDis mm (entities.js: exf içe, exe dışa) */
+      return ({ exo: Y.uzatmaBosluk, exe: Y.uzatmaIc ? Y.uzatmaDis : Y.uzatmaTasma, dle: Y.cizgiTasma, exf: Y.uzatmaIc || Y.uzatmaSabit, sira: Y.siraAraligi, ilk: Y.ilkSira, tik: true, th: buyuk() ? 3.0 : 2.0, ah: 2.0, st: buyuk() ? 'OL 20' : 'OL' }); },
     kot: { stil: 'cokal', th: 2.0, arti: false },
     aks: { bp: 6, th: 5, st: 'ARIAL', lt: 'DASHDOT', lw: 13 },
     kesit: { r: 5, th: 5, st: 'ARIAL' },
