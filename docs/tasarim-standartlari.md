@@ -161,6 +161,6 @@
 - Statik paftalar A0 boyunu (1189 mm) aşmaz: sığmayan çizim sütunları aynı adla (1/n, 2/n …) yeni paftaya geçer. Anaerobik havuzda çatlak sınırı (0,20 mm) modelle birlikte hesap penceresine gelir.
 - Pafta çizim stili (mimari ve mekanik plan / kesit paftaları) örnek proje Çokal AAT paftalarıyla birebir (11 Kasım 2026'da onaylandı; `PAFTASTIL`):
   - Yazı `YZ` stili (turkce.shx, 0,70 dar — çizim kuralları Karar 4): genel 2 mm, eleman kodları 2,5 mm. Aks ve kesit harfleri Arial Bold 5 mm; aks balonu çapı 12 mm, kesit işareti dairesi 10 mm.
-  - Ölçü eğik tikli, yazı 2 mm (1/25 ve daha büyük ölçekte 3 mm). Kot işareti yarı dolu üçgen, kot yazısında "+" yalnız mimari çizimlerde var (+99.15); statik ve diğer paftalarda "+" yok (99.15) (kullanıcı kararı 14.11.2026).
+  - Ölçü eğik tikli, yazı 2 mm (1/25 ve daha büyük ölçekte 3 mm). Kot işareti yarı dolu üçgen, kot yazısında "+" var (+99.15); mimari, statik ve diğer bütün paftalarda (kullanıcı kararı 14.11.2026).
   - Kesit başlığı altı tek çizgili "F-F KESİTİ", altında "ÖL:1/20".
   - Malzeme açılımı kodludur: kesitte elemanın yanında yalnız kod (DÖ01, DU01 …); açılımlar paftada "DÖŞEMELER" ve "DUVARLAR" başlıkları altında, tireli ve büyük harfli satırlarla (kalınlık başta, parantez içi küçük). Üniteler (kum tutucu …) kendi açılımlarını verir.
