@@ -20,7 +20,7 @@
 - Kalıp planında gereken her yerde ek kesit alınır (kolonlardan, ara döşemelerden ve üzerine oturan perdelerden).
 - Statik rapor ve paftalar (kalıp, donatı, perde detayları, metraj tabloları, DSİ antet) firmanın standart biçimini izler (örnek: ÇOKAL AAT statik rapor ve paftaları).
 
-### Yapı türüne göre statik çözüm yolu (14.11.2026 — TASLAK, kullanıcı onayı bekliyor)
+### Yapı türüne göre statik çözüm yolu (14.11.2026 — kullanıcı onayladı)
 Program her yapının türünü modelden önerir (zeminin altında betonarme perde var mı, haznede su var mı, üstünde kolonlu / kirişli kat var mı); kullanıcı statik penceresinde değiştirebilir. Statik rapor ve paftalar türe göre düzenlenir.
 1. **Su yapısı (havuz, hazne, tank — ör. anaerobik, kum tutucu):** 3B kabuk model (perde, radye, döşeme). Yükler: su, toprak ve sürşarj basıncı, kaldırma, deprem (hidrodinamik dahil). Çatlak genişliği sınırı wmax 0,2 mm (Çokal SR). Kalınlıklar firma basamaklarıyla. Çerçeve hesabı yoktur (köprü / yürüme yolu kirişleri kabuğun içinde ya da ayrı küçük çerçeve).
 2. **Gömülü alt yapı + üst yapı (ör. Konya terfi merkezi):** iki aşamalı çözüm.
