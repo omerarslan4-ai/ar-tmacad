@@ -128,10 +128,36 @@
   const model0 = G.modelUygula;
   G.modelUygula = function (d) {
     const r = model0.apply(this, arguments);
-    try { const s = Sx(); if (s && d && !d.hata) { s.yapi = P.yapiSecim(d); s.hacim = d.hacim || null; const ay = P.statikAyarUygula(s, d);
+    try { const s = Sx(); if (s && d && !d.hata) { s.yapi = P.yapiSecim(d); s.hacim = d.hacim || null; s.temel = d.temel || null; const ay = P.statikAyarUygula(s, d);
       if (ay.length) { const m0 = $('#pMsg'); if (m0) m0.insertAdjacentHTML('afterbegin', `<div class="msg info">Projeye kayıtlı ${ay.join(', ')} değerleri alındı (zemin φ ${f2(s.zemin.phi, 0)}°, ${esc(s.zemin.K)}, sürşarj ${f2(s.zemin.q, 1)} kN/m², emniyet ${f2(s.zemin.sig, 0)} kN/m²${s.geo ? ` · zemin kotu ${f2(s.geo.kZemin)}, YAS ${s.geo.kYAS != null ? f2(s.geo.kYAS) : 'yok'}` : ''}).</div>`); } if (typeof save === 'function') save(); G.buildForm();
       const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">Yapı türü: <b>${esc(P.YAPI_TURU_KISA[s.yapi.tur] || '—')}</b>${s.yapi.elle ? ' (projede elle seçilmiş)' : ' (program önerisi)'}${s.yapi.tur === 'altUst' ? ` · alt yapı üst kotu ${f2(s.yapi.altUstKot)}` : ''}. Formun başındaki <b>Yapı türü</b> bölümünden değiştirebilirsiniz.</div>`); } } catch (er) { console.error('yapı türü', er); }
     return r;
   };
+  /* ---------- yalnız üst yapı: çerçeve + temel (kabuk modeli çalıştırılmaz; kabuk rapor / paftaları çıkmaz) ---------- */
+  const ustYapiHesap = () => {
+    const s = Sx(); R = null; G._KR = null; let rc = null;
+    try { if (s.cer && ((s.cer.kolonlar || []).length || (s.cer.kirisler || []).length) && P.cerceveHesap) rc = P.cerceveHesap(Object.assign({}, s, { suYapisi: false })); } catch (er) { console.error('çerçeve', er); }
+    RC = rc; let TH = null; try { TH = P.temelHesap ? P.temelHesap(s, rc) : null; } catch (er) { console.error('temel', er); TH = { temeller: [], uyar: ['Temel hesabı yapılamadı: ' + er.message], ok: false }; } P.temelSon = TH;
+    $('#sonuc').innerHTML = `<h3>Sonuçlar — yalnız üst yapı (çerçeve + temel)</h3><div class="msg info">Yapı türü <b>yalnız üst yapı</b>: kolon, kiriş ve döşemeler çerçeve modeliyle, temel zemin gerilmesi ve zımbalama ile hesaplandı. Perde / radye 3B kabuk modeli çalıştırılmadı.</div>`;
+    if (rc && typeof cerGoster === 'function') { try { cerGoster(); } catch (er) { console.error(er); } } else if (!rc) $('#sonuc').insertAdjacentHTML('beforeend', '<div class="msg">Modelde kolon / kiriş yok: çerçeve hesabı yapılmadı.</div>');
+    if (TH && P.temelOzet) $('#sonuc').insertAdjacentHTML('beforeend', P.temelOzet(TH));
+    const pr = s.proj || {}; let h = `<h1>${esc(pr.ad || 'Yapı')} — Statik Hesap Raporu</h1><p style="text-align:center">${esc(pr.tesis || '')}${pr.idare ? ' · ' + esc(pr.idare) : ''}${pr.tarih ? ' · ' + esc(pr.tarih) : ''}</p>
+      <h2>YAPI TÜRÜ VE ÇÖZÜM YOLU</h2><p>Yapı türü: <b>yalnız üst yapı</b> (${esc(P.YAPI_TURU.ust)}). Firma kuralı gereği kolon, kiriş ve döşemeler çerçeve modeliyle; temeller zemin emniyet gerilmesi (σ<sub>em</sub> = ${f2(s.zemin.sig, 0)} kN/m²) ve zımbalama ile hesaplanmıştır. Perde / radye 3B kabuk modeli kullanılmamıştır.</p>`;
+    if (TH && P.temelRapor) h += P.temelRapor(TH, f2);
+    if (P.elemanListesiHtml) h += P.elemanListesiHtml(s, f2);
+    $('#rapor').innerHTML = h; if (rc && P.cerceveRapor) $('#rapor').insertAdjacentHTML('beforeend', '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' + P.cerceveRapor(rc, f2));
+    $('#raporKutu').style.display = 'block';
+    ['#bCiz', '#bDxf', '#bYaz', '#bDon3'].forEach(q => { const b = $(q); if (b) b.disabled = !rc && q !== '#bYaz'; });
+    try { if (G.DIL && G.DIL.kod && G.DIL.kod() !== 'tr' && G.DIL.cevirDom) G.DIL.cevirDom($('#rapor')); } catch (er) { console.warn(er); }
+  };
+  const hepsiK = G.hepsi;
+  G.hepsi = function (o) {
+    let s = Sx(); if (!s || !s.yapi || s.yapi.tur !== 'ust') return hepsiK.apply(this, arguments);
+    if (s.mod === 'kabuk' && P.kabukModelTazele && !o) { const ok = P.kabukModelTazele(); if (ok === 'eski') return; s = Sx(); if (!s || !s.yapi || s.yapi.tur !== 'ust') return hepsiK.apply(this, arguments); }
+    return ustYapiHesap();
+  };
+  // Kalınlık öner: yalnız üst yapıda kabuk elemanı yok — hesap yapılır, kesitlerin modelde büyütülmesi söylenir
+  setTimeout(() => { const b = $('#bOner'); if (!b) return; const f0 = b.onclick; b.onclick = function () { const s = Sx(); if (!s || !s.yapi || s.yapi.tur !== 'ust') return f0 && f0.apply(this, arguments);
+    G.hepsi(null); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', '<div class="msg info">Yalnız üst yapı: kalınlık önerisi kabuk (perde / radye) elemanları içindir. Yetersiz kolon / kiriş / temel varsa kesitini modelde büyütüp <b>Modelden al</b> → <b>Hesapla</b> yapın.</div>'); }; }, 50);
   try { G.buildForm(); } catch (er) { console.warn(er); }
 })(typeof window !== 'undefined' ? window : globalThis);
