@@ -40,7 +40,7 @@
 - Statik çizimler Tasarım (model) alanına değil Statik disiplin pafta grubuna gider. Bir kez alınan kesit tüm disiplin paftalarında (Mimari, Mekanik, Statik, Elektrik) kendiliğinden görünür.
 - Disiplin paftalarında 3B perspektif görünüş bulunur; beton içindeki donatı 3B'de yalnız Statik disiplininde görünür.
 - Antet: çizimin değil, kullanıcının programa yüklediği kendi anteti kullanılır.
-- Pafta ölçeği bina ebatına göre seçilir (14.11.2026): plan ve kesitler önce 1/50 ile A0 ya da A1 paftaya yerleştirilir; sığıyorsa 1/50 kalır. Çizim paftada çok küçük kalıyorsa 1/25, A0'a sığmayacak kadar büyükse 1/100 verilir. (Eski kural: terfi istasyonu mimari/mekanik plan ve kesitlerinde 1/25 — artık bu seçimin "çok küçük kalıyor" durumu.) Pafta sayısı kendiliğinden ayarlanır.
+- Pafta ölçeği bina ebatına göre seçilir (14.11.2026): plan ve kesitler önce 1/50 ile A0 ya da A1 paftaya yerleştirilir; sığıyorsa 1/50 kalır. Çizim paftada çok küçük kalıyorsa (1/50'de kullanılabilir alanın eninin ve boyunun %40'ından küçük; kullanıcı onayı 14.11.2026) 1/25, A0'a sığmayacak kadar büyükse 1/100 verilir. (Eski kural: terfi istasyonu mimari/mekanik plan ve kesitlerinde 1/25 — artık bu seçimin "çok küçük kalıyor" durumu.) Pafta sayısı kendiliğinden ayarlanır.
 - Boru etiketlerinde genel malzeme adı yerine malzeme kalitesi yazılır (ör. SS304, SS304L, SS316, SS316L; "PASLANMAZ" değil). Tüm boru tipleri için geçerli.
 - Ünite numaraları ünite eklenip çıkarıldıkça yeniden numaralanır.
 - Çizim, pafta ve raporlar için dil seçeneği vardır ve tüm disiplinlere uygulanır.
@@ -54,7 +54,7 @@
 - Planlarda kot yalnız bina içinde görünen döşemelere verilir (duvar, perde, kolon üstüne kot yazılmaz). Döşemenin üstünde kaplama varsa örneklerdeki gibi döşeme (kaba) ve kaplama (bitmiş) kotu birlikte yazılır (14.11.2026).
 - Plan ve kesitlerde aks çizgileri ve aks başlıkları bulunur; ölçüler örnek projelerdeki gibi akslar üzerinden verilir.
 - Kesit yerleri mahalleri ayrı ayrı gösterecek şekilde seçilir (14.11.2026): uzun kesit bütün mahallerden geçer; kısa kesit iki tanedir, biri büyük hacimden (ör. pompa / montaj holü), öbürü odalardan (ör. kumanda odası) geçer. Bir oda hiçbir kesitte görünmüyorsa ek kesit alınır.
-- Ölçü sıraları üst üste binmez; sıralar arası 25 cm (1/50'de kâğıtta 5 mm). Plan, kesit, görünüş ve detay, bütün ölçülendirmede geçerli (14.11.2026).
+- Ölçü sıraları üst üste binmez; sıralar arası modelde 25 cm, her ölçekte aynı (1/50'de kâğıtta 5 mm, 1/25'te 10 mm, 1/100'de 2,5 mm; 1/20 detayda 12,5 mm). Plan, kesit, görünüş ve detay, bütün ölçülendirmede geçerli (14.11.2026).
 - Görünüşlerde bina içindeki merdivenler (ve dışarıdan görünmeyen iç elemanlar) çizilmez; toprak altında kalan yapı kısımları (temel, radye, gömülü perdeler) da çizilmez, görünüş tabii / tesviye zemin çizgisinde biter (14.11.2026).
 
 ## Proses ve ünite tasarımı
