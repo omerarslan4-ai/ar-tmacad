@@ -8,7 +8,7 @@
       (galeri döşemesi kesmesi 0,8 m ağda yetiyor görünüp 0,35 m ağda yetmiyordu).
    Çalıştır: node test/statik-model-tutarlilik.test.js */
 'use strict';
-const assert = require('assert');
+const assert = require('assert'), fs = require('fs'), path = require('path');
 const O = require('./statik-ortam.js'), P = O.pencere(), U = require('../araclar/konya-terfi-uret.js');
 let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
 const yak = (a, b, e, m) => assert.ok(Math.abs(a - b) <= e, `${m || ''} ${a} ≉ ${b} (±${e})`);
@@ -53,6 +53,19 @@ t('kolon gusesi (vinç konsolu) metrajdaki gibi kolon hacmine eklenir: Konya 8 g
   finally { delete C.kolonGuse; }
 });
 
+t('statik eleman listesi yalnız hesaplanan yapıyı sayar: belgede ayrı bir bina (kolon / kiriş / döşeme, radyesiz) varken Konya yine 371,65 m³', () => {
+  const doc = O.konyaDoc(); let id = 9000; const ek = (o) => doc.ents.push(Object.assign({ id: id++, layer: '0' }, o));
+  for (const [x, y] of [[100, 0], [105, 0], [105, 4], [100, 4]]) ek({ type: 'kolon', sek: 'R', b: 0.3, d: 0.3, h: 3, z0: 0, p: [x, y, 0] });
+  ek({ type: 'kiris', a: [100, 0, 0], b: [105, 0, 0], bw: 0.25, hb: 0.5, zt: 3 }); ek({ type: 'plak', kind: 'doseme', pts: [[100, 0], [105, 0], [105, 4], [100, 4]], t: 0.15, zt: 3 });
+  const H = O.modelCevir(doc).d.hacim; yak(H.net, 371.652, 1e-3); assert.ok(!H.liste.some(e => e.id >= 9000));
+});
+t('perde ayağı (kicker, temelle birlikte dökülür) temeldir — metrajla aynı sınıf (yapi-cakisma.js tek yer)', () => {
+  const Y = O.modelCevir(O.konyaDoc()).C.yapiCakisma; assert.strictEqual(Y.turu({ type: 'perde', malz: 'beton', kicker: true }), 'temel'); assert.strictEqual(Y.turu({ type: 'perde', malz: 'beton' }), 'perde');
+  const B = path.join(O.KOK, 'test-proje/_gecici/bekci.aritma'); if (!fs.existsSync(B)) return;
+  const D = O.modelCevir(JSON.parse(fs.readFileSync(B, 'utf8')).doc).d.hacim;
+  yak(D.top.Perde, 3.42, 1e-3, 'Bekçi perde (temel perdesi hariç)'); yak(D.top.Temel, 20.184 + 0.36 + 0.04, 1e-3, 'radye + perde ayağı (temel > kolon: kolon izleri temelde)'); yak(D.top.Kolon, 1.404 - 0.032, 1e-3);
+});
+
 t('alt yapı üst kotunda (−0,26) kotla bölme: kolonların alt kısmı alt yapıda, alt + üst = net', () => {
   const B = P.netHacimBol(d.hacim, -0.26);
   yak(B.altTop + B.ustTop, d.hacim.net, 0.01); yak(B.alt.Kolon, 10 * 0.25 * 6.5, 0.01); yak(B.ust.Kolon, 10 * 0.25 * 4.7, 0.01);
@@ -69,13 +82,16 @@ t('çerçeve deprem ağırlığı: perde içindeki kolon izi iki kez sayılmaz',
   yak(RC.deprem.katlar[0].w, bek, 1e-6, 'kat ağırlığı');
 });
 
-t('Konya: projeye kayıtlı zemin / deprem / kot değerleri pencereye geçer; kayıt yoksa pencere değerleri kalır (eski projeler)', () => {
+t('Konya: projeye kayıtlı zemin / deprem / kot değerleri pencereye geçer; kayıt yoksa önceki proje değerleri devralınmaz: varsayılan + uyarı', () => {
   const Z = U.KONYA_DEPREM.zemin; assert.deepStrictEqual(d.statikAyar.zemin, Z);
   for (const k of Object.keys(Z)) assert.strictEqual(S.zemin[k], Z[k], k);
   assert.strictEqual(S.dep.r, 1.5); assert.strictEqual(S.dep.SDS, 0.553);
   assert.strictEqual(S.geo.kZemin, -0.2); assert.strictEqual(S.geo.kYAS, -5.2); yak(S.geo.kSu, S.kabuk.radye.kAlt + S.kabuk.radye.t, 1e-9, 'pompa holü kuru: su radye üstünde');
-  const S0 = P.ornekSaray(), z0 = JSON.stringify(S0.zemin), d0 = JSON.parse(JSON.stringify(d)); delete d0.statikAyar; delete d0.cerceve.ayar;
-  const S1 = O.uygula(S0, d0); assert.strictEqual(JSON.stringify(S1.zemin), z0);
+  // kayıt yoksa önceki projenin pencere değerleri (ör. Konya σem 196, SDS 0,553) devralınmaz: örnek varsayılanlar + görünür uyarı
+  const V = P.ornekSaray(), d0 = JSON.parse(JSON.stringify(d)); delete d0.statikAyar; delete d0.cerceve.ayar;
+  const S1 = O.uygula(JSON.parse(JSON.stringify(S)), d0); assert.strictEqual(JSON.stringify(S1.zemin), JSON.stringify(V.zemin)); assert.strictEqual(JSON.stringify(S1.dep), JSON.stringify(V.dep));
+  assert.ok(/zemin ve deprem değerleri projede kayıtlı değil — varsayılanlar kullanılıyor/.test(S1.ayarUyari), S1.ayarUyari); assert.ok(/UYARI/.test(P.ayarUyariHtml(S1, true)));
+  assert.strictEqual(S.ayarUyari, null, 'Konya: kayıtlı, uyarı yok');
 });
 
 t('Konya galeri döşemesi: 100 × 100 sac kapak boşluğu kabuk ağından çıkar (eleman alanı = döşeme − 1,00 m²)', () => {

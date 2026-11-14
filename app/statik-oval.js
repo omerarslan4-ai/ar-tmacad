@@ -337,9 +337,15 @@
     return z.length ? r3(Math.max(...z)) : null; };
   /* statik eleman listesi: metrajla aynı net parçalar (app/yapi-cakisma.js › net; öncelik temel > kolon > perde > kiriş > döşeme).
      Statik hesaba girmeyenler sayılmaz: tuğla duvar, sıkıştırılmış dolgu, zemine (radye / dolgu üstüne) oturan döşeme (taban betonu, kaide). */
-  const netHacimler = () => {
+  // döşeme zemine (radye / dolgu üstüne) oturuyor mu — taban betonu, ekipman kaidesi (statik eleman değil; cerceveOku ile aynı ölçüt)
+  const zemineOturur = (e, ents) => { if (e.type !== 'plak' || e.kind === 'radye' || !Array.isArray(e.pts) || !e.pts.length) return false; const za = (+e.zt || 0) - (+e.t || 0.15), m = e.pts.reduce((q, p) => [q[0] + p[0] / e.pts.length, q[1] + p[1] / e.pts.length], [0, 0]);
+    return ents.some(g => ((g.type === 'plak' && g.kind === 'radye') || g.type === 'dolgu') && Math.abs((g.type === 'dolgu' ? +g.zb : +g.zt || 0) - za) < 0.06 && Array.isArray(g.pts) && C.pointInPoly && C.pointInPoly(m, g.pts)); };
+  // kapsam: [x0, y0, x1, y1] — yalnız planda bu kutunun içinde (merkezi) kalan elemanlar (hesaplanan yapı; belgedeki başka yapılar sayılmaz)
+  const kapsamda = (e, K) => { if (!K) return true; const ps = Array.isArray(e.pts) && e.pts.length ? e.pts : e.type === 'kiris' ? [e.a, e.b] : Array.isArray(e.p) ? [e.p] : Array.isArray(e.o) ? [e.o] : null; if (!ps || !ps.every(q => Array.isArray(q))) return true;
+    const xs = ps.map(q => +q[0]), ys = ps.map(q => +q[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2; return !(cx < K[0] || cx > K[2] || cy < K[1] || cy > K[3]); };
+  const netHacimler = (K) => {
     const Y = C.yapiCakisma; if (!Y || !Y.net) return null;
-    const ents = C.doc.ents.filter(vis), zemin = ents.filter(e => (e.type === 'plak' && e.kind === 'radye') || e.type === 'dolgu').map(e => ({ z: e.type === 'dolgu' ? +e.zb : +e.zt || 0, pts: e.pts }));
+    const ents = C.doc.ents.filter(vis).filter(e => kapsamda(e, K)), zemin = ents.filter(e => (e.type === 'plak' && e.kind === 'radye') || e.type === 'dolgu').map(e => ({ z: e.type === 'dolgu' ? +e.zb : +e.zt || 0, pts: e.pts }));
     const icinde = (q, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
     const oturur = e => { if (e.type !== 'plak' || e.kind === 'radye' || !Array.isArray(e.pts) || !e.pts.length) return false; const za = (+e.zt || 0) - (+e.t || 0.15), m = e.pts.reduce((q, p) => [q[0] + p[0] / e.pts.length, q[1] + p[1] / e.pts.length], [0, 0]);
       return zemin.some(g => Math.abs(g.z - za) < 0.06 && Array.isArray(g.pts) && icinde(m, g.pts)); };
@@ -357,8 +363,8 @@
   C._statikNetHacim = netHacimler;
   /* temeller (yalnız üst yapı yolu — statik penceresi › P.temelHesap): radye, tekil temel, sürekli temel (temel perdesi) ve temelin üstüne
      oturan, çerçevede olmayan elemanlar (beton / tuğla perde, sıkıştırılmış dolgu, zemine oturan döşeme): net hacim ve plan ağırlık merkezi */
-  const temelOku = () => {
-    const Y = C.yapiCakisma, ents = C.doc.ents.filter(vis), pp = q => q.map(p => [r3(p[0]), r3(p[1])]);
+  const temelOku = (K) => {
+    const Y = C.yapiCakisma, ents = C.doc.ents.filter(vis).filter(e => kapsamda(e, K)), pp = q => q.map(p => [r3(p[0]), r3(p[1])]);
     const radye = ents.filter(e => e.type === 'plak' && e.kind === 'radye' && Array.isArray(e.pts) && e.pts.length >= 3).map(e => ({ id: e.id, no: e.no || null, pts: pp(e.pts), t: r3(+e.t || 0.4), zt: r3(+e.zt || 0) }));
     const tekil = ents.filter(e => e.type === 'temel' && Array.isArray(e.p)).map(e => ({ id: e.id, no: e.no || null, x: r3(+e.p[0]), y: r3(+e.p[1]), bx: r3(+e.bx || 1.5), by: r3(+e.by || 1.5), t: r3(+e.t || 0.6), zt: r3(+e.zt || 0), rot: +e.rot || 0 }));
     const surekli = []; for (const e of ents.filter(x => x.type === 'perde' && x.temel)) { const x = eksen(e); if (!x) continue; const n = x.kapali ? x.pts.length : x.pts.length - 1;
@@ -367,11 +373,11 @@
     const merkez = q => { let A = 0, x = 0, y = 0; for (let i = 0; i < q.length; i++) { const [x0, y0] = q[i], [x1, y1] = q[(i + 1) % q.length], c = x0 * y1 - x1 * y0; A += c; x += (x0 + x1) * c; y += (y0 + y1) * c; } return Math.abs(A) > 1e-12 ? [x / (3 * A), y / (3 * A)] : q[0]; }; // çokgen ağırlık merkezi
     const ust = Math.max(...radye.map(r => r.zt), ...tekil.map(q => q.zt), ...surekli.map(q => q.zt)), ek = [];
     if (Y && Y.net) { const N = Y.net(ents);
-      for (const [id, m] of N) { if (!['perde', 'duvar', 'dolgu', 'doseme'].includes(m.tur) || !(m.net > 1e-6)) continue; const e = ents.find(x => x.id === id); if (!e || (e.type === 'perde' && e.temel)) continue;
+      for (const [id, m] of N) { const e = ents.find(x => x.id === id); if (!e || !(m.net > 1e-6)) continue; const kick = e.type === 'perde' && e.kicker && !e.temel; if (!(['perde', 'duvar', 'dolgu', 'doseme'].includes(m.tur) || kick) || (e.type === 'perde' && e.temel)) continue; // perde ayağı (kicker) temel sınıfında ama radyenin üstündeki yüktür
         const za = Math.min(...m.parcalar.map(p => p.za)); if (za < ust - 0.1 || za > ust + 1.5) continue; // temelin üstünde (en çok 1,5 m) başlayan
         if (m.tur === 'doseme' && !(za <= ust + 1.2)) continue;
         let A = 0, sx = 0, sy = 0; for (const p of m.parcalar) { const a = Y._ic.alan(p.q) * (p.zb - p.za), c = merkez(p.q); A += a; sx += a * c[0]; sy += a * c[1]; }
-        ek.push({ id, tur: m.tur, ad: e.no || e.ad || m.ad, V: r3(m.net), x: r3(A ? sx / A : 0), y: r3(A ? sy / A : 0), ...(m.tur === 'doseme' ? { A: r3(Math.abs(M.polyArea(e.pts))), g: e.yukG != null ? +e.yukG : null, q: e.yukQ != null ? +e.yukQ : null } : {}), ...(m.tur === 'dolgu' ? { malz: e.malz || null } : {}) }); } }
+        ek.push({ id, tur: m.tur, ad: e.no || e.ad || m.ad, V: r3(m.net), x: r3(A ? sx / A : 0), y: r3(A ? sy / A : 0), ...(m.tur === 'doseme' ? { A: r3(Math.abs(M.polyArea(e.pts))), g: e.yukG != null ? +e.yukG : null, q: e.yukQ != null ? +e.yukQ : null } : {}), ...(m.tur === 'dolgu' ? { malz: e.malz || null } : {}), ...((m.tur === 'dolgu' || m.tur === 'doseme') && Array.isArray(e.pts) ? { pts: pp(e.pts) } : {}) }); } }
     return { radye, tekil, surekli, ust: r3(ust), ek };
   };
   C._statikTemelOku = temelOku;
@@ -392,7 +398,7 @@
     // döşemedeki düşey boşluklar (sac kapak, İT/ÇEK): kabuk ağından çıkarılır (eskiden döşeme boşluksuz alınıyordu — Konya galeri 100 × 100 kapak)
     const dDelik = e => (Array.isArray(e.bosluk3) ? e.bosluk3 : []).filter(b => b && Array.isArray(b.pts) && b.pts.length >= 3 && Array.isArray(b.d) && Math.abs(+b.d[2] || 0) >= 0.7 * (+e.t || 0.2) && Math.abs(+b.d[2] || 0) > 0.7 * Math.hypot(+b.d[0] || 0, +b.d[1] || 0, +b.d[2] || 0)).map(b => b.pts.map(q => [r3(q[0]), r3(q[1])]));
     const dos = C.doc.ents.filter(vis).filter(e => e.type === 'plak' && e.kind !== 'radye' && Array.isArray(e.pts) && e.pts.length >= 3).map((e, k) => ({ id: e.id, ad: e.no || 'D' + (k + 1), pts: e.pts.map(q => [r3(q[0]), r3(q[1])]), t: r3(+e.t || 0.2), zt: r3(+e.zt || 0), g: +e.g || 1.5, q: +e.q || 5, ...(dDelik(e).length ? { delik: dDelik(e) } : {}) })).filter(d => { // yalnız perde üstüne oturan döşemeler kabuk modeline girer; çatı / ara / zemine oturan döşemeler çerçeve hesabındadır
-      const ok = walls.some(w => Math.abs(d.zt - w.zt) < d.t + 0.05); if (!ok) dosDisi.push(`${d.ad} (üst ${d.zt})`); return ok; });
+      const ok = walls.some(w => Math.abs(d.zt - w.zt) < d.t + 0.05), e = C.byId ? C.byId(d.id) : null; if (!ok && !(e && zemineOturur(e, C.doc.ents.filter(vis)))) dosDisi.push(`${d.ad} (üst ${d.zt})`); return ok; }); // zemine oturanlar (taban betonu, kaide) ayrıca bildirilir (cerceveOku)
     const xs = walls.flatMap(w => w.pts.map(q => q[0])), ys = walls.flatMap(w => w.pts.map(q => q[1])), kUst = Math.max(...walls.map(w => w.zt));
     const tw = Math.max(...walls.filter(w => w.tip === 'dis').map(w => w.t), 0.3), ti = Math.max(...walls.filter(w => w.tip !== 'dis').map(w => w.t), tw);
     const geo = { Lx: r3(Math.max(...xs) - Math.min(...xs)), Ly: r3(Math.max(...ys) - Math.min(...ys)), tw, ti, hr: rad.t, toe: 0, bolX: [], bolY: [], doseme: [], kAlt: rad.kAlt, kUst: r3(kUst), ust: dos.length ? 'M' : 'S' };
@@ -427,7 +433,10 @@
       if (d && d.hata && C._cerceveOku) { try { const cer = C._cerceveOku(); if (cer) d = { t: Date.now(), cerceve: cer, geo: null, koken: null, ozet: 'çerçeve: ' + cer.ozet, uyar: (cer.uyar || []).concat([`Perde + radye (kabuk) modeli kurulamadı (${d.hata}) — yalnız kolon / kiriş / döşeme gönderildi.`]) }; } catch (er) { console.error(er); } }
       // yapı türü önerisi için (statik penceresi, P.yapiTuru): zemin / tretuvar kotu, haznede su, projeye kayıtlı statik ayarları ve
       // metrajla aynı net eleman hacimleri (app/yapi-cakisma.js) — statik eleman listesi ve ağırlık bunlardan
-      if (d && !d.hata) { try { d.zeminKot = zeminKotu(); d.su = !!(d.geo && d.geo.kSu != null && d.geo.kAlt != null && +d.geo.kSu > +d.geo.kAlt + (+d.geo.hr || 0) + 0.05); const A = C.doc.set && C.doc.set.statikAyar; if (A) d.statikAyar = JSON.parse(JSON.stringify(A)); d.hacim = netHacimler(); d.temel = temelOku(); } catch (er) { console.error(er); } }
+      if (d && !d.hata) { try { d.zeminKot = zeminKotu(); d.su = !!(d.geo && d.geo.kSu != null && d.geo.kAlt != null && +d.geo.kSu > +d.geo.kAlt + (+d.geo.hr || 0) + 0.05); const A = C.doc.set && C.doc.set.statikAyar; if (A) d.statikAyar = JSON.parse(JSON.stringify(A)); const rp = d.kabuk && d.kabuk.radye && Array.isArray(d.kabuk.radye.pts) ? d.kabuk.radye.pts : null, K = rp ? [Math.min(...rp.map(q => q[0])) - 1, Math.min(...rp.map(q => q[1])) - 1, Math.max(...rp.map(q => q[0])) + 1, Math.max(...rp.map(q => q[1])) + 1] : null;
+        d.hacim = netHacimler(K); d.temel = temelOku(K);
+        // yapi-cakisma listesinde olmayan yapı (ör. anaerobik katı ünite): perdeleri net listede yok → eski yönteme (kabuk ağı) düşülür
+        if (d.kabuk && d.hacim && !(d.hacim.top && d.hacim.top.Perde > 0) && (d.kabuk.walls || []).length) d.hacim = null; } catch (er) { console.error(er); } }
       C._statikSonModel = d; // pencere doğrudan buradan da okur (localStorage dolu / yazılamazsa eski model kalmasın)
       try { localStorage.setItem('aritmacad.statik.model', JSON.stringify(d)); } catch (er) { try { ['aritmacad.statik.cizim', 'aritmacad.statik.donati', 'aritmacad.statik.model'].forEach(x => localStorage.removeItem(x)); localStorage.setItem('aritmacad.statik.model', JSON.stringify(d)); } catch (er2) { C.warn('Model aktarılamadı: ' + er2.message); } }
       if (!d.hata) { C.log(`${L >= 0.3 ? `Yay / oval planlı hazne (${r3(L)} m yay / eğik perde)` : 'Dikdörtgen yapı'}: statik penceresine 3B KABUK modeli (SAP2000 tipi) gönderildi — ${d.ozet}. Statik penceresinde Hesapla'ya basın.`); C.changed();

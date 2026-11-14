@@ -23,7 +23,15 @@
       perdeler: (cer.perdeler || []).filter(w => ust(w.zt)).map(w => Object.assign({}, w, { z0: Math.max(+w.z0, kot) })) });
   };
   /* alt yapı kabuk modeli: kotun üstündeki kirişler çıkar (kabukta yalnız döşeme altındaki kirişler kaburga olur) */
-  P.altYapiKabuk = (K, kot) => Object.assign({}, K, { kirisler: (K.kirisler || []).filter(k => +k.zt <= kot + TOL), dosemeler: (K.dosemeler || []).filter(d => +d.zt <= kot + TOL) });
+  /* alt yapı kabuk modeli: kotun üstündeki kirişler ve döşemeler çıkar; kotun üstüne çıkan perde kotta kesilir (üst kısmı üst yapı
+     çerçevesinde mesnet; ağırlığı perde boyunca alt yapı perdesinin üstüne yük olarak — P.ustPerdeYuk) */
+  P.altYapiKabuk = (K, kot) => Object.assign({}, K, { kirisler: (K.kirisler || []).filter(k => +k.zt <= kot + TOL), dosemeler: (K.dosemeler || []).filter(d => +d.zt <= kot + TOL),
+    walls: (K.walls || []).map(w => (+w.zt > kot + TOL ? Object.assign({}, w, { zt: kot, ztUst: +w.zt }) : w)) });
+  P.ustPerdeYuk = (K, gc) => { const out = [];
+    for (const w of (K.walls || [])) { if (!(w.ztUst > w.zt)) continue; const q = gc * w.t * (w.ztUst - w.zt), n = w.kapali ? w.pts.length : w.pts.length - 1;
+      for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(L)); if (L < 1e-6) continue;
+        for (let k = 0; k < m; k++) { const u = (k + 0.5) / m, z0 = [0, 0, 0, 0, 0, 0]; out.push({ id: null, no: `${w.ad || 'Perde'} üst kısmı`, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: w.zt, F: { G: [0, 0, -q * L / m, 0, 0, 0], Q: z0, 'EX+': z0, 'EX-': z0, 'EY+': z0, 'EY-': z0 } }); } } }
+    return out; };
 
   /* kolon ayağı tepkileri (alt yapıya etkiyen yük, global): [{ id, no, x, y, z, F: { G, Q, 'EX+', 'EX-', 'EY+', 'EY-' } }] — [Fx Fy Fz Mx My Mz]
      3B çerçeve analizi varsa onun uç kuvvetleri; yoksa yaklaşık yöntemin kolon kuvvetleri (N, deprem kesmesi ve taban momenti) */
@@ -36,13 +44,24 @@
         F = { G: [0, 0, -(c.NG || 0), 0, 0, 0], Q: [0, 0, -(c.NQ || 0), 0, 0, 0], 'EX+': [ex.V, 0, -nX, 0, ex.b, 0], 'EY+': [0, ey.V, -nY, -ey.b, 0, 0] }; F['EX-'] = F['EX+']; F['EY-'] = F['EY+']; // ± ek dışmerkezlik ayrımı yaklaşık yöntemde yok
       }
       return { id: c.id, no: c.no || null, x: c.x, y: c.y, z: c.tabanZ != null ? c.tabanZ : c.z0, bx: c.bx, by: c.by, F, k3B: !!c.tabanYuk };
-    });
+    }).concat(P.perdeMesnetTepki(RC));
+  };
+  /* kotun üstüne çıkan perdeye mesnetlenen kiriş uçlarının tepkileri (perde üst yapı çerçevesinde ankastre mesnettir): 3B'den; yoksa
+     yaklaşık yöntemin kiriş mesnet tepkileri (yalnız G, Q) */
+  P.perdeMesnetTepki = RC => {
+    const c3 = RC && RC.deprem && RC.deprem.cer3B; if (c3 && Array.isArray(c3.perdeTepki)) return c3.perdeTepki.map(q => ({ id: null, no: 'Perde mesnedi', perde: true, x: q.x, y: q.y, z: q.z, F: q.F, k3B: true }));
+    const out = []; for (const ch of (RC && RC.zincirler) || []) { if (!ch.ok0 || !ch.supN) continue; ch.supN.forEach((q, j) => { if (q.tip !== 'perde') return; const p = [ch.a[0] + ch.u[0] * q.s, ch.a[1] + ch.u[1] * q.s], z0 = [0, 0, 0, 0, 0, 0];
+      out.push({ id: null, no: 'Perde mesnedi', perde: true, x: p[0], y: p[1], z: ch.z, F: { G: [0, 0, -(ch.G.R[j] || 0), 0, 0, 0], Q: [0, 0, -(ch.Q.R[j] || 0), 0, 0, 0], 'EX+': z0, 'EX-': z0, 'EY+': z0, 'EY-': z0 }, k3B: false }); }); }
+    return out;
   };
   /* kabuk yük durumlarına eşleme: G → G, Q → Q; deprem: çerçevenin EX+ / EY+ durumu (+X / +Y yönünde kat kuvvetleri, +%5 dışmerkezlik)
      kabuğun ESX / ESY durumuna TERS işaretle girer — kabukta ESX "zemin +X yönünde ivmelenir" durumudur, atalet kuvvetleri −X yönündedir;
      üst yapının ataleti de aynı yönde olmalı. Kombinasyonlarda deprem ± alındığı için iki yön de hesaplanır. */
   P.KABUK_TEPKI_DURUM = { G: ['G', 1], Q: ['Q', 1], ESX: ['EX+', -1], ESY: ['EY+', -1] };
-  P.kabukKolonYuku = T => T.map(q => ({ id: q.id, no: q.no, x: q.x, y: q.y, z: q.z, F: Object.fromEntries(Object.entries(P.KABUK_TEPKI_DURUM).map(([k, [c, s]]) => [k, q.F[c] ? q.F[c].map(v => s * v) : null])) }));
+  /* −%5 ek dışmerkezlik: kabukta ayrı yalnız-düğüm-yükü durumu TX / TY = −(EX−) − (−(EX+)); kombinasyonda ESX + TX = −(EX−) tepkileri (zarf) */
+  P.kabukKolonYuku = T => T.map(q => { const F = Object.fromEntries(Object.entries(P.KABUK_TEPKI_DURUM).map(([k, [c, s]]) => [k, q.F[c] ? q.F[c].map(v => s * v) : null]));
+    for (const [k, a, b] of [['TX', 'EX+', 'EX-'], ['TY', 'EY+', 'EY-']]) if (q.F[a] && q.F[b]) F[k] = q.F[a].map((v, i) => v - q.F[b][i]);
+    return { id: q.id, no: q.no, x: q.x, y: q.y, z: q.z, F }; });
 
   /* alt + üst yapı hazırlığı (pencere ve kalınlık önerisi): üst yapı çerçevesi çözülür, tepkiler alt yapı kabuğuna yük olur.
      Dönen { S (kabuk girdisi: alt yapı + kolon yükleri), RC (üst yapı çerçeve sonucu), T (tepkiler), kot } ya da null (tür altUst değilse) */
@@ -53,8 +72,8 @@
     const cer = P.ustYapiCer(S.cer, kot);
     if (cer && ((cer.kolonlar || []).length || (cer.kirisler || []).length) && P.cerceveHesap) {
       const Su = Object.assign({}, S, { cer, suYapisi: false }); RC = P.cerceveHesap(Su); T = P.kolonTepki(RC); }
-    const K = P.altYapiKabuk(S.kabuk, kot); K.kolonYuk = P.kabukKolonYuku(T);
-    return { S: Object.assign({}, S, { kabuk: K }), RC, T, kot, cer };
+    const K = P.altYapiKabuk(S.kabuk, kot), UP = P.ustPerdeYuk(K, (S.mal && S.mal.gc) || 25); K.kolonYuk = P.kabukKolonYuku(T.concat(UP));
+    return { S: Object.assign({}, S, { kabuk: K }), RC, T, UP, kot, cer };
   };
 
   /* tepkilerin toplamı (durum başına): [ΣFx, ΣFy, ΣFz] */
@@ -74,7 +93,7 @@
       <p><b>2. Alt yapı</b> — 3B kabuk modeli (perdeler, radye, döşemeler; döşeme altındaki kirişler ve perde içindeki kolonlar kaburga çubuk). Toprak, su ve yeraltı suyu yüklerine ek olarak üst yapının kolon ayağı tepkileri (N, V, M) her yük durumu için kolonun oturduğu perde / radye düğümüne yük olarak uygulanmıştır: G → G, Q → Q, deprem (+X / +Y, kabuktaki atalet yönüne çevrilerek) → kabuğun deprem durumları (kombinasyonlarda ±). Alt yapı rijit kabul edilmiştir; kendi kütlesinin ataleti ve dinamik toprak basıncı kabuğun deprem durumlarındadır.</p>`;
     if (T.length) {
       const sat = (q, c) => { const v = q.F[c]; return v ? `<td>${f(-v[2], 1)}</td><td>${f(v[0], 1)}</td><td>${f(v[1], 1)}</td><td>${f(v[3], 1)}</td><td>${f(v[4], 1)}</td>` : '<td colspan="5">—</td>'; };
-      h += `<h3>Üst yapıdan alt yapıya aktarılan kolon ayağı tepkileri</h3><p>Alt yapıya etkiyen kuvvetler, global eksenlerde (N basınç +, kN; V kN; M kNm). Deprem: +X / +Y doğrultusundaki eşdeğer deprem yükünden (+%5 ek dışmerkezlik); kombinasyonlarda ± alınır.${T.some(q => !q.k3B) ? ' Bazı kolonlarda 3B çerçeve sonucu yok: yaklaşık yöntemin kolon kuvvetleri kullanıldı.' : ''}</p><table><tr><th class="l" rowspan="2">Kolon</th><th colspan="5">G</th><th colspan="5">Q</th><th colspan="5">E (+X)</th><th colspan="5">E (+Y)</th></tr><tr>${'<th>N</th><th>Vx</th><th>Vy</th><th>Mx</th><th>My</th>'.repeat(4)}</tr>`;
+      h += `<h3>Üst yapıdan alt yapıya aktarılan kolon ayağı tepkileri</h3><p>Alt yapıya etkiyen kuvvetler, global eksenlerde (N basınç +, kN; V kN; M kNm). Deprem: +X / +Y doğrultusundaki eşdeğer deprem yükünden (tabloda +%5 ek dışmerkezlik; −%5 dışmerkezlikli tepkiler de alt yapıya ayrı yükleme olarak aktarılır, kombinasyonlarda ± ve zarf alınır).${T.some(q => !q.k3B) ? ' Bazı kolonlarda 3B çerçeve sonucu yok: yaklaşık yöntemin kolon kuvvetleri kullanıldı.' : ''}</p><table><tr><th class="l" rowspan="2">Kolon</th><th colspan="5">G</th><th colspan="5">Q</th><th colspan="5">E (+X)</th><th colspan="5">E (+Y)</th></tr><tr>${'<th>N</th><th>Vx</th><th>Vy</th><th>Mx</th><th>My</th>'.repeat(4)}</tr>`;
       for (const q of T) h += `<tr><td class="l">${esc(q.no || ('S' + q.id))} <span style="font-size:10px">(${f(q.x)}; ${f(q.y)})</span></td>${sat(q, 'G')}${sat(q, 'Q')}${sat(q, 'EX+')}${sat(q, 'EY+')}</tr>`;
       const tG = P.tepkiToplam(T, 'G'), tQ = P.tepkiToplam(T, 'Q'), tX = P.tepkiToplam(T, 'EX+'), tY = P.tepkiToplam(T, 'EY+');
       h += `<tr><th class="l">Toplam</th><th>${f(-tG[2], 1)}</th><th>${f(tG[0], 1)}</th><th>${f(tG[1], 1)}</th><th colspan="2"></th><th>${f(-tQ[2], 1)}</th><th>${f(tQ[0], 1)}</th><th>${f(tQ[1], 1)}</th><th colspan="2"></th><th>${f(-tX[2], 1)}</th><th>${f(tX[0], 1)}</th><th>${f(tX[1], 1)}</th><th colspan="2"></th><th>${f(-tY[2], 1)}</th><th>${f(tY[0], 1)}</th><th>${f(tY[1], 1)}</th><th colspan="2"></th></tr></table>`;

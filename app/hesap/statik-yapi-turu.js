@@ -61,9 +61,11 @@
      A.zemin {g, gs, phi, dR, K, kw, sig, q}, A.dep {yon, SDS, r, I, yontem, eYAS}, A.kot {kZemin, kYAS (null = yok), kSu (null = kuru hazne)}.
      Eskiden yalnız deprem (SDS) okunuyordu; zemin pencerenin varsayılanıyla (φ 25, K0, q 15) kalıyor, sonuç projeden projeye değişiyordu. */
   P.statikAyarUygula = (S, d) => {
-    const A = (d && (d.statikAyar || (d.cerceve && d.cerceve.ayar))) || {}, out = [];
-    if (A.zemin && typeof A.zemin === 'object') { S.zemin = Object.assign({}, S.zemin || {}, A.zemin); out.push('zemin'); }
-    if (A.dep && typeof A.dep === 'object') { S.dep = Object.assign({}, S.dep || {}, A.dep); out.push('deprem'); } else if (+A.SDS > 0) S.dep = Object.assign({}, S.dep || {}, { SDS: +A.SDS });
+    const A = (d && (d.statikAyar || (d.cerceve && d.cerceve.ayar))) || {}, out = [], V = P.ornekSaray ? P.ornekSaray() : null, eksik = [];
+    /* projede kayıt yoksa ÖNCEKİ projenin pencere değerleri devralınmaz: örnek varsayılanlara dönülür ve görünür uyarı verilir (S.ayarUyari) */
+    if (A.zemin && typeof A.zemin === 'object') { S.zemin = Object.assign({}, V ? V.zemin : {}, A.zemin); out.push('zemin'); } else { if (V) S.zemin = Object.assign({}, V.zemin); eksik.push('zemin'); }
+    if (A.dep && typeof A.dep === 'object') { S.dep = Object.assign({}, V ? V.dep : {}, A.dep); out.push('deprem'); } else { if (V) S.dep = Object.assign({}, V.dep); if (+A.SDS > 0) S.dep.SDS = +A.SDS; else eksik.push('deprem'); }
+    S.ayarUyari = eksik.length ? `${eksik.join(' ve ')} değerleri projede kayıtlı değil — varsayılanlar kullanılıyor (zemin emniyet gerilmesi ${f2(S.zemin.sig, 0)} kN/m², φ ${f2(S.zemin.phi, 0)}°, S<sub>DS</sub> ${f2(S.dep.SDS, 3)}); lütfen statik penceresinde girin (ArıtmaCAD penceresi açıksa projeye kaydedilir).` : null;
     if (A.kot && typeof A.kot === 'object' && S.geo) { const g = S.geo, K = S.kabuk && S.kabuk.radye, zTop = K ? K.kAlt + K.t : (+g.kAlt || 0) + (+g.hr || 0);
       if (A.kot.kZemin != null && isFinite(+A.kot.kZemin)) g.kZemin = +A.kot.kZemin;
       if ('kYAS' in A.kot) g.kYAS = A.kot.kYAS == null || A.kot.kYAS === '' ? null : +A.kot.kYAS;
@@ -72,6 +74,17 @@
     return out;
   };
 
+  /* radye (kabuk) üstüne oturan, kabukta ve çerçevede eleman olmayan yükler: sıkıştırılmış dolgu, zemine oturan döşeme (taban betonu, kaide).
+     Net hacim × birim ağırlık (beton S.mal.gc, dolgu S.zemin.g) + döşeme kaplama g / hareketli q; plan çokgenine yayılı (kN/m²) */
+  P.radyeUstYuk = S => {
+    const T = S && S.temel; if (!T || !Array.isArray(T.ek) || !S.kabuk) return [];
+    const gc = (S.mal && S.mal.gc) || 25, gD0 = (S.zemin && +S.zemin.g) || 18, dv = Object.assign(P.cerceveVars ? P.cerceveVars() : {}, (S.cer && S.cer.ayar) || {}), gD = +dv.gD || 1.5, qD = +dv.qD || 3.5;
+    const haric = new Set([...(S.kabuk.dosemeler || []), ...((S.cer && S.cer.dosemeler) || [])].map(x => x.id).filter(x => x != null));
+    const alan = q => { let a = 0; for (let i = 0; i < q.length; i++) { const u = q[i], v = q[(i + 1) % q.length]; a += u[0] * v[1] - v[0] * u[1]; } return Math.abs(a) / 2; };
+    return T.ek.filter(e => (e.tur === 'dolgu' || e.tur === 'doseme') && Array.isArray(e.pts) && e.pts.length >= 3 && !haric.has(e.id)).map(e => { const A = alan(e.pts), gam = e.tur === 'dolgu' ? gD0 : gc, G = e.V * gam + (e.tur === 'doseme' ? (e.g != null ? e.g : gD) * A : 0), Q = e.tur === 'doseme' ? (e.q != null ? e.q : qD) * A : 0;
+      return { id: e.id, ad: e.ad, tur: e.tur, pts: e.pts, A, V: e.V, gam, G, Q, pG: A > 0 ? G / A : 0, pQ: A > 0 ? Q / A : 0 }; }).filter(y => y.A > 0);
+  };
+  P.ayarUyariHtml = (S, rapor) => (S && S.ayarUyari ? (rapor ? `<p><b>UYARI:</b> ${S.ayarUyari}</p>` : `<div class="msg">${S.ayarUyari}</div>`) : '');
   /* ---------- statik eleman listesi: metrajla aynı NET hacimler (STATIKMODEL › d.hacim, app/yapi-cakisma.js) ----------
      Hesap ağı eksen modelidir (perdeler eksenden eksene, köşelerde ve kolon izlerinde üst üste biner); yapı ağırlığı, yüzme tahkiki ve
      eleman listesi bu net hacimlerle verilir. netHacimBol: alt yapı üst kotunda (kot) ikiye böler — kolon kotun altındaki kısmıyla alt yapıya. */
@@ -129,6 +142,7 @@
   G.modelUygula = function (d) {
     const r = model0.apply(this, arguments);
     try { const s = Sx(); if (s && d && !d.hata) { s.yapi = P.yapiSecim(d); s.hacim = d.hacim || null; s.temel = d.temel || null; const ay = P.statikAyarUygula(s, d);
+      if (s.ayarUyari) { const m1 = $('#pMsg'); if (m1) m1.insertAdjacentHTML('afterbegin', P.ayarUyariHtml(s)); } s._ayarImza = JSON.stringify([s.zemin, s.dep]);
       if (ay.length) { const m0 = $('#pMsg'); if (m0) m0.insertAdjacentHTML('afterbegin', `<div class="msg info">Projeye kayıtlı ${ay.join(', ')} değerleri alındı (zemin φ ${f2(s.zemin.phi, 0)}°, ${esc(s.zemin.K)}, sürşarj ${f2(s.zemin.q, 1)} kN/m², emniyet ${f2(s.zemin.sig, 0)} kN/m²${s.geo ? ` · zemin kotu ${f2(s.geo.kZemin)}, YAS ${s.geo.kYAS != null ? f2(s.geo.kYAS) : 'yok'}` : ''}).</div>`); } if (typeof save === 'function') save(); G.buildForm();
       const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg info">Yapı türü: <b>${esc(P.YAPI_TURU_KISA[s.yapi.tur] || '—')}</b>${s.yapi.elle ? ' (projede elle seçilmiş)' : ' (program önerisi)'}${s.yapi.tur === 'altUst' ? ` · alt yapı üst kotu ${f2(s.yapi.altUstKot)}` : ''}. Formun başındaki <b>Yapı türü</b> bölümünden değiştirebilirsiniz.</div>`); } } catch (er) { console.error('yapı türü', er); }
     return r;
@@ -140,16 +154,20 @@
     RC = rc; let TH = null; try { TH = P.temelHesap ? P.temelHesap(s, rc) : null; } catch (er) { console.error('temel', er); TH = { temeller: [], uyar: ['Temel hesabı yapılamadı: ' + er.message], ok: false }; } P.temelSon = TH;
     $('#sonuc').innerHTML = `<h3>Sonuçlar — yalnız üst yapı (çerçeve + temel)</h3><div class="msg info">Yapı türü <b>yalnız üst yapı</b>: kolon, kiriş ve döşemeler çerçeve modeliyle, temel zemin gerilmesi ve zımbalama ile hesaplandı. Perde / radye 3B kabuk modeli çalıştırılmadı.</div>`;
     if (rc && typeof cerGoster === 'function') { try { cerGoster(); } catch (er) { console.error(er); } } else if (!rc) $('#sonuc').insertAdjacentHTML('beforeend', '<div class="msg">Modelde kolon / kiriş yok: çerçeve hesabı yapılmadı.</div>');
-    if (TH && P.temelOzet) $('#sonuc').insertAdjacentHTML('beforeend', P.temelOzet(TH));
+    if (TH && P.temelOzet) $('#sonuc').insertAdjacentHTML('beforeend', P.temelOzet(TH)); if (s.ayarUyari) $('#sonuc').insertAdjacentHTML('afterbegin', P.ayarUyariHtml(s));
     const pr = s.proj || {}; let h = `<h1>${esc(pr.ad || 'Yapı')} — Statik Hesap Raporu</h1><p style="text-align:center">${esc(pr.tesis || '')}${pr.idare ? ' · ' + esc(pr.idare) : ''}${pr.tarih ? ' · ' + esc(pr.tarih) : ''}</p>
       <h2>YAPI TÜRÜ VE ÇÖZÜM YOLU</h2><p>Yapı türü: <b>yalnız üst yapı</b> (${esc(P.YAPI_TURU.ust)}). Firma kuralı gereği kolon, kiriş ve döşemeler çerçeve modeliyle; temeller zemin emniyet gerilmesi (σ<sub>em</sub> = ${f2(s.zemin.sig, 0)} kN/m²) ve zımbalama ile hesaplanmıştır. Perde / radye 3B kabuk modeli kullanılmamıştır.</p>`;
-    if (TH && P.temelRapor) h += P.temelRapor(TH, f2);
+    h += P.ayarUyariHtml(s, true); if (TH && P.temelRapor) h += P.temelRapor(TH, f2);
     if (P.elemanListesiHtml) h += P.elemanListesiHtml(s, f2);
     $('#rapor').innerHTML = h; if (rc && P.cerceveRapor) $('#rapor').insertAdjacentHTML('beforeend', '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' + P.cerceveRapor(rc, f2));
     $('#raporKutu').style.display = 'block';
     ['#bCiz', '#bDxf', '#bYaz', '#bDon3'].forEach(q => { const b = $(q); if (b) b.disabled = !rc && q !== '#bYaz'; });
     try { if (G.DIL && G.DIL.kod && G.DIL.kod() !== 'tr' && G.DIL.cevirDom) G.DIL.cevirDom($('#rapor')); } catch (er) { console.warn(er); }
   };
+  /* kullanıcı pencerede zemin / deprem değerini değiştirince projeye yazılır (sonraki model tazelemesinde varsayılana dönmesin) */
+  const changed0 = G.changed;
+  if (typeof changed0 === 'function') G.changed = function () { const r = changed0.apply(this, arguments); try { const s = Sx(); if (s && s.yapi && s._ayarImza) { const im = JSON.stringify([s.zemin, s.dep]);
+    if (im !== s._ayarImza) { s._ayarImza = im; if (projeyeYaz({ zemin: Object.assign({}, s.zemin), dep: Object.assign({}, s.dep) })) { s.ayarUyari = null; const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', '<div class="msg info">Zemin / deprem değerleri projeye kaydedildi.</div>'); } } } } catch (er) { console.warn(er); } return r; };
   const hepsiK = G.hepsi;
   G.hepsi = function (o) {
     let s = Sx(); if (!s || !s.yapi || s.yapi.tur !== 'ust') return hepsiK.apply(this, arguments);

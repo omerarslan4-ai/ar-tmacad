@@ -28,13 +28,15 @@
     const g = S.geo, M = S.kabuk, z = S.zemin, IT0 = P.itki(S), IT = Object.assign({}, IT0, { dKw: isFinite(IT0.dKw) ? IT0.dKw : (isFinite(IT0.dK) ? IT0.dK : NaN) }), zTop = M.radye.kAlt + M.radye.t;
     const GM = { zTop, zr: M.radye.kAlt + M.radye.t / 2 }, YK = P.perdeYukleri(Object.assign({}, S, { geo: Object.assign({}, g, { kAlt: M.radye.kAlt }) }), GM, IT), fn = YK.fn;
     const nanUyar = new Set(), IC = icBolge(M), hw = Math.max(0, g.kSu - zTop), yas = YK.yas, gc = S.mal.gc || 25, dH = S.tas.dH != null ? +S.tas.dH : 0.3;
+    /* radye üstüne oturan ölü / hareketli yükler (taban betonu, kaide, sıkıştırılmış dolgu — P.radyeUstYuk): elemanın merkezi yük çokgeninin içindeyse */
+    const RY = P.radyeUstYuk ? P.radyeUstYuk(S) : [], ryP = (e, k) => { if (!RY.length) return 0; const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; let v = 0; for (const y of RY) if (pip(c, y.pts)) v += y[k]; return v; };
     const W = AG.W, disYon = new Map(); // eleman → dışa doğru birim normal (dış perde)
     for (const e of AG.els) if (e.tur === 'perde') { const w = W[e.wi]; if (w.tip !== 'dis') continue; const X = e.n.map(i => AG.nodes[i]), m = [(X[0][0] + X[1][0]) / 2, (X[0][1] + X[1][1]) / 2], n = e.F.e3, ic = pip([m[0] + n[0] * 0.3, m[1] + n[1] * 0.3], IC); disYon.set(e, ic ? [-n[0], -n[1], 0] : [n[0], n[1], 0]); }
     const radyeIc = e => { const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; return pip(c, IC); };
     const yatay = (e, f) => { const d = disYon.get(e); return d ? (p => { const v = f(p[2]); return v ? [d[0] * v, d[1] * v, 0] : null; }) : null; };
     const L = {
-      G: e => { const ek = e.tur === 'doseme' ? (S.kabuk.dosemeler[+e.grp.slice(1)].g || 0) : 0; const q = gc * e.t + ek; return () => [0, 0, -q]; },
-      Q: e => (e.tur === 'doseme' ? (() => { const q = S.kabuk.dosemeler[+e.grp.slice(1)].q || 0; return q ? () => [0, 0, -q] : null; })() : null),
+      G: e => { const ek = e.tur === 'doseme' ? (S.kabuk.dosemeler[+e.grp.slice(1)].g || 0) : e.tur === 'radye' ? ryP(e, 'pG') : 0; const q = gc * e.t + ek; return () => [0, 0, -q]; },
+      Q: e => (e.tur === 'doseme' ? (() => { const q = S.kabuk.dosemeler[+e.grp.slice(1)].q || 0; return q ? () => [0, 0, -q] : null; })() : e.tur === 'radye' ? (() => { const q = ryP(e, 'pQ'); return q ? () => [0, 0, -q] : null; })() : null),
       Hs: e => { if (e.tur === 'perde') return yatay(e, fn.Hs); if (e.tur === 'radye' && hw > 0 && radyeIc(e)) return () => [0, 0, -gw * hw]; return null; },
       Ht: e => { if (e.tur === 'perde') return yatay(e, fn.Ht); if (e.tur === 'radye' && !radyeIc(e) && g.kZemin > zTop) return () => [0, 0, -z.g * (g.kZemin - zTop)]; return null; },
       Qs: e => (e.tur === 'perde' ? yatay(e, fn.Qs) : null),
@@ -67,23 +69,26 @@
           return p => { const d = Math.max(0, g.kSu - p[2]); if (!d) return null; const v = gw * d * k; return [n[0] * v, n[1] * v, 0]; }; };
         DURUMAD['B' + j] = 'SU — ' + (sn.ad || 'senaryo ' + (j + 1)); });
     }
+    if ((M.kolonYuk || []).some(q => q.F && (q.F.TX || q.F.TY))) Object.assign(L, { TX: () => null, TY: () => null }); // yalnız düğüm yükü: −%5 dışmerkezlik farkı
     return { L: Object.assign(L, { EWX: DX.EW, ESX: DX.ES, EWY: DY.EW, ESY: DY.ES }), IT, YK, IC, hw, disYon, nanUyar };
   };
 
   /* ---------- kombinasyon varyantları ---------- */
   const kombler = (S) => {
-    const out = [];
+    const out = [], dm = !!(S.kabuk && (S.kabuk.kolonYuk || []).some(q => q.F && (q.F.TX || q.F.TY)));
     for (const k of S.komb) for (const tip of ['tsm', 'emn']) { const f = k[tip] || {}; const dep = ['EHt', 'EHs', 'EQs', 'E_YAS'].some(c => f[c]);
       const base = { G: f.G || 0, Q: f.Q || 0, Hs: f.Hs || 0, Ht: f.Ht || 0, Qs: f.Qs || 0, YAS: f.YAS || 0 };
       const SN = S.kabuk && Array.isArray(S.kabuk.senaryolar) && S.kabuk.senaryolar.length && Array.isArray(S.kabuk.bolmeler) && S.kabuk.bolmeler.length ? S.kabuk.senaryolar : null;
       if (SN && base.Hs) { // bölme senaryoları: hidrostatik yük Hs/Hd yerine her senaryonun kendi su durumu
         const hs = base.Hs, b0 = Object.assign({}, base, { Hs: 0 }), depV2 = dep ? [['X', 1], ['X', -1], ['Y', 1], ['Y', -1]] : [[null, 0]];
         SN.forEach((sn, j) => { for (const [yon, s] of depV2) { const c = Object.assign({}, b0, { ['B' + j]: hs }); if (yon) { c['EW' + yon] = s * (f.EHs || 0); c['ES' + yon] = s * Math.max(f.EHt || 0, f.EQs || 0, f.E_YAS || 0, 1); }
-          out.push({ ad: `${k.ad} [${sn.ad || 'S' + (j + 1)}]` + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : ''), komb: k.ad, tip, dep: !!yon, f: c }); } });
+          out.push({ ad: `${k.ad} [${sn.ad || 'S' + (j + 1)}]` + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : ''), komb: k.ad, tip, dep: !!yon, f: c }); if (yon && dm) out.push({ ad: `${k.ad} [${sn.ad || 'S' + (j + 1)}] ${s > 0 ? '+' : '−'}E${yon} (−%5)`, komb: k.ad, tip, dep: true, f: Object.assign({}, c, { ['T' + yon]: c['ES' + yon] }) }); } });
         continue; }
       const hdV = base.Hs ? [1, -1] : [0], depV = dep ? [['X', 1], ['X', -1], ['Y', 1], ['Y', -1]] : [[null, 0]];
       for (const hd of hdV) for (const [yon, s] of depV) { const c = Object.assign({}, base); if (hd) c.Hd = hd * base.Hs; if (yon) { c['EW' + yon] = s * (f.EHs || 0); c['ES' + yon] = s * Math.max(f.EHt || 0, f.EQs || 0, f.E_YAS || 0, 1); }
-        out.push({ ad: k.ad + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : '') + (hd ? (hd > 0 ? ' Hd+' : ' Hd−') : ''), komb: k.ad, tip, dep: !!yon, f: c }); } }
+        out.push({ ad: k.ad + (yon ? ` ${s > 0 ? '+' : '−'}E${yon}` : '') + (hd ? (hd > 0 ? ' Hd+' : ' Hd−') : ''), komb: k.ad, tip, dep: !!yon, f: c });
+        // üst yapı kolon tepkilerinde ek dışmerkezliğin öbür yönü (−%5): ESX + TX = −(EX−) tepkileri (statik-iki-asama.js)
+        if (yon && dm) out.push({ ad: k.ad + ` ${s > 0 ? '+' : '−'}E${yon} (−%5)` + (hd ? (hd > 0 ? ' Hd+' : ' Hd−') : ''), komb: k.ad, tip, dep: true, f: Object.assign({}, c, { ['T' + yon]: c['ES' + yon] }) }); } }
     return out;
   };
 
@@ -362,10 +367,10 @@
     RC = null; window._KR = r;
     if (IA) RC = IA.RC;
     else { P.kabukKolonYuk = (r.cubuk || []).filter(c => c.tur === 'kolon'); try { if (typeof cerVar === 'function' && cerVar() && P.cerceveHesap) RC = P.cerceveHesap(S); } catch (er) { console.error('çerçeve', er); } finally { P.kabukKolonYuk = null; } } // kolon / kiriş: ayrı çerçeve hesabı (döşeme yükü kirişlere aktarılır)
-    kabukGoster(r); if (IA && P.ikiAsamaOzet) $('#sonuc').insertAdjacentHTML('afterbegin', P.ikiAsamaOzet(IA));
+    kabukGoster(r); if (S.ayarUyari && P.ayarUyariHtml) $('#sonuc').insertAdjacentHTML('afterbegin', P.ayarUyariHtml(S)); if (IA && P.ikiAsamaOzet) $('#sonuc').insertAdjacentHTML('afterbegin', P.ikiAsamaOzet(IA));
     ['#bCiz', '#bDxf', '#bDon3'].forEach(s => { const b = $(s); if (b) b.disabled = true; }); const by = $('#bYaz'); if (by) by.disabled = false;
     try { R = P.kabukAdaptor ? P.kabukAdaptor(r, S) : null; if (R && typeof rapor === 'function') rapor();
-      $('#rapor').insertAdjacentHTML('beforeend', (IA && P.ikiAsamaRapor ? P.ikiAsamaRapor(IA, f2) : '') + (P.elemanListesiHtml ? P.elemanListesiHtml(S, f2) : '') + (IA && RC ? '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' : ''));
+      $('#rapor').insertAdjacentHTML('beforeend', (P.ayarUyariHtml ? P.ayarUyariHtml(S, true) : '') + (IA && P.ikiAsamaRapor ? P.ikiAsamaRapor(IA, f2) : '') + (P.elemanListesiHtml ? P.elemanListesiHtml(S, f2) : '') + (IA && RC ? '<h2 class="sayfa">ÜST YAPI — ÇERÇEVE HESABI</h2>' : ''));
       if (RC && P.cerceveRapor) { try { if (typeof cerGoster === 'function') cerGoster(); } catch (e2) { } $('#rapor').insertAdjacentHTML('beforeend', P.cerceveRapor(RC, f2)); $('#raporKutu').style.display = 'block'; } } catch (er) { console.error(er); $('#rapor').innerHTML = `<div class="msg">Rapor hatası: ${esc(er.message)}</div>`; $('#raporKutu').style.display = 'block'; }
   };
 
@@ -456,7 +461,7 @@
   }, 0);
 
   setTimeout(() => { try { if (kabukMu()) { if (!modelTazele()) { onizle(); const m = $('#pMsg'); if (m) m.insertAdjacentHTML('afterbegin', `<div class="msg eskiModel">Önizlemedeki yapı önceki oturumdan kalan modeldir. ArıtmaCAD'deki güncel çizimi almak için <b>Modelden al</b>'a basın.</div>`); } } } catch (er) { console.warn(er); } }, 300);
-  const DURUMAD = { G: 'G — zati yükler', Q: 'Q — hareketli', Hs: 'SU — hidrostatik (hazne dolu)', Hd: 'SU1 — iç perde tek taraf / seviye farkı', Ht: 'TPR — statik toprak itkisi', Qs: 'Sürşarj itkisi', YAS: 'YAS — yeraltı suyu', EWX: 'SU_EQ-X — Westergaard', EWY: 'SU_EQ-Y — Westergaard', ESX: 'TPR_EQ-X — toprak + atalet', ESY: 'TPR_EQ-Y — toprak + atalet' };
+  const DURUMAD = { G: 'G — zati yükler', Q: 'Q — hareketli', Hs: 'SU — hidrostatik (hazne dolu)', Hd: 'SU1 — iç perde tek taraf / seviye farkı', Ht: 'TPR — statik toprak itkisi', Qs: 'Sürşarj itkisi', YAS: 'YAS — yeraltı suyu', EWX: 'SU_EQ-X — Westergaard', EWY: 'SU_EQ-Y — Westergaard', ESX: 'TPR_EQ-X — toprak + atalet', ESY: 'TPR_EQ-Y — toprak + atalet', TX: 'Üst yapı E-X ek dışmerkezlik farkı (−%5)', TY: 'Üst yapı E-Y ek dışmerkezlik farkı (−%5)' };
   P.KABUK_DURUM = DURUMAD;
   function kabukGoster(r) {
     const durum = ok => `<span class="pill ${ok ? 'ok' : 'bad'}">${ok ? 'UYGUN' : 'YETERSİZ'}</span>`, cm = v => String(Math.round(v * 1000) / 10).replace('.', ',');

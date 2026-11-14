@@ -77,7 +77,8 @@
   const TUR_AD = { temel: 'Temel', kolon: 'Kolon', perde: 'Perde', doseme: 'Döşeme', kiris: 'Kiriş', duvar: 'Duvar', dolgu: 'Dolgu' };
   const turu = e => {
     if (!e) return null;
-    if (e.type === 'temel' || (e.type === 'plak' && e.kind === 'radye') || (e.type === 'perde' && e.temel)) return 'temel';
+    // temel perdesi ve temelle birlikte dökülen perde ayağı (kicker) temeldir — metrajdaki kural (insaat.js INSMETRAJ: e.temel || e.kicker → Temel)
+    if (e.type === 'temel' || (e.type === 'plak' && e.kind === 'radye') || (e.type === 'perde' && (e.temel || e.kicker))) return 'temel';
     if (e.type === 'kolon') return 'kolon';
     if (e.type === 'perde') return (e.malz || 'beton') === 'beton' ? 'perde' : 'duvar';
     if (e.type === 'plak') return 'doseme';

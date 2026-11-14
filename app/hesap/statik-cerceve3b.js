@@ -231,7 +231,13 @@
         c.tabanYuk = {}; for (const cas of ['G', 'Q', 'EX+', 'EX-', 'EY+', 'EY-']) { const f = elKuv(tab, cas), F = glob(f, 0), Mm = glob(f, 3); c.tabanYuk[cas] = [-F[0], -F[1], -F[2], -Mm[0], -Mm[1], -Mm[2]]; }
         const pi = nodes[tab.i], pj = nodes[tab.j]; c.tabanYuk.G[2] -= gc * tab.A * (pj.z - pi.z) / 2; c.tabanZ = pi.z; }
     }
-    return { yukTop, dugum: nodes.length, eleman: els.length, sb: N, kat, modlar, yon, ote, Wt, HN, Temp, TA, TB, SDS, SD1, R: dv.R, D: dv.D, I: dv.I, n: dv.n, kC, kB };
+    /* perde mesnetleri (kirişin perdeye saplanan, ankastre kabul edilen ucu): mesnede etkiyen kuvvet = −(kiriş uç kuvveti), global;
+       alt + üst yapıda bu tepkiler de alt yapıya aktarılır (statik-iki-asama.js › P.kolonTepki) */
+    const perdeTepki = new Map(), kolTab = new Set([...kolDug.values()].map(l => l[0]));
+    for (const e of els) { if (e.tip !== 'kiris') continue; const R0 = e.ku.R, glob = (f, o) => [0, 1, 2].map(k => R0[0][k] * f[o] + R0[1][k] * f[o + 1] + R0[2][k] * f[o + 2]);
+      for (const [n, o] of [[e.i, 0], [e.j, 6]]) { if (!nodes[n].fix || kolTab.has(n)) continue; const q = perdeTepki.get(n) || { x: nodes[n].x, y: nodes[n].y, z: nodes[n].z, F: {} }; perdeTepki.set(n, q);
+        for (const cas of ['G', 'Q', 'EX+', 'EX-', 'EY+', 'EY-']) { const f = elKuv(e, cas), F = glob(f, o), Mm = glob(f, o + 3), t = q.F[cas] || [0, 0, 0, 0, 0, 0]; q.F[cas] = [t[0] - F[0], t[1] - F[1], t[2] - F[2], t[3] - Mm[0], t[4] - Mm[1], t[5] - Mm[2]]; } } }
+    return { yukTop, perdeTepki: [...perdeTepki.values()], dugum: nodes.length, eleman: els.length, sb: N, kat, modlar, yon, ote, Wt, HN, Temp, TA, TB, SDS, SD1, R: dv.R, D: dv.D, I: dv.I, n: dv.n, kC, kB };
   };
   P.cerceve3BHook = ctx => { if (ctx.dv.analiz3B === false || !ctx.kolonlar.length || !ctx.zincirler.length) return null; const r = P.cerceve3B(ctx); if (ctx.deprem) ctx.deprem.cer3B = r; return r; };
 })();

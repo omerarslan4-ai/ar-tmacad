@@ -43,22 +43,50 @@ t('kolon ayağı tepkileri: ΣG / ΣQ = üst yapıya uygulanan yük; deprem ΣF 
 });
 t('kabuk yüklerine eşleme: G, Q aynen; ESX / ESY = −(EX+ / EY+) — kabuktaki atalet yönü', () => {
   const Y = IA.S.kabuk.kolonYuk; assert.strictEqual(Y.length, 10);
-  for (let i = 0; i < Y.length; i++) { assert.deepStrictEqual(Y[i].F.G, T[i].F.G); assert.deepStrictEqual(Y[i].F.ESX, T[i].F['EX+'].map(v => -v)); assert.deepStrictEqual(Y[i].F.ESY, T[i].F['EY+'].map(v => -v)); }
+  for (let i = 0; i < Y.length; i++) { assert.deepStrictEqual(Y[i].F.G, T[i].F.G); assert.deepStrictEqual(Y[i].F.ESX, T[i].F['EX+'].map(v => -v)); assert.deepStrictEqual(Y[i].F.ESY, T[i].F['EY+'].map(v => -v));
+    Y[i].F.ESX.forEach((v, k) => yak(v + Y[i].F.TX[k], -T[i].F['EX-'][k], 1e-9, '−%5: ESX + TX = −(EX−)')); Y[i].F.ESY.forEach((v, k) => yak(v + Y[i].F.TY[k], -T[i].F['EY-'][k], 1e-9)); }
 });
 
 const r = P.kabukHesap(IA.S), AG = r.AG;
 t('alt yapı kabuğu: tepkiler kolonun oturduğu perde üst düğümüne; düşey denge (radye yayları = kabuk öz ağırlığı + aktarılan G)', () => {
   assert.ok(r.bilgi.some(s => /10 kolon ayağı tepkisi/.test(s)));
+  assert.ok(r.U.TX && r.U.TY && r.KV.some(k => /\(−%5\)/.test(k.ad) && k.f.TX), '−%5 dışmerkezlik kombinasyonları (zarf)');
   assert.strictEqual(AG.dugumYuk.G.length, 10); for (const q of AG.dugumYuk.G) { const p = AG.nodes[q.n]; assert.ok(AG.els.some(e => e.tur === 'perde' && e.n.includes(q.n)), 'perde düğümü'); yak(p[2], -0.26 - 0.075, 1e-6, 'perde üstü = galeri döşemesi orta düzlemi'); }
   const kz = S.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
   const yay = c => { let s = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) s += -kz * trib[i] * r.U[c][i * 6 + 2]; return s; };
   const gc = S.mal.gc; let Wk = 0; for (const e of AG.els) Wk += gc * e.t * e.A + (e.tur === 'doseme' ? (IA.S.kabuk.dosemeler[+e.grp.slice(1)].g || 0) * e.A : 0); for (const b of AG.bars) Wk += gc * b.s.A * b.L;
-  const tG = -P.tepkiToplam(T, 'G')[2]; yak(yay('G'), Wk + tG, 1e-3 * (Wk + tG), 'G dengesi');
-  let Wq = 0; for (const e of AG.els) if (e.tur === 'doseme') Wq += (IA.S.kabuk.dosemeler[+e.grp.slice(1)].q || 0) * e.A; const tQ = -P.tepkiToplam(T, 'Q')[2]; yak(yay('Q'), Wq + tQ, 1e-3 * (Wq + tQ), 'Q dengesi');
+  // radye üstüne oturan ölü / hareketli yükler (taban betonu 49,71 m³, kaideler, dolgu 62,63 m³): P.radyeUstYuk — radye eleman merkezine göre dağıtılır
+  const RY = P.radyeUstYuk(IA.S); assert.ok(RY.some(y => /taban betonu/.test(y.ad)) && RY.some(y => y.tur === 'dolgu') && RY.length === 5);
+  let rG = 0, rQ = 0; for (const e of AG.els) if (e.tur === 'radye') { const X = e.n.map(i => AG.nodes[i]), c = [(X[0][0] + X[2][0]) / 2, (X[0][1] + X[2][1]) / 2]; for (const y of RY) { let ic = false; const q = y.pts; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > c[1]) !== (q[j][1] > c[1]) && c[0] < (q[j][0] - q[i][0]) * (c[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) ic = !ic; if (ic) { rG += y.pG * e.A; rQ += y.pQ * e.A; } } }
+  yak(rG, RY.reduce((s, y) => s + y.G, 0), 0.03 * rG, 'radye üstü yük ağda (ızgara yaklaşığı)');
+  const tG = -P.tepkiToplam(T, 'G')[2]; yak(yay('G'), Wk + rG + tG, 1e-3 * (Wk + rG + tG), 'G dengesi');
+  let Wq = 0; for (const e of AG.els) if (e.tur === 'doseme') Wq += (IA.S.kabuk.dosemeler[+e.grp.slice(1)].q || 0) * e.A; const tQ = -P.tepkiToplam(T, 'Q')[2]; yak(yay('Q'), Wq + rQ + tQ, 1e-3 * (Wq + rQ + tQ), 'Q dengesi');
   // tepkisiz çözümle fark = yalnız aktarılan yük (doğrusal)
   const S0 = Object.assign({}, IA.S, { kabuk: Object.assign({}, IA.S.kabuk, { kolonYuk: [] }) }), r0 = P.kabukHesap(S0);
   let fark = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) fark += -kz * trib[i] * (r.U.G[i * 6 + 2] - r0.U.G[i * 6 + 2]); yak(fark, tG, 1e-3 * tG, 'aktarılan G');
 });
+t('üst yapısında perde olan yapı: kotun üstüne çıkan perde kabukta kotta kesilir; perdeye mesnetli kiriş uçlarının tepkileri ve perdenin üst kısmının ağırlığı alt yapıya aktarılır (denge)', () => {
+  // 8 × 5 m gömülü hazne (perde üstü +4,40), B perdesi (y = 0) +7,40'a çıkar; arkada iki kolon (+7,40), kirişler ve döşeme +7,40'ta
+  const S1 = P.ornekSaray(), kAlt = 0, hr = 0.4, gc = S1.mal.gc;
+  const duvar = (ad, a, b, zt) => ({ id: ad, ad, pts: [a, b], kapali: false, t: 0.3, zt, tip: 'dis' });
+  S1.kabuk = { walls: [duvar('P1', [0, 0], [8, 0], 7.4), duvar('P2', [8, 0], [8, 5], 4.4), duvar('P3', [8, 5], [0, 5], 4.4), duvar('P4', [0, 5], [0, 0], 4.4)], radye: { id: 9, pts: [[-0.5, -0.5], [8.5, -0.5], [8.5, 5.5], [-0.5, 5.5]], t: hr, kAlt }, dosemeler: [],
+    kolonlar: [{ id: 21, no: 'S1', x: 0, y: 5, bx: 0.4, by: 0.4, z0: 0.4, zt: 7.4 }, { id: 22, no: 'S2', x: 8, y: 5, bx: 0.4, by: 0.4, z0: 0.4, zt: 7.4 }], kirisler: [] };
+  S1.cer = { kolonlar: S1.kabuk.kolonlar.map(c => Object.assign({}, c)), kirisler: [{ id: 31, no: 'K1', a: [0, 0], b: [0, 5], bw: 0.3, hb: 0.5, zt: 7.4 }, { id: 32, no: 'K2', a: [8, 0], b: [8, 5], bw: 0.3, hb: 0.5, zt: 7.4 }, { id: 33, no: 'K3', a: [0, 5], b: [8, 5], bw: 0.3, hb: 0.5, zt: 7.4 }],
+    dosemeler: [{ id: 41, no: 'D1', pts: [[0, 0], [8, 0], [8, 5], [0, 5]], t: 0.15, zt: 7.4 }], perdeler: [{ a: [0, 0], b: [8, 0], t: 0.3, z0: 0.4, zt: 7.4 }, { a: [8, 0], b: [8, 5], t: 0.3, z0: 0.4, zt: 4.4 }, { a: [8, 5], b: [0, 5], t: 0.3, z0: 0.4, zt: 4.4 }, { a: [0, 5], b: [0, 0], t: 0.3, z0: 0.4, zt: 4.4 }], ayar: P.cerceveVars() };
+  S1.geo = Object.assign(S1.geo, { kAlt, kUst: 4.4, kZemin: 4.5, kSu: 0.4, kYAS: null, hr }); S1.mod = 'kabuk'; S1.suYapisi = false; S1.dep.SDS = 0.4; S1.tas.kmesh = 0.5; S1.yapi = { tur: 'altUst', altUstKot: 4.4 };
+  const I = P.ikiAsamaHazirla(S1), D3 = I.RC.deprem.cer3B;
+  assert.ok(I.S.kabuk.walls.every(w => w.zt === 4.4) && I.S.kabuk.walls[0].ztUst === 7.4, 'perde kabukta kotta kesilir');
+  assert.ok(I.cer.perdeler.length === 1 && I.cer.perdeler[0].z0 === 4.4, 'çerçevede yalnız perdenin üst kısmı');
+  const pm = I.T.filter(q => q.perde); assert.ok(pm.length >= 2, 'perdeye mesnetli kiriş uçları: ' + pm.length);
+  const tG = -P.tepkiToplam(I.T, 'G')[2]; yak(tG, -D3.yukTop.G, 1e-3 * tG, 'kolon + perde mesnet tepkileri = üst yapı G');
+  const tX = P.tepkiToplam(I.T, 'EX+'); yak(tX[0], D3.yon.X.Vt, 1e-3 * D3.yon.X.Vt, 'deprem tepkileri toplamı = taban kesmesi');
+  const Wust = gc * 0.3 * 8 * 3; yak(-I.UP.reduce((s, q) => s + q.F.G[2], 0), Wust, 1e-6, 'perde üst kısmı ağırlığı');
+  const r = P.kabukHesap(I.S), AG = r.AG, kz = S1.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
+  let yay = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) yay += -kz * trib[i] * r.U.G[i * 6 + 2];
+  let Wk = 0; for (const e of AG.els) Wk += gc * e.t * e.A; for (const b of AG.bars) Wk += gc * b.s.A * b.L;
+  yak(yay, Wk + tG + Wust, 1e-3 * (Wk + tG + Wust), 'alt yapı G dengesi');
+});
+
 t('rapor bölümü: çözüm yolu, aktarılan tepkiler tablosu (10 kolon + toplam) ve denge satırı', () => {
   const h = P.ikiAsamaRapor(IA); assert.ok(/İKİ AŞAMALI ÇÖZÜM/.test(h) && /Üst yapıdan alt yapıya aktarılan kolon ayağı tepkileri/.test(h) && /Denge:/.test(h));
   assert.strictEqual((h.match(/<tr><td class="l">/g) || []).length, 10);

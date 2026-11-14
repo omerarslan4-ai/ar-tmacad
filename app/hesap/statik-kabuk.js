@@ -289,10 +289,10 @@
     const dugumYuk = {}, yukUyar = [];
     for (const q of (M.kolonYuk || [])) { const K = KOL.find(k => q.id != null && k.c.id === q.id); let n = null;
       if (K && K.g) n = nod(K.g.r[0], K.g.r[1], K.g.w.ztm); else if (K && K.bagU != null) n = K.bagU;
-      else { let bd = Infinity; for (const w of W) for (const p0 of w.S) { const d = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (d < bd) { bd = d; n = nod(p0[0], p0[1], w.ztm); } } if (n != null) yukUyar.push(`${q.no || 'Kolon'} (${q.x}; ${q.y}) tepkisi en yakın perde üst düğümüne uygulandı.`); }
+      else { let bd = Infinity; for (const w of W) for (const p0 of w.S) { const d = Math.hypot(p0[0] - q.x, p0[1] - q.y); if (d < bd) { bd = d; n = nod(p0[0], p0[1], w.ztm); } } if (n != null && q.id != null) yukUyar.push(`${q.no || 'Kolon'} (${q.x}; ${q.y}) tepkisi en yakın perde üst düğümüne uygulandı.`); } // kimliksiz (perde mesnedi, perdenin kotun üstündeki kısmı): perde üst düğümüne
       if (n == null) continue; const p0 = nodes[n], r = [(+q.x) - p0[0], (+q.y) - p0[1], (q.z != null ? +q.z : p0[2]) - p0[2]];
       for (const [c, F] of Object.entries(q.F || {})) { if (!F) continue; const m = cross(r, [F[0], F[1], F[2]]); (dugumYuk[c] = dugumYuk[c] || []).push({ n, f: [F[0], F[1], F[2], F[3] + m[0], F[4] + m[1], F[5] + m[2]], ad: q.no }); } }
-    if ((M.kolonYuk || []).length) uyarC.push(`Üst yapıdan ${(M.kolonYuk || []).length} kolon ayağı tepkisi alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar);
+    if ((M.kolonYuk || []).length) { const nk = (M.kolonYuk || []).filter(q => q.id != null).length, np = (M.kolonYuk || []).length - nk; uyarC.push(`Üst yapıdan ${nk} kolon ayağı tepkisi${np ? ` ve ${np} perde yükü (kotun üstündeki perde kısmı / perdeye mesnetli kiriş uçları)` : ''} alt yapı kabuğuna yük olarak uygulandı (G, Q, deprem).`, ...yukUyar); }
     for (const e of els) e.F = cerceve(e.n.map(i => nodes[i]));
     return { nodes, els, ties, W, RG, DG, Z, zr, h, mes, bars, uyarC, dugumYuk };
   };
