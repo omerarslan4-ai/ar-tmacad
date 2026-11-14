@@ -161,6 +161,7 @@
 
 ## Mekanik tesisat (bina)
 - Sıhhi tesisatta içme suyu ve sıcak su boruları duvar içinden geçer, mahal ortasından değil.
+- Mekanik paftalama da Mimari gibi otomatiktir ve kendi "Mekanik" sekmesinden yapılır (14.11.2026): ölçek bina ebatına göre (1/50 → 1/25 / 1/100), en az kâğıt, kendi model bölgesi, antette bütün ölçekler, pafta listesi, ayrı DXF kaydı; Mimari paftalamanın kuralları (ölçü sıraları 25 cm, çakışmasız yazılar, oklu açıklamalar) burada da geçerli.
 - Mekanik tesisat raporu kullanıcının örnek rapor biçimini izler (Yayladağ AAT idari bina mekanik tesisat hesapları raporu ve AAT-B101 sıhhi tesisat paftası).
 - Çatı yağmur oluğu ve yağmur iniş boruları sıhhi tesisat raporunda hesaplanır (çatı alanı, yağış şiddeti, boru ve oluk çapı, adet); hesaplanan adet kadar iniş borusu çizime (model, plan, kesit, görünüş, çatı planı) eklenir. Oluk ve iniş borusu detayları Çokal binalarındaki gibi (14.11.2026).
 - İndirilen ağır 3B armatür modelleri programı yavaşlatıyor; hafif, yerleşik 3B armatür çizimleri kullanılır.
