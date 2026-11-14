@@ -58,5 +58,5 @@
     }
     if (n) C.changed();
   });
-  if (C.PROPFIELDS) C.PROPFIELDS.su = [['tur', 'Tür (atiksu / temiz / aritilmis / havalandirma / camur / yagmur)', 's'], ['zs', 'Su kotu (m)'], ['zb', 'Taban kotu (m)']];
+  (C.PROPFIELDS = C.PROPFIELDS || {}).su = /* ui.js özellik tablosunu kurarken bu kaydı korur */ [['tur', 'Tür (atiksu / temiz / aritilmis / havalandirma / camur / yagmur)', 's'], ['zs', 'Su kotu (m)'], ['zb', 'Taban kotu (m)']];
 })(window.C);

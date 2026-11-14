@@ -499,7 +499,7 @@
     box: [['sx', 'En'], ['sy', 'Boy'], ['sz', 'Yükseklik'], ['rot', 'Dönüş (°)']], cyl: [['r', 'Yarıçap'], ['h', 'Yükseklik']],
     sheet: [['size', 'Kağıt (A0-A4)', 's'], ['orient', 'Yön L/P', 's'], ['scale', 'Ölçek 1:'], ['f.proje', 'Proje', 's'], ['f.baslik', 'Pafta adı', 's'], ['f.cizen', 'Çizen', 's'], ['f.kontrol', 'Kontrol', 's'], ['f.onay', 'Onay', 's'], ['f.tarih', 'Tarih', 's'], ['f.no', 'Pafta no', 's'], ['f.rev', 'Revizyon', 's'], ['f.firma', 'Firma', 's']],
   };
-  C.PROPFIELDS = FIELDS;
+  C.PROPFIELDS = Object.assign(FIELDS, C.PROPFIELDS || {}); /* ui.js'ten önce yüklenen modüllerin (yağmur, merdiven, korkuluk, su) kayıtları korunur */
   const getK = (e, k) => k.split('.').reduce((o, p) => (o || {})[p], e);
   const setK = (e, k, v) => { const ps = k.split('.'); let o = e; for (let i = 0; i < ps.length - 1; i++) o = o[ps[i]] = o[ps[i]] || {}; o[ps[ps.length - 1]] = v; };
   function renderLayoutProps(b) {

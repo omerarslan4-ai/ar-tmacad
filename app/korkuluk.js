@@ -79,5 +79,5 @@
     C.changed(); C.sel = made.slice(); C.emit('selection');
     C.log(`${made.length} korkuluk oluşturuldu${joined ? ` · ${joined} uç merdiven korkuluğuna bağlandı (küpeşteler birleşti)` : ''}. ${made.length ? T.korkuluk.info(made[0]) : ''}`);
   });
-  if (C.PROPFIELDS) C.PROPFIELDS.korkuluk = [['km', 'Malzeme (galvaniz / paslanmaz / paslanmaz316 / ctp_sari / ctp_gri / ctp_yesil / boyali / boyali_sari / aluminyum / ahsap)', 's'], ['kh', 'Yükseklik (cm)'], ['dik', 'Dikme aralığı (cm)'], ['tk', 'Tekmelik (E / H)', 's']];
+  (C.PROPFIELDS = C.PROPFIELDS || {}).korkuluk = /* ui.js özellik tablosunu kurarken bu kaydı korur */ [['km', 'Malzeme (galvaniz / paslanmaz / paslanmaz316 / ctp_sari / ctp_gri / ctp_yesil / boyali / boyali_sari / aluminyum / ahsap)', 's'], ['kh', 'Yükseklik (cm)'], ['dik', 'Dikme aralığı (cm)'], ['tk', 'Tekmelik (E / H)', 's']];
 })(window.C);

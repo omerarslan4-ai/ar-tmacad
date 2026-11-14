@@ -22,4 +22,13 @@ t('oluk kesiti: DN155 yarım daire (r 7,75 cm), ağız oluk kotunda, taban 7,75 
   const K = Y.olukKesit(155); assert.ok(yakin(K[0][0], -0.0775) && yakin(K[0][1], 0)); assert.ok(yakin(K[K.length - 1][0], 0.0775, 1e-9));
   assert.ok(yakin(Math.min(...K.map(q => q[1])), -0.0775, 1e-9));
 });
+t('çatı önbellek imzası: yağmur ayarı, kolon yeri, düşey eleman zarfı ya da tretuvar kotu değişince değişir (oluk / boru / metraj yenilenir)', () => {
+  // Konya terfi: yağış 300 l/s·ha, C 1, oluk DN155, iniş DN120, eğim %0,3, aralık sınırsız; zarf 0..8,4 × 0..6,9; tretuvar üstü −0,10
+  const a = { yagis: 300, C: 1, olukDN: 155, borDN: 120, egim: 0.3, maksAralik: 0, kolonlar: [[0, 0], [8.4, 6.9]] }, z = [0, 0, 8.4, 6.9], i0 = Y.imza(a, z, -0.1);
+  assert.strictEqual(Y.imza(Object.assign({}, a), z.slice(), -0.1), i0, 'aynı girdi → aynı imza');
+  for (const [k, v] of [['yagis', 400], ['C', 0.9], ['olukDN', 180], ['borDN', 100], ['egim', 0.5], ['maksAralik', 12]]) assert.notStrictEqual(Y.imza(Object.assign({}, a, { [k]: v }), z, -0.1), i0, k);
+  assert.notStrictEqual(Y.imza(Object.assign({}, a, { kolonlar: [[0, 0], [8.4, 7.2]] }), z, -0.1), i0, 'kolon taşındı');
+  assert.notStrictEqual(Y.imza(a, [0, 0, 8.4, 7.2], -0.1), i0, 'perde zarfı'); assert.notStrictEqual(Y.imza(a, z, 0.05), i0, 'tretuvar');
+  assert.strictEqual(Y.imza(a, [0, 0, 8.4, 6.9000001], -0.1), i0, 'mm altı fark imzayı değiştirmez');
+});
 console.log(`\n${n} test geçti.`);

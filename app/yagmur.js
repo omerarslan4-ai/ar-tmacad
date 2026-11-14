@@ -22,8 +22,11 @@
   };
   /* yarım daire oluk kesiti (yerel: n dışa, z yukarı; merkez oluk ağzının ortası): r = DN / 2, dış dudakta kıvrık kenar (Çokal DETAY-A) */
   const olukKesit = (dn, n = 8) => { const r = dn / 2000, o = []; for (let i = 0; i <= n; i++) { const t = Math.PI * i / n; o.push([-r * Math.cos(t), -r * Math.sin(t)]); } return o; };
-  /* bir kenardaki boruların sırası: kenar başından s (m) */
-  const api = { inisYolu, olukKesit };
+  /* çatı önbellek imzası: oluk / boru hesabını değiştiren dış girdiler (sıhhi tesisat yağmur ayarları: yağış, C, oluk DN, iniş DN, oluk eğimi,
+     en büyük aralık; kolon yerleri; düşey elemanların dış zarfı; tretuvar üstü kotu). Biri değişince çatının oluk / boru / metrajı yeniden kurulur. */
+  const imza = (ayar, zarf, zemin) => { const a = ayar || {}, r = v => v == null || !isFinite(+v) ? null : Math.round(+v * 1000) / 1000;
+    return JSON.stringify([r(a.yagis), r(a.C), r(a.olukDN), r(a.borDN), r(a.egim), r(a.maksAralik), (a.kolonlar || []).map(p => [r(p[0]), r(p[1])]), zarf ? zarf.map(r) : null, r(zemin)]); };
+  const api = { inisYolu, olukKesit, imza };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.yagmurApi = api;
@@ -36,6 +39,9 @@
   /* zemin: binayı çeviren tretuvarın üstü (bina tarafı), yoksa çatı döşemesinin altındaki en düşük döşeme üstü, yoksa 0 */
   const zemin = () => { const t = C.doc.ents.filter(e => e.type === 'tretuvar' && !e.gv); if (t.length) return Math.max(...t.map(e => (+e.zg || 0) + (+e.h || 0.15))); return 0; };
   const hesapAyar = e => Object.assign({}, (C.MT && C.MT.yagmurAyar ? (() => { try { return C.MT.yagmurAyar() || {}; } catch (er) { return {}; } })() : {}), e.yagmur || {});
+  const zarf = () => { const D = C.doc.ents.filter(x => !x.gv && /^(perde|kolon|duvar|wall)$/.test(x.type) && C.layer(x.layer).on); const b = D.length ? C.extents(D) : null; return b && isFinite(b[0]) ? [b[0], b[1], b[2], b[3]] : null; };
+  /* cati.js önbellek anahtarına girer; değişince çatıların çizimi silinir (cati.js 'change') */
+  C.yagmurImza = () => { if (!C.doc) return ''; let a = {}; try { a = C.MT && C.MT.yagmurAyar ? C.MT.yagmurAyar() || {} : {}; } catch (er) { a = {}; } return imza(a, zarf(), zemin()); };
   /* çatının oluk ve boruları (çizim, 3B ve metraj için tek kaynak) */
   C.yagmurCati = e => {
     const G = C.catiGeom(e), foot = G.foot.map(p => [p[0], p[1]]), ccw = alan(foot) < 0 ? foot.slice().reverse() : foot;
@@ -44,8 +50,8 @@
     const oluk = offsetPoly(ccw, ro), zE = G.lines.eave.length ? Math.min(...G.lines.eave.flat().map(p => p[2])) : G.Z0, zAlt = zemin();
     /* boru duvar boyunca iner: çatının oturduğu döşeme saçaklıysa (Konya: döşeme 50 cm konsol) duvar yüzü döşeme kenarı değil, düşey elemanların dış yüzüdür */
     let wall = alan(G.wall) < 0 ? G.wall.slice().reverse() : G.wall.slice();
-    { const D = C.doc.ents.filter(x => !x.gv && /^(perde|kolon|duvar|wall)$/.test(x.type) && C.layer(x.layer).on); const b = D.length ? C.extents(D) : null;
-      if (b && isFinite(b[0])) { const R = [[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]]; if (R.every(q => C.pointInPoly ? C.pointInPoly(q, ccw) || yakin(q, ccw).d < 0.02 : true)) wall = R; } }
+    { const b = zarf();
+      if (b) { const R = [[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]]; if (R.every(q => C.pointInPoly ? C.pointInPoly(q, ccw) || yakin(q, ccw).d < 0.02 : true)) wall = R; } }
     let P = H && H.borular && H.borular.length ? H.borular.map(b => ({ no: b.no, p: b.p, kenar: b.kenarIndex })) : null;
     if (!P) { P = []; for (let i = 0; i < ccw.length; i++) { const a = ccw[(i - 1 + ccw.length) % ccw.length], b = ccw[i], c = ccw[(i + 1) % ccw.length]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) > 1e-9) P.push({ no: 'YB' + (P.length + 1), p: b, kenar: i }); } }
     const borular = P.map(b => { const g = yakin(b.p, oluk).p, wq = yakin(g, wall), dw = Math.hypot(g[0] - wq.p[0], g[1] - wq.p[1]) || 1, w = [wq.p[0] + (g[0] - wq.p[0]) / dw * (0.04 + rb), wq.p[1] + (g[1] - wq.p[1]) / dw * (0.04 + rb)];
@@ -90,7 +96,7 @@
     xf: (e, X) => { if (e.kind === 'boru') e.p = X.p([e.p[0], e.p[1], 0]).slice(0, 2); else e.pts = e.pts.map(p => X.p([p[0], p[1], 0]).slice(0, 2)); delete e._c; },
     info: e => e.kind === 'boru' ? `Yağmur iniş borusu DN${+e.dn || 120} (çinko), ${M.fmt((+e.z1 || 0) - (+e.z0 || 0), 2)} m` : `Yağmur oluğu DN${+e.dn || 155} (çinko, yarım daire), ${M.fmt(e.pts.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - e.pts[i][0], p[1] - e.pts[i][1]), 0), 2)} m`,
   };
-  if (C.PROPFIELDS) C.PROPFIELDS.yagmur = [['dn', 'DN (mm)', 'n'], ['z', 'Oluk kotu (m)', 'n'], ['z0', 'Boru alt kotu (m)', 'n'], ['z1', 'Boru üst kotu (m)', 'n']];
+  (C.PROPFIELDS = C.PROPFIELDS || {}).yagmur = /* ui.js özellik tablosunu kurarken bu kaydı korur */ [['dn', 'DN (mm)', 'n'], ['z', 'Oluk kotu (m)', 'n'], ['z0', 'Boru alt kotu (m)', 'n'], ['z1', 'Boru üst kotu (m)', 'n']];
   /* metraj: çatı metrajına elle çizilenler de katılır */
   { const m0 = C.catiMetraj; C.catiMetraj = () => { const R = m0 ? m0() : [], m = new Map();
       for (const e of C.doc.ents) { if (e.type !== 'yagmur' || e.gv || !C.lyLive(e.layer)) continue; const dn = +e.dn || (e.kind === 'boru' ? 120 : 155);
