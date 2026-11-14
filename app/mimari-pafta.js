@@ -309,7 +309,7 @@
   const ogeTopla = (gv, tasinir) => { const k = C.annoH(1), og = [], ref = new Map(), r3 = v => (+v).toFixed(3);
     for (const e of C.doc.ents) { if (e.gv !== gv) continue;
       if (e.type === 'dim' && e.a && e.b && e.p && (e.k === 'h' || e.k === 'v')) { const h = e.k === 'h', ad = 'ölçü#' + e.id, g = tasinir ? (h ? 'h:' + r3(e.p[1]) : 'v:' + r3(e.p[0])) : null;
-        og.push(Object.assign({ ad, k: 'olcu', a: h ? [e.a[0] / k, e.p[1] / k] : [e.p[0] / k, e.a[1] / k], b: h ? [e.b[0] / k, e.p[1] / k] : [e.p[0] / k, e.b[1] / k], p: [e.p[0] / k, e.p[1] / k], yazi: 2, metin: String(Math.round(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) * 100)) }, g ? { grup: g, eksen: h ? 'y' : 'x', sinir: 10 } : {})); ref.set(ad, e); }
+        og.push(Object.assign({ ad, k: 'olcu', a: h ? [e.a[0] / k, e.p[1] / k] : [e.p[0] / k, e.a[1] / k], b: h ? [e.b[0] / k, e.p[1] / k] : [e.p[0] / k, e.b[1] / k], p: [e.p[0] / k, e.p[1] / k], yazi: 2, metin: String(Math.round(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) * 100)) }, g ? { grup: g, eksen: h ? 'y' : 'x', sinir: 16 } : {})); ref.set(ad, e); }
       else if (e.type === 'acilim' && C.acilimYaziKutulari) { const ad = 'acilim#' + e.id; for (const b of C.acilimYaziKutulari(e)) og.push(Object.assign({ ad, k: 'kutu', bb: b.map(v => v / k) }, tasinir && e.p ? { grup: ad, eksen: (e.tur || '') === 'duvar' ? 'y' : 'x', sinir: 10 } : {})); ref.set(ad, e); } // açılım kodu yazısı (acilimKaydir gibi: duvar kodu düşeyde, döşeme kodu yatayda)
       else if (e.type === 'kot' || e.type === 'text' || (e.type === 'circle' && /DOGRAMA_NO$/.test(e.layer || ''))) { let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (!(b && isFinite(b[0]))) continue;
         const ad = e.type + '#' + e.id, no = /DOGRAMA_NO$/.test(e.layer || ''), c = no ? (e.type === 'circle' ? e.c : e.p) : null, g = !tasinir ? null : e.type === 'kot' ? ad : no && c ? 'no:' + r3(c[0]) + ',' + r3(c[1]) : null;
@@ -319,7 +319,7 @@
     for (const gv of gvs.filter(Boolean)) for (const [x, y] of A.olcuCakisma(ogeTopla(gv).og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01 })) /* sıralar arası modelde 25 cm */ out.push({ gv, x, y }); // ölçü, yazı, kot, açılım kodu, oklu açıklama yazısı ve doğrama numarası (denetim 14.11.2026)
     return out; };
   /* çakışma giderme (mimari-oto.js cakismaCoz): ölçü sırası, kot ve doğrama numarası birkaç mm kaydırılır; ölçülen noktalar yerinde kalır */
-  const cakismaGider = gv => { const A = C.mimariOtoApi; if (!A || !A.cakismaCoz || !gv) return 0; const T = ogeTopla(gv, true), R = A.cakismaCoz(T.og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01, enCok: 12 }), k = T.k; let n = 0;
+  const cakismaGider = gv => { const A = C.mimariOtoApi; if (!A || !A.cakismaCoz || !gv) return 0; const T = ogeTopla(gv, true), R = A.cakismaCoz(T.og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01, enCok: 16 }), k = T.k; let n = 0;
     for (const [g, d] of Object.entries(R.tasi)) { const dx = d[0] * k, dy = d[1] * k; if (!dx && !dy) continue; n++;
       for (const q of T.og) { if (q.grup !== g) continue; const e = T.ref.get(q.ad); if (!e || e._kayd === g) continue; e._kayd = g;
         if (e.type === 'dim') e.p = [e.p[0] + dx, e.p[1] + dy, e.p[2] || 0]; else if (e.type === 'circle') e.c = [e.c[0] + dx, e.c[1] + dy, e.c[2] || 0]; else e.p = [e.p[0] + dx, e.p[1] + dy, e.p[2] || 0]; delete e._c; } }

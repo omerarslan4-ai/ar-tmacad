@@ -288,6 +288,8 @@
     ['Pafta listesi indirildi (# pafta, Excel\'de açılır).', 'Sheet list downloaded (# sheets, opens in Excel).'],
     ['Pafta listesi: bir pafta grubundaki (varsayılan Mimari) paftalar — SIRA NO, PAFTA NO, PAFTA ADI, ÖLÇEK; paftalardan canlı tablo, modelde ya da paftada tıklanan yere. PAFTALISTESI [Y = yerleştir | C = Excel (CSV) indir] [grup]', 'Sheet list: sheets of a sheet group (default Architecture) — NO., SHEET NO., SHEET TITLE, SCALE; live table from the sheets, placed where you click in the model or on a sheet. PAFTALISTESI [Y = place | C = download Excel (CSV)] [group]'],
     ['GÖRÜNÜŞLER', 'ELEVATIONS'], ['KAT PLANLARI', 'FLOOR PLANS'],
+    ['Çatı', 'Roof'], ['ÇATI', 'ROOF'], /* seviye adı (seviye çizgisi, plan) — 14.11.2026 */
+    ['#×# yatay', '#×# landscape'], ['#×# dikey', '#×# portrait'], ['A# yatay', 'A# landscape'], ['A# dikey', 'A# portrait'], /* antet kâğıt alanı — 14.11.2026 */
     ['# Korkuluk h=# cm', '# Railing h=# cm'], ['Korkuluk h=# cm', 'Railing h=# cm'], ['(Sıcak Daldırma Galvaniz)', '(Hot-Dip Galvanized)'],
     ['Mertek #x#', 'Rafter #x#'], ['Aşık #x#', 'Purlin #x#'], ['Mahya Aşığı #x#', 'Ridge purlin #x#'], ['D. Aşığı #x#', 'Wall plate #x#'], ['Saçak Aşığı #x#', 'Eaves purlin #x#'], ['Dikme #x#', 'Post #x#'], ['Dikme', 'Post'],
     ['Kuşaklama', 'Horizontal bracing'], ['Göğüsleme', 'Diagonal brace'], ['Yastık #x#', 'Sole plate #x#'], ['Kırma Mertek #x#', 'Hip rafter #x#'], ['Dere Mertek #x#', 'Valley rafter #x#'], ['Kaplama Tahtası', 'Roof boarding'],

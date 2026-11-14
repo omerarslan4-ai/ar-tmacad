@@ -45,7 +45,7 @@
     return f;
   };
   const kutu = items => { const b = [Infinity, Infinity, -Infinity, -Infinity], e = q => { if (!q) return; b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[1]); b[2] = Math.max(b[2], q[0]); b[3] = Math.max(b[3], q[1]); };
-    for (const it of items) { if (it.k === 'L' || it.k === 'D') { e(it.a); e(it.b); } else if (it.k === 'P' || it.k === 'H') it.pts.forEach(e); else if (it.k === 'C' || it.k === 'A') { e([it.c[0] - it.r, it.c[1] - it.r]); e([it.c[0] + it.r, it.c[1] + it.r]); } else if (it.p) e(it.p); }
+    for (const it of items) { if (it.k === 'L' || it.k === 'D') { e(it.a); e(it.b); } else if (it.k === 'P' || it.k === 'H') it.pts.forEach(e); else if (it.k === 'C' || it.k === 'A') { e([it.c[0] - it.r, it.c[1] - it.r]); e([it.c[0] + it.r, it.c[1] + it.r]); } else if (it.p) { e(it.p); if (it.gx != null) e([it.gx, it.p[1]]); } } /* gx: sağa yaslı yazının sol ucu (kutuya ve pafta penceresine girsin) */
     return b; };
 
   /* ---------- 1) KAPI / PENCERE ---------- */
@@ -202,7 +202,7 @@
     // ---- 1-1 KESİTİ (yatay; dış altta, iç üstte) ----
     const lwMax = kapi ? (W - 2 * f) / Math.max(1, t.kanat || 1) : 0, py = -(dA + 25) * k - td - (kapi ? lwMax + 0.05 : 0), pi = py + td, uz = 0.3; // kapıda açık kanat ve yay görünüşün altında kalır
     D.o.push(...kaydir(dograma11(t, { sc }).items, 0, py));
-    D.D([0, py], [W, py], 'h', -8); D.T([-uz - 0.05, py + td / 2], 'DIŞ', 2, 'R'); D.T([-uz - 0.05, pi + 0.03], 'İÇ', 2, 'R'); // solda: sağdaki 2-2 KESİTİ başlığına yaklaşmasın (denetim 14.11.2026)
+    D.D([0, py], [W, py], 'h', -8); D.T([-uz - 0.05, py + td / 2], 'DIŞ', 2, 'R'); D.o[D.o.length - 1].gx = -uz - 0.05 - 12 * k; D.T([-uz - 0.05, pi + 0.03], 'İÇ', 2, 'R'); D.o[D.o.length - 1].gx = -uz - 0.05 - 12 * k; /* İngilizcede OUTSIDE / INSIDE: 7 harf × 2 mm × 0,75 ≈ 11 mm */ // solda: sağdaki 2-2 KESİTİ başlığına yaklaşmasın (denetim 14.11.2026)
     D.ALT([W / 2, py - 18 * k], '1-1 KESİTİ');
     parca.kesit11 = [-uz, py, W + uz, kapi ? pi + lwMax : pi];
     // ---- başlık ve adet ----
@@ -311,7 +311,12 @@
   C.mimariDetayCerceve = (gv, sc, payMm) => {
     const ents = C.doc.ents.filter(e => e.gv === gv); ents.forEach(e => { delete e._c; });
     const bb = C.withAnno ? C.withAnno(sc, () => C.extents(ents)) : C.extents(ents); ents.forEach(e => { delete e._c; }); if (!bb) return null;
-    const k = sc / 1000, p = (payMm == null ? 6 : payMm) * k, b = [bb[0] - p, bb[1] - p, bb[2] + p, bb[3] + p];
+    const k = sc / 1000, p = (payMm == null ? 6 : payMm) * k;
+    /* sağa yaslı kısa yazılar (1-1 KESİTİ "DIŞ" / "İÇ") İngilizcede uzar ("OUTSIDE"): çerçeve dile göre değişmesin diye 12 mm pay (denetim 14.11.2026, Bekçi EN) */
+    for (const e of ents) if (e.type === 'text' && e.al === 'R' && e.p) bb[0] = Math.min(bb[0], e.p[0] - 12 * k);
+    /* sola yaslı açıklamalar da (İngilizcede "ALUMINIUM FRAME (THERMALLY BROKEN)" Türkçesinden uzun): ölçülen genişliğin 1,35 katı */
+    for (const e of ents) if (e.type === 'text' && (e.al || 'L') === 'L' && e.p && !e.rot) { const w = (C.measureText ? C.measureText(String(e.s || ''), e.h) : String(e.s || '').length * e.h * 0.75) * 1.35; bb[2] = Math.max(bb[2], e.p[0] + w); }
+    const b = [bb[0] - p, bb[1] - p, bb[2] + p, bb[3] + p];
     const e = C.add(C.newEnt('pline', { pts: [[b[0], b[1], 0], [b[2], b[1], 0], [b[2], b[3], 0], [b[0], b[3], 0]], closed: true, layer: 'YAZI', gv })); if (e) delete e.sp; return b;
   };
 
