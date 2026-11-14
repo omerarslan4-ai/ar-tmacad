@@ -1,5 +1,5 @@
 /* Kum ve yağ tutucu — Çokal AAT T-103 (1-Çokal_AAT_Kaba-İnce-Giriş-Kum Yağ Tutucu_R3.dwg) plan ve G-G enine kesitiyle karşılaştırma.
-   Çizimden okunan (cm): plan dış 1600 × 430; çıkış kanalı 150, göz 1140, dağıtma kanalı 150, duvarlar 40; gözler arası duvar 30.
+   Çizimden okunan (cm): plan dış 1560 × 430; çıkış kanalı 150, göz 1100 (dış ölçü zincirinde 1140 = göz + duvar), dağıtma kanalı 150, duvarlar 40; gözler arası duvar 30.
    G-G (göz iç 160): yağ bölmesi 40 · ayırma kirişi 20 (97,20 – 97,75) · kum bölmesi 100; dolgu: yağ duvarında 96,79 → 96,19 (60 cm'de),
    kum oluğu üstü 70 / tabanı 50 cm, 95,69 – 96,19; kum duvarında 96,49; taban plağı üstü 95,05, altı 94,55; su 97,45; duvar üstü 99,15;
    orta duvar üstü 98,10 + 20 cm yürüme döşemesi (en 100) = 98,30; üst kum oluğu dış eni 60, tabanı 98,60, altı 98,40.
@@ -12,7 +12,7 @@ const yakin = (a, b, msg, tol) => assert.ok(Math.abs(a - b) < (tol || 0.006), `$
 const G = geo({});
 
 t('Çokal T-103 planı: dış ölçü ve boyuna dizilim', () => {
-  yakin(G.boy, 16.00, 'boy'); yakin(G.en, 4.30, 'en'); yakin(G.xD1 - G.xD0, 1.50, 'dağıtma kanalı'); yakin(G.xg1 - G.xg0, 11.40, 'göz boyu'); yakin(G.xC1 - G.xC0, 1.50, 'çıkış kanalı');
+  yakin(G.boy, 15.60, 'boy'); yakin(G.en, 4.30, 'en'); yakin(G.xD1 - G.xD0, 1.50, 'dağıtma kanalı'); yakin(G.xg1 - G.xg0, 11.00, 'göz boyu'); yakin(DEF.L, 11.00, 'göz boyu varsayılanı (Çokal)'); yakin(G.xC1 - G.xC0, 1.50, 'çıkış kanalı');
   assert.strictEqual(G.goz.length, 2); yakin(G.gz, 1.60, 'göz iç eni'); yakin(G.goz[1].y0 - G.goz[0].y1, 0.30, 'gözler arası duvar');
 });
 
@@ -37,7 +37,7 @@ t('Çokal G-G: orta yürüme yolu, ayırma kirişi, üst kum oluğu', () => {
 t('kapak, savak ve ekipman: göz başına bir kapak ve savak; köprü dış duvar eksenleri arasında', () => {
   assert.strictEqual(G.kapak.length, 2); assert.strictEqual(G.savak.length, 2); yakin(G.kapak[0].y, 1.50, 'kapak kum bölmesi ekseninde'); yakin(G.kapak[0].z0, 97.15, 'kapak eşiği');
   const E = ekipmanYer(G), kp = E.find(x => x.tur === 'kopru'); yakin(kp.Ls, 3.90, 'ray açıklığı'); yakin(kp.Hp, 99.15 - 95.69, 'emme derinliği'); yakin(kp.ap, 1.60, 'pompa aralığı = oluk eksenleri arası');
-  assert.strictEqual(E.filter(x => x.tur === 'penstok').length, 2); assert.strictEqual(E.filter(x => x.tur === 'konteyner').length, 3); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 4); assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 1); yakin(kp.hk, 0.35, 'köprü yükseltmesi (korkuluk üstünden 10 cm)');
+  assert.strictEqual(E.filter(x => x.tur === 'penstok').length, 2); assert.strictEqual(E.filter(x => x.tur === 'konteyner').length, 3); assert.strictEqual(E.filter(x => x.tur === 'korkuluk').length, 5); assert.strictEqual(E.filter(x => x.tur === 'merdiven').length, 1); yakin(kp.hk, 0.35, 'köprü yükseltmesi (korkuluk üstünden 10 cm)');
   assert.strictEqual(su(G).length, 4);
 });
 
@@ -60,7 +60,6 @@ t('Çokal planı: kiriş altı kolonlar, paslanmaz lamel panelleri, merdiven, su
   assert.strictEqual(G.kolon.length, 4, 'göz başına 2 kolon'); const k = G.kolon[0]; yakin(k.pts[1][0] - k.pts[0][0], 0.40, 'kolon boyu'); yakin(k.pts[2][1] - k.pts[0][1], 0.20, 'kolon eni = ayırma kirişi'); yakin(k.z0, 96.19, 'kolon altı'); yakin(k.z1, 97.20, 'kolon üstü = kiriş altı');
   const lm = G.lamel.filter(l => l.i === 0); assert.strictEqual(lm.length, 3, 'göz başına 3 lamel paneli'); yakin(lm[0].z1, 97.20, 'lamel üstü'); yakin(lm[0].z0, 96.57, 'lamel altı'); yakin(lm[0].y0, 1.00, 'lamel kum bölmesi yüzünde');
   const E = ekipmanYer(G); yakin(E.find(x => x.tur === 'penstok').p[0], G.xD1 - 0.07, 'penstok duvar yüzünde');
-  const m = E.find(x => x.tur === 'merdiven'); yakin(m.pts[1][0], G.xg1, 'merdiven sahanlık başında biter'); yakin(m.usL, G.boy - G.xg1, 'üst sahanlık boyu'); yakin(m.pts[0][1], G.en + 0.50, 'merdiven duvara paralel');
   const b = G.bantlar.find(x => x.anahtar === 'cikis'); yakin(b.z, 93.55, 'derin çıkış kanalında su tutucu bant');
 });
 
@@ -121,6 +120,24 @@ t('eski kayıt: ekipman düzeni sürümü tutmayınca bir kez yenilenir', () => 
 t('ray ayrı ekipman; grobeton dolgular işaretli; merdiven üst sahanlığı korkuluklu', () => {
   const E = ekipmanYer(G), R = E.filter(x => x.tur === 'ray'); assert.strictEqual(R.length, 2); yakin(R[0].L, G.xg1 - 0.15, 'ray boyu'); yakin(R[0].z, 99.15, 'duvar üstünde');
   assert.deepStrictEqual(G.kutu.filter(k => k.gro).map(k => k.k), ['dagitma-dolgu', 'cikis-dolgu']);
-  const k2 = E.find(x => x.anahtar === 'korkuluk-sah-2'), son = k2.pts[k2.pts.length - 1]; yakin(son[1], G.en + 1.00 - 0.05, 'üst sahanlığın dış kenarı'); yakin(son[0], G.xg1, 'merdiven korkuluğuna bağlanır'); yakin(k2.pts[2][0], G.boy - 0.05, 'sahanlık ucu');
+});
+
+/* Çokal plan (T-103, 93,45 / 94,95 kotları planı; DXF, cm): merdiven çıkış kanalı uç duvarının dış yüzünde (103276,9), en 100 (→ 103176,9),
+   rıht çizgileri 58803,9 (kum oluğu yanı dış yüz) → 59153,9: 15 rıht × 25 = 350 kol, +y yönünde (sahanlık yanına) çıkar; üst sahanlık 59153,9 → 59233,9 (80,
+   üst yan duvar dış yüzü). Uç duvar 59153,9 – 59233,9 arasında kesik çizgi (alçak): sahanlık uç duvarın üstünden bağlanır.
+   Korkuluk: merdiven dış yanında (103180,6) zeminden üst sahanlık köşesine, üst kenar boyunca (59230,4), sahanlığın alt kenarı (58972,7) uç duvara kadar,
+   uç duvar üstünde (103280,6) 58986,7 → 59146,6 (merdiven sahanlığı başı). */
+t('Çokal plan: merdiven çıkış kanalı uç duvarının dışında, duvara paralel, sahanlık yanına çıkar', () => {
+  const E = ekipmanYer(G), m = E.find(x => x.tur === 'merdiven'), wx = G.boy + 0.50;
+  yakin(m.pts[0][0], wx, 'merdiven ekseni uç duvar dış yüzünden 0,50'); yakin(m.pts[1][0], wx, 'kol uç duvara paralel');
+  yakin(m.pts[0][1], 0.00, 'kol kum oluğu yanı dış yüzünden başlar (Çokal 58803,9)'); yakin(m.pts[1][1], 3.50, 'kol sonu (Çokal 59153,9)');
+  assert.strictEqual(m.nr, 15, '15 rıht (95,50 → 98,30)'); yakin(m.usL, 0.80, 'üst sahanlık 80'); yakin(m.pts[1][1] + m.usL, G.en, 'üst sahanlık üst yan duvar dış yüzüne kadar');
+  assert.strictEqual(m.kork, 'sag', 'korkuluk dış yanda (+y yönünde sağ)'); yakin(m.z1, G.zy, 'sahanlık kotuna çıkar'); yakin(m.w, 1.00, 'en');
+  // çakışma yok: merdiven yapının dışında, uç duvarın ötesinde; boru, konteyner, seperatör merdiven bandına girmez
+  for (const x of E) { if (x.tur === 'merdiven' || x.tur === 'korkuluk') continue; const P = x.pts || [x.p]; for (const p of P) assert.ok(!(p[0] > G.boy - 1e-6 && p[0] < G.boy + 1.0 && p[1] > -0.01 && p[1] < G.en + 0.01), 'merdiven yerinde ' + x.anahtar); }
+  const s2 = E.find(x => x.anahtar === 'korkuluk-sah-2'); yakin(s2.pts[1][0], G.boy - 0.05, 'sahanlık alt kenarı uç duvara kadar'); yakin(s2.pts[2][1], 3.50, 'uç duvar üstünde merdiven sahanlığı başına (Çokal 59146,6–59153,9)');
+  const s3 = E.find(x => x.anahtar === 'korkuluk-sah-3'); yakin(s3.pts[0][0], G.boy + 0.95, 'merdiven korkuluğu hizasında'); yakin(s3.pts[0][1], 3.50, 'merdiven korkuluğunun ucundan');
+  yakin(s3.pts[1][1], G.en - 0.05, 'üst sahanlık dış kenarı'); const s1 = E.find(x => x.anahtar === 'korkuluk-sah-1'); assert.deepStrictEqual(s3.pts[2], s1.pts[0], 'üst kenar göz tarafı korkuluğuna bağlanır');
+  const { EK_SURUM, ekKarar } = require('../app/kumtutucu.js'); assert.strictEqual(EK_SURUM, 3); assert.strictEqual(ekKarar({ type: 'kumtutucu', ekipman: true, ekSurum: 2 }, 'k'), 'surum', 'eski çizimde merdiven yeni yere geçer');
 });
 console.log(n + ' test geçti (son)');

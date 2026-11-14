@@ -14,8 +14,9 @@
    - Dağıtma kanalından her göze kum bölmesi ekseninde kapaklı açıklık (gB × gH, eşik su yüzünden gE aşağıda);
      çıkış duvarında göz başına kum bölmesi ekseninde savak (en sB, kret su yüzünden sv aşağıda).
    - Çıkış kanalı gözlerden derin (H-H: tabanı göz taban plağı üstünden hC aşağıda, 20 cm dolgu); çıkış borusu tabanda, kum oluğu
-     tarafındaki yan duvardan çıkar. Kanalın öbür yan duvarı ve üstü yürüme yolu kotunda sahanlık: merdiven zeminden buraya çıkar,
-     orta yürüme yolu sahanlığa bağlanır.
+     tarafındaki yan duvardan çıkar. Kanalın öbür yan duvarı ve üstü yürüme yolu kotunda sahanlık; orta yürüme yolu sahanlığa bağlanır.
+   - Merdiven (Çokal plan): çıkış kanalı tarafındaki uç duvarın dışında, duvara bitişik ve paralel (en mw); kum oluğu yanından (y = 0)
+     sahanlık yanına (y = en) doğru çıkar, üst sahanlığı (mU) üst yan duvar dış yüzüne kadar uzanır ve uç duvarın üstünden sahanlığa bağlanır.
    - Yağ toplama kanalı (I-I, plan): yağ bölmesinin çıkış ucunda betonarme oluk — iç boy yk (0,60) × yağ bölmesi eni, tabanı su yüzünden
      yE aşağıda (97,00), taban ve duvarlar ykt (0,20); iç yanı ayırma kirişinin devamı, uç duvarı su yüzünün yU üstünde (97,60).
      Uç duvarın önünde paslanmaz sıyırma rampası (rB = 0,40) kanal tabanı kotundan uç duvar üstüne yükselir. Yağ borusu (SA DN150)
@@ -34,7 +35,7 @@
   const ANA = NODE ? require('./anaerobik.js') : null;
   const bolgeKati = (...a) => (ANA ? ANA.bolgeKati : C.bolgeKati)(...a);
   const DEF = {
-    N: 2, b: 1.00, ta: 0.20, bF: 0.40, L: 11.40, h: 1.26, // göz: kum bölmesi, ayırma kirişi, yağ bölmesi, boy, su derinliği (su yüzü → kum oluğu üstü)
+    N: 2, b: 1.00, ta: 0.20, bF: 0.40, L: 11.00, h: 1.26, // göz (Çokal plan: 1100): kum bölmesi, ayırma kirişi, yağ bölmesi, boy, su derinliği (su yüzü → kum oluğu üstü)
     zs: 97.45, zu: 99.15, zg: 95.50, // su yüzü, duvar üstü, zemin (tretuvar) kotu
     tw: 0.40, ti: 0.30, bD: 1.50, bC: 1.50, // dış duvar, gözler arası duvar, dağıtma ve çıkış kanalı iç genişlikleri
     ho: 0.50, bo: 0.50, ko: 0.10, td: 0.64, tr: 0.50, // kum oluğu: derinlik, taban eni, yan açılma; oluk altı dolgu; taban plağı
@@ -50,7 +51,7 @@
     dp: 2.75, hb: 0.20, hm: 0.187, dE: 0.116, dJ: 0.375, // havalandırma (Çokal F-F, alt plan): düşüm aralığı; başlık duvar yüzünden; başlık mesneti (yürüme yolu → boru altı);
     //                                                     iniş yürüme yolu kenarından dışarı; 45° kırılma yürüme yolu üstünden aşağıda
     sepX: 0.62, sepY: 0.275, sepL: 4.45, // kum seperatörü (Çokal plan): hazne başı göz başından; ekseni oluk dışından; boy (hazne + vida)
-    mw: 1.00, mb: 0.25, mh: 0.19, // merdiven: en, basamak genişliği, en büyük rıht
+    mw: 1.00, mb: 0.25, mh: 0.19, mU: 0.80, // merdiven: en, basamak genişliği, en büyük rıht, üst sahanlık boyu (Çokal plan: 80)
   };
   const PAR = Object.keys(DEF);
   const rect = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
@@ -202,15 +203,18 @@
       } else out.push({ anahtar: 'boru-' + b.k, tur: 'boru', pts: [[b.p[0], b.p[1] - b.yon[1] * (q.tw + 0.10), b.z], [b.p[0], b.p[1] + b.yon[1] * 0.60, b.z]], cins: b.cins, sinif: b.sinif, dn: b.dn, kalite: b.kalite, etiket: etk });
     }
     for (const y of G.yol) for (const s of [-1, 1]) out.push({ anahtar: `korkuluk-${y.i}-${s > 0 ? 'ust' : 'alt'}`, tur: 'korkuluk', pts: [[G.xg0 + 0.05, y.ym + s * (q.yy / 2 - 0.05)], [G.xg1 + 0.05, y.ym + s * (q.yy / 2 - 0.05)]], z: G.zy });
-    // merdiven (anaerobik havuzdaki gibi): üst yan duvara paralel, plaklı betonarme; üst sahanlığı merdivenin parçası ve çıkış kanalı sahanlığına
-    // boydan boya bitişik. Sahanlık korkuluğu merdiven üst sahanlığının dış kenarını ve ucunu da dolaşır (merdiven korkuluğuyla birleşir);
-    // orta yürüme yolu ağzı açık kalır.
+    // merdiven (Çokal plan; anaerobik havuzdaki gibi plaklı betonarme): çıkış kanalı tarafındaki uç duvarın dışında, duvara bitişik ve paralel;
+    // +y yönünde (sahanlık yanına doğru) çıkar, üst sahanlığı (mU) y = en'e kadar uzanır, uç duvarın üstünden (sahanlık bölgesinde alçak) sahanlığa bağlanır.
+    // Korkuluk: merdivenin dış yanında (merdivenin kendi korkuluğu), üst sahanlığın dış kenarında ve üst yan duvar boyunca; sahanlığın alt kenarı
+    // uç duvar üstünde merdiven sahanlığının başına kadar döner (merdiven boşluğuna karşı). Orta yürüme yolu ağzı açık kalır.
     const Hm = G.zy - q.zg, S = G.sahanlik, e5 = 0.05, mer = Hm > 0.15;
-    if (mer) { const nr = Math.max(2, Math.ceil(Hm / q.mh - 1e-9)), Lm = (nr - 1) * q.mb, ym = G.en + q.mw / 2;
-      out.push({ anahtar: 'merdiven', tur: 'merdiven', pts: [[G.xg1 - Lm, ym], [G.xg1, ym]], z0: q.zg, z1: G.zy, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: G.boy - G.xg1, t: q.yt, kork: 'sol' }); }
     const yU = G.yol.length ? G.yol[G.yol.length - 1].ym + q.yy / 2 - e5 : S.ys + e5; // göz tarafı kenarı: yürüme yolu ağzı açık
     if (G.en - e5 - yU > 0.3) out.push({ anahtar: 'korkuluk-sah-1', tur: 'korkuluk', pts: [[G.xg1 + e5, G.en - e5], [G.xg1 + e5, yU]], z: G.zy });
-    out.push({ anahtar: 'korkuluk-sah-2', tur: 'korkuluk', pts: mer ? [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, G.en + q.mw - e5], [G.xg1, G.en + q.mw - e5]] : [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, G.en - e5]], z: G.zy });
+    if (mer) { const nr = Math.max(2, Math.ceil(Hm / q.mh - 1e-9)), Lm = (nr - 1) * q.mb, xm = G.boy + q.mw / 2, y1 = G.en - q.mU, y0 = y1 - Lm, xd = G.boy + q.mw - e5;
+      out.push({ anahtar: 'merdiven', tur: 'merdiven', pts: [[xm, y0], [xm, y1]], z0: q.zg, z1: G.zy, w: q.mw, b: q.mb, hmax: q.mh, nr, usL: q.mU, t: q.yt, kork: 'sag' }); // +y yönünde sağ = dış yan
+      out.push({ anahtar: 'korkuluk-sah-2', tur: 'korkuluk', pts: y1 - S.ys > 0.3 ? [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, y1]] : [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5]], z: G.zy });
+      out.push({ anahtar: 'korkuluk-sah-3', tur: 'korkuluk', pts: [[xd, y1], [xd, G.en - e5], [G.xg1 + e5, G.en - e5]], z: G.zy });
+    } else out.push({ anahtar: 'korkuluk-sah-2', tur: 'korkuluk', pts: [[G.xg1 + e5, S.ys + e5], [G.boy - e5, S.ys + e5], [G.boy - e5, G.en - e5]], z: G.zy });
     return out;
   }
   function su(G) {
@@ -220,8 +224,9 @@
     return out;
   }
   /* ekipman düzeninin sürümü: kayıtta (e.ekSurum) tutulur. Ekipmanı yerleşmiş eski bir çizim açılınca sürüm tutmadığı için ekipman bir kez
-     kendiliğinden yeni düzene geçer (elle taşınanlar korunur). 2: Çokal T-103 düzeltmeleri (yağ kanalı, DGP, hava başlığı, mesnet, ray, seperatör yönü). */
-  const EK_SURUM = 2;
+     kendiliğinden yeni düzene geçer (elle taşınanlar korunur). 2: Çokal T-103 düzeltmeleri (yağ kanalı, DGP, hava başlığı, mesnet, ray, seperatör yönü).
+     3: merdiven çıkış kanalı uç duvarının dışına taşındı (Çokal plan), sahanlık korkulukları yeni yere göre. */
+  const EK_SURUM = 3;
   /* changeIdle kararı (saf): 'surum' = eski düzen, yenile; 'degisti' = parametre / konum değişti, yenile; 'ilk' = bu oturumda ilk görülüş, anahtarı kaydet; null = bir şey yapma */
   const ekKarar = (e, k) => { if (!e || e.type !== 'kumtutucu' || !e.ekipman) return null; if (e.ekSurum !== EK_SURUM) return 'surum'; if (e._ekK == null) return 'ilk'; return e._ekK !== k ? 'degisti' : null; };
   if (NODE) module.exports = { geo, DEF, ekipmanYer, su, ekKarar, EK_SURUM };
@@ -363,7 +368,7 @@
     if (!sessiz) C.log(`✓ ${e.code || ''} kum ve yağ tutucu ekipmanı: ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}.`);
   };
   C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'kumtutucu' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]), d = ekKarar(e, k);
-    if (d === 'ilk') e._ekK = k; else if (d === 'surum') { C.kumtutucuEkipman(e, true); C.log(`✓ ${e.code || ''} kum ve yağ tutucu ekipmanı yeni düzene geçirildi (yağ kanalı borusu, hava başlığı, mesnetler, duvar geçiş parçaları, raylar; elle taşınanlar korundu).`); } else if (d === 'degisti') C.kumtutucuEkipman(e, true); } });
+    if (d === 'ilk') e._ekK = k; else if (d === 'surum') { C.kumtutucuEkipman(e, true); C.log(`✓ ${e.code || ''} kum ve yağ tutucu ekipmanı yeni düzene geçirildi (merdiven çıkış kanalı uç duvarının dışında, yağ kanalı borusu, hava başlığı, mesnetler, duvar geçiş parçaları, raylar; elle taşınanlar korundu).`); } else if (d === 'degisti') C.kumtutucuEkipman(e, true); } });
 
   /* ================= KOMUT ================= */
   /* ünite kartından (K.kumKart): göz sayısı, bölmeler, boy, su derinliği, kotlar ve standart kalınlıklar */
@@ -377,7 +382,7 @@
     } catch (err) { return null; }
   };
   const takeKV = () => { const kv = {}; C.cmd.queue = C.cmd.queue.filter(t => { const m = t.match(/^([A-Za-zÇĞİÖŞÜçğıöşü_0-9]+)=(.*)$/); if (m) { kv[C.up(m[1])] = m[2]; return false; } return true; }); return kv; };
-  C.addCommand(['KUMTUTUCU', 'KUMYAGTUTUCU'], 'Kum ve yağ tutucu (havalandırmalı, gezer köprülü — Çokal T-103 düzeni): gözler, dağıtma ve çıkış kanalı, kum oluğu, gezer köprü, kum seperatörü. KUMTUTUCU [N=2 B=1.0 BF=0.4 L=11.4 H=1.26 SU=97.45 UST=99.15 ZEMIN=95.5]; değerler ünite kartından da alınır', async (I) => {
+  C.addCommand(['KUMTUTUCU', 'KUMYAGTUTUCU'], 'Kum ve yağ tutucu (havalandırmalı, gezer köprülü — Çokal T-103 düzeni): gözler, dağıtma ve çıkış kanalı, kum oluğu, gezer köprü, kum seperatörü. KUMTUTUCU [N=2 B=1.0 BF=0.4 L=11.0 H=1.26 SU=97.45 UST=99.15 ZEMIN=95.5]; değerler ünite kartından da alınır', async (I) => {
     const kv = takeKV(), kt = karttan();
     const e = C.newEnt('kumtutucu', Object.assign(JSON.parse(JSON.stringify(DEF)), kt || {}, { layer: C.std('BETON'), u: 'gr', name: 'Kum ve yağ tutucu', o: [0, 0, 0], rot: 0, sira: Date.now() }));
     for (const [k, p] of Object.entries({ N: 'N', B: 'b', BF: 'bF', L: 'L', H: 'h', SU: 'zs', UST: 'zu', ZEMIN: 'zg' })) if (kv[k] != null && isFinite(C.num(kv[k]))) e[p] = C.num(kv[k]);
