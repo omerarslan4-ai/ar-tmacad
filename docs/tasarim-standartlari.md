@@ -60,6 +60,7 @@
 - Ölçü sıraları üst üste binmez; sıralar arası modelde 25 cm, her ölçekte aynı (1/50'de kâğıtta 5 mm, 1/25'te 10 mm, 1/100'de 2,5 mm; 1/20 detayda 12,5 mm). Plan, kesit, görünüş ve detay, bütün ölçülendirmede geçerli (14.11.2026).
 - Çatı planı ve çatı kesitlerinde çatı elemanları (aşık, mertek, kuşaklama, dikme, kaplama katmanları, oluk, iniş borusu, mahya …) oklu açıklamayla yazılır; biçim birebir Çokal çatı kesitleri gibi (14.11.2026).
 - Kesitte yalnız en yakın doğrama görünür (arkadakiler örtülür): Mimari, Mekanik ve Elektrik kesitlerinde; Statik kesitlerinde değil (14.11.2026).
+- Kesitte lento, duvardan ve betondan ayrı görünsün diye grobeton taraması (AR-CONC) ile taranır; mahya kotu çatı örtüsünün üstünden verilir; çatıda göğüsleme çift tahta 2x(5x10) (14.11.2026).
 - Plan ve kesitlerde yağmur oluğu, yağmur iniş borusu ve lentolar da oklu açıklamayla yazılır; lentoda ebat yazılır (ör. "Lento (20x20)", Çokal 6-Blower biçimi) — 14.11.2026.
 - Çokal örnek çizimi bir standarda (TS / DIN / yönetmelik) aykırıysa standarda göre çizilir; fark raporda belirtilir (14.11.2026).
 - Plan ve kesitlerde korkuluklar oklu açıklamayla (leader) gösterilir: korkuluğa ok, yanında korkuluk adı / detay numarası (ör. KR1, h=110) — 14.11.2026.
