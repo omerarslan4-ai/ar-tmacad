@@ -6,7 +6,7 @@
        DETAY-A / DETAY-B (1/10, cati.js) ayrı paftada. Tasarım alanında görünümler "MİMARİ" bölgesinde ızgarada (bolgeDuzenle).
    Var olan kesitler (KESITPAFTA ile alınmış, yapıyı kesen) yeniden alınmaz, aynen kullanılır; yoksa yerleri mahallere göre seçilir
    (mimari-oto.js: A-A uzun kesit bütün mahallerden, B-B büyük hacimden, C-C odalardan, gerekirse ek kesit; MIMARIPAFTA'nın kendi kesitleri her çalışmada yeniden seçilir)
-   ve disiplin görünümü olarak kaydedilir (GORUNUMGUNCELLE ile güncellenir, Mekanik / Statik / Elektrik paftalarına da konur).
+   ve disiplin görünümü olarak kaydedilir (GORUNUMGUNCELLE ile güncellenir; kullanıcı kararı 14.11.2026: yalnız mimari kesit, öbür disiplin paftalarına konmaz).
    Antet: kullanıcının ANTET YUKLE ile verdiği antet (yoksa programın varsayılan anteti); sağdaki antet sütununa oturur.
 
    Pafta düzeni Çokal AAT R2 mimari paftalarından ölçüldü (13.11.2026; 6-Blower Binası_R2 "MİMARİ" düzeni, 1-Kaba-İnce-Giriş_R3,
@@ -339,6 +339,8 @@
     const G = C.gorunumApi; if (!G || !C.makeView) { C.warn('Görünüş / disiplin modülleri yüklenmemiş.'); return null; }
     const { ents, secim, u } = kapsam(); if (!ents.length) { C.warn('3B model yok: mimari pafta için önce yapıyı (perde, döşeme, duvar …) 3B modelleyin.'); return null; }
     const st = durum(), ids = secim ? ents.map(e => e.id) : null;
+    /* eski projelerin otomatik Statik / Mekanik / Elektrik kesit pencereleri ve görünümleri temizlenir (yalnız Mimari kesit; elle düzeltilmiş olanlar kalır) */
+    try { if (G.tekDisiplinTemizle) { const T = G.tekDisiplinTemizle(); if (T.pencere || T.gorunum || T.pafta.length) C.log(`Yalnız mimari kesit (kullanıcı kararı): ${T.pencere} disiplin kesit penceresi, ${T.gorunum} Statik / Mekanik / Elektrik kesit görünümü kaldırıldı${T.pafta.length ? `; boşalan otomatik kesit paftaları silindi: ${T.pafta.join(', ')}` : ''}.`); } } catch (er) { console.error('disiplin kesit temizliği', er); }
     // önceki MIMARIPAFTA çıktısı: görünüşleri ve paftaları kaldır (kesitler disiplin görünümü olarak kalır, aşağıda güncellenir)
     { const gs = new Set(st.gvs || []); C.doc.ents = C.doc.ents.filter(e => !(e.gv && gs.has(e.gv))); st.gvs = []; }
     C.doc.layouts = (C.doc.layouts || []).filter(L => !L.mimPafta);
@@ -379,7 +381,7 @@
     if (kes.length) for (const v of kes) { const kendi = v.kaynak === 'MIMARIPAFTA', yal = kendi || !G.silTur ? undefined : 'MIMARI'; if (kendi) v.olcek = SC; if (yal) G.silTur(v, yal); else { const gv = v.gv; G.sil(v); v.gv = gv; } try { await G.kesitUret(v, yal); if (yal && G.eksikTurUret) await G.eksikTurUret(v); } catch (er) { console.error(er); } } // kendi kesitleri bütün türleriyle, kullanıcının Mimari'ye gönderdiği kesitlerin yalnız Mimari görünümü // bütün kesitler (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler — eski aksız içerik paftada kalmaz
     {
       const kul = new Set(C.doc.ents.filter(e => e.type === 'kesitisaret').map(e => e.name).concat(VL.map(v => v.nm)));
-      const sGr = (C.doc.set.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']).filter(g => !/GENEL/i.test(g));
+      const sGr = ['Mimari']; /* yalnız Mimari kesit (kullanıcı kararı 14.11.2026: "statik, mekanik ve elektrik kesit istemiyorum") */
       /* kesit yerleri (firma kuralı 14.11.2026): uzun kesit bütün mahallerden, kısa kesitler büyük hacimden ve odalardan; doğramadan geçer, kolon / kiriş üstünde değil.
          Var olan (kullanıcının aldığı) kesitler korunur; kuralı sağlamayan eksik varsa (ör. bir oda hiçbir kısa kesitte yok) yalnız eksik hatlar eklenir */
       let hatlar = null; try { if (C.mimariKesitYerleri) { kesitBilgi = C.mimariKesitYerleri(ents, bbDis, katlar.map(k => k.z)); hatlar = kesitBilgi.hatlar; } } catch (er) { console.error('kesit yerleri', er); }
@@ -390,7 +392,6 @@
         const v = { id: 'G' + Date.now().toString(36) + nm, tip: 'kesit', kaynak: 'MIMARIPAFTA', ad: `${nm}-${nm} KESİTİ`, nm, a: h.a, b: h.b, sp: h.sp, depth: h.depth, yer: [X0, Yc], olcek: SC, gruplar: sGr };
         let n = 0; try { n = await G.kesitUret(v); } catch (er) { console.error('mimari kesit', er); }
         if (!n) continue; if (h.mahaller) v.mahaller = h.mahaller; VL.push(v); kes.push(v); asagi(v.gv);
-        for (const g of sGr) if (!/MIMAR/i.test(g)) G.paftayaKoy(v, g); // standart: bir kez alınan kesit bütün disiplin paftalarında
       }
     }
     try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
@@ -428,7 +429,7 @@
         const cB = [c0[0] + ud[0] * 0.3, c0[1] + ud[1] * 0.3], cA = [c0[0] - un[0] * 0.35, c0[1] - un[1] * 0.35]; // kesit hattı dikme / mahya aşığı üstüne gelmesin
         const hatlar = [
           { nm: harf('A'), a: [cA[0] - ud[0] * R, cA[1] - ud[1] * R], b: [cA[0] + ud[0] * R, cA[1] + ud[1] * R], sp: [cA[0] + un[0] * 2, cA[1] + un[1] * 2], depth: 2 },
-          { nm: harf('B'), a: [cB[0] - un[0] * R, cB[1] - un[1] * R], b: [cB[0] + un[0] * R, cB[1] + un[1] * R], sp: [cB[0] + ud[0] * 2, cB[1] + ud[1] * 2], depth: 3 },
+          { nm: harf('B'), a: [cB[0] - un[0] * R, cB[1] - un[1] * R], b: [cB[0] + un[0] * R, cB[1] + un[1] * R], sp: rid ? [cB[0] + ud[0] * 2, cB[1] + ud[1] * 2] : [cB[0] - ud[0] * 2, cB[1] - ud[1] * 2], depth: 3 }, /* mahyasız (kare planlı kırma) çatıda bakış tepe noktasına doğru: tepe kesit derinliğinde, mahya kotu B'-B'de de yazılır (denetim 14.11.2026, Bekçi) */
         ];
         catiR.kesitler = [];
         for (const h of hatlar) {
@@ -523,7 +524,7 @@
       const gp = C.grpCur; C.grpCur = 'Mimari'; const L = C.newLayout(`MİMARİ-${no} ${adN}`, P.kagit, 'L'); C.grpCur = gp;
       Object.assign(L, { grp: 'Mimari', mimPafta: key + (i + 1), size: 'OZEL', pw: P.pw, ph: P.ph, orient: 'L', noTitle: false, margin: Object.assign({}, PAFTA_R2.kenar), antetSutun: P.antet, kagit: P.kagit });
       L.f = Object.assign(L.f || {}, { proje: L.f.proje || C.doc.set.name || '', baslik: `${yapi} — ${adN}`, no: `MİM-${no}` });
-      L.vps = P.ids.map(id => { const b = byId.get(id), q = P.yer[id]; return Object.assign({ x: q[0], y: q[1], w: b.w, h: b.h, cx: (b.bb[0] + b.bb[2]) / 2, cy: (b.bb[1] + b.bb[3]) / 2, scale: b.sc, gvOnly: b.gv, frame: { on: false }, lock: true, disiplin: 'Mimari' }, b.v ? { gorunum: b.v.id } : {}); });
+      L.vps = P.ids.map(id => { const b = byId.get(id), q = P.yer[id]; return Object.assign({ x: q[0], y: q[1], w: b.w, h: b.h, cx: (b.bb[0] + b.bb[2]) / 2, cy: (b.bb[1] + b.bb[3]) / 2, scale: b.sc, gvOnly: b.gv, frame: { on: false }, lock: true, disiplin: 'Mimari' }, b.v ? { gorunum: b.v.id } : {}, b.ana ? { ana: true } : {}); }); // ana: plan / kesit / görünüş penceresi — antette ana ölçek (pafta-liste.js)
       L.f.olcek = C.paftaOlcekYazisi ? C.paftaOlcekYazisi(L) : [...new Set(P.ids.map(id => byId.get(id).sc))].map(s => '1/' + s).join(', '); // antet canlı (layout.js); burada kayıt için
       if (P.tasan.length) C.warn(`${L.name}: ${P.tasan.length} çizim pafta yüksekliğine (${P.ph} mm) sığmıyor; paftada kırpılır.`);
       return L;
@@ -553,6 +554,7 @@
     const pl = r.planlar.map(p => olc(p.gv)), kes = r.kes.map(v => ileV(olc(v.gv), v)), mah = olc(r.mahGv);
     const g = r.gor, gb = { ON: olc(g.ON), ARKA: olc(g.ARKA), SAG: olc(g.SAG), SOL: olc(g.SOL) };
     const sb = b => { if (b) b.sc = b.sc || SC; return b; }; [...pl, ...kes, mah, gb.ON, gb.ARKA, gb.SAG, gb.SOL].forEach(sb);
+    [...pl, ...kes, gb.ON, gb.ARKA, gb.SAG, gb.SOL].forEach(b => { if (b) b.ana = true; }); /* ana çizimler: antette ölçek sırası önce bunların ölçeği */
     const det = (L) => (L || []).map(d => { const b = olc(d.gv, d.sc); if (b) b.sc = d.sc; return b; });
     const paf = []; paftaNo = 0; const kgt = os.kagit;
     const G = (b, grup) => { if (b) b.grup = grup; return b; };
@@ -562,7 +564,8 @@
       ...det(r.detay.korkuluk).map(b => G(b, 'KORKULUK DETAYI')), ...det(r.detay.kapak).map(b => G(b, 'SAC KAPAK DETAYLARI'))];
     paf.push(...paftaKur('M', r.yapi, ana));
     const cd = (r.cati.detaylar || [r.cati.detay]).map(gv => { const b = olc(gv, 10); if (b) b.sc = 10; return b; });
-    paf.push(...paftaKur('C', r.yapi, [sb(olc(r.cati.plan)), ...(r.cati.kesitler || []).map(v => sb(olc(v.gv))), ...cd].map(b => G(b, 'ÇATI')), 'ÇATI PLANI, KESİTLERİ VE DETAYLARI'));
+    const anaB = b => { if (b) b.ana = true; return b; };
+    paf.push(...paftaKur('C', r.yapi, [anaB(sb(olc(r.cati.plan))), ...(r.cati.kesitler || []).map(v => anaB(sb(olc(v.gv)))), ...cd].map(b => G(b, 'ÇATI')), 'ÇATI PLANI, KESİTLERİ VE DETAYLARI'));
     const alan = Math.round(paf.reduce((s, L) => s + L.pw * L.ph, 0) / 1e4) / 100;
     tekKopya();
     try { C.bolgeDuzenle({ sessiz: true }); } catch (er) { console.error('bölge düzeni', er); } // bütün disiplinlerin bölgeleri ayrık (statik / mekanik çizimleri dahil)
@@ -649,7 +652,7 @@
     if (!res.paf.length) { C.warn('Mimari pafta üretilemedi (görünüş çıkmadı).'); return; }
     const L0 = res.paf[0]; C.layoutIdx = C.doc.layouts.indexOf(L0); C.grpCur = 'Mimari'; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60);
     const yeniKes = res.r.kes.filter(v => v.kaynak === 'MIMARIPAFTA').length, d = res.r.detay;
-    C.log(`Mimari paftalar hazır (${res.paf.length} pafta, ${String(res.alan).replace('.', ',')} m² kâğıt), ölçek 1/${res.olcek.olcek} (${res.olcek.neden}): ${res.paf.map(L => `${L.name} (${L.kagit || ''} ${Math.round(L.pw)}×${L.ph} mm)`).join(' · ')} — ${res.r.planlar.length} kat planı, ${res.r.kes.length} kesit${yeniKes ? ` (${yeniKes} yeni; öbür disiplin paftalarına da kondu)` : ''}${res.r.acGv ? ', malzeme açılımı' : ''}${res.r.mahGv ? ', mahal listesi' : ''}${res.r.cati.kesitler && res.r.cati.kesitler.length ? `, ${res.r.cati.kesitler.length} çatı kesiti` : ''}${res.r.cati.detay ? ', çatı detayları' : ''}, ${d.dograma.length} kapı / pencere detayı, ${d.korkuluk.length} korkuluk detayı${d.kapakTip ? `, ${d.kapakTip.length} sac kapak tipi` : ''}${res.r.kesitBilgi ? ` · kesit yerleri: ${res.r.kes.map(v => `${v.nm}-${v.nm}${v.mahaller && v.mahaller.length ? ' (' + v.mahaller.join(', ') + ')' : ''}`).join(', ')}` : ''}${res.r.cakisma && res.r.cakisma.length ? ` · UYARI: ${res.r.cakisma.length} ölçü başka bir ölçü ya da yazıyla çakışıyor` : ''}. Antet: ${antetGen() || (C.doc.set.titleBlock || C.defaultTitleBlock) ? 'yüklediğiniz antet' : 'varsayılan (kendi antetiniz için Pafta › Antet yükle)'}.`);
+    C.log(`Mimari paftalar hazır (${res.paf.length} pafta, ${String(res.alan).replace('.', ',')} m² kâğıt), ölçek 1/${res.olcek.olcek} (${res.olcek.neden}): ${res.paf.map(L => `${L.name} (${L.kagit || ''} ${Math.round(L.pw)}×${L.ph} mm)`).join(' · ')} — ${res.r.planlar.length} kat planı, ${res.r.kes.length} kesit${yeniKes ? ` (${yeniKes} yeni)` : ''}${res.r.acGv ? ', malzeme açılımı' : ''}${res.r.mahGv ? ', mahal listesi' : ''}${res.r.cati.kesitler && res.r.cati.kesitler.length ? `, ${res.r.cati.kesitler.length} çatı kesiti` : ''}${res.r.cati.detay ? ', çatı detayları' : ''}, ${d.dograma.length} kapı / pencere detayı, ${d.korkuluk.length} korkuluk detayı${d.kapakTip ? `, ${d.kapakTip.length} sac kapak tipi` : ''}${res.r.kesitBilgi ? ` · kesit yerleri: ${res.r.kes.map(v => `${v.nm}-${v.nm}${v.mahaller && v.mahaller.length ? ' (' + v.mahaller.join(', ') + ')' : ''}`).join(', ')}` : ''}${res.r.cakisma && res.r.cakisma.length ? ` · UYARI: ${res.r.cakisma.length} ölçü başka bir ölçü ya da yazıyla çakışıyor` : ''}. Antet: ${antetGen() || (C.doc.set.titleBlock || C.defaultTitleBlock) ? 'yüklediğiniz antet' : 'varsayılan (kendi antetiniz için Pafta › Antet yükle)'}.`);
   });
 
   /* KESİT SEMBOLÜ (kullanıcı isteği 14.11.2026): Mimari şeridinden seçilir, projeye kaydedilir (doc.set.kesitSembol; eski projede seçilmemişse bugünkü sembol),

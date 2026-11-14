@@ -195,7 +195,7 @@
     const mem = out.mem; delete out.mem; delete out.edgesW; delete out._typ;
     return { mesh: out, Q, G, mem };
   };
-  const cacheAll = e => { const key = JSON.stringify([e.kind, e.pts, e.zt, e.ov, e.deg, e.knee, e.m1, e.deg1, e.yon, e.alt, e.xps, e.su, e.ortu, e.isk, e.mb, e.mh, e.msp, e.ab, e.ah, e.asp, e.db, e.dsp, e.yal, e.cy, e.sacak, e.oluk, e.olukDn, e.boruDn, e.yagmur, C.yagmurImza && e.oluk !== 'H' ? C.yagmurImza() : '']); if (e._b && e._bk === key) return e._b; e._b = buildAll(e); e._bk = key; return e._b; };
+  const cacheAll = e => { const key = JSON.stringify([e.kind, e.pts, e.zt, e.ov, e.deg, e.knee, e.m1, e.deg1, e.yon, e.alt, e.xps, e.su, e.ortu, e.isk, e.mb, e.mh, e.msp, e.ab, e.ah, e.asp, e.db, e.dsp, e.yal, e.cy, e.sacak, e.oluk, e.olukDn, e.boruDn, e.yagmur, e.oluk !== 'H' ? yagmurImzaSon() : '']); /* yağmur imzası her çağrıda değil, değişiklikte bir kez hesaplanır (aşağıda C.on('change')) */ if (e._b && e._bk === key) return e._b; e._b = buildAll(e); e._bk = key; return e._b; };
   const qty = e => {
     const { Q } = cacheAll(e), out = [], o = ORTU[e.ortu] || ORTU.marsilya, nm = (TUR[e.kind] || TUR.kirma).split(' (')[0]; // boş tür (eski dosya, Bekçi): geometride kırma
     out.push([`${o.ad} — ${nm} (eğik alan)`, 'm²', Q.area]);
@@ -253,6 +253,7 @@
   };
   /* sıhhi tesisat yağmur ayarı, kolon / perde zarfı ya da tretuvar değişirse oluk, boru ve metraj hemen yenilenir (önbellek ve çizim silinir) */
   let sonImza = null;
+  const yagmurImzaSon = () => { if (sonImza == null && C.doc && C.yagmurImza) { try { sonImza = C.yagmurImza(); } catch (er) { return ''; } } return sonImza || ''; };
   C.on('change', () => { if (!C.doc || !C.yagmurImza) return; if (!C.doc.ents.some(r => r.type === 'cati')) { sonImza = null; return; } const im = C.yagmurImza(); if (im === sonImza) return; const ilk = sonImza == null; sonImza = im; if (ilk) return; for (const r of C.doc.ents) if (r.type === 'cati') { delete r._c; delete r._b; } });
   /* döşeme taşınır / değişirse çatı da gelir */
   C.on('change', () => { if (!C.doc) return; for (const r of C.doc.ents) if (r.type === 'cati' && r.host != null) { const pl = C.byId(r.host); if (!pl) continue; const js = JSON.stringify(pl.pts.map(p => [p[0], p[1]])); if (JSON.stringify(r.pts) !== js || Math.abs((+r.zt || 0) - (+pl.zt || 0)) > 1e-9 || (+r.sacak || 0) !== (+pl.sacak || 0)) { r.pts = JSON.parse(js); r.zt = +pl.zt || 0; r.sacak = +pl.sacak || 0; delete r._c; } } });

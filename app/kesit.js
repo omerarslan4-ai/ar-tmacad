@@ -438,11 +438,9 @@
          sıralar arası modelde 0,25 m, ilk sıra çizimin üstünden 14 mm; aks balonu en dış sıranın 11 mm üstünde (balon merkezi) */
       if (ae && kv.MIMARI === 'E' && C.pstil && C.pstil() && kv.OLCU !== 'H') { try { // yalnız Mimari kesitlerde (statik / proses KESITAL: aksın kendi ölçüleri)
         const DUS = /PERDE|DUVAR|KOLON/, wl = (R.loops || []).filter(lp => DUS.test(lp.lk || '')), xs0 = wl.flatMap(lp => lp.map(q => q[0]));
-        if (xs0.length && C.mimariOtoApi && C.mimariOtoApi.kesitAksSiralari) { const k = C.annoH(1), Y = Object.assign({ ilkSira: 14, siraModel: 0.25 }, ((C.cizimKural && C.cizimKural.MIMARI.olcuYeri) || {}).genel || {}), AK = Object.assign({ balonR: 6, balonOte: 11 }, (C.cizimKural && C.cizimKural.MIMARI.aks) || {});
-          const S = C.mimariOtoApi.kesitAksSiralari({ akslar: ap.map(q => q.s), dis: [Math.min(...xs0), Math.max(...xs0)], ust: ub[3], mm: k, ilk: Y.ilkSira, sira: Y.siraModel || 0.25, balonR: AK.balonR, balonOte: AK.balonOte }), pts = S.noktalar, r1 = S.y1, r2 = S.y2, xw0 = pts[0], xw1 = pts[pts.length - 1];
-          C.ensureLayer('KESIT_OLCU', 3, 'CONTINUOUS', 18); const dm = (p0, p1, y) => { C.add(C.newEnt('dim', { k: 'h', a: W([p0, ub[3]]), b: W([p1, ub[3]]), p: W([p0, y]), layer: 'KESIT_OLCU' })); };
-          for (let i = 1; i < pts.length; i++) dm(pts[i - 1], pts[i], r1); dm(xw0, xw1, r2);
-          Object.assign(ae, { dims: false, extp: S.extp }); delete ae._c; } } catch (er) { console.error('kesit aks ölçüsü', er); } } }
+        /* duvar kesilmiyorsa (çatı kesiti: yalnız çatı ve çatı döşemesi) uç akslar arası; ölçü yine ÖL katmanında, ölçü stilinde (denetim 14.11.2026) */
+        if (C.aksOlcuPafta) C.aksOlcuPafta(ae, { akslar: ap.map(q => q.s), dis: xs0.length ? [Math.min(...xs0), Math.max(...xs0)] : null, ust: ub[3], W, layer: 'KESIT_OLCU' });
+      } catch (er) { console.error('kesit aks ölçüsü', er); } } }
     /* korkuluk oklu açıklaması (firma kuralı 14.11.2026; Çokal İdari): ölçü, kot ve etiketlerden sonra — onlara ve kesilen betona binmez */
     /* oklu açıklamalar (korkuluk, çatı elemanları): disiplin görünümü üretilirken (gorunumler.js) malzeme açılımından sonraya ertelenir — açılım kodlarına binmesin */
     if (kv.MIMARI === 'E' && kv.YAZI !== 'H') { const K = { a, u, n, depth, W, inU, i0, zAt };

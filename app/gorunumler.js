@@ -123,7 +123,10 @@
      Mekanik ve Elektrik kesitinde yalnız gizli çizgi (arkadaki doğrama ve eleman örtülür — GIZLI=E); Statik ve öbürleri eski KESITAL (DUZ).
      Bir kesit birden çok gruba gönderilince her tür için ayrı görünüm üretilir: ilk tür v.gv'de, öbürleri v.gvD[tür]'de; pafta penceresi kendi grubunun türünü gösterir. */
   const disTur = g => { const s = C.up(String(g || '')); return /M[İI]MAR/.test(s) ? 'MIMARI' : /MEKAN|ELEKT/.test(s) ? 'GIZLI' : 'DUZ'; };
-  const turler = v => { const o = []; if (v.kaynak === 'MIMARIPAFTA') o.push('MIMARI'); for (const g of v.gruplar || []) { const k = disTur(g); if (!o.includes(k)) o.push(k); } if (!o.length) o.push('DUZ'); return o; };
+  /* KULLANICI KARARI (14.11.2026, tasarim-standartlari.md "Paftalama ve çizim" 1. madde): "Statik, mekanik ve elektrik kesit istemiyorum; sadece mimari kesit
+     alınacak." Kesit görünümü yalnız Mimari türünde (MIMARI=E) üretilir; Statik / Mekanik / Elektrik türü (v.gvD) üretilmez, kesit öbür disiplin paftalarına
+     kendiliğinden konmaz. Eski projelerde kalan tür görünümleri gvOf ile gösterilmeye devam eder; MIMARIPAFTA otomatik kesit paftalarındakileri temizler (tekDisiplinTemizle). */
+  const turler = v => (v && v.tip === 'kesit' ? ['MIMARI'] : (() => { const o = []; for (const g of (v && v.gruplar) || []) { const k = disTur(g); if (!o.includes(k)) o.push(k); } if (!o.length) o.push('DUZ'); return o; })());
   const gvOf = (v, g) => { const T = turler(v), k = g == null ? T[0] : disTur(g); return k === T[0] ? v.gv : ((v.gvD || {})[k] || v.gv); };
   const tumGv = v => [v.gv, ...Object.values(v.gvD || {})].filter(Boolean);
   const ANAH = { MIMARI: ['MIMARI=E'], GIZLI: ['GIZLI=E'], DUZ: [] };
@@ -168,7 +171,8 @@
       if (ertele.length) { const o3 = new Set(C.doc.ents.map(e => e.id)); for (const K of ertele) C.kesitOklari(K); for (const e of C.doc.ents) if (!o3.has(e.id)) { e.gv = gv; delete e.sp; } } // oklu açıklamalar açılım kodlarından sonra (onlara binmez)
       top += yeni.length;
     }
-    if (v.gvD && !yalniz) for (const k of Object.keys(v.gvD)) if (!T.includes(k) || k === T[0]) { const g2 = v.gvD[k]; C.doc.ents = C.doc.ents.filter(e => e.gv !== g2); delete v.gvD[k]; if (v.yerD) delete v.yerD[k]; } // artık gerekmeyen tür
+    const kul = k => (C.doc.layouts || []).some(L => (L.vps || []).some(q => q.gorunum === v.id && disTur(q.disiplin || L.grp) === k)); // eski projede başka içerikli paftada gösterilen tür görünümü kalır
+    if (v.gvD && !yalniz) for (const k of Object.keys(v.gvD)) if (k === T[0] || (!T.includes(k) && !kul(k))) { const g2 = v.gvD[k]; C.doc.ents = C.doc.ents.filter(e => e.gv !== g2); delete v.gvD[k]; if (v.yerD) delete v.yerD[k]; } // artık gerekmeyen tür
     return top;
   };
   const silTur = (v, tur) => { const T = turler(v), ana = tur === T[0], g = ana ? v.gv : (v.gvD || {})[tur]; if (!g) return; C.doc.ents = C.doc.ents.filter(e => e.gv !== g && !(ana && e.type === 'kesitisaret' && e.gorunum === v.id)); }; // yalnız o türün görünümü (ana türde plan işareti de: yeniden üretilir)
@@ -177,18 +181,33 @@
   /* eski .aritma (disiplin türleri öncesi): ortak kesitin (ör. Mimari + Statik) yalnız ana görünümü var (gvD yok) → Statik / Mekanik pencereleri ana türün
      (Mimari) içeriğini gösterir. Eksik türler bir kez üretilir; ana görünüm (kullanıcının elle düzelttiği içerik olabilir) ve var olan türler değişmez.
      v.elle = true işaretli görünüme dokunulmaz. Döner: üretilecek türler */
-  const eksikTurler = v => { if (!v || v.tip !== 'kesit' || !v.gv || v.elle || !v.a || !v.b) return []; const T = turler(v); return T.slice(1).filter(k => !(v.gvD || {})[k]); };
+  const eksikTurler = v => { if (!v || v.tip !== 'kesit' || !v.gv || v.elle || !v.a || !v.b) return []; const T = turler(v); return T.slice(1).filter(k => !(v.gvD || {})[k]); }; // yalnız Mimari türü kaldı: her zaman boş (proje açılınca disiplin görünümü üretilmez)
   const eksikTurUret = async v => { let n = 0; for (const k of eksikTurler(v)) { try { if (await kesitUret(v, k)) n++; } catch (er) { console.error('eksik disiplin görünümü', er); } } if (n) pencereBagla(v); return n; };
   const eksikleriTamamla = async () => { let n = 0; for (const v of VL().slice()) n += await eksikTurUret(v); return n; };
+  /* ESKİ DİSİPLİN KESİTLERİNİN TEMİZLİĞİ (kullanıcı kararı 14.11.2026; MIMARIPAFTA çalışınca): elle düzeltilmemiş (v.elle değil) kesit görünümlerinin
+     Statik / Mekanik / Elektrik pencereleri, yalnız otomatik kesit paftalarından (L.kesitPaftasi — "STATİK — KESİTLER 1"; PAFTAELLE ile işaretli değil) kaldırılır;
+     boşalan otomatik kesit paftası silinir. Başka içerikli paftalardaki pencereler ve onların gösterdiği tür görünümü kalır; hiçbir pencerenin göstermediği
+     tür görünümü (v.gvD) silinir. Statik / mekanik modüllerin kendi kesitleri (STATIKCIZ, Y-Y yalıtım kesiti) disiplin görünümü olmadığı için dokunulmaz.
+     Döner: { pencere, pafta: [ad], gorunum } */
+  const tekDisiplinTemizle = () => {
+    const lays = C.doc.layouts = C.doc.layouts || [], mim = g => /M[İI]MAR/i.test(String(g || '')), out = { pencere: 0, pafta: [], gorunum: 0 };
+    const VK = VL().filter(v => v.tip === 'kesit' && !v.elle), ids = new Set(VK.map(v => v.id));
+    for (const L of lays) { if (mim(L.grp) || !L.kesitPaftasi || L.elle) continue; const n0 = (L.vps || []).length; L.vps = (L.vps || []).filter(q => !(q.gorunum && ids.has(q.gorunum))); out.pencere += n0 - L.vps.length; }
+    C.doc.layouts = lays.filter(L => { const bos = !mim(L.grp) && L.kesitPaftasi && !L.elle && !(L.vps || []).length; if (bos) out.pafta.push(L.name); return !bos; });
+    for (const v of VK) { const kul = new Set(); for (const L of C.doc.layouts) for (const q of L.vps || []) if (q.gorunum === v.id && !mim(q.disiplin || L.grp)) kul.add(disTur(q.disiplin || L.grp));
+      for (const k of Object.keys(v.gvD || {})) { if (kul.has(k)) continue; const g2 = v.gvD[k]; C.doc.ents = C.doc.ents.filter(e => e.gv !== g2); delete v.gvD[k]; if (v.yerD) delete v.yerD[k]; out.gorunum++; }
+      if (v.gvD && !Object.keys(v.gvD).length) delete v.gvD;
+      v.gruplar = ['Mimari'].concat([...new Set(C.doc.layouts.flatMap(L => (L.vps || []).filter(q => q.gorunum === v.id).map(q => q.disiplin || L.grp)))].filter(g => g && !mim(g))); }
+    return out;
+  };
   const sil = v => { const G = new Set(tumGv(v)); C.doc.ents = C.doc.ents.filter(e => !(e.gv && G.has(e.gv)) && !(e.type === 'kesitisaret' && e.gorunum === v.id)); };
   /* başka modüllerin (MIMARIPAFTA) kullandığı iç işler: görünüm listesi, kesit üretimi / silme, paftaya koyma */
-  C.gorunumApi = { liste: VL, kesitUret, sil, paftayaKoy, bolgeYeri, disTur, turler, gvOf, tumGv, silTur, eksikTurler, eksikTurUret, eksikleriTamamla, pencereBagla };
-  /* proje açılınca eski ortak kesitlerin eksik disiplin görünümleri bir kez üretilir */
-  if (C.on) C.on('doc', () => { if (!VL().some(v => eksikTurler(v).length)) return; setTimeout(async () => { try { const n = await eksikleriTamamla(); if (n) { C.changed(); C.emit('layouts'); C.log(`${n} eski ortak kesite disiplin görünümü eklendi (Statik / Mekanik pencereleri artık kendi görünümlerini gösterir).`); } } catch (er) { console.error(er); } }, 0); });
+  C.gorunumApi = { liste: VL, kesitUret, sil, paftayaKoy, bolgeYeri, disTur, turler, gvOf, tumGv, silTur, eksikTurler, eksikTurUret, eksikleriTamamla, pencereBagla, tekDisiplinTemizle };
+  /* proje açılınca eksik disiplin görünümü üretilmez (kullanıcı kararı 14.11.2026: yalnız Mimari kesit) */
 
   /* ================= KOMUTLAR ================= */
   let harf = 0;
-  C.addCommand(['KESITPAFTA', 'DKESIT', 'KESITDISIPLIN', 'DISIPLINKESIT'], 'Modelden kesit al ve seçilen tüm disiplin paftalarına (Mimari, Statik, Mekanik, Elektrik …) disiplin görünüm şablonuyla otomatik yerleştir. Model değişince GORUNUMGUNCELLE.', async (I) => {
+  C.addCommand(['KESITPAFTA', 'DKESIT', 'KESITDISIPLIN', 'DISIPLINKESIT'], 'Modelden mimari kesit al ve Mimari paftasına yerleştir (yalnız mimari kesit alınır; statik / mekanik / elektrik kesiti üretilmez). Model değişince GORUNUMGUNCELLE.', async (I) => {
     const a = await I.pt('Kesit çizgisi 1. nokta'); if (!a || typeof a === 'string') return;
     E.base = a; const b = await I.pt('Kesit çizgisi 2. nokta'); E.base = null; if (!b || typeof b === 'string') return;
     const u = M.norm([b[0] - a[0], b[1] - a[1], 0]), Lc = M.dist2(a, b);
@@ -198,7 +217,8 @@
     const used = new Set(C.doc.ents.filter(e => e.type === 'kesitisaret').map(e => e.name).concat(VL().map(v => v.nm)));
     let nm = String.fromCharCode(65 + harf); while (used.has(nm) && harf < 25) nm = String.fromCharCode(65 + ++harf);
     nm = (await I.str('Kesit adı (harf)', nm, { whole: false }) || nm).toUpperCase().slice(0, 3);
-    const sec = await disiplinSec(`${nm}-${nm} kesiti — hangi disiplin paftalarında olsun?`, g => !/GENEL/i.test(g), +(C.doc.set.sonKesitOlcek || 50)); if (!sec) return;
+    /* yalnız Mimari kesit (kullanıcı kararı 14.11.2026): disiplin seçilmez, kesit Mimari paftasına konur */
+    const ol = await I.num('Pafta ölçeği 1:', +(C.doc.set.sonKesitOlcek || 50)); if (ol == null || ol === '') return; const sec = { gruplar: ['Mimari'], olcek: +ol > 0 ? +ol : 50 };
     C.doc.set.sonKesitOlcek = sec.olcek;
     const v = { id: 'G' + Date.now().toString(36), tip: 'kesit', ad: `${nm}-${nm} KESİTİ`, nm, a: [a[0], a[1]], b: [b[0], b[1]], sp: [sp[0], sp[1]], depth: +depth || 30, yer: bolgeYeri(), olcek: sec.olcek, gruplar: sec.gruplar };
     const n = await kesitUret(v); if (!n) { C.warn('Kesit üretilemedi (kesit çizgisi 3B modele değmiyor olabilir).'); return; }
@@ -206,7 +226,7 @@
     const yer = sec.gruplar.map(g => { const L = paftayaKoy(v, g); return L ? `${g}: ${L.name}` : null; }).filter(Boolean);
     try { if (C.pstil && C.pstil() && yer.some(t => /^Mimari/.test(t)) && C.doc.ents.some(e => e.type === 'acilim')) C.acilimTablo(true); } catch (er) { console.error('açılım tablosu', er); } // örnek proje düzeni: kodlu açılım tablosu Mimari paftasında
     C.changed(); C.emit('layouts');
-    C.log(`${v.ad} üretildi (${n} nesne) ve ${yer.length} disiplin paftasına yerleştirildi — ${yer.join(' · ')}. Alt sekmelerden ilgili disipline geçin. Tasarım'da görmek: GORUNUSGOSTER.`);
+    C.log(`${v.ad} üretildi (${n} nesne) ve Mimari paftasına yerleştirildi — ${yer.join(' · ')}. Tasarım'da görmek: GORUNUSGOSTER.`);
   });
 
   /* ================= MEKANİK TABLOLAR (ünite ekipmanından) =================

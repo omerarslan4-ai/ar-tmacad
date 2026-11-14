@@ -142,6 +142,7 @@
       const sag = x1 - v >= v - x0, ym = (y0 + y1) / 2; return { nm, tur, d, v, a: [v, y0 - pay], b: [v, y1 + pay], sp: [sag ? v + 1 : v - 1, ym], depth: r2((sag ? x1 - v : v - x0) + 0.5) };
     };
     const uz = uzunX ? 'x' : 'y', ks = uzunX ? 'y' : 'x', out = [], ad = () => String.fromCharCode(65 + out.length);
+    const kumeEsit = (p, q) => p.length === q.length && p.every(m => q.includes(m));
     const ic = (d) => d === 'x' ? [y0 + 0.3, y1 - 0.3] : [x0 + 0.3, x1 - 0.3];
     { const [lo, hi] = ic(uz), v = sec(uz, lo, hi); if (v != null) out.push(hat(ad(), uz, v, 'uzun')); }
     const buyuk = M.slice().sort((p, q) => q.alan - p.alan)[0], odalar = M.filter(m => m !== buyuk);
@@ -152,7 +153,9 @@
     if (odalar.length) { // odalardan: en çok odayı kesen kısa kesit
       const kisa0 = out.filter(h => h.d === ks).flatMap(h => kesen(ks, h.v)), yeni = odalar.filter(m => !kisa0.includes(m));
       const [lo, hi] = ic(ks), v = sec(ks, lo, hi, yeni.length ? yeni : odalar);
-      if (v != null) out.push(hat(ad(), ks, v, 'oda')); }
+      /* aynı mahalleri kesen ikinci kısa kesit üretilmez (denetim 14.11.2026, Bekçi: C-C, B-B ile birebir aynıydı): mahal kümesi aynıysa tek kesit */
+      const ayni = v != null && out.some(h => h.d === ks && kumeEsit(kesen(ks, h.v), kesen(ks, v)));
+      if (v != null && !ayni) out.push(hat(ad(), ks, v, 'oda')); }
     for (let g = 0; g < 6; g++) { const S = gorunen(), eks = M.filter(m => !S.has(m)); if (!eks.length) break; const m = eks[0], [lo, hi] = kAralik(m), v = sec(ks, lo, hi, [m]); if (v == null) break; out.push(hat(ad(), ks, v, 'ek')); }
     for (const h of out) { h.mahaller = kesen(h.d, h.v).map(m => m.ad); h.aciklar = AC.filter(a => a.d !== h.d && Math.abs(h.v - (h.d === 'x' ? a.c[1] : a.c[0])) <= a.w / 2).length; }
     return out;
@@ -597,7 +600,9 @@
     if (!cati || !C.catiGeom) return 0; const G = C.catiGeom(cati); let n = 0; if (C.ensureLayer) C.ensureLayer('CATI_KOT', 7, 'CONTINUOUS', 20);
     const put = (q, v) => { const e = C.add(C.newEnt('kot', { gv, pk: true, p: W([q[0], q[1]]), v: +v.toFixed(3), txt: '', layer: 'CATI_KOT' })); if (e) { delete e.sp; n++; } };
     const zr = C.catiMahyaKotu ? C.catiMahyaKotu(cati) : Math.max(...G.pieces.flatMap(p => p.z)); // mahya kotu tek fonksiyondan (kesitlerle aynı)
-    if (G.lines.ridge.length) { const [A, B] = G.lines.ridge.reduce((m, l) => (Math.hypot(l[1][0] - l[0][0], l[1][1] - l[0][1]) > Math.hypot(m[1][0] - m[0][0], m[1][1] - m[0][1]) ? l : m)); const u = [B[0] - A[0], B[1] - A[1]], l = Math.hypot(u[0], u[1]) || 1; put([(A[0] + B[0]) / 2 + u[0] / l * 0.6, (A[1] + B[1]) / 2 + u[1] / l * 0.6], zr); }
+    /* mahya yeri: en uzun mahya hattı; mahya yoksa (kare planlı kırma çatı, Bekçi — denetim 14.11.2026: çatı planında mahya kotu yoktu) tepe noktası (C.catiMahyaHatti) */
+    { const H = G.lines.ridge.length ? G.lines.ridge.reduce((m, l) => (Math.hypot(l[1][0] - l[0][0], l[1][1] - l[0][1]) > Math.hypot(m[1][0] - m[0][0], m[1][1] - m[0][1]) ? l : m)) : (C.catiMahyaHatti ? C.catiMahyaHatti(cati) : null);
+      if (H) { const [A, B] = H, u0 = [B[0] - A[0], B[1] - A[1]], l0 = Math.hypot(u0[0], u0[1]), u = l0 > 0.05 ? [u0[0] / l0, u0[1] / l0] : [Math.SQRT1_2, Math.SQRT1_2]; put([(A[0] + B[0]) / 2 + u[0] * 0.6, (A[1] + B[1]) / 2 + u[1] * 0.6], zr); } }
     { const w = G.wall, c = [w[0][0] + (w[1][0] - w[0][0]) * 0.25, w[0][1] + (w[1][1] - w[0][1]) * 0.25], nn = [-(w[1][1] - w[0][1]), w[1][0] - w[0][0]], ln = Math.hypot(nn[0], nn[1]) || 1; put([c[0] + nn[0] / ln * 0.9, c[1] + nn[1] / ln * 0.9], +cati.zt || 0); } // döşeme üstü: duvarın içinde (çatı arası)
     return n;
   };

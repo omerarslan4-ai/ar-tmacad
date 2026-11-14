@@ -271,7 +271,11 @@
       } else if (VIEWS[def.dir] && Math.abs(VIEWS[def.dir].d[2]) < 1e-9) { // yan/ön görünüş: bakış doğrultusuna paralel akslar
         const D = VIEWS[def.dir].d, Rr = frameOf(D).R, pos = [];
         for (const e of C.aksAll()) for (const l of C.aksLines(e)) { if (Math.abs(l.d[0] * D[0] + l.d[1] * D[1]) < 0.98) continue; const s = l.p[0] * Rr[0] + l.p[1] * Rr[1]; if (s < ub[0] - 0.5 || s > ub[2] + 0.5 || pos.some(q => Math.abs(q.s - s) < 1e-4)) continue; pos.push({ s, lab: l.lab }); }
-        pos.sort((p, q) => p.s - q.s); C.aksAddSection(pos, ub[1], ub[3], W, { gv, layer: LA });
+        pos.sort((p, q) => p.s - q.s); const ae = C.aksAddSection(pos, ub[1], ub[3], W, { gv, layer: LA });
+        /* pafta stilinde görünüşte ölçü yok (denetim 14.11.2026: aks arası ölçü Aks katmanına ARIAL 5 mm düşüyordu). Çokal R2 görünüşleri ölçüldü
+           (10-İdari ÖN / ARKA / SAĞ / SOL, 6-Blower ÖN / ARKA / SAĞ / SOL): akslar ve balonlar var, DIMENSION yok — aks ölçüsü yazılmaz; balon
+           çizimin 14 mm üstünde (ilk ölçü sırası yerinde) */
+        if (ae && C.pstil && C.pstil()) { const AKm = (C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.aks) || {}; Object.assign(ae, { dims: false, extp: 14 - (AKm.balonR || 6) }); delete ae._c; }
       }
     }
     const title = def.title || (def.kind === 'plan' ? `${kotTxt(def.h)} KOTU PLANI` : VIEWS[def.dir].t);

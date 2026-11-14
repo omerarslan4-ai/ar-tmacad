@@ -15,9 +15,11 @@
   /* vps: [{ scale, w, h, olceksiz? }] → "1/50, 1/20, 1/10" (ana ölçek önce) ya da "-"; tablo pencereleri (olceksiz / paftaListesi: pafta listesi,
      mahal listesi, açılım tablosu) çizim ölçeği sayılmaz (denetim 14.11.2026: MİM-04 "1/20, 1/50") */
   const olcekYazisi = vps => {
-    const A = new Map(); for (const v of vps || []) { const s = +v.scale; if (!(s > 0) || v.olceksiz || v.paftaListesi) continue; A.set(s, (A.get(s) || 0) + Math.max(0, (+v.w || 0) * (+v.h || 0))); }
+    const A = new Map(), AN = new Map(); for (const v of vps || []) { const s = +v.scale; if (!(s > 0) || v.olceksiz || v.paftaListesi) continue; const a = Math.max(0, (+v.w || 0) * (+v.h || 0)); A.set(s, (A.get(s) || 0) + a); if (v.ana) AN.set(s, (AN.get(s) || 0) + a); }
     if (!A.size) return '-';
-    const ana = [...A.entries()].sort((p, q) => q[1] - p[1] || q[0] - p[0])[0][0];
+    /* ana çizim pencereleri (v.ana: plan, kesit, görünüş, çatı planı / kesiti — MIMARIPAFTA) varsa ana ölçek onlardan (denetim 14.11.2026, Bekçi MİM-01:
+       bir plan 1/50 + beş doğrama detayı 1/20 → "1/50, 1/20"); yoksa kâğıtta en çok yer kaplayan */
+    const ana = [...(AN.size ? AN : A).entries()].sort((p, q) => q[1] - p[1] || q[0] - p[0])[0][0];
     return [ana, ...[...A.keys()].filter(s => s !== ana).sort((a, b) => b - a)].map(olcekAd).join(', ');
   };
   /* paftanın antetteki ölçeği: elle verilmişse o, yoksa pencerelerden */

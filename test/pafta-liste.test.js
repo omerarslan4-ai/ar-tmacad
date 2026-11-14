@@ -18,6 +18,9 @@ t('antette ölçek: bütün pencerelerin ölçekleri tekrarsız, ana ölçek ön
   assert.strictEqual(P.olcekYazisi(L5.vps), '1/50, 1/10');
   assert.strictEqual(P.olcekYazisi([{ scale: 5, w: 100, h: 100 }, { scale: 20, w: 300, h: 300 }, { scale: 10, w: 50, h: 50 }, { scale: 50, w: 20, h: 20 }]), '1/20, 1/50, 1/10, 1/5', 'ana ölçek en çok alan kaplayan (detay paftası 1/20)');
   assert.strictEqual(P.olcekYazisi([]), '-');
+  /* Bekçi MİM-01 (denetim 14.11.2026): bir kat planı 1/50 (ana çizim) + beş doğrama detayı 1/20 — detayların alanı büyük olsa da ana ölçek planınki */
+  const bekci = [{ scale: 50, w: 210, h: 190, ana: true }].concat([1, 2, 3, 4, 5].map(() => ({ scale: 20, w: 150, h: 120 })));
+  assert.strictEqual(P.olcekYazisi(bekci), '1/50, 1/20', 'ana çizim (plan) önce');
 });
 t('elle verilmiş ölçek (f.olcekElle) korunur; boşsa pencerelerden', () => {
   assert.strictEqual(P.paftaOlcegi(Object.assign({}, L2, { f: { olcekElle: '1/50 - 1/20' } })), '1/50 - 1/20');

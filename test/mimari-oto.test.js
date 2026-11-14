@@ -135,6 +135,13 @@ t('kaplamasız Konya: 1 uzun + büyük hacim (montaj holü) + kumanda odası = 3
   assert.deepStrictEqual(K.map(h => h.tur), ['uzun', 'buyuk', 'oda']);
   assert.ok(K[2].v > 0.4 && K[2].v < 3.7, 'oda kesiti kumanda odasından: x = ' + K[2].v);
 });
+t('kesit yerleri: Bekçi — iki mahal de büyük hacim kesitinde görünüyor: aynı mahalleri kesen ikinci kısa kesit (C-C) üretilmez', () => {
+  /* Bekçi binası (bekci.aritma, MIMARIPAFTA 14.11.2026): MAHAL 1 L biçimli (kutusu 3,4…8 × 1,8…6,4), MAHAL 3 köşede (6…8 × 4,4…6,4) */
+  const M = [{ ad: 'MAHAL 1', bb: [3.4, 1.8, 8, 6.4], alan: 16.2 }, { ad: 'MAHAL 3', bb: [6, 4.4, 8, 6.4], alan: 4 }];
+  const K = A.kesitYerleri({ bb: [3.2, 1.6, 8.2, 6.6], mahaller: M });
+  assert.deepStrictEqual(K.map(h => h.nm + ':' + h.tur), ['A:uzun', 'B:buyuk'], 'iki kesit: uzun + büyük hacim');
+  for (let i = 0; i < K.length; i++) for (let j = i + 1; j < K.length; j++) if (K[i].d === K[j].d) assert.notDeepStrictEqual(K[i].mahaller.slice().sort(), K[j].mahaller.slice().sort(), 'aynı içerikli iki kesit');
+});
 t('eski çalıştırmadan kalan 2 kesit (uzun + montaj holü) korunur, eksik oda kesiti eklenir; kesit zaten varsa eklenmez', () => {
   const M = A.mahalBul(KONYA_KAPILI.concat(A.acikIzleri([K2])), [0, 0, 19.7, 8], { h: 0.1 });
   const K = A.kesitYerleri({ bb: [0, 0, 19.7, 8], mahaller: M });

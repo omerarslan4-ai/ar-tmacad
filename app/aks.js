@@ -73,6 +73,26 @@
     const AK = C.pstil && C.pstil() && C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.aks, bal = AK ? { bp: AK.balonR, thp: AK.yaziMm } : { bp: 4 }; // pafta stilinde balon ölçüsü kural tablosundan (Çokal: yarıçap 6 mm, harf 5 mm)
     return C.add(C.newEnt('aks', Object.assign({ sec: true, o: [o[0], o[1]], xs: pos.map(p => +(p.s - pos[0].s).toFixed(6)), ys: [v0, v1], lx: pos.map(p => p.lab), rot: 0, extp: 14, dims: true, layer: 'AKS' }, bal, props || {})));
   };
+  /* PAFTA STİLİNDE KESİT / GÖRÜNÜŞ AKS ÖLÇÜSÜ (denetim 14.11.2026: aks arası ölçü Aks katmanına, ARIAL 5 mm düşüyordu):
+     aksın kendi ölçüsü kapatılır; ölçüler ölçü nesnesi olarak ÖL katmanına çevrilen katmanda (ölçü stili, 2 mm), Çokal planlarındaki sırayla
+     (mimari-oto.js kesitAksSiralari: içte dış yüz – akslar – dış yüz zinciri, dışta toplam; ilk sıra çizimin 14 mm üstünde, sıralar arası modelde 25 cm).
+     ae: aksAddSection'ın nesnesi, o: { akslar: [s …], dis: [s0, s1] (yapının dış yüzleri; yoksa uç akslar), ust: üst kot, W: (s, v) → dünya, layer, gv }.
+     Döner: eklenen ölçü sayısı (pafta stili yoksa 0, aks kendi ölçüsünü çizer) */
+  C.aksOlcuPafta = (ae, o) => {
+    if (!ae || !o || !(C.pstil && C.pstil()) || !(C.mimariOtoApi && C.mimariOtoApi.kesitAksSiralari)) return 0;
+    const A = (o.akslar || []).filter(isFinite); if (A.length < 2 && !(o.dis && o.dis[1] - o.dis[0] > 0.05)) return 0;
+    const dis = o.dis && isFinite(o.dis[0]) && isFinite(o.dis[1]) && o.dis[1] - o.dis[0] > 0.05 ? o.dis : [Math.min(...A), Math.max(...A)];
+    const K = (C.cizimKural && C.cizimKural.MIMARI) || {}, Y = Object.assign({ ilkSira: 14, siraModel: 0.25 }, (K.olcuYeri || {}).genel || {}), AK = Object.assign({ balonR: 6, balonOte: 11 }, K.aks || {}), k = C.annoH(1);
+    /* uç akslar dış yüze çok yakınsa (≤ 1 cm) ayrı nokta sayılmaz (kesitAksSiralari); dış yüzler aksların dışındaysa onları da kapsar */
+    const d0 = Math.min(dis[0], ...A), d1 = Math.max(dis[1], ...A);
+    const S = C.mimariOtoApi.kesitAksSiralari({ akslar: A, dis: [d0, d1], ust: o.ust, mm: k, ilk: Y.ilkSira, sira: Y.siraModel || 0.25, balonR: AK.balonR, balonOte: AK.balonOte }), P = S.noktalar;
+    const ly = o.layer || 'KESIT_OLCU'; C.ensureLayer(ly, 3, 'CONTINUOUS', 18); let n = 0;
+    const dm = (p0, p1, y) => { if (p1 - p0 < 0.005) return; C.add(C.newEnt('dim', Object.assign({ k: 'h', a: o.W([p0, o.ust]), b: o.W([p1, o.ust]), p: o.W([p0, y]), layer: ly }, o.gv ? { gv: o.gv } : {}))); n++; };
+    for (let i = 1; i < P.length; i++) dm(P[i - 1], P[i], S.y1);
+    if (P.length > 2) dm(P[0], P[P.length - 1], S.y2);
+    Object.assign(ae, { dims: false, extp: P.length > 2 ? S.extp : +(S.extp - (Y.siraModel || 0.25) / k).toFixed(2) }); delete ae._c;
+    return n;
+  };
   C.aksSync = e => { e.xsS = spTxt(e.xs); e.ysS = spTxt(e.ys); return e; };
   C.aksSet = (e, k, v) => { const sp = parseSp(v); if (k === 'xsS') e.xs = toPos(sp); else e.ys = toPos(sp); C.aksSync(e); delete e._c; };
 
