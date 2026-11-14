@@ -278,10 +278,33 @@
   /* görünüşün zemin kotu: tretuvarın oturduğu zemin (zg) en düşüğü; yoksa "toprak / zemin" adlı seviye; yoksa null (kırpılmaz) */
   const zeminKotu = (ogeler, seviyeler) => { const t = (ogeler || []).filter(e => e.type === 'tretuvar' && isFinite(+e.zg)).map(e => +e.zg);
     if (t.length) return Math.min(...t); const s = (seviyeler || []).find(q => /toprak|tabii zemin|zemin kotu/i.test(String(q.ad || q.id || ''))); return s && isFinite(+s.z) ? +s.z : null; };
-  const api = { tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  /* ---------- 7) SİLUET KENARI (plan / kesit / görünüş gizli çizgi motoru için) ----------
+     C.silEdges (mesh.js) bir yüzü bakana dönük, komşusu arkaya dönük her kenarı siluet sayar. Üst üste katmanlı nesnelerde (zemin kaplaması:
+     kaba şap + şap + kaplama) bir katmanın üst yüzü ile bir sonrakinin alt yüzü aynı düzlemde sırt sırtadır; üçgenleme köşegenleri de siluet
+     çıkıyordu (Konya ±0.00 planında galeri yürüme yolu üstünden geçen eğik çizgiler). Burada sırt sırta (normalleri zıt, aynı düzlemde)
+     iki yüz arasındaki kenar siluet sayılmaz; gerçek siluet (bakana dönük yüz ile arkaya dönük, zıt olmayan yüz) kalır.
+     P: üçgen köşeleri düz dizi [x,y,z × 3 …], d: bakış yönü, inner: [[başlangıç, bitiş) üçgen aralıkları] (iç yüzler atlanır). Döner: [[p, q] …] */
+  const siluetKenar = (P, d, inner) => {
+    if (!P || !P.length || P.length > 2.7e6) return [];
+    const inn = inner || [], K = i => Math.round(P[i] * 1e4) + ',' + Math.round(P[i + 1] * 1e4) + ',' + Math.round(P[i + 2] * 1e4), Mp = new Map();
+    for (let o = 0; o < P.length; o += 9) {
+      if (inn.length && inn.some(([a, b]) => o / 9 >= a && o / 9 < b)) continue;
+      const ux = P[o + 3] - P[o], uy = P[o + 4] - P[o + 1], uz = P[o + 5] - P[o + 2], vx = P[o + 6] - P[o], vy = P[o + 7] - P[o + 1], vz = P[o + 8] - P[o + 2];
+      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz); if (l < 1e-12) continue; nx /= l; ny /= l; nz /= l;
+      const dd = nx * d[0] + ny * d[1] + nz * d[2], sg = dd > 1e-4 ? 1 : dd < -1e-4 ? -1 : 2;
+      for (let m = 0; m < 3; m++) { const ia = o + m * 3, ib = o + ((m + 1) % 3) * 3, ka = K(ia), kb = K(ib); if (ka === kb) continue; const k = ka < kb ? ka + '|' + kb : kb + '|' + ka; let q = Mp.get(k); if (!q) Mp.set(k, q = { a: ia, b: ib, f: [] }); if (q.f.length < 8) q.f.push([sg, nx, ny, nz]); }
+    }
+    const out = [];
+    for (const q of Mp.values()) { const f = q.f; let sil = false;
+      for (let i = 0; i < f.length && !sil; i++) for (let j = i + 1; j < f.length; j++) { const a = f[i], b = f[j]; if (a[0] === b[0] || (a[0] === 2 && b[0] === 2)) continue; if (a[1] * b[1] + a[2] * b[2] + a[3] * b[3] < -0.9999) continue; sil = true; break; }
+      if (sil) out.push([[P[q.a], P[q.a + 1], P[q.a + 2]], [P[q.b], P[q.b + 1], P[q.b + 2]]]); }
+    return out;
+  };
+  const api = { siluetKenar, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
+  C.siluetKenar = (t, d) => (t && t.pos ? siluetKenar(t.pos, d, t.inner) : []); // gorunus.js / kesit.js gizli çizgi motoru (sırt sırta katman yüzleri siluet değil)
 
   /* ======================= MODEL BAĞLANTISI ======================= */
   const kural = () => (C.cizimKural && C.cizimKural.MIMARI) || {};

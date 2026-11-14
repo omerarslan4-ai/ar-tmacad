@@ -67,7 +67,7 @@
         if (!cizgisiz && X.length === 2 && Math.hypot(X[0][0] - X[1][0], X[0][1] - X[1][1]) > 1e-6) { X.g = e.id; X.lk = C.secLk ? C.secLk(e) : undefined; X.conc = CONC.has(e.type); if (C.secMat) X.mat = C.secMat(e); cut.push(X); }
       }
       const elk = C.secLk ? C.secLk(e) : undefined; if (cizgisiz) continue;
-      for (const [p, q] of (t.edges.length || !C.creaseEdges ? t.edges : C.creaseEdges(t, 35)).concat(C.silEdges ? C.silEdges(t, D) : [])) {
+      for (const [p, q] of (t.edges.length || !C.creaseEdges ? t.edges : C.creaseEdges(t, 35)).concat(C.siluetKenar ? C.siluetKenar(t, D) : C.silEdges ? C.silEdges(t, D) : [])) {
         let a = uvw(p), b = uvw(q);
         if (cutW != null) { const ia = keep(a[2]), ib = keep(b[2]); if (!ia && !ib) continue; if (ia !== ib) { const s = (cutW - a[2]) / (b[2] - a[2]), m = [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s, cutW]; if (ia) b = m; else a = m; } if (Math.min(a[2], b[2]) > cutW + depth) continue; }
         const sg = [a, b]; sg.lk = elk; edges.push(sg);

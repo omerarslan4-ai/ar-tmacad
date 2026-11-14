@@ -249,7 +249,7 @@
       }
       const elk = kdD ? lkOf(kdD) : lkOf(e);
       if (e.type === 'fit3' && C.fit3Line) for (const [p, q] of C.fit3Line(e)) { const dp = dist(p), dq = dist(q); if (Math.max(dp, dq) < -1e-6 || Math.min(dp, dq) > depth) continue; const A = uv(p), B = uv(q); if ((inU(A) || inU(B)) && Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-6) axes.push([A, B]); } // ek parça eksenleri (dirsek yayı, TE kolu)
-      if (!hlr) for (const [p, q] of t.edges.concat(C.silEdges ? C.silEdges(t, n) : [])) { const dp = dist(p), dq = dist(q); if (dp < -1e-6 || dq < -1e-6 || dp > depth || dq > depth) continue; const A = uv(p), B = uv(q); if (!inU(A) && !inU(B)) continue; if (Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-5) { const sg = [A, B]; sg.lk = elk; vis.push(sg); secEnts.add(e); } }
+      if (!hlr) for (const [p, q] of t.edges.concat(C.siluetKenar ? C.siluetKenar(t, n) : C.silEdges ? C.silEdges(t, n) : [])) { const dp = dist(p), dq = dist(q); if (dp < -1e-6 || dq < -1e-6 || dp > depth || dq > depth) continue; const A = uv(p), B = uv(q); if (!inU(A) && !inU(B)) continue; if (Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-5) { const sg = [A, B]; sg.lk = elk; vis.push(sg); secEnts.add(e); } }
     }
     let zAt = null;
     if (hlr && hlr.ents.length) { try { const D3 = [n[0], n[1], 0], r = C.projectModel({ ents: hlr.ents, d: D3, cutW: a[0] * n[0] + a[1] * n[1], depth, kenarsiz: hlr.kenarsiz });

@@ -162,4 +162,21 @@ t('korkuluk oklu açıklaması (Çokal İdari): yazı "KR1 Korkuluk h=110 cm" / 
   assert.ok(Math.abs(Math.hypot(r.kirik[0], r.kirik[1]) - 11.7) < 1e-9 && Math.abs(r.son[1] - r.kirik[1]) < 1e-9 && Math.abs(Math.abs(r.son[0] - r.kirik[0]) - 20) < 1e-9, 'eğik kol 11,7, yatay kırılma yazı genişliğinde');
 });
 
+/* Konya ±0.00 planı: zemin kaplaması üç katman (kaba şap / şap / kaplama) üst üste; galeri yürüme yolunun üstünden geçen eğik çizgiler
+   katman ara yüzlerindeki üçgenleme köşegenleriydi (sırt sırta iki yüz siluet sayılıyordu). */
+const kutuUcgen = (x0, y0, z0, x1, y1, z1) => { const v = (i) => [i & 1 ? x1 : x0, i & 2 ? y1 : y0, i & 4 ? z1 : z0], P = [];
+  const yuz = (a, b, c, d) => { for (const q of [[a, b, c], [a, c, d]]) for (const i of q) P.push(...v(i)); };
+  yuz(0, 2, 3, 1); yuz(4, 5, 7, 6); yuz(0, 1, 5, 4); yuz(2, 6, 7, 3); yuz(0, 4, 6, 2); yuz(1, 3, 7, 5); return P; };
+t('siluet: üst üste iki katman (plan, yukarıdan) — ara yüzün köşegeni çizilmez; dış hat kalır', () => {
+  const P = kutuUcgen(0, 0, -0.26, 4, 2, -0.06).concat(kutuUcgen(0, 0, -0.06, 4, 2, -0.02));
+  const S = A.siluetKenar(P, [0, 0, -1]);
+  const kosegen = S.filter(([p, q]) => Math.abs(p[0] - q[0]) > 1e-9 && Math.abs(p[1] - q[1]) > 1e-9);
+  assert.strictEqual(kosegen.length, 0, 'köşegen: ' + JSON.stringify(kosegen));
+  assert.ok(S.some(([p, q]) => Math.abs(p[2] + 0.06) < 1e-9 && Math.abs(q[2] + 0.06) < 1e-9 && Math.abs(p[1] - q[1]) < 1e-9), 'ara yüzde dış hat kenarı kalır');
+});
+t('siluet: tek kutu eğik bakışta dış hattı verir (eski davranış)', () => {
+  const S = A.siluetKenar(kutuUcgen(0, 0, 0, 1, 1, 1), [1, 1, -1]);
+  assert.strictEqual(S.length, 6); // izometrik kübün altıgen dış hattı
+});
+
 console.log(`\n${n} test geçti.`);
