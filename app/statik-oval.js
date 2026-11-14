@@ -330,6 +330,28 @@
     let model = null; if (n) { try { model = C.statikKabukModel(); localStorage.setItem('aritmacad.statik.model', JSON.stringify(model)); } catch (er) { uyar.push(er.message); } }
     return { n, log, uyar, model };
   };
+  /* yapı türü önerisi girdileri (statik penceresi › P.yapiTuru) */
+  // zemin kotu: en yüksek toprak (seviye listesindeki "toprak") ya da tretuvar üstü kotu; yoksa null
+  const zeminKotu = () => { const z = [], sv = C.doc.set && C.doc.set.seviye; if (sv && sv.toprak != null && isFinite(+sv.toprak)) z.push(+sv.toprak);
+    for (const e of C.doc.ents) if (e.type === 'tretuvar' && C.layer(e.layer).on && !(typeof e.gv === 'string') && isFinite(+e.zg)) z.push(+e.zg + (+e.h || 0));
+    return z.length ? r3(Math.max(...z)) : null; };
+  /* statik eleman listesi: metrajla aynı net parçalar (app/yapi-cakisma.js › net; öncelik temel > kolon > perde > kiriş > döşeme).
+     Statik hesaba girmeyenler sayılmaz: tuğla duvar, sıkıştırılmış dolgu, zemine (radye / dolgu üstüne) oturan döşeme (taban betonu, kaide). */
+  const netHacimler = () => {
+    const Y = C.yapiCakisma; if (!Y || !Y.net) return null;
+    const ents = C.doc.ents.filter(vis), zemin = ents.filter(e => (e.type === 'plak' && e.kind === 'radye') || e.type === 'dolgu').map(e => ({ z: e.type === 'dolgu' ? +e.zb : +e.zt || 0, pts: e.pts }));
+    const icinde = (q, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+    const oturur = e => { if (e.type !== 'plak' || e.kind === 'radye' || !Array.isArray(e.pts) || !e.pts.length) return false; const za = (+e.zt || 0) - (+e.t || 0.15), m = e.pts.reduce((q, p) => [q[0] + p[0] / e.pts.length, q[1] + p[1] / e.pts.length], [0, 0]);
+      return zemin.some(g => Math.abs(g.z - za) < 0.06 && Array.isArray(g.pts) && icinde(m, g.pts)); };
+    const N = Y.net(ents), liste = [], top = {}; let net = 0, brut = 0;
+    for (const [id, m] of N) { if (m.tur === 'duvar' || m.tur === 'dolgu') continue; const e = ents.find(x => x.id === id); if (!e || oturur(e)) continue;
+      liste.push({ id, tur: m.tur, ad: m.ad, no: e.no || e.ad || null, brut: r3(m.brut), net: r3(m.net) }); top[m.ad] = r3((top[m.ad] || 0) + m.net); net += m.net; brut += m.brut; }
+    return { liste, top, net: r3(net), brut: r3(brut) };
+  };
+  C._statikNetHacim = netHacimler;
+  // statik penceresinden projeye kayıtlı statik ayarı yazar (yapı türü, alt yapı üst kotu …) — C.doc.set.statikAyar
+  C._statikAyarYaz = o => { C.doc.set = C.doc.set || {}; const A = C.doc.set.statikAyar = Object.assign({}, C.doc.set.statikAyar || {});
+    for (const [k, v] of Object.entries(o || {})) { if (v == null) delete A[k]; else A[k] = v; } if (C.changed) C.changed(); return A; };
   // statik penceresi için 3B kabuk modeli (perde eksenleri, radye, döşemeler, kotlar)
   C.statikKabukModel = () => {
     // tek katı ünite yapıları (anaerobik havuz): seçiliyse ya da modelde perde yokken varsa onun modeli
@@ -373,6 +395,11 @@
       if (d && !d.hata && C._cerceveOku) { try { const cer = C._cerceveOku(); if (cer) { d.cerceve = cer; d.kabuk.kirisler = (cer.kirisler || []).map(k => ({ id: k.id, no: k.no, a: k.a, b: k.b, zt: k.zt, bw: k.bw, hb: k.hb })); d.kabuk.kolonlar = (cer.kolonlar || []).map(c => ({ id: c.id, no: c.no, x: c.x, y: c.y, bx: c.bx, by: c.by, D: c.D, z0: c.z0, zt: c.zt })); d.ozet += ' · çerçeve: ' + cer.ozet; d.uyar = (d.uyar || []).concat(cer.uyar || []); } } catch (er) { console.error(er); } }
       // projeye kayıtlı yapıya özgü kabuk tasarım kabulleri (C.doc.set.statikAyar: wmax çatlak sınırı mm, seritOrt şerit ortalaması m) — anaerobik modeli gibi kabuk verisiyle gider
       if (d && !d.hata && d.kabuk) { const A = (C.doc.set && C.doc.set.statikAyar) || {}; if (+A.wmax > 0 && !(d.kabuk.wmax > 0)) d.kabuk.wmax = +A.wmax; if (+A.seritOrt > 0 && !(d.kabuk.seritOrt > 0)) d.kabuk.seritOrt = +A.seritOrt; }
+      // perde + radye yoksa (yalnız kolon / kiriş: bina) kabuk modeli kurulamaz — çerçeve yine gönderilir (yapı türü: yalnız üst yapı)
+      if (d && d.hata && C._cerceveOku) { try { const cer = C._cerceveOku(); if (cer) d = { t: Date.now(), cerceve: cer, geo: null, koken: null, ozet: 'çerçeve: ' + cer.ozet, uyar: (cer.uyar || []).concat([`Perde + radye (kabuk) modeli kurulamadı (${d.hata}) — yalnız kolon / kiriş / döşeme gönderildi.`]) }; } catch (er) { console.error(er); } }
+      // yapı türü önerisi için (statik penceresi, P.yapiTuru): zemin / tretuvar kotu, haznede su, projeye kayıtlı statik ayarları ve
+      // metrajla aynı net eleman hacimleri (app/yapi-cakisma.js) — statik eleman listesi ve ağırlık bunlardan
+      if (d && !d.hata) { try { d.zeminKot = zeminKotu(); d.su = !!(d.geo && d.geo.kSu != null && d.geo.kAlt != null && +d.geo.kSu > +d.geo.kAlt + (+d.geo.hr || 0) + 0.05); const A = C.doc.set && C.doc.set.statikAyar; if (A) d.statikAyar = JSON.parse(JSON.stringify(A)); d.hacim = netHacimler(); } catch (er) { console.error(er); } }
       C._statikSonModel = d; // pencere doğrudan buradan da okur (localStorage dolu / yazılamazsa eski model kalmasın)
       try { localStorage.setItem('aritmacad.statik.model', JSON.stringify(d)); } catch (er) { try { ['aritmacad.statik.cizim', 'aritmacad.statik.donati', 'aritmacad.statik.model'].forEach(x => localStorage.removeItem(x)); localStorage.setItem('aritmacad.statik.model', JSON.stringify(d)); } catch (er2) { C.warn('Model aktarılamadı: ' + er2.message); } }
       if (!d.hata) { C.log(`${L >= 0.3 ? `Yay / oval planlı hazne (${r3(L)} m yay / eğik perde)` : 'Dikdörtgen yapı'}: statik penceresine 3B KABUK modeli (SAP2000 tipi) gönderildi — ${d.ozet}. Statik penceresinde Hesapla'ya basın.`); C.changed();

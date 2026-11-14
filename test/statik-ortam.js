@@ -31,6 +31,7 @@ const modelOrtam = () => {
   // perde yüz ötelemeleri ve parça çerçeveleri: insaat.js içindeki kaynak metin (aynı hesap)
   const src = fs.readFileSync(path.join(KOK, 'app/insaat.js'), 'utf8').split('\n'), a = src.findIndex(l => /const faceOffs = e =>/.test(l)), b = src.findIndex(l => /const openingsOf = /.test(l));
   if (a < 0 || b < a) throw new Error('statik-ortam: app/insaat.js içinde faceOffs / segFrames bulunamadı (test ortamını güncelleyin)');
+  C.yapiCakisma = require(path.join(KOK, 'app/yapi-cakisma.js')); // net eleman hacimleri (statik eleman listesi)
   C._ins = new Function('M', 'const p2 = q => [q[0], q[1]];\n' + src.slice(a, b).join('\n') + '\nreturn { faceOffs, segFrames };')(M);
   require(path.join(KOK, 'app/statik-model.js'));
   require(path.join(KOK, 'app/statik-oval.js'));
@@ -54,7 +55,7 @@ const pencere = () => {
   globalThis.document = { head: el(), body: el(), addEventListener() { }, querySelector: () => el(), querySelectorAll: () => [], getElementById: () => el(), createElement: () => el() };
   Object.assign(globalThis, { S: undefined, R: null, RC: null, FORM: [], F: () => ({}), buildForm: () => { }, changed: () => { }, save: () => { }, onizle: () => { }, hepsi: () => { }, modelUygula: () => { }, $: () => el(), rapor: () => { }, specAl: () => [], goster: () => { }, hesapla: () => { }, oner: () => { }, cizimeAktar: () => { }, dxfIndir: () => { }, cerGoster: () => { }, cerVar: () => !!(globalThis.S && globalThis.S.cer), f2: (v, d = 2) => (v == null || !isFinite(v) ? '—' : (+v).toFixed(d).replace('.', ',')), alert: s => { throw new Error('alert: ' + s); } });
   const H = path.join(KOK, 'app/hesap');
-  for (const f of ['statik-plak', 'statik-motor', 'statik-cizim', 'statik-cerceve', 'statik-rapor-dsi', 'statik-pafta-dsi', 'statik-aradoseme', 'statik-tbdy-rapor', 'statik-cerceve3b', 'statik-guse', 'statik-kolon-pafta', 'statik-cerceve-perspektif', 'statik-kabuk', 'statik-kabuk-arayuz', 'statik-kabuk-rapor', 'statik-kabuk-pafta', 'statik-kabuk-donati'])
+  for (const f of ['statik-plak', 'statik-motor', 'statik-cizim', 'statik-cerceve', 'statik-rapor-dsi', 'statik-pafta-dsi', 'statik-aradoseme', 'statik-tbdy-rapor', 'statik-cerceve3b', 'statik-guse', 'statik-kolon-pafta', 'statik-cerceve-perspektif', 'statik-kabuk', 'statik-kabuk-arayuz', 'statik-kabuk-rapor', 'statik-kabuk-pafta', 'statik-kabuk-donati', 'statik-yapi-turu'])
   { require(path.join(H, f + '.js')); if (f === 'statik-motor') globalThis.S = globalThis.STATIK.ornekSaray(); } // pencere girdisi S: rapor / pafta eklentileri yüklenirken okur
   P = globalThis.STATIK; return P;
 };
