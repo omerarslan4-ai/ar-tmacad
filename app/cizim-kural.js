@@ -88,10 +88,31 @@
       detay: { ilkSira: 14, siraAraligi: 7, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
     },
     kot: { blok: 'CK_TR1', yasakBlok: ['KOT101'], katman: 'Kot' }, // karar 7
-    /* katman → izin verilen tarama desenleri (karar 8: kesit taraması DASH ya da SOLID; AR-SAND / ANSI36 / ANSI31 kullanılmaz) */
-    /* kesilen betonun taraması: örneklerde DASH, ölçek 0,50, açı 0 (cm çizim, 1/50) → kâğıtta satır aralığı 0,32 mm; programdaki açıklama ölçeği 0,1 */
-    kesitTarama: { desen: 'DASH', aci: 0, kagitOlcek: 0.1, yerine: ['ANSI31', 'ANSI36', 'AR-SAND'],
+    /* KESİT TARAMALARI — kullanıcı kararı 14.11.2026: "taramalar örnek projede ne ise o şekilde taranacak" (12.11'deki "yalnız DASH ya da SOLID" kararının yerine).
+       Çokal R2 setinden ölçüldü (11 dosya, 1/50 kesitler; cm çizim, desenler acadiso). olcek / aci: örnekteki desen ölçeği ve açısı;
+       sc: programdaki karşılığı — açıklama ölçeği (kâğıt üstü; örnekteki desen aralığı ÷ programdaki desen tanımı × 0,2, AR-SAND / AR-CONC tanım çarpanı 0,05 dahil),
+       gercek: desen gerçek boyutlu (AR-B816; sc = örnekteki aralık cm × 10 ÷ tanım mm). Örnekte karşılığı olmayan malzeme null: programın kendi deseni kalır. */
+    kesitTarama: {
+      malzeme: {
+        beton: { katman: 'Tarama', desen: 'ANSI36', olcek: 50, aci: 0, sc: 0.3937, ne: 'Kesilen beton (perde, radye, döşeme, kiriş, kolon)' },        // 8 dosyada 50 (k3, k4, k12'de 2,5 = aynı aralık)
+        grobeton: { katman: 'Grobeton', desen: 'AR-CONC', olcek: 5, aci: 0, sc: 0.7874, ne: 'Grobeton' },                                         // 9 dosyada 5 (k3, k4'te 0,1)
+        tugla: { katman: 'Tarama', desen: 'AR-B816', olcek: 1, aci: 0, sc: 0.394, gercek: true, ne: 'Tuğla duvar (kesit ve plan)' },             // İdari bina, Blower binası
+        gazbeton: null,                                                                                                                       // örnekte ayrı deseni yok
+        dolgu: { katman: 'Toprak', desen: 'AR-SAND', olcek: 10, aci: 0, sc: 1.8251, ne: 'Dolgu (döşeme altı)' },                                // İdari bina (6); Çamursuzlaştırma (3) / Blower'da (1) 0,5
+        tretuvarKaplama: { katman: 'Tarama', desen: 'DASH', olcek: 0.5, aci: 0, sc: 0.1, ne: 'Tretuvar kaplaması (8 cm kilit parke taşı)' },     // 7 dosya
+        tretuvarAlt: { katman: 'Tarama', desen: 'AR-SAND', olcek: 0.03, aci: 45, sc: 0.1391, ne: 'Tretuvar kaplama altı (kum yatak / harç, stabilize; örnekte tek katman)' },
+        bordur: { katman: 'Tarama', desen: 'ANSI31', olcek: 0.5, aci: 90, sc: 0.1, ne: 'Bordür' },
+        tretuvarBeton: { katman: 'Tarama', desen: 'ANSI36', olcek: 50, aci: 0, sc: 0.3937, ne: 'Tretuvar betonu (1/10 tretuvar detayında beton gibi taranmış)' },
+        yatak: null,                                                                                                                          // bordür yatak betonu: örnekte yok
+        yalitim: null,                                                                                                                        // yalıtım: örnekte taraması yok
+        su: { katman: 'Su', desen: 'ANSI31', olcek: 20, aci: 135, sc: 0.1575, ne: 'Su (program kesitte su taramaz)' },
+      },
+      /* programın kesit malzeme kodu (kesit.js → secMat / tretSecMat) → yukarıdaki malzeme */
+      kod: { B: 'beton', D: 'beton', G: 'grobeton', 'T:tugla': 'tugla', 'T:gazbeton': 'gazbeton', F: 'dolgu', Y: 'yalitim',
+        'TR:kap': 'tretuvarKaplama', 'TR:harc': 'tretuvarAlt', 'TR:stab': 'tretuvarAlt', 'TR:bord': 'bordur', 'TR:beton': 'tretuvarBeton', 'TR:yatak': 'yatak' },
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
+    /* MAHAL LİSTESİ — R2 İdari bina mahal listesi: başlık 4 mm (Yazi_Baslik katmanı; programda başlık katmanı Yazi30), öteki yazılar 2 mm (kullanıcı kararı 14.11.2026) */
+    mahalListesi: { baslikMm: 4, yaziMm: 2 },
     /* MALZEME AÇILIMI ve PERDE / DÖŞEME NUMARALARI (Çokal R2: çöktürme, yoğunlaştırma, ön arıtma, terfi mimari paftalarından ölçüldü; kâğıt mm).
        etiket: kesitte elemanın yanındaki kod (DU01, DÖ02 …) — 2,5 mm YZ, katman Mim_Yazi25; koddan elemana ince çizgi (renk 243).
                Duvarda çizgi yataydır: duvarın ortasından çıkar, yüzden 4,5 mm sonra biter, kod çizgiden 1,3 mm sonra başlar.
@@ -137,7 +158,10 @@
       [/^(INS_(PERDE|KOLON|DUVAR.*|TEMEL.*|PARAPET|AYAK_DUVARI)|BETON|DUVAR)$/, 'Beton'],
       [/^INS_(DOSEME|CATI_DOSEMESI|KIRIS|PENCERE|KAPI|CATI)$/, 'Ongor'], [/^RAMPA$/, 'Ongor'], /* rampa: KABUL */
     ],
-    tarama: { 'Tarama': ['DASH', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
+    /* katman → izin verilen tarama desenleri (14.11.2026: örnekteki desenler; kesitTarama.malzeme ile aynı olmalı — test/cizim-karsilastir.test.js) */
+    tarama: { 'Tarama': ['ANSI36', 'DASH', 'AR-SAND', 'ANSI31', 'AR-B816', 'SOLID'], 'Grobeton': ['AR-CONC'], 'Toprak': ['AR-SAND'], 'Su': ['ANSI31'], 'Solid': ['SOLID'], 'Ongor': ['ANSI31'], 'Kesit_Cizgisi': ['SOLID'], 'Kot': ['SOLID'], 'GNY': ['SOLID'] },
+    /* örnekte karşılığı olmayan malzemelerin programdaki deseni (yalıtım ZIGZAG): denetimde hata değil uyarı */
+    taramaKabul: { 'Tarama': ['ZIGZAG'] },
   };
   /* ---------- STATİK (Çokal AAT R1 statik paftaları: havalandırma havuzu, çamur susuzlaştırma binası, blower binası, geri devir terfi;
      13.11.2026'da ölçüldü — TASLAK: dört örnekte aynı olan değerler yazıldı, örneklerin birbirini tutmadığı yerler belgede "açık sorular"da) ---------- */
@@ -253,6 +277,14 @@
         if (!tamam) out.eksikDusey = true; /* üstü açık hacim: düşey zincir kurulamadı → dıştaki düşey zincir kalır (kesit.js) */ } }
     return out;
   };
+  /* KESİT TARAMASI (saf): programın kesit malzeme kodu (B, D, G, F, Y, T:tugla, TR:kap …) → kural tablosundaki tarama.
+     Döner: { pat, ang, sc, ann, katman } · null = örnekte karşılığı yok (program kendi desenini kullanır) · undefined = kod tanınmıyor */
+  K.kesitTaramaSec = (kural, mat) => {
+    const T = kural && kural.kesitTarama; if (!T || !T.malzeme || !mat) return undefined;
+    const ad = (T.kod || {})[mat]; if (!ad) return undefined;
+    const m = T.malzeme[ad]; if (!m) return null;
+    return { pat: m.desen, ang: m.aci || 0, sc: m.sc, ann: !m.gercek, katman: m.katman };
+  };
   const KESIKLI = /^(HIDDEN|DASHED)$/;
   /* ÇIKTI EŞLEMESİ (saf): kayitlar = [{ st: { layer, color, lt, lw } }], katmanlar = { ad: { name, color, lt, lw, on, lock } }.
      Eşlenen her kaydın katmanı çizim katmanına çevrilir, renk / çizgi tipi / kalınlık katmandan alınır (karar 3); nesne elle kesikli çizgi tipi
@@ -260,14 +292,17 @@
   K.ciktiUygula = (kural, kayitlar, katmanlar, o) => {
     let eslenen = 0; const yok = new Set(), kullanilan = new Set(['0']), TK = kural.tipKatman || {}, YK = kural.yazi || {};
     for (const r of kayitlar) { const st = r && r.st; if (!st) continue;
-      let h = K.esle(kural, st.layer); if (h && r.tip && TK[r.tip] && kural.katmanlar[h]) h = TK[r.tip];
+      const tip = (r.pr && r.pr.rol) || r.tip;                                                                       // rol: tek bir parçanın türü (ör. mahal listesi başlığı)
+      let h = K.esle(kural, st.layer); if (h && tip && TK[tip] && kural.katmanlar[h]) h = TK[tip];
       const yazi = r.pr && r.pr.k === 'T';
       if (h && yazi) { const mm = o && o.mm ? o.mm(r) : null;
-        if (r.tip === 'baslik' && mm != null && mm < 3.5) h = kural.yaziKatmani;                                    // başlığın altındaki ölçek satırı
+        if (tip === 'baslik' && mm != null && mm < 3.5) h = kural.yaziKatmani;                                   // başlığın altındaki ölçek satırı
         else if (kural.katmanlar[h] && !kural.katmanlar[h].serbest && !YK[h] && h !== kural.olcu.katman) h = kural.yaziKatmani; // çizgi katmanındaki yazı
         const yr = YK[h]; if (yr && yr.stil && !yr.stil.includes(r.pr.st)) r.pr = Object.assign({}, r.pr, { st: yr.stil[0] });
         if (yr && yr.mm && mm != null && mm < Math.min(...yr.mm) - 0.05) r.pr = Object.assign({}, r.pr, { h: r.pr.h * Math.min(...yr.mm) / mm }); }  // en küçük yazı boyunun altındaki etiketler o boya çıkarılır        // yazı stili kuraldaki stil
-      if (h === 'Tarama' && r.kind === 'hatch' && r.e && (kural.tarama.Grobeton || []).includes(r.e.pat)) h = 'Grobeton';   // beton deseni (AR-CONC) grobeton katmanında
+      if (h === 'Tarama' && r.kind === 'hatch' && r.e) { const ks = K.kesitTaramaSec(kural, r.e.smat);
+        if (ks && ks.katman && kural.katmanlar[ks.katman]) h = ks.katman;                                                 // malzemenin örnekteki katmanı (dolgu → Toprak, grobeton → Grobeton)
+        else if ((kural.tarama.Grobeton || []).includes(r.e.pat)) h = 'Grobeton'; }                                        // beton deseni (AR-CONC) grobeton katmanında
       if (!h) { if (st.layer !== '0') yok.add(st.layer); kullanilan.add(st.layer); continue; }
       if (KESIKLI.test(String(st.lt || '').toUpperCase())) h = h === 'Beton' ? 'Beton_Kesik' : h === 'Ongor' ? 'Arkagor' : h;
       else if (h === 'Beton' && r.kind !== 'hatch' && st.lw != null && st.lw >= 0 && st.lw <= 20) h = 'Tarama';   // kesilen elemanın içindeki ince tarama çizgileri (plan sembolü)

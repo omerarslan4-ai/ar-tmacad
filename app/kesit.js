@@ -156,7 +156,11 @@
   /* kesitte malzeme grubu: B = temel+perde (tek gövde), D = döşeme+kiriş+kolon (tek gövde, ters yön tarama), T:x = kâgir duvar, G = grobeton */
   C.secMat = e => { if (e.type === 'cati' || e.type === 'tretuvar') return 'K'; if (e.type === 'yalitim') return e.kind === 'bant' ? 'K' : 'Y'; if (e.type === 'kaplama') return 'K'; if (e.type === 'dolgu') return 'F'; if (e.type === 'perde') return (e.malz || 'beton') === 'beton' ? 'B' : 'T:' + e.malz; if ((e.type === 'plak' && e.kind !== 'radye') || e.type === 'kiris' || e.type === 'kolon' || e.type === 'slab') return 'D'; return 'B'; };
   C.secFnd = e => (e.type === 'yalitim' && e.kind === 'temel') || e.type === 'temel' || (e.type === 'plak' && e.kind === 'radye') || (e.type === 'perde' && e.temel) || e.type === 'tank' || e.type === 'ctank';
+  /* Çokal pafta stilinde (PAFTASTIL COKAL) taramalar örnek projedeki gibidir: desen, açı, ölçek kural tablosundan (app/cizim-kural.js → MIMARI.kesitTarama;
+     kullanıcı kararı 14.11.2026). Tabloda karşılığı olmayan malzeme (null) ve eski görünüm (PAFTASTIL KLASIK) aşağıdaki program desenleriyle taranır. */
+  const kuralTarama = mat => { try { const K = C.cizimKural; if (!K || !K.kesitTaramaSec || !(C.pstil && C.pstil())) return null; const s = K.kesitTaramaSec(K.MIMARI, mat); if (!s || !(C.HATCH_PATTERNS || {})[s.pat]) return null; return { pat: s.pat, ang: s.ang, sc: s.sc, ann: s.ann }; } catch (e) { return null; } };
   C.secHatchSpec = (mat, base, plan) => {
+    const kt = mat !== 'K' && kuralTarama(mat || 'B'); if (kt) return kt;
     const P = C.HATCH_PATTERNS || {}, b = P[base] ? base : 'ANSI31';
     if (mat === 'D') return { pat: b, ang: 90, sc: 1, ann: true };
     if (mat === 'G') return { pat: 'AR-CONC', ang: 0, sc: 0.5, ann: true };
@@ -358,7 +362,7 @@
     // plandaki kesit işareti
     if (C.makeSectionMark) C.makeSectionMark(a, b, n, nm);
     else { const ah = C.annoH(4), m1 = M.add(a, M.mul(n, ah * 1.5)), m2 = M.add(b, M.mul(n, ah * 1.5)); C.add(C.newEnt('line', { a, b, layer: 'EKSEN', lt: 'PHANTOM', lw: 35 })); for (const [p, m] of [[a, m1], [b, m2]]) { C.add(C.newEnt('line', { a: p, b: m, layer: 'EKSEN', lw: 35 })); C.add(C.newEnt('text', { p: M.add(m, M.mul(n, ah * 0.4)), h: ah, s: nm, rot: 0, al: 'C', layer: 'YAZI' })); } }
-    C.log(`${nm}-${nm} kesiti üretildi: ${R.loops.length} yapı kesit sınırı + ${R.equip.length} ekipman (tek parça), ${nV} görünen çizgi${nA ? `, ${nA} aks` : ''}${nK ? `, ${nK} yüzey kotu (kapatmak: KESITAL KOT=H)` : ''}${nD ? `, ${nD} ölçü (kapatmak: KESITAL OLCU=H)` : ''}${nH ? `, ${nH} malzeme grubu ayrı tarandı (betonarme ${pat}, döşeme/kiriş ters yön, duvar tuğla, grobeton ${gb * 100} cm${gb ? '' : ' yok'}; desen: KESITAL T=AR-CONC ya da T=YOK; sonradan taramaya çift tıklayın)` : ''}. Gizli çizgiler ayıklanmaz.`);
+    C.log(`${nm}-${nm} kesiti üretildi: ${R.loops.length} yapı kesit sınırı + ${R.equip.length} ekipman (tek parça), ${nV} görünen çizgi${nA ? `, ${nA} aks` : ''}${nK ? `, ${nK} yüzey kotu (kapatmak: KESITAL KOT=H)` : ''}${nD ? `, ${nD} ölçü (kapatmak: KESITAL OLCU=H)` : ''}${nH ? `, ${nH} malzeme grubu ayrı tarandı (${C.pstil && C.pstil() ? `desenler örnek projedeki gibi (beton ANSI36, tuğla AR-B816, grobeton AR-CONC, dolgu AR-SAND), grobeton ${gb * 100} cm${gb ? '' : ' yok'}; taramasız: KESITAL T=YOK` : `betonarme ${pat}, döşeme/kiriş ters yön, duvar tuğla, grobeton ${gb * 100} cm${gb ? '' : ' yok'}; desen: KESITAL T=AR-CONC ya da T=YOK`}; sonradan taramaya çift tıklayın)` : ''}. Gizli çizgiler ayıklanmaz.`);
     letter++;
   });
 })(window.C);

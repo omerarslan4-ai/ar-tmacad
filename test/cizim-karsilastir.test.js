@@ -48,7 +48,26 @@ t('ölçü: katman, eğik tik, yazı üstte ve hizalı, yazı stili, ondalık', 
   const k = konular(denetle(P, K)); assert.deepStrictEqual(k, ['HATA:ölçü katmanı:50', 'HATA:ölçü ucu:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü yazısı:50', 'HATA:ölçü ondalığı:50', 'HATA:ölçü yazısı:50']);
 });
 t('kot bloğu ve tarama deseni', () => {
-  const P = dogru(); P.bloklar.KOT101 = { adet: 3, katman: { Kot: 3 } }; P.bloklar.CK_TR1.katman = { Kot: 1, Beton: 1 }; P.taramalar.Tarama = { DASH: 5, SOLID: 1, 'AR-SAND': 2 }; P.taramalar.Beton = { SOLID: 1 };
+  const P = dogru(); P.bloklar.KOT101 = { adet: 3, katman: { Kot: 3 } }; P.bloklar.CK_TR1.katman = { Kot: 1, Beton: 1 }; P.taramalar.Tarama = { ANSI36: 5, DASH: 2, SOLID: 1, 'AR-SAND': 2, GRAVEL: 2 }; P.taramalar.Beton = { SOLID: 1 };
   assert.deepStrictEqual(konular(denetle(P, K)), ['HATA:kot işareti:KOT101', 'HATA:kot işareti:CK_TR1', 'HATA:tarama deseni:Tarama', 'UYARI:tarama:Beton']);
+});
+t('tarama: örnekteki desenler geçer (14.11.2026); örnekte karşılığı olmayan yalıtım deseni uyarı; dolgu Toprak katmanında', () => {
+  const P = dogru(); P.taramalar = { Tarama: { ANSI36: 9, DASH: 5, 'AR-SAND': 4, ANSI31: 2, 'AR-B816': 2, ZIGZAG: 1 }, Grobeton: { 'AR-CONC': 3 }, Toprak: { 'AR-SAND': 1 } };
+  P.kullanim.Toprak = { tur: { HATCH: 1 }, renk: { katmandan: 1 }, cizgiTipi: { katmandan: 1 }, kalinlik: { katmandan: 1 }, toplam: 1 }; P.kullanim.Grobeton = Object.assign({}, P.kullanim.Toprak);
+  assert.deepStrictEqual(konular(denetle(P, K)), ['UYARI:tarama deseni:Tarama']);
+  P.taramalar.Toprak = { GRAVEL: 1 }; assert.deepStrictEqual(konular(denetle(P, K)), ['UYARI:tarama deseni:Tarama', 'HATA:tarama deseni:Toprak']);
+});
+t('kural tablosu: her malzemenin deseni kendi katmanında izinli; örnekten ölçülen değerler', () => {
+  const T = K.kesitTarama;
+  for (const [ad, m] of Object.entries(T.malzeme)) if (m) assert.ok((K.tarama[m.katman] || []).includes(m.desen), ad + ': ' + m.desen + ' / ' + m.katman);
+  for (const [kod, ad] of Object.entries(T.kod)) assert.ok(ad in T.malzeme, 'kod → malzeme yok: ' + kod);
+  // Çokal R2 (1/50, cm çizim): beton ANSI36 50, grobeton AR-CONC 5, tuğla AR-B816 1, dolgu AR-SAND 10, tretuvar DASH 0,5 / AR-SAND 0,03 45° / bordür ANSI31 0,5 90°
+  const o = a => [T.malzeme[a].desen, T.malzeme[a].olcek, T.malzeme[a].aci, T.malzeme[a].katman];
+  assert.deepStrictEqual([o('beton'), o('grobeton'), o('tugla'), o('dolgu'), o('tretuvarKaplama'), o('tretuvarAlt'), o('bordur')],
+    [['ANSI36', 50, 0, 'Tarama'], ['AR-CONC', 5, 0, 'Grobeton'], ['AR-B816', 1, 0, 'Tarama'], ['AR-SAND', 10, 0, 'Toprak'], ['DASH', 0.5, 0, 'Tarama'], ['AR-SAND', 0.03, 45, 'Tarama'], ['ANSI31', 0.5, 90, 'Tarama']]);
+  // programdaki kâğıt ölçeği örnekteki desen aralığından: ANSI36 50 → aralık 12,6 cm (1/50'de 2,52 mm); program tanımı 6,40 mm → 0,3937
+  assert.ok(Math.abs(T.malzeme.beton.sc - 12.6 * 0.2 / Math.hypot(5.55625, 3.175)) < 0.002);
+  assert.ok(Math.abs(T.malzeme.tugla.sc - 80 / 203.2) < 0.001);   // AR-B816: sıra aralığı 8 cm (gerçek boyut)
+  assert.strictEqual(K.mahalListesi.baslikMm, 4); assert.ok(K.yazi.Yazi30.mm.includes(K.mahalListesi.baslikMm) && K.yazi.Mim_Yazi25.mm.includes(K.mahalListesi.yaziMm));
 });
 console.log(`\n${n} test geçti.`);

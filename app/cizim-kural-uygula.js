@@ -6,7 +6,7 @@
                  CIZIMKURAL komutu aynı şeyi açık çizimin var olan katmanlarına uygular.
      2) ÇIKTI  : AutoCAD'e 2B çıktıda (DXF2B, disiplin dosyaları) katman adları örnek çizimlerin adlarına çevrilir (Beton, Ongor, Arkagor,
                  ÖL, Kot, Aks, Tarama …), katman tablosuna örnekteki renk / çizgi tipi / kalınlık yazılır, nesneler bunları katmandan alır.
-     3) TARAMA : kesilen betonun taraması örnekteki gibi DASH (kesit taraması DASH ya da SOLID; ANSI31 / ANSI36 / AR-SAND kullanılmaz).
+     3) TARAMA : kesit taramaları örnek projedeki gibi (kullanıcı kararı 14.11.2026); desen seçimi kesit.js → secHatchSpec, tablo MIMARI.kesitTarama.
    Yalnız pafta stili COKAL iken etkindir (PAFTASTIL KLASIK: ArıtmaCAD'in eski görünümü, eşleme yapılmaz).
    Saf mantık (eşleme, çıktı dönüşümü) cizim-kural.js içindedir ve Node ile denenir: test/cizim-esle.test.js */
 (function (C) {
@@ -37,10 +37,7 @@
     for (const L of Object.values(layers)) { if (!C.LT[L.lt]) L.lt = 'CONTINUOUS'; usedLt.add(L.lt); }
     C.cizimKuralSon = r; return r;
   };
-  /* 3) kesilen betonun taraması */
-  if (C.secHatchSpec) { const s0 = C.secHatchSpec; C.secHatchSpec = function (mat, base, plan) { const sp = s0.apply(this, arguments), T = R().kesitTarama;
-      if (sp && T && etkin() && (!mat || mat === 'B' || mat === 'D') && T.yerine.includes(sp.pat) && (C.HATCH_PATTERNS || {})[T.desen]) return { pat: T.desen, ang: T.aci, sc: T.kagitOlcek, ann: true };
-      return sp; }; }
+  /* 3) kesit taramaları: kesit.js → secHatchSpec kural tablosundan seçer (MIMARI.kesitTarama) */
   /* beton olmayan kesilen parçaların (korkuluk, doğrama, profil) taraması */
   C.ekipTarama = () => (etkin() && R().kesitTarama.diger === 'SOLID' && (C.HATCH_PATTERNS || {}).SOLID ? { pat: 'SOLID', sc: 1 } : { pat: 'ANSI37', sc: 0.5 });
   const tazele = () => { for (const e of C.doc.ents) if (e._c) { delete e._c.p; delete e._c.b; } if (C.views) for (const w of Object.values(C.views)) if (w && 'dirty' in w) w.dirty = true; C.emit && C.emit('layers'); C.changed && C.changed(); };

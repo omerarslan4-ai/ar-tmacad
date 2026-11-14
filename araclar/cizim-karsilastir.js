@@ -78,7 +78,10 @@ function denetle(P, kural, o) {
   /* 7. taramalar */
   for (const [ad, t] of Object.entries(P.taramalar)) { if (!kat(ad) || kat(ad).serbest) continue; const izin = kural.tarama[ad];
     if (!izin) { ekle('UYARI', 'tarama', ad, `bu katmanda tarama beklenmiyor (${Object.entries(t).map(([d, n]) => d + '×' + n).join(', ')})`); continue; }
-    for (const [desen, n] of Object.entries(t)) if (!izin.some(x => esit(x, desen.split(',')[0]))) ekle('HATA', 'tarama deseni', ad, `${n} tarama ${desen}, olması gereken ${izin.join(' / ')}`); }
+    const kabul = (kural.taramaKabul || {})[ad] || [];                                    // örnekte karşılığı olmayan malzemenin programdaki deseni
+    for (const [desen, n] of Object.entries(t)) { const d = desen.split(',')[0]; if (izin.some(x => esit(x, d))) continue;
+      if (kabul.some(x => esit(x, d))) ekle('UYARI', 'tarama deseni', ad, `${n} tarama ${desen}: örnek çizimlerde bu malzemenin taraması yok (programın deseni kaldı)`);
+      else ekle('HATA', 'tarama deseni', ad, `${n} tarama ${desen}, olması gereken ${izin.join(' / ')}`); } }
 
   const hata = B.filter(b => b.duzey === 'HATA').length, uyari = B.length - hata;
   return { sonuc: hata ? 'UYGUN DEĞİL' : 'UYGUN', hata, uyari, bulgular: B, atlanan, bakilan: { katman: Object.keys(P.kullanim).length, nesne: P.uzay.model + P.uzay.kagit } };

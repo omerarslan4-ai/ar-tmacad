@@ -44,6 +44,22 @@ t('çıktı dönüşümü: ad çevrilir, özellik katmandan alınır, kesikli ç
   assert.deepStrictEqual([kat.Aks.color, kat.Aks.lt, kat.Aks.lw], [17, 'ACAD_ISO04W100', 13]);
   assert.deepStrictEqual([kat['ÖL'].color, kat['ÖL'].lw, kat.Kot.color, kat.Kot.lw, kat.Tarama.color, kat.Tarama.lw], [8, 15, 32, 20, 136, 9]);
 });
+t('kesit taraması: malzeme kodu → örnekteki desen; dolgu taraması Toprak, grobeton Grobeton katmanına gider; mahal listesi başlığı Yazi30', () => {
+  const s = m => K.kesitTaramaSec(M, m);
+  assert.deepStrictEqual(s('B'), { pat: 'ANSI36', ang: 0, sc: 0.3937, ann: true, katman: 'Tarama' });
+  assert.deepStrictEqual(s('D'), s('B'));                                   // döşeme de perde gibi (örnekte ayrı yön yok)
+  assert.deepStrictEqual(s('T:tugla'), { pat: 'AR-B816', ang: 0, sc: 0.394, ann: false, katman: 'Tarama' });
+  assert.deepStrictEqual([s('TR:kap').pat, s('TR:harc').pat, s('TR:stab').pat, s('TR:stab').ang, s('TR:bord').pat, s('TR:bord').ang], ['DASH', 'AR-SAND', 'AR-SAND', 45, 'ANSI31', 90]);
+  assert.strictEqual(s('F').katman, 'Toprak'); assert.strictEqual(s('G').pat, 'AR-CONC');
+  assert.strictEqual(s('T:gazbeton'), null); assert.strictEqual(s('TR:yatak'), null); assert.strictEqual(s('Y'), null);   // örnekte yok: program deseni
+  assert.strictEqual(s('K'), undefined); assert.strictEqual(s(undefined), undefined);
+  const h = (layer, smat, pat) => ({ kind: 'hatch', e: { smat, pat }, st: { layer, color: 256, lt: 'BYLAYER', lw: -1 } });
+  const kay = [h('KESIT_DOLGU_TARAMA', 'F', 'AR-SAND'), h('KESIT_TARAMA', 'B', 'ANSI36'), h('KESIT_TARAMA', 'G', 'AR-CONC'), h('KESIT_TRETUVAR_TARAMA', 'TR:yatak', 'AR-CONC'), h('KESIT_TARAMA', 'T:tugla', 'AR-B816')];
+  const y = (hh, rol) => ({ tip: 'mahaltablo', pr: Object.assign({ k: 'T', h: hh, st: 'YZ' }, rol ? { rol } : {}), st: { layer: 'MAHAL_LISTESI', color: 4, lt: 'BYLAYER', lw: -1 } });
+  kay.push(y(4, 'baslik'), y(2));
+  K.ciktiUygula(M, kay, {}, { mm: r => r.pr.h });
+  assert.deepStrictEqual(kay.map(k => k.st.layer), ['Toprak', 'Tarama', 'Grobeton', 'Grobeton', 'Tarama', 'Yazi30', 'Mim_Yazi25']);
+});
 t('dönüştürülen çıktı denetim aracından hatasız geçer', () => {
   const kul = (tur) => ({ tur, renk: { katmandan: 1 }, cizgiTipi: { katmandan: 1 }, kalinlik: { katmandan: 1 }, toplam: 1 });
   const kay = ['KESIT_PERDE', 'GORUNEN_DOSEME', 'KESIT_OLCU', 'KOT', 'AKS', 'ZEMIN', 'KESIT_PERDE_TARAMA', 'KESIT_MERDIVEN', 'GORUNEN_KORKULUK'].map(layer => ({ st: { layer, color: 3, lt: 'CONTINUOUS', lw: 18 } })), kat = { '0': { name: '0', color: 7, lt: 'CONTINUOUS', lw: 25 } };

@@ -436,20 +436,23 @@
   T.mahaltablo = {
     label: 'Mahal listesi',
     prims: e => {
-      const { rooms, cols } = mahalCached(), k = C.doc.set.anno / 1000, o0 = M.p3(e.p), out = [], st = kotSt(), tx = s => C.txL ? C.txL(s) : s, th = 1.8 * k, thS = 1.6 * k;
+      const { rooms, cols } = mahalCached(), k = C.doc.set.anno / 1000, o0 = M.p3(e.p), out = [], st = kotSt(), tx = s => C.txL ? C.txL(s) : s;
+      /* yazı boyları: Çokal pafta stilinde kural tablosundan (MIMARI.mahalListesi: başlık 4 mm, öteki yazılar 2 mm — R2 İdari bina mahal listesi), eski stilde programın boyları */
+      const ML = (() => { try { return C.pstil && C.pstil() && C.cizimKural && C.cizimKural.MIMARI.mahalListesi; } catch (er) { return null; } })();
+      const th = (ML ? ML.yaziMm : 1.8) * k, thS = (ML ? ML.yaziMm : 1.6) * k, hBas = (ML ? ML.baslikMm : 4) * k, hEt = (ML ? ML.yaziMm : 2.6) * k, hKot = (ML ? ML.yaziMm : 2) * k;
       const mw = s => C.measureText(tx(s), thS, C.textStyle(st));
-      const lc = { color: 1 }, X = (x, y) => [o0[0] + x, o0[1] - y, 0], LN = (x1, y1, x2, y2) => out.push(L(X(x1, y1), X(x2, y2), lc)), TXT = (x, y, h, s, al, rot, col) => out.push(TX(X(x, y), h, s, rot || 0, al, Object.assign({ color: col == null ? 7 : col }, st ? { st } : {})));
+      const lc = { color: 1 }, X = (x, y) => [o0[0] + x, o0[1] - y, 0], LN = (x1, y1, x2, y2) => out.push(L(X(x1, y1), X(x2, y2), lc)), TXT = (x, y, h, s, al, rot, col, rol) => out.push(TX(X(x, y), h, s, rot || 0, al, Object.assign({ color: col == null ? 7 : col }, st ? { st } : {}, rol ? { rol } : {})));
       const cw = 6 * k, nw = 14 * k, lvW = 12 * k, rmW = Math.max(45 * k, Math.min(90 * k, Math.max(0, ...rooms.map(r => mw(r.ad))) + 6 * k)), titleH = 10 * k, grpH = 7 * k, numH = 5 * k, rowH = 6.5 * k;
       const vnH = Math.min(75 * k, Math.max(35 * k, Math.max(0, ...cols.flat().map(mw)) + 6 * k));
       const used = GROUPS.map((g, i) => i).filter(i => cols[i].length);
-      const gH = 2.2 * k, nwOf = gi => Math.max(nw, C.measureText(tx(GROUPS[gi]), gH, C.textStyle(st)) + 3 * k - cols[gi].length * cw); let x = lvW + rmW; const gx = []; for (const gi of used) { gx.push([gi, x]); x += cols[gi].length * cw + nwOf(gi); } const W = x;
+      const gH = (ML ? ML.yaziMm : 2.2) * k, nwOf = gi => Math.max(nw, C.measureText(tx(GROUPS[gi]), gH, C.textStyle(st)) + 3 * k - cols[gi].length * cw); let x = lvW + rmW; const gx = []; for (const gi of used) { gx.push([gi, x]); x += cols[gi].length * cw + nwOf(gi); } const W = x;
       const hdrH = titleH + grpH + numH + vnH, H = hdrH + Math.max(1, rooms.length) * rowH;
       // dış çerçeve + başlık
       LN(0, 0, W, 0); LN(0, H, W, H); LN(0, 0, 0, H); LN(W, 0, W, H); LN(0, titleH, W, titleH);
-      TXT(W / 2, titleH * 0.72, 4 * k, 'MAHAL LİSTESİ' + (e.title ? ' — ' + e.title : ''), 'C', 0, 4);
+      TXT(W / 2, titleH * 0.72, hBas, 'MAHAL LİSTESİ' + (e.title ? ' — ' + e.title : ''), 'C', 0, 4, 'baslik');   // rol: AutoCAD çıktısında başlık katmanı (Yazi30)
       // sol başlıklar (dikey)
       LN(lvW, titleH, lvW, H); LN(lvW + rmW, titleH, lvW + rmW, H); LN(0, hdrH, W, hdrH);
-      TXT(lvW * 0.62, hdrH - 3 * k, 2.6 * k, 'Kat / Seviye', 'L', Math.PI / 2, 4); TXT(lvW + rmW * 0.5 + 1.2 * k, hdrH - 3 * k, 2.6 * k, 'Mahal adı', 'L', Math.PI / 2, 4);
+      TXT(lvW * 0.62, hdrH - 3 * k, hEt, 'Kat / Seviye', 'L', Math.PI / 2, 4); TXT(lvW + rmW * 0.5 + 1.2 * k, hdrH - 3 * k, hEt, 'Mahal adı', 'L', Math.PI / 2, 4);
       for (const [gi, gx0] of gx) {
         const n = cols[gi].length, nwG = nwOf(gi), gw = n * cw + nwG; LN(gx0, titleH, gx0, H); LN(gx0, titleH + grpH, gx0 + gw, titleH + grpH); LN(gx0, titleH + grpH + numH, gx0 + n * cw, titleH + grpH + numH);
         TXT(gx0 + 1.2 * k, titleH + grpH * 0.68, gH, GROUPS[gi], 'L', 0, 2);
@@ -463,7 +466,7 @@
         TXT(lvW + 1.5 * k, y0 + rowH * 0.68, th, r.ad, 'L', 0, 7);
         for (const [gi, gx0] of gx) cols[gi].forEach((m, j) => { if (r.G[gi].includes(m)) { const c = X(gx0 + j * cw + cw / 2, y0 + rowH / 2); out.push(CI(c, 1.25 * k, { color: 1 })); out.push(CI(c, 0.6 * k, { color: 1 })); out.push(S([[c[0] - 0.42 * k, c[1] - 0.42 * k, 0], [c[0] + 0.42 * k, c[1] - 0.42 * k, 0], [c[0] - 0.42 * k, c[1] + 0.42 * k, 0], [c[0] + 0.42 * k, c[1] + 0.42 * k, 0]], { color: 7 })); } });
         const last = i === rooms.length - 1 || Math.abs(rooms[i + 1].z - r.z) > 0.05;
-        if (last) { LN(0, y1, lvW, y1); const nr = i + 1 - lvStart, ym = hdrH + ((lvStart + i + 1) / 2) * rowH, lt = 'Kot ' + C.fmtKot(r.z), lw = C.measureText(tx(lt), 2 * k, C.textStyle(st)); if (lw + 2 * k <= nr * rowH) TXT(lvW * 0.62, ym + lw / 2, 2 * k, lt, 'L', Math.PI / 2, 4); else { const hh = Math.min(1.6 * k, (lvW - 1.5 * k) / Math.max(1e-9, lw / (2 * k))); TXT(lvW / 2, ym + hh / 2, hh, lt, 'C', 0, 4); } lvStart = i + 1; }
+        if (last) { LN(0, y1, lvW, y1); const nr = i + 1 - lvStart, ym = hdrH + ((lvStart + i + 1) / 2) * rowH, lt = 'Kot ' + C.fmtKot(r.z), lw = C.measureText(tx(lt), hKot, C.textStyle(st)); if (lw + 2 * k <= nr * rowH) TXT(lvW * 0.62, ym + lw / 2, hKot, lt, 'L', Math.PI / 2, 4); else { const hh = Math.min(thS, (lvW - 1.5 * k) / Math.max(1e-9, lw / hKot)); TXT(lvW / 2, ym + hh / 2, hh, lt, 'C', 0, 4); } lvStart = i + 1; }
       });
       if (!rooms.length) TXT(lvW + 2 * k, hdrH + rowH * 0.68, th, 'Zemin kaplaması (ZEMINKAPLAMA) verilmiş oda yok', 'L', 0, 7);
       return out;

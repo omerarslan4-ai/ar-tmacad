@@ -1,6 +1,6 @@
 # Mimari çizim kuralları
 
-Bu belge Ömer Bey'in örnek çizimlerinden **ölçülerek** çıkarıldı; tahmin içermez. Örneklerin birbirini tutmadığı sekiz noktada kullanıcı 12.11.2026'da karar verdi (aşağıda "Karar" diye işaretli).
+Bu belge Ömer Bey'in örnek çizimlerinden **ölçülerek** çıkarıldı; tahmin içermez. Örneklerin birbirini tutmadığı sekiz noktada kullanıcı 12.11.2026'da karar verdi (aşağıda "Karar" diye işaretli). Karar 8 (tarama) 14.11.2026'da değişti: taramalar örnek projedeki gibi (bölüm 5); mahal listesi başlığı 4 mm (bölüm 2).
 Çizen ajanlar (`pafta-cizim`) buna göre çizer, `cizim-denetci-mimari` ajanı programın çıktısını buna göre denetler.
 Sayıların programın okuduğu hâli `app/cizim-kural.js` içindeki `MIMARI` tablosudur; bu belge ile o tablo aynı şeyi söylemelidir.
 Denetim: `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50 --birim m` (programın çıktısı; model metre), `--olcek 50` (model santimetre, örnek çizimler) ya da `--kagit` (her şey kâğıt ölçüsünde).
@@ -22,7 +22,7 @@ Beş dosyanın beşinde de aynı ad, renk, çizgi tipi ve kalınlıkla geçenler
 | `Merdiven` | 95 | Continuous | 0,30 | Merdiven |
 | `Tretuvar` | 163 | Continuous | 0,20 | Tretuvar, saha kaplaması |
 | `Grobeton` | 233 | Continuous | 0,15 | Grobeton (AR-CONC taramasıyla) |
-| `Toprak` | 27 | Continuous | 0,20 | Zemin / toprak çizgisi |
+| `Toprak` | 27 | Continuous | 0,20 | Zemin / toprak çizgisi; dolgu taraması (bölüm 5) |
 | `Kesit_Cizgisi` | 133 | CENTER2 | 0,15 | Kesit çizgisi, kesit dairesi ve harfi |
 | `GNY` | 7 | Continuous | 0,15 | Kuzey işareti / genel gösterim |
 | `Yazi30` | 72 | Continuous | 0,30 | Başlık yazıları |
@@ -80,6 +80,10 @@ Yükseklikler kâğıt üstü mm olarak kuraldır; çizim birimi karşılığı 
 | Kesit harfi | `Kesit_Cizgisi` | ARIAL | 25 → 5 mm |
 | Mahal adı | `MAHAL İSİM` | ARIAL / TÜRKÇE | 15 – 20 → 3 – 4 mm |
 | Pafta başlığı | `Yazi30` | ARIAL BLACK | 20 → 4 mm |
+| Mahal listesi başlığı | `Yazi30` (R2'de `Yazi_Baslik`) | — | 20 → 4 mm |
+| Mahal listesi öteki yazıları (sütun başlıkları, mahal adları, kotlar) | `Mim_Yazi25` (R2'de `YZ`) | YZ | 10 → 2 mm |
+
+**Mahal listesi (kullanıcı kararı 14.11.2026):** başlık R2'deki gibi **4 mm** kalır. R2'de tek mahal listesi 10-İdari Bina_R2'de: başlık `Yazi_Baslik` katmanında 20 birim (4 mm), öteki yazılar `YZ` katmanında 10 birim (2 mm). Program başlığı AutoCAD çıktısında başlık katmanına (`Yazi30`) yazar, öteki yazıları 2 mm yazar (eskiden 2,6 / 2,2 / 1,8 / 1,6 mm). Sayılar: `app/cizim-kural.js → MIMARI.mahalListesi`.
 
 ## 3. Ölçü
 Beş dosyada ortak olanlar:
@@ -160,23 +164,37 @@ Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile ar
 - Mimari notlar: `MIMARI NOTLAR` bloğu, `YZ` katmanı.
 
 ## 5. Tarama
-| Katman | Desen | Ne için |
-| --- | --- | --- |
-| `Tarama` (renk 136, 0,09) | **DASH ya da SOLID** (Karar 8) | Kesit taramaları |
-| `Grobeton` | AR-CONC | Grobeton |
-| `Su` | ANSI31 | Su |
-| `Ongor` | ANSI31 | Görünüşte tarama |
-| `Solid` | SOLID | Dolu alan |
+**Kural (kullanıcı kararı 14.11.2026): "taramalar örnek projede ne ise o şekilde taranacak."** Bu karar 12.11.2026'daki "kesit taraması yalnız DASH ya da SOLID; AR-SAND, ANSI36, ANSI31 kullanılmaz" kararının (Karar 8) yerine geçer.
 
-Not: örneklerde `Tarama` katmanında AR-SAND, ANSI36 ve ANSI31 de kullanılmış. Kullanıcı 12.11.2026'da kesinleştirdi: kesit taraması **DASH ya da SOLID**; AR-SAND, ANSI36 ve ANSI31 kullanılmaz.
-**Doğrulanacak:** DASH ile SOLID arasındaki ayrım (hangisi hangi malzeme için). Kesinleşene kadar program kesilen betonu DASH ile tarar (örneklerde en sık kullanılan).
+**Nasıl ölçüldü (14.11.2026):** Çokal R2 setinden 11 dosya (1-Kaba-İnce, 2-Giriş Debimetre_R3, 3-Anaerobik_R3, 4-Havalandırma_R3, 5-Çamursuzlaştırma_R3, 6-Blower, 7-Çökeltme, 8-Geri Devir Terfi, 10-İdari Bina, 12-Çamur Yoğunlaştırma_R3, 17-Klor Temas) ODA ile DXF'e çevrildi; her taramanın katmanı, deseni, ölçeği, açısı ve desen aralığı okundu, malzemesi taramanın sınırındaki katmanlardan (Beton, Tretuvar, Duvar, Toprak …), boyutundan ve yanındaki yazılardan (ör. "Tuğla Duvar", "TRETUVAR DETAYI", mimari notlardaki "8 cm KİLİT PARKE TAŞI") çıkarıldı. Örnek çizimler cm, 1/50; desenler acadiso.
+
+| Malzeme (kesitte) | Katman | Desen | Ölçek | Açı | Desen aralığı (çizimde / 1/50 kâğıtta) | Nerede görüldü |
+| --- | --- | --- | --- | --- | --- | --- |
+| Kesilen beton (perde, radye, döşeme, kiriş, kolon, kaide) | `Tarama` | **ANSI36** | 50 | 0 | 12,6 cm / 2,5 mm | 1, 6, 7, 8, 10, 12, 17, 5 (en sık; 10-İdari Bina'da 124 adet). 3-Anaerobik, 4-Havalandırma ve 12'nin bir kısmında ölçek 2,5 (aynı aralık: 16 cm) |
+| Grobeton | `Grobeton` | **AR-CONC** | 5 | 0 | 36 cm | 1, 2, 5, 6, 7, 8, 10, 12, 17 (en sık). 3-Anaerobik ve 4-Havalandırma'da 0,1 |
+| Tuğla duvar (kesit ve plan) | `Tarama` | **AR-B816** | 1 | 0 | 8 cm | 10-İdari Bina (68 adet açı 0, 9 adet açı 90), 6-Blower (7 adet açı 90; 13 adet ölçek 0,05) — en sık: ölçek 1, açı 0 |
+| Gazbeton duvar | — | örnekte ayrı deseni yok | | | | program deseni kalır (AR-B816) |
+| Dolgu (döşeme altı, temel arası) | `Toprak` | **AR-SAND** | 10 | 0 | 19,3 cm | 10-İdari Bina (6 adet, betonla çevrili döşeme altı). 5-Çamursuzlaştırma (3) ve 6-Blower'da (1) ölçek 0,5 — en sık 10 alındı |
+| Tretuvar kaplaması (8 cm kilit parke taşı, 20 cm'lik parçalar) | `Tarama` | **DASH** | 0,5 | 0 | 2,2 cm | 1, 3, 4, 7, 8, 12, 17 (her tretuvarda) |
+| Tretuvar kaplama altı (kum yatak / harç, stabilize) | `Tarama` | **AR-SAND** | 0,03 | 45 | 1,5 cm | aynı 7 dosya; örnekte kaplamanın altı tek katman (12 cm) çizilmiş |
+| Bordür | `Tarama` | **ANSI31** | 0,5 | 90 | 1,6 cm | aynı 7 dosya (8×20 cm) |
+| Tretuvar betonu | `Tarama` | ANSI36 | 50 | 0 | | 1/50 kesitlerde ayrı beton katmanı yok; 10, 5, 6'daki 1/10 TRETUVAR DETAYI'nda beton katmanı ANSI36 |
+| Bordür yatak betonu | — | örnekte yok | | | | program deseni kalır (AR-CONC; çıktıda `Grobeton` katmanına gider) |
+| Yalıtım | — | örnekte taraması yok | | | | program deseni kalır (ZIGZAG; denetimde uyarı) |
+| Su | `Su` | ANSI31 | 20 | 135 | 2,5 cm | 1, 3, 4, 7, 8 (program kesitte su taramaz) |
+| Görünüşte tarama | `Ongor` | ANSI31 | | | | |
+| Dolu alan | `Solid` | SOLID | | | | |
+
+**Örneklerin birbirini tutmadığı yerler (en sık olan alındı):** beton ölçeği 50 / 2,5 (desen aralığı aynı); grobeton 5 / 0,1; dolgu 10 / 0,5; tuğla açısı 0 / 90. 1/10 tretuvar detayında (10, 5, 6) katmanlar başka desenlerle taranmış (kaplama ve beton ANSI36, harç AR-SAND 0,04, stabilize AR-SAND 0,08); kural 1/50 kesitlerdekini esas alır.
+**Örnekte görülen, programda karşılığı olmayan taramalar (kurala alınmadı):** şev `Sev` ANSI31 (8-Geri Devir, 1-Kaba-İnce), yol katmanları `Toprak` AR-SAND 2 ve 10 (asfalt ve temeli), görünüşte tabii zemin şeridi `Toprak` AR-PARQ1 2,5 / 315° (5, 6).
+**Beton olmayan kesilen parçalar** (korkuluk, doğrama, merdiven profili): `Tarama` katmanında SOLID — KABUL (kullanıcı doğrulayacak).
 
 ## 6. Programda uygulanışı (13.11.2026)
 Program içeride kendi katman adlarıyla çalışmaya devam eder (eski proje dosyaları bozulmasın diye); kural üç yerde uygulanır (`app/cizim-kural-uygula.js`, eşleme tablosu `app/cizim-kural.js` → `esleme`, `tipKatman`):
 
 1. **AutoCAD çıktısı (2B DXF / disiplin dosyaları):** katman adları bu belgedeki adlara çevrilir, katman tablosuna buradaki renk / çizgi tipi / kalınlık yazılır, nesneler bunları katmandan alır.
 2. **Ekran:** yeni üretilen kesit, görünüş, ölçü, kot, aks, yazı ve tarama katmanları buradaki renk, çizgi tipi ve kalınlıkla açılır. Açık bir çizimin eski katmanları için komut: `CIZIMKURAL`. Model katmanlarının (`INS_…`) ekrandaki rengine dokunulmaz.
-3. **Tarama:** kesilen beton DASH (ölçek 0,50 / açı 0; kâğıtta satır aralığı 0,32 mm) ile taranır.
+3. **Tarama:** kesit ve plan taramaları bölüm 5'teki tablodaki desen, açı ve ölçekle çizilir (14.11.2026; `app/kesit.js → secHatchSpec`, sayılar `MIMARI.kesitTarama`). Programdaki ölçek kâğıda göredir: örnekteki desen aralığı korunur (ANSI36 → 0,3937, AR-CONC → 0,7874, AR-SAND dolgu → 1,8251, tretuvar AR-SAND → 0,1391, DASH ve bordür ANSI31 → 0,1; AR-B816 gerçek boyutlu 0,394). Dolgu taraması çıktıda `Toprak`, grobeton `Grobeton` katmanına gider. Eski görünümde (PAFTASTIL KLASIK) programın kendi desenleri kalır.
 
 Program katmanı → çizim katmanı:
 
@@ -186,13 +204,13 @@ Program katmanı → çizim katmanı:
 | aynı katmanlardaki kesikli çizgiler | `Beton_Kesik` |
 | `GORUNEN`, `GORUNEN_<eleman>`, görünüş (cephe) çizgileri, planda döşeme / kiriş | `Ongor` (kesikliyse `Arkagor`) |
 | `…_KORKULUK`, `…_MERDIVEN`, `…_TRETUVAR`, `…_GROBETON`, `…_SU`, `…SU_TUTUCU_BANT` | `Korkuluk`, `Merdiven`, `Tretuvar`, `Grobeton`, `Su`, `Sututucu` |
-| `…_TARAMA` | `Tarama` (AR-CONC deseni `Grobeton`) |
+| `…_TARAMA` | `Tarama` (grobeton ve AR-CONC deseni `Grobeton`, dolgu `Toprak`) |
 | `OLCU`, `KESIT_OLCU`, `DETAY_OLCU` ve bütün ölçüler | `ÖL` |
 | `KOT`, `…_KOT` ve bütün kot işaretleri | `Kot` |
 | `AKS`, `…_AKS` | `Aks` |
 | `KESIT_ISARET` | `Kesit_Cizgisi` |
 | `ZEMIN` | `ZMN` |
-| `YAZI`, `MAHAL_LISTESI`, eleman etiketleri | `Mim_Yazi25` |
+| `YAZI`, `MAHAL_LISTESI`, eleman etiketleri | `Mim_Yazi25` (mahal listesi başlığı `Yazi30`) |
 | görünüş başlığı ("A-A KESİTİ") | `Yazi30` (altındaki ölçek satırı `Mim_Yazi25`) |
 | `MALZEME_ACILIM` (kesitteki kod, açılım çerçevesi) | `Mim_Yazi25` |
 | `MALZEME_ACILIM_YAZI` (açılım çerçevesinin yazıları) | `Yazi25` |
@@ -213,13 +231,15 @@ Program katmanı → çizim katmanı:
 - 2 mm'den küçük eleman etiketleri (eğim yazısı, "Yağmur borusu" …) çıktıda 2 mm'ye çıkarılır; stili olmayan yazılar `YZ` yazılır.
 
 **Henüz kurala uymayanlar:**
-- Tuğla duvar, dolgu, tretuvar katmanları (kaplama, harç, stabilize, bordür) hâlâ kendi desenleriyle taranıyor (AR-BRSTD, GRAVEL, AR-SAND, ANSI31, ANSI37). Kural "DASH ya da SOLID" dediği için denetim bunları hata sayıyor; hangi malzemenin hangi desenle taranacağı kullanıcıya soruldu.
+- Örnekte karşılığı olmayan iki malzeme programın deseniyle taranıyor: yalıtım (ZIGZAG; denetimde uyarı) ve bordür yatak betonu (AR-CONC). Gazbeton duvar tuğla ile aynı desende (AR-B816) ama programın ölçeğinde.
+- Denetim aracı taramanın yalnız desenine bakar; ölçeği ve açısı denetlenmez (çizim profili bunları okumuyor).
+- Tretuvar detayı (TRETUVARDETAY, 1/10) örnekteki 1/10 detaydan farklı desenlerle çiziliyor (`app/tretuvar.js`; bu işte değiştirilmedi).
 - Ölçüler AutoCAD'e çizgi + yazı olarak gidiyor (gerçek ölçü nesnesi ve "50" / "1-20" ölçü stili değil).
 - Kot işareti `CK_TR1` bloğu olarak değil, çizgi + yazı olarak gidiyor.
 - Çizim birimi metre (örnekler santimetre).
 - Ölçülendirme: sıra aralığı ve uzatma çizgisi kurala bağlandı; ilk sıranın çizime uzaklığı ve neyin ölçülendirileceği henüz kurala bağlı değil (bölüm 3).
 
-Denetim (Konya terfi inşaat modeli, A-A kesiti + 1,20 kotu planı, 5.376 nesne, 13.11.2026): katman adı, renk, çizgi tipi, kalınlık, yazı stili ve yazı boyu hatasız; kalan 5 hata yukarıdaki tarama desenleri.
+Denetim (Konya terfi inşaat modeli, MIMARIPAFTA → Mimari grubu DXF, 4.785 nesne, 14.11.2026): **UYGUN** — 0 hata (önceki 8 hata: 5 tarama deseni, 3 mahal listesi yazı boyu giderildi), 1 uyarı (ölçü katmanındaki ölçü yazıları).
 `node araclar/cizim-karsilastir.js mimari <dosya.dxf> --olcek 50 --birim m`
 
 ## 7. Mekanik katmanlar (aynı dosyalarda görüldü; `mekanik.md` için not)
