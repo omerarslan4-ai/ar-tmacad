@@ -16,7 +16,7 @@
   C.activeView = () => (cur === 'map' ? map : plan);
   C.viewScale = () => C.activeView().s;
   const redraw = () => { plan.dirty = true; map.dirty = true; lay.dirty = true; };
-  const LAYOUT_OK = new Set(['ERASE', 'PAGESETUP', 'MVIEW', 'LAYOUT', 'LAYOUTPRINT', 'LAYOUTSVG', 'PRINTALL', 'ANTET', 'PLOT', 'PAFTALA', 'PROPERTIES', 'DETAIL', 'VPYER']);
+  const LAYOUT_OK = new Set(['ERASE', 'PAGESETUP', 'MVIEW', 'LAYOUT', 'LAYOUTPRINT', 'LAYOUTSVG', 'PRINTALL', 'ANTET', 'PLOT', 'PAFTALA', 'PROPERTIES', 'DETAIL', 'VPYER', 'PAFTALISTESI']);
 
   /* ---------------- görünüm geçişi ---------------- */
   let mapFirst = true, v3First = true;
