@@ -5,7 +5,134 @@
    Nesneler: mtarm   { p:[x,y] (duvar yüzü), cp:[x,y] (oda içi), ang, tip, mid, no, z0, hacim? }
              mtsboru { pts:[[x,y,z]…], sys:'soguk'|'sicak'|'pis'|'havalik', dn (etiket), d (dış çap m), yb | sb, z0 }
              mtsnokta{ kind:'giris'|'rogar', p:[x,y], dis:[x,y]?, no }
-   Komutlar: SIHHITESISAT, ARMATURYERLESTIR, ARMATUR, SUGIRISI, ROGARYERI, SIHHIBORU, SIHHISEMA, SIHHISIL */
+   Komutlar: SIHHITESISAT, ARMATURYERLESTIR, ARMATUR, SUGIRISI, ROGARYERI, SIHHIBORU, SIHHISEMA, SIHHISIL
+   Yağmur suyu: C.yagmurHesap (saf, Node'da da çalışır) — çatı oluğu ve iniş borusu çapı, adedi ve yerleri (TS EN 12056-3). */
+
+/* ====================================================================
+   YAĞMUR SUYU — çatı oluğu ve yağmur iniş boruları (TS EN 12056-3)
+   C.yagmurHesap(girdi, ayar) →
+     { yontem, r (l/s·m²), rHa (l/s·ha), C, A, Q, olukDN, borDN, olukKap, borKap, nBoru, enBuyukAralik, egim, dusus,
+       kenarlar:[{ kenarIndex, a, b, L, alan, Q, oluk, nBoru, konumlar:[s…] (kenar başından m) }],
+       borular:[{ no, p:[x,y], kenarIndex, s, kose, kenarlar:[i,j], alan, Q, kap }],
+       kollar:[{ boru, L, oran, FL, alan, Q, kap }], uyarilar:[] }
+   girdi: çatı nesnesi { kind:'kirma'|'besik'|'tek'|'mansart'|'teras', pts, ov, yon } (tarayıcıda C.catiGeom varsa onun yüzeyleri kullanılır)
+          ya da { kind, foot:[[x,y]…] } (saçak çokgeni) ya da { kenarlar:[{ L, alan }] } (geometrisiz)
+   ayar : { yagis (l/s·ha), C, olukDN, borDN, olukKat, dolma, kb (mm), egim (%), maksAralik (m, 0 = sınırsız), kolonlar:[[x,y]…], kolonYakala (m), borOto }
+   Yöntem: Q = r·C·A (A yatay izdüşüm); yarım daire oluk Q_N = 2,78·10⁻⁵·A_E^1,25, Q_L = katsayı·Q_N·F_L (F_L uzunluk katsayısı, L/W);
+           iniş borusu Q = 2,5·10⁻⁴·k_b^−0,167·d_i^2,667·f^1,667 (Wyly-Eaton, f doluluk oranı).
+   Borular önce dış köşelere konur (Çokal binalarındaki gibi); bir oluk kolu ya da boru yetmezse aradaki açıklık eşit drenaj alanlı parçalara bölünür. */
+(function (C) {
+  'use strict';
+  const OLUK_DN = [100, 125, 155, 192];   // yarım daire çinko oluk: DN = ağız genişliği (mm)
+  const BORU_DN = [80, 100, 120, 150];    // yuvarlak çinko iniş borusu: DN ≈ dış çap (mm), et 0,7 mm
+  /* TS EN 12056-3 uzunluk katsayısı F_L (eğimsiz ya da ≤ 3 mm/m eğimli oluk): L/W → F_L */
+  const FLT = [[50, 1.00], [75, 0.97], [100, 0.93], [125, 0.90], [150, 0.86], [175, 0.83], [200, 0.80], [225, 0.77], [250, 0.73], [275, 0.70], [300, 0.67], [325, 0.63], [350, 0.60], [375, 0.57], [400, 0.53], [425, 0.50], [450, 0.47], [475, 0.43], [500, 0.40]];
+  const VAR = { yagis: 300, C: 1.0, olukDN: 155, borDN: 120, olukKat: 0.9, dolma: 0.33, kb: 0.25, egim: 0.3, maksAralik: 0, kolonlar: null, kolonYakala: 1.0, borOto: true };
+  const alanP = q => { let s = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; s += a[0] * b[1] - b[0] * a[1]; } return s / 2; };
+  const ccwP = q => (alanP(q) < 0 ? q.slice().reverse() : q.slice());
+  const sadeP = q => { let p = q.filter((v, i) => Math.hypot(v[0] - q[(i + 1) % q.length][0], v[1] - q[(i + 1) % q.length][1]) > 1e-6); let ch = true; while (ch && p.length > 3) { ch = false; for (let i = 0; i < p.length; i++) { const a = p[(i - 1 + p.length) % p.length], b = p[i], c = p[(i + 1) % p.length]; if (Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])) < 1e-8) { p.splice(i, 1); ch = true; break; } } } return p; };
+  const otele = (q, d) => { const n = q.length, out = []; for (let i = 0; i < n; i++) { const a = q[(i - 1 + n) % n], b = q[i], c = q[(i + 1) % n], l1 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, l2 = Math.hypot(c[0] - b[0], c[1] - b[1]) || 1, n1 = [(b[1] - a[1]) / l1, -(b[0] - a[0]) / l1], n2 = [(c[1] - b[1]) / l2, -(c[0] - b[0]) / l2], k = 1 + n1[0] * n2[0] + n1[1] * n2[1]; out.push(k < 1e-6 ? [b[0] + n1[0] * d, b[1] + n1[1] * d] : [b[0] + (n1[0] + n2[0]) * d / k, b[1] + (n1[1] + n2[1]) * d / k]); } return out; };
+  const kes = (poly, g) => { const out = [], v = p => g[0] * p[0] + g[1] * p[1] + g[2]; for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length], vp = v(p), vq = v(q); if (vp >= 0) out.push(p); if ((vp >= 0) !== (vq >= 0)) { const t = vp / (vp - vq); out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); } } return out.length >= 3 && Math.abs(alanP(out)) > 1e-9 ? out : []; };
+  const disbukey = q => { let s = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length], c = q[(i + 2) % q.length], cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]); if (Math.abs(cr) < 1e-9) continue; if (!s) s = Math.sign(cr); else if (Math.sign(cr) !== s) return false; } return true; };
+  const icinde = (p, q) => { let c = false; for (let i = 0, j = q.length - 1; i < q.length; j = i++) { const a = q[i], b = q[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+
+  /* ---- kapasiteler ---- */
+  const FL = oran => { if (oran <= FLT[0][0]) return 1; for (let i = 1; i < FLT.length; i++) if (oran <= FLT[i][0]) { const [x0, y0] = FLT[i - 1], [x1, y1] = FLT[i]; return y0 + (y1 - y0) * (oran - x0) / (x1 - x0); } return FLT[FLT.length - 1][1]; };
+  const olukKap = (dn, Ld, a) => { a = Object.assign({}, VAR, a); const AE = Math.PI * dn * dn / 8, QN = 2.78e-5 * Math.pow(AE, 1.25), oran = Ld * 1000 / dn, fl = FL(oran); return { dn, AE, QN, oran, FL: fl, QL: a.olukKat * QN * fl }; };
+  const borKap = (dn, a) => { a = Object.assign({}, VAR, a); const di = dn - 1.4; return { dn, di, Q: 2.5e-4 * Math.pow(a.kb, -0.167) * Math.pow(di, 2.667) * Math.pow(a.dolma, 1.667) }; };
+
+  /* ---- saçak kenarları ve drenaj alanları ----
+     Kırma / mansart: her nokta en yakın saçak kenarına akar (dışbükey planda tam kesim, değilse 10 cm'lik ızgara).
+     Beşik: alan iki uzun saçak kenarı arasında paylaşılır, alınlık kenarında oluk yok. Tek eğim: bütün alan alçak kenara. Teras: oluk yok. */
+  const kenarGeo = (foot, kind, yon, uy) => {
+    const q = foot, n = q.length, ed = q.map((a, i) => { const b = q[(i + 1) % n], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1e-9, u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], nn = [-u[1], u[0]]; return { i, a, b, L, u, n: nn, g: [nn[0], nn[1], -(nn[0] * a[0] + nn[1] * a[1])], s: true, parca: [], ornek: null }; });
+    if (kind === 'teras') ed.forEach(x => x.s = false);
+    else if (kind === 'besik') { const lm = Math.max(...ed.map(x => x.L)), ax = ed.find(x => x.L >= lm - 1e-6).u; ed.forEach(x => x.s = Math.abs(x.u[0] * ax[0] + x.u[1] * ax[1]) > 0.9); }
+    else if (kind === 'tek') { const yv = { on: [0, -1], arka: [0, 1], sol: [-1, 0], sag: [1, 0] }[yon || 'on'] || [0, -1]; let best = null, bv = -2; ed.forEach(x => { const v = -(x.n[0] * yv[0] + x.n[1] * yv[1]); if (v > bv) { bv = v; best = x; } }); ed.forEach(x => x.s = x === best); }
+    const S = ed.filter(x => x.s); if (!S.length) return ed;
+    if (disbukey(q)) { for (const x of S) { let F = q; for (const y of S) if (y !== x && F.length) F = kes(F, [y.g[0] - x.g[0], y.g[1] - x.g[1], y.g[2] - x.g[2]]); if (F.length) x.parca.push(F); } }
+    else { /* dışbükey olmayan plan: ızgara örnekleme, en yakın saçak kenarı (parça uzaklığı) */
+      const xs = q.map(p => p[0]), ys = q.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), h = Math.max(0.05, Math.sqrt(Math.abs(alanP(q))) / 250), dA = h * h;
+      S.forEach(x => x.ornek = []);
+      for (let X = x0 + h / 2; X < x1; X += h) for (let Y = y0 + h / 2; Y < y1; Y += h) { const p = [X, Y]; if (!icinde(p, q)) continue; let bx = null, bd = Infinity; for (const x of S) { const t = Math.max(0, Math.min(x.L, (p[0] - x.a[0]) * x.u[0] + (p[1] - x.a[1]) * x.u[1])), d = Math.hypot(p[0] - x.a[0] - x.u[0] * t, p[1] - x.a[1] - x.u[1] * t); if (d < bd) { bd = d; bx = x; } } bx.ornek.push([Math.max(0, Math.min(bx.L - 1e-9, (p[0] - bx.a[0]) * bx.u[0] + (p[1] - bx.a[1]) * bx.u[1])), dA]); }
+      const top = S.reduce((t, x) => t + x.ornek.length * dA, 0), kat = top > 0 ? Math.abs(alanP(q)) / top : 1; S.forEach(x => x.ornek.forEach(o => { o[1] *= kat; })); /* toplam, tam çokgen alanına eşitlenir */
+      uy.push('Plan dışbükey değil: kenarların drenaj alanları ızgarayla yaklaşık bulundu.'); }
+    return ed;
+  };
+  /* kenarın [s0, s1] bölümüne düşen drenaj alanı (su saçağa dik akar) */
+  const kenarAlan = (x, s0, s1) => { if (!x.s || s1 <= s0) return 0; if (x.alanSabit != null) return x.alanSabit * (Math.min(s1, x.L) - Math.max(s0, 0)) / x.L;
+    if (x.ornek) return x.ornek.reduce((t, o) => t + (o[0] >= s0 && o[0] < s1 ? o[1] : 0), 0);
+    const ua = x.u[0] * x.a[0] + x.u[1] * x.a[1]; let t = 0; for (const F of x.parca) { let H = kes(F, [x.u[0], x.u[1], -ua - s0]); if (H.length) H = kes(H, [-x.u[0], -x.u[1], ua + s1]); if (H.length) t += Math.abs(alanP(H)); } return t; };
+
+  C.yagmurHesap = (girdi, ayar) => {
+    const a = Object.assign({}, VAR, ayar || {}), uy = [], r = (+a.yagis || 300) / 10000, Cf = +a.C || 1;
+    let ed = null, foot = null, ters = false;
+    if (girdi && Array.isArray(girdi.kenarlar)) { ed = girdi.kenarlar.map((k, i) => ({ i, L: +k.L, s: true, alanSabit: +k.alan, a: null, b: null })); }
+    else {
+      const kind = girdi.kind || 'kirma'; let ham = girdi.foot || null, G = null;
+      if (!ham && girdi.type === 'cati' && C.catiGeom) { try { G = C.catiGeom(girdi); ham = G.foot; } catch (er) { G = null; } }
+      if (!ham) ham = otele(ccwP(sadeP(girdi.pts.map(p => [p[0], p[1]]))), +girdi.ov || 0);
+      const s0 = sadeP(ham.map(p => [p[0], p[1]])); ters = alanP(s0) < 0; foot = ters ? s0.slice().reverse() : s0;
+      ed = kenarGeo(foot, kind, girdi.yon, uy);
+      /* tarayıcı: çatı modülünün yüzeyleri (L / T / U planlarda dere ve kırma hatlarıyla) varsa onlar kullanılır */
+      if (G && G.pieces && G.pieces.length && kind !== 'teras') { ed.forEach(x => { x.parca = []; x.ornek = null; x.s = false; });
+        for (const pc of G.pieces) { const X = pc.x; let best = null, bd = Infinity; for (const x of ed) { const d = Math.abs(x.g[0] * X.a[0] + x.g[1] * X.a[1] + x.g[2]) + Math.abs(x.g[0] * X.b[0] + x.g[1] * X.b[1] + x.g[2]) + (X.n && (X.n[0] * x.n[0] + X.n[1] * x.n[1]) < 0.99 ? 1e3 : 0); if (d < bd) { bd = d; best = x; } } if (best) { best.parca.push(pc.q.map(p => [p[0], p[1]])); best.s = true; } } }
+    }
+    ed.forEach(x => { x.alan = x.s ? kenarAlan(x, 0, x.L) : 0; });
+    const A = ed.reduce((t, x) => t + x.alan, 0);
+    /* ---- oluk kolları (runs) ---- */
+    const n = ed.length, hepsi = foot && ed.every(x => x.s), kollar = [];
+    if (!foot) ed.forEach(x => kollar.push({ ed: [x], halka: false }));
+    else if (hepsi) kollar.push({ ed: ed.slice(), halka: true });
+    else { let bas = ed.findIndex(x => !x.s); for (let k = 1; k <= n; k++) { const x = ed[(bas + k) % n]; if (!x.s) continue; const onc = ed[(bas + k - 1) % n]; if (!onc.s || !kollar.length) kollar.push({ ed: [x], halka: false }); else kollar[kollar.length - 1].ed.push(x); } }
+    for (const K of kollar) { let t = 0; K.t0 = K.ed.map(x => { const v = t; t += x.L; return v; }); K.P = t; }
+    const kolAlan = (K, t0, t1) => { if (K.halka && t1 > K.P + 1e-9) return kolAlan(K, t0, K.P) + kolAlan(K, 0, t1 - K.P); let s = 0; K.ed.forEach((x, j) => { const u0 = Math.max(t0, K.t0[j]), u1 = Math.min(t1, K.t0[j] + x.L); if (u1 > u0) s += kenarAlan(x, u0 - K.t0[j], u1 - K.t0[j]); }); return s; };
+    const kolNokta = (K, t) => { t = K.halka ? ((t % K.P) + K.P) % K.P : t; let j = 0; while (j < K.ed.length - 1 && K.t0[j + 1] <= t + 1e-9) j++; const x = K.ed[j], s = Math.min(x.L, t - K.t0[j]); return { x, j, s, p: x.a ? [x.a[0] + x.u[0] * s, x.a[1] + x.u[1] * s] : null }; };
+    /* başlangıç: dış köşeler (açık kolda iki uç) */
+    for (const K of kollar) { const T = []; if (!K.halka) T.push(0); for (let j = 0; j < K.ed.length - (K.halka ? 0 : 1); j++) { const x = K.ed[j], y = K.ed[(j + 1) % K.ed.length]; if (!x.u || x.u[0] * y.u[1] - x.u[1] * y.u[0] > 1e-9) T.push(K.t0[j] + x.L); } if (!K.halka) T.push(K.P); K.T = [...new Set(T.map(t => +t.toFixed(6)))].sort((p, q) => p - q); if (K.halka && K.T[K.T.length - 1] >= K.P - 1e-6) { K.T.pop(); if (!K.T.length || K.T[0] > 1e-6) K.T.unshift(0); }
+      K.ac = K.T.map((t, i) => ({ t0: t, t1: i + 1 < K.T.length ? K.T[i + 1] : (K.halka ? K.T[0] + K.P : null), m: 1 })).filter(s => s.t1 != null && s.t1 - s.t0 > 1e-6); }
+    const kolonlar = (a.kolonlar || []).map(p => [p[0], p[1]]);
+    /* açıklığı eşit drenaj alanlı m parçaya böl: ara boru konumları (kolona yakınsa kolona kaydırılır) */
+    const bol = (K, sp) => { const ic = []; if (sp.m < 2) return ic; const At = kolAlan(K, sp.t0, sp.t1);
+      for (let k = 1; k < sp.m; k++) { const hedef = At * k / sp.m; let lo = sp.t0, hi = sp.t1; for (let it = 0; it < 40; it++) { const md = (lo + hi) / 2; if (kolAlan(K, sp.t0, md) < hedef) lo = md; else hi = md; } let t = (lo + hi) / 2;
+        if (kolonlar.length && K.ed[0].a) { let best = null; for (const c of kolonlar) for (let j = 0; j < K.ed.length; j++) { const x = K.ed[j], s = (c[0] - x.a[0]) * x.u[0] + (c[1] - x.a[1]) * x.u[1]; if (s < 0 || s > x.L) continue; let tc = K.t0[j] + s; if (K.halka && tc < sp.t0) tc += K.P; if (tc <= sp.t0 + 0.3 || tc >= sp.t1 - 0.3) continue; const d = Math.abs(tc - t); if (d <= a.kolonYakala && (!best || d < best.d)) best = { d, tc }; } if (best) t = best.tc; }
+        ic.push(Math.round(t * 20) / 20); }
+      return ic; };
+    let olukDN = +a.olukDN || 155, borDN = +a.borDN || 120, sonuc = null;
+    for (let tur = 0; tur < 400; tur++) {
+      const oK = Ld => olukKap(olukDN, Ld, a), bK = borKap(borDN, a), bor = [], kol = []; let kotu = null;
+      for (const K of kollar) { const ucT = []; K.ac.forEach(sp => { const t = [sp.t0].concat(bol(K, sp), [sp.t1]); for (let i = 0; i + 1 < t.length; i++) ucT.push([t[i], t[i + 1], sp]); });
+        const yer = new Map(), boru = t => { let key = K.halka ? +(((t % K.P) + K.P) % K.P).toFixed(4) : +t.toFixed(4); if (K.halka && Math.abs(key - K.P) < 1e-4) key = 0; if (!yer.has(key)) { const o = { K, t: key, alan: 0, Q: 0, sp: [] }; yer.set(key, o); bor.push(o); } return yer.get(key); };
+        for (const [t0, t1, sp] of ucT) { const tm = (t0 + t1) / 2, L2 = (t1 - t0) / 2; for (const [u0, u1, uc] of [[t0, tm, t0], [tm, t1, t1]]) { const al = kolAlan(K, u0, u1), Q = r * Cf * al, c = oK(L2), b = boru(uc); b.alan += al; b.Q += Q; b.sp.push(sp); kol.push({ b, L: L2, oran: c.oran, FL: c.FL, alan: al, Q, kap: c.QL, sp }); if (Q > c.QL + 1e-9 && (!kotu || Q / c.QL > kotu.o)) kotu = { o: Q / c.QL, sp }; } if (a.maksAralik > 0 && t1 - t0 > a.maksAralik + 1e-6 && !kotu) kotu = { o: 1, sp }; } }
+      if (kotu) { if (kotu.sp.m < 60) { kotu.sp.m++; continue; } const i = OLUK_DN.indexOf(olukDN); if (i >= 0 && i < OLUK_DN.length - 1) { olukDN = OLUK_DN[i + 1]; kollar.forEach(K => K.ac.forEach(s => s.m = 1)); uy.push(`Oluk DN${OLUK_DN[i]} yetmedi: DN${olukDN} alındı.`); continue; } uy.push('Oluk kapasitesi en büyük çapta da yetmiyor.'); }
+      const asiri = bor.filter(b => b.Q > bK.Q + 1e-9);
+      if (asiri.length) { const i = BORU_DN.indexOf(borDN); if (a.borOto && i >= 0 && i < BORU_DN.length - 1) { uy.push(`İniş borusu DN${borDN} yetmedi: DN${BORU_DN[i + 1]} alındı.`); borDN = BORU_DN[i + 1]; continue; } const sp = asiri[0].sp.reduce((m, s) => (!m || s.m < m.m ? s : m), null); if (sp && sp.m < 60) { sp.m++; continue; } }
+      sonuc = { bor, kol, bK }; break;
+    }
+    const { bor, kol, bK } = sonuc;
+    /* ---- çıktı: kenar başından konumlar (girdinin kendi kenar sırası ve yönünde) ---- */
+    const nOrj = foot ? ed.length : 0, orjIdx = i => foot && ters ? (nOrj - 2 - i + 2 * nOrj) % nOrj : i, orjS = (x, s) => foot && ters ? x.L - s : s;
+    const ked = ed.map(x => ({ kenarIndex: orjIdx(x.i), a: x.a ? (ters ? x.b : x.a) : null, b: x.b ? (ters ? x.a : x.b) : null, L: x.L, alan: x.alan, Q: r * Cf * x.alan, oluk: !!x.s, nBoru: 0, konumlar: [] }));
+    bor.sort((p, q) => kollar.indexOf(p.K) - kollar.indexOf(q.K) || p.t - q.t);
+    const borular = bor.map((b, k) => { const N = kolNokta(b.K, b.t), x = N.x, kose = N.s >= x.L - 1e-4 || N.s <= 1e-4, ks = [];
+      const ekle = (y, s) => { const o = ked[ed.indexOf(y)]; o.konumlar.push(+orjS(y, s).toFixed(2)); o.nBoru++; ks.push(o.kenarIndex); };
+      if (kose && N.s <= 1e-4) { const onc = b.K.halka ? b.K.ed[(N.j - 1 + b.K.ed.length) % b.K.ed.length] : (N.j > 0 ? b.K.ed[N.j - 1] : null); if (onc && onc !== x) ekle(onc, onc.L); ekle(x, 0); }
+      else if (kose) { const son = b.K.halka ? b.K.ed[(N.j + 1) % b.K.ed.length] : (N.j + 1 < b.K.ed.length ? b.K.ed[N.j + 1] : null); ekle(x, x.L); if (son && son !== x) ekle(son, 0); }
+      else ekle(x, N.s);
+      return { no: 'YB' + (k + 1), p: N.p ? [+N.p[0].toFixed(3), +N.p[1].toFixed(3)] : null, kenarIndex: ks[0], s: +orjS(x, N.s).toFixed(2), kose, kenarlar: ks, alan: b.alan, Q: b.Q, kap: bK.Q }; });
+    ked.forEach(o => o.konumlar.sort((p, q) => p - q));
+    ked.sort((p, q) => p.kenarIndex - q.kenarIndex);
+    /* en büyük aralık: kol boyunca ardışık borular arası */
+    let enB = 0; for (const K of kollar) { const T = bor.filter(b => b.K === K).map(b => b.t).sort((p, q) => p - q); for (let i = 0; i + 1 < T.length; i++) enB = Math.max(enB, T[i + 1] - T[i]); if (K.halka && T.length) enB = Math.max(enB, T[0] + K.P - T[T.length - 1]); }
+    const Lmax = kol.reduce((m, k) => Math.max(m, k.L), 0);
+    if (!kollar.length) uy.push('Çatıda saçak oluğu yok (teras / iç süzgeçli çatı): yağmur suyu süzgeçlerle alınmalıdır.');
+    if (kol.some(k => k.oran > 500)) uy.push('Bir oluk kolunda L/W > 500: TS EN 12056-3 uzunluk katsayısı tablosunun dışında; ara iniş borusu ekleyin.');
+    return { yontem: 'TS EN 12056-3', r, rHa: r * 10000, C: Cf, A, Q: r * Cf * A, olukDN, borDN, olukKap: olukKap(olukDN, 0, a), borKap: bK, nBoru: borular.length, enBuyukAralik: enB, egim: +a.egim, dusus: Lmax * 10 * (+a.egim), LmaxKol: Lmax, olukKat: a.olukKat, dolma: a.dolma, kb: a.kb,
+      kenarlar: ked, borular, kollar: kol.map(k => ({ boru: 'YB' + (bor.indexOf(k.b) + 1), L: k.L, oran: k.oran, FL: k.FL, alan: k.alan, Q: k.Q, kap: k.kap })), uyarilar: [...new Set(uy)], foot: foot ? (ters ? foot.slice().reverse() : foot) : null };
+  };
+  C.yagmurHesap.olukKap = olukKap; C.yagmurHesap.borKap = borKap; C.yagmurHesap.OLUK_DN = OLUK_DN; C.yagmurHesap.BORU_DN = BORU_DN; C.yagmurHesap.FL = FL;
+})(typeof window !== 'undefined' ? (window.C = window.C || {}) : (globalThis.C = globalThis.C || {}));
+
 (function (C) {
   'use strict';
   const M = C.M, T = C.T, MT = C.MT, V = C.MTV, { L, P, TX, CI } = C.prim || {}; if (!T || !MT || !C.addCommand) return;
@@ -39,7 +166,14 @@
   const PISD = [[40, 70], [150, 100], [400, 125], [900, 150]];              // düşey
   const TERMO = [50, 65, 80, 100, 120, 150, 200, 300];
   MT.ARM = ARM; MT.SHT = { TEMIZ, PISY, PISD, TERMO };
-  MT.sh = () => { const m = MT.set(); if (!m.sh) m.sh = {}; const k = m.sh; if (k.surum !== 2) { k.dagitim = 'duvar'; k.surum = 2; } const d = { K: 0.25, minCap: 1, dagitim: 'duvar', eszaman: 0.3, depolama: 2.0, egim: 2, minPis: 70, akma: 10, sayac: 5, yerel: 30, girisDerin: 0.6, yagis: 300 }; for (const q in d) if (k[q] == null) k[q] = d[q]; return k; };
+  MT.sh = () => { const m = MT.set(); if (!m.sh) m.sh = {}; const k = m.sh; if (k.surum !== 2) { k.dagitim = 'duvar'; k.surum = 2; } const d = { K: 0.25, minCap: 1, dagitim: 'duvar', eszaman: 0.3, depolama: 2.0, egim: 2, minPis: 70, akma: 10, sayac: 5, yerel: 30, girisDerin: 0.6, yagis: 300, yC: 1.0, olukDN: 155, yborDN: 120, olukEgim: 0.3, yMaksAralik: 0 }; for (const q in d) if (k[q] == null) k[q] = d[q]; return k; };
+  /* yağmur suyu: çizimdeki her çatı için C.yagmurHesap; çatı nesnesi yoksa en üst döşeme (plak) çokgeni kırma çatı gibi ön hesaplanır */
+  MT.yagmurAyar = k => { k = k || MT.sh(); return { yagis: +k.yagis || 300, C: +k.yC || 1, olukDN: +k.olukDN || 155, borDN: +k.yborDN || 120, egim: +k.olukEgim || 0.3, maksAralik: +k.yMaksAralik || 0, kolonlar: C.doc.ents.filter(e => e.type === 'kolon' && e.p).map(e => [e.p[0], e.p[1]]) }; };
+  MT.yagmurDoc = () => { if (!C.yagmurHesap || !C.doc) return []; const ay = MT.yagmurAyar(), canli = e => !C.lyLive || C.lyLive(e.layer), out = [];
+    for (const e of C.doc.ents) { if (e.type !== 'cati' || !canli(e) || !e.pts || e.pts.length < 3) continue; try { out.push({ e, ad: e.ad || 'Çatı', h: C.yagmurHesap(e, ay) }); } catch (er) { console.error(er); } }
+    if (!out.length) { const pl = C.doc.ents.filter(e => e.type === 'plak' && e.kind !== 'radye' && e.pts && e.pts.length >= 3 && canli(e)), zm = pl.length ? Math.max(...pl.map(e => +e.zt || 0)) : 0;
+      for (const e of pl.filter(e => (+e.zt || 0) > zm - 0.3)) { try { out.push({ e, ad: (e.ad || 'Çatı döşemesi') + ' (çatı nesnesi yok: kırma çatı kabulü)', h: C.yagmurHesap({ kind: 'kirma', pts: e.pts, ov: 0 }, ay) }); } catch (er) { console.error(er); } } }
+    return out; };
   MT.temizCap = (yb, k) => { k = k || MT.sh(); let i = TEMIZ.findIndex(t => yb <= t[0] + 1e-9); if (i < 0) i = TEMIZ.length - 1; i = Math.max(i, Math.min(TEMIZ.length - 1, +k.minCap || 0)); const t = TEMIZ[i], Q = k.K * Math.sqrt(Math.max(0, yb)), A = Math.PI * Math.pow(t[3] / 1000, 2) / 4, v = Q / 1000 / A, D = t[3] / 1000, Re = v * D / 1.0e-6, fr = Re < 2300 ? 64 / Math.max(Re, 1) : 0.25 / Math.pow(Math.log10(0.007 / 1000 / (3.7 * D) + 5.74 / Math.pow(Math.max(Re, 1), 0.9)), 2); return { i, inc: t[1], dis: t[2], ic: t[3], Q, v, R: fr / D * 1000 * v * v / 2, yb }; };
   MT.pisCap = (sb, dusey, minD) => { const Tb = dusey ? PISD : PISY; let d = (Tb.find(t => sb <= t[0] + 1e-9) || Tb[Tb.length - 1])[1]; return Math.max(d, minD || 0); };
 
@@ -260,9 +394,9 @@
       res.hat.push({ sys: 'havalik', pts: [[r3(c0[0]), r3(c0[1]), r3(zBas)], [r3(hp[0]), r3(hp[1]), r3(zBas)], [r3(hp[0]), r3(hp[1]), r3(zTop)]], sb: 0, d: 70, L: zTop - zBas });
       Object.assign(res, { sbTop, dC, zR, zCik: zN(0) });
     } else if (pis.length) res.uyari.push('Pis su çıkışı için dış duvar bulunamadı: ROGARYERI ile rögarın yerini gösterin.');
-    /* --- yağmur suyu (ön hesap) --- */
-    const cati = C.doc.ents.filter(e => e.type === 'plak' && e.kind !== 'radye' && e.pts && e.pts.length >= 3), zmax = cati.length ? Math.max(...cati.map(e => +e.zt || 0)) : 0, Ac = cati.filter(e => (+e.zt || 0) > zmax - 0.3).reduce((s, e) => s + Math.abs(M.polyArea(e.pts.map(q => [q[0], q[1]]))), 0);
-    Object.assign(res, { catiA: Ac, Qy: Ac * k.yagis / 10000, nY: Math.max(Ac > 0 ? 2 : 0, Math.ceil(Ac * k.yagis / 10000 / 4.7)) });
+    /* --- yağmur suyu: oluk ve iniş boruları (TS EN 12056-3) --- */
+    const yg = MT.yagmurDoc(); res.yagmur = yg;
+    Object.assign(res, { catiA: yg.reduce((s, y) => s + y.h.A, 0), Qy: yg.reduce((s, y) => s + y.h.Q, 0), nY: yg.reduce((s, y) => s + y.h.nBoru, 0) });
     return res;
   };
   const etiket = h => h.sys === 'pis' ? `Ø${h.d}-${f(h.sb, h.sb % 1 ? 1 : 0)}sb` : h.sys === 'havalik' ? 'Ø70 havalık' : `${h.c.inc}-${f(h.yb, (h.yb * 100) % 100 ? 2 : (h.yb % 1 ? 1 : 0))}yb`;
@@ -316,8 +450,21 @@
   if (MT._SIS) MT._SIS.sihhi = { ad: 'SIHHİ TESİSAT', kisa: 'SIHHİ TESİSAT', var: () => arms().length > 0, ents: e => e.type === 'mtarm' || e.type === 'mtsboru' || e.type === 'mtsnokta', sema: () => { const h = MT.sihhiHesap(); return [['shkolon', MT.sihhiSema(h)], ['shlist', MT.sihhiListe(h)]]; } };
   MT.cakismaHat = MT.cakismaHat || [];
   MT.cakismaHat.push(() => { const out = []; for (const e of borular()) { const r = Math.max(0.01, (e.d || 0.025) / 2), S = SYS[e.sys] || SYS.soguk; for (let i = 1; i < e.pts.length; i++) { const a = e.pts[i - 1], b = e.pts[i]; if (Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) < 0.03) continue; out.push({ a, b, id: e.id, r, hw: r, hh: r, cap: r, sys: 'Sıhhi', ad: `${S.ad} borusu ${e.dn || ''}`, dusey: Math.abs(b[2] - a[2]) > Math.hypot(b[0] - a[0], b[1] - a[1]) }); } } return out; });
+  /* rapor: yağmur suyu hesabı (örnek rapor biçimi: giriş değerleri, formüller, tablolar, sonuç) */
+  const yagmurHtml = (yg, k) => { if (!yg || !yg.length) return ''; const Y = C.yagmurHesap, h0 = yg[0].h, top = yg.reduce((m, y) => ({ A: m.A + y.h.A, Q: m.Q + y.h.Q, n: m.n + y.h.nBoru }), { A: 0, Q: 0, n: 0 }), sup = v => `<sup>${v}</sup>`;
+    let o = `<h3>Yağmur suyu tesisatı (çatı oluğu ve yağmur iniş boruları)</h3><p>Çatıya düşen yağmur suyu saçak boyunca yarım daire kesitli çinko yağmur oluklarıyla toplanır ve çinko yağmur iniş borularıyla zemine indirilir. Hesap TS EN 12056-3 (Bina içi pis su ve yağmur suyu tahliye sistemleri — Bölüm 3: Çatı drenajı) yöntemiyle yapılmıştır. Yağış alanı çatının yatay izdüşümüdür; kırma çatıda her saçak kenarının drenaj alanı ayrı bulunur (su saçağa dik akar).</p>
+<p><b>Giriş değerleri</b><br>Yağış şiddeti &nbsp; r = ${f(h0.rHa, 0)} l/s·ha = ${f(h0.r, 4)} l/s·m² (proje ayarı)<br>Akış katsayısı &nbsp; C = ${f(h0.C, 2)}<br>Yağmur oluğu &nbsp; yarım daire çinko DN${h0.olukDN} (ağız genişliği W = ${h0.olukDN} mm), kesit alanı A<sub>E</sub> = π·W²/8 = ${fi(h0.olukKap.AE)} mm²<br>Yağmur iniş borusu &nbsp; çinko DN${h0.borDN} (iç çap d<sub>i</sub> = ${f(h0.borKap.di, 1)} mm), doluluk oranı f = ${f(h0.dolma, 2)}, pürüzlülük k<sub>b</sub> = ${f(h0.kb, 2)} mm</p>
+<p><b>Formüller</b><br>Yağmur debisi: &nbsp; Q = r · C · A<br>Oluk kapasitesi (eğimsiz, serbest akışlı yarım daire oluk): &nbsp; Q<sub>N</sub> = 2,78·10${sup('−5')} · A<sub>E</sub>${sup('1,25')} = ${f(h0.olukKap.QN, 2)} l/s; &nbsp; Q<sub>L</sub> = ${f(h0.olukKat, 2)} · Q<sub>N</sub> · F<sub>L</sub> (F<sub>L</sub>: oluk kolu uzunluğuna bağlı katsayı, L/W oranından)<br>İniş borusu kapasitesi (Wyly-Eaton): &nbsp; Q<sub>RWP</sub> = 2,5·10${sup('−4')} · k<sub>b</sub>${sup('−0,167')} · d<sub>i</sub>${sup('2,667')} · f${sup('1,667')} = <b>${f(h0.borKap.Q, 2)} l/s</b> (DN${h0.borDN})</p>`;
+    for (const y of yg) { const h = y.h, kn = h.kenarlar.filter(x => x.oluk);
+      o += `<p><b>${esc(y.ad)}</b> — yatay izdüşüm alanı ${f(h.A, 2)} m², Q = ${f(h.r, 4)} × ${f(h.C, 2)} × ${f(h.A, 2)} = <b>${f(h.Q, 2)} l/s</b></p>
+<table><tr><th>Saçak kenarı</th><th class="n">Oluk boyu L (m)</th><th class="n">Drenaj alanı (m²)</th><th class="n">Debi Q (l/s)</th><th class="n">İniş borusu (adet)</th><th>Boru yerleri (kenar başından, m)</th></tr>${kn.map(x => `<tr><td>K${x.kenarIndex + 1}</td><td class="n">${f(x.L, 2)}</td><td class="n">${f(x.alan, 2)}</td><td class="n">${f(x.Q, 3)}</td><td class="n">${x.nBoru}</td><td>${x.konumlar.map(v => f(v, 2)).join(' · ')}</td></tr>`).join('')}<tr class="top"><td>Toplam</td><td class="n">${f(kn.reduce((t, x) => t + x.L, 0), 2)}</td><td class="n">${f(h.A, 2)}</td><td class="n">${f(h.Q, 3)}</td><td class="n">${h.nBoru}</td><td>köşedeki boru iki kenarda da sayılır</td></tr></table>
+<table><tr><th>Oluk kolu (boruya akan)</th><th class="n">Uzunluk (m)</th><th class="n">L/W</th><th class="n">F<sub>L</sub></th><th class="n">Drenaj alanı (m²)</th><th class="n">Q (l/s)</th><th class="n">Q<sub>L</sub> (l/s)</th><th>Durum</th></tr>${h.kollar.map(c => `<tr><td>${c.boru}</td><td class="n">${f(c.L, 2)}</td><td class="n">${f(c.oran, 0)}</td><td class="n">${f(c.FL, 2)}</td><td class="n">${f(c.alan, 2)}</td><td class="n">${f(c.Q, 3)}</td><td class="n">${f(c.kap, 3)}</td><td>${c.Q <= c.kap + 1e-9 ? 'uygun' : 'yetersiz'}</td></tr>`).join('')}</table>
+<table><tr><th>İniş borusu</th><th>Yer</th><th class="n">Drenaj alanı (m²)</th><th class="n">Debi Q (l/s)</th><th class="n">Kapasite DN${h.borDN} (l/s)</th><th>Durum</th></tr>${h.borular.map(b => `<tr><td>${b.no}</td><td>${b.kose ? 'köşe (K' + b.kenarlar.map(i => i + 1).join(' / K') + ')' : 'K' + (b.kenarIndex + 1) + ', ' + f(b.s, 2) + ' m'}</td><td class="n">${f(b.alan, 2)}</td><td class="n">${f(b.Q, 3)}</td><td class="n">${f(b.kap, 2)}</td><td>${b.Q <= b.kap + 1e-9 ? 'uygun' : 'yetersiz'}</td></tr>`).join('')}</table>${h.uyarilar.map(u => `<p class="bad">${esc(u)}</p>`).join('')}`; }
+    o += `<p><b>Sonuç:</b> ${yg.length > 1 ? 'toplam yağış alanı ' + f(top.A, 2) + ' m², Q = ' + f(top.Q, 2) + ' l/s; ' : ''}<b>${top.n} adet DN${h0.borDN} çinko yağmur iniş borusu</b> ve <b>DN${h0.olukDN} çinko yarım daire yağmur oluğu</b> kullanılacaktır. İniş boruları arasındaki en büyük aralık ${f(Math.max(...yg.map(y => y.h.enBuyukAralik)), 2)} m'dir. Oluklar iniş borusuna doğru en az %${f(h0.egim, 1)} eğimle (en uzun oluk kolunda ${f(Math.max(...yg.map(y => y.h.dusus)), 0)} mm düşüş) yerleştirilir; kapasite güvenli tarafta kalmak için eğimsiz oluğa göre hesaplanmıştır. İniş borusu ağızlarına yaprak süzgeci (yağmur borusu süzgeci) konur; borular zeminde yağmur suyu rögarına bağlanır.</p>`;
+    void Y; return o; };
+  MT.yagmurHtml = yagmurHtml;
   MT.raporEk = MT.raporEk || [];
-  MT.raporEk.push(() => { const h = MT.sihhiHesap(); if (!h) return ''; const k = h.k, B = borular(), say = Object.entries(h.A.reduce((m, a) => { m[a.tip] = (m[a.tip] || 0) + 1; return m; }, {})), boyTop = s => B.filter(b => b.sys === s).reduce((t, b) => t + boy3(b.pts), 0);
+  MT.raporEk.push(() => { const h = MT.sihhiHesap(); if (!h) { const yg = MT.yagmurDoc(); return yg.length ? '<h2>15. Sıhhi tesisat</h2>' + yagmurHtml(yg, MT.sh()) : ''; } const k = h.k, B = borular(), say = Object.entries(h.A.reduce((m, a) => { m[a.tip] = (m[a.tip] || 0) + 1; return m; }, {})), boyTop = s => B.filter(b => b.sys === s).reduce((t, b) => t + boy3(b.pts), 0);
     const capBoy = (s) => { const m = new Map(); for (const b of B.filter(q => q.sys === s)) { const key = s === 'pis' ? 'Ø' + Math.round(b.d * 1000) : String(b.dn || '').split('-')[0]; m.set(key, (m.get(key) || 0) + boy3(b.pts)); } return [...m].map(([a, l]) => `<tr><td>${esc(a)}</td><td class="n">${f(l, 1)}</td></tr>`).join(''); };
     return `<h2>15. Sıhhi tesisat</h2><div class="kart"><div><b>${f(h.ybTop || 0, 2)} YB</b><span>Toplam yük birimi</span></div><div><b>${f(h.QTop || 0, 2)} l/s</b><span>Temiz su tüketim debisi</span></div><div><b>${h.cG ? h.cG.inc : '—'}</b><span>Şebeke bağlantı çapı (PPRC Ø${h.cG ? h.cG.dis : '—'})</span></div><div><b>${h.hacim} L</b><span>Elektrikli termosifon</span></div><div><b>Ø${h.dC || '—'}</b><span>Bina pis su çıkışı (${f(h.sbTop || 0, 0)} SB)</span></div></div>
 <h3>Temiz su tesisatı</h3><p>Kullanma suyu şebekeden alınır. Boru çapları yükleme birimi yöntemiyle belirlenmiştir: bir binada bütün muslukların aynı anda kullanılması beklenmediğinden debi, yükleme birimleri toplamının kareköküyle orantılı alınır.</p>
@@ -334,7 +481,7 @@ ${h.kritik ? `<p>Kritik devre: <b>${esc(h.kritik.arm.no)}</b> (${esc(ARM[h.kriti
 <table style="width:auto"><tr><th>Düşey — sarfiyat birimi</th>${PISD.map((t, i) => `<td class="n">${i ? PISD[i - 1][0] : 0} – ${t[0]}</td>`).join('')}</tr><tr><th>Boru çapı</th>${PISD.map(t => `<td class="n">Ø${t[1]}</td>`).join('')}</tr></table>
 <p>Bina çıkışı: ${f(h.sbTop || 0, 0)} SB → <b>Ø${h.dC || '—'}</b>, rögar giriş akar kotu ${f(h.zR != null ? h.zR : 0, 2)} m. En küçük yatay çap Ø${k.minPis}; klozet bağlanan hatlar en az Ø100. Havalık borusu Ø70 çatı üstüne çıkarılır.</p>
 ${B.length ? `<h3>Boru metrajı</h3><table style="width:auto"><tr><th>Soğuk su</th><th class="n">m</th></tr>${capBoy('soguk')}<tr class="top"><td>Toplam</td><td class="n">${f(boyTop('soguk'), 1)}</td></tr></table><table style="width:auto"><tr><th>Sıcak su</th><th class="n">m</th></tr>${capBoy('sicak')}<tr class="top"><td>Toplam</td><td class="n">${f(boyTop('sicak'), 1)}</td></tr></table><table style="width:auto"><tr><th>Pis su (PVC)</th><th class="n">m</th></tr>${capBoy('pis')}<tr class="top"><td>Toplam</td><td class="n">${f(boyTop('pis'), 1)}</td></tr></table>` : '<p class="mut">Borular henüz çizilmedi (SIHHITESISAT).</p>'}
-${h.catiA > 0 ? `<h3>Yağmur suyu (ön hesap)</h3><p>Çatı alanı ${f(h.catiA, 1)} m² · yağış şiddeti ${k.yagis} l/s·ha → Q = ${f(h.Qy, 2)} l/s → en az <b>${h.nY} adet Ø100</b> yağmur inişi (Ø100 iniş ≈ 4,7 l/s). İnişler çatı modülündeki yağmur borularıyla eşleştirilmelidir; bu modül yağmur borusu çizmez.</p>` : ''}
+${yagmurHtml(h.yagmur, k)}
 <div class="not">Yükleme ve sarfiyat birimleri ile çap tabloları sıhhi tesisat paftasındaki değerlerdir (MMO 2002/260-2, TS 1258). Basınç hesabı ön boyutlandırmadır: sayaç ve cihaz kayıpları sabit alınmıştır. Boru güzergâhı dik açılı en kısa yol mantığıyla çizilir; uygulamadan önce denetlenmelidir.</div>`; });
 
   /* ====================================================================
@@ -350,9 +497,12 @@ ${F('Sıcak su: eş zaman faktörü / depolama faktörü', `<div style="display:
 ${F('Pis su eğimi (%) / en küçük yatay çap (mm)', `<div style="display:flex;gap:6px"><input type="number" step="0.5" data-q="egim" value="${k.egim}" style="flex:1"><select data-q="minPis" style="flex:1">${U.opt([[50, 'Ø50'], [70, 'Ø70'], [100, 'Ø100']], k.minPis)}</select></div>`)}
 ${F('Akma basıncı / sayaç kaybı (mSS)', `<div style="display:flex;gap:6px"><input type="number" data-q="akma" value="${k.akma}" style="flex:1"><input type="number" data-q="sayac" value="${k.sayac}" style="flex:1"></div>`)}
 ${F('Şebeke borusu derinliği (m) / yerel kayıp (%)', `<div style="display:flex;gap:6px"><input type="number" step="0.1" data-q="girisDerin" value="${k.girisDerin}" style="flex:1"><input type="number" step="5" data-q="yerel" value="${k.yerel}" style="flex:1"></div>`)}
-${F('Yağış şiddeti (l/s·ha)', N('yagis', 10))}
+${F('Yağış şiddeti (l/s·ha) / akış katsayısı C', `<div style="display:flex;gap:6px"><input type="number" step="10" data-q="yagis" value="${k.yagis}" style="flex:1"><input type="number" step="0.05" data-q="yC" value="${k.yC}" style="flex:1"></div>`)}
+${F('Yağmur oluğu / iniş borusu (çinko)', `<div style="display:flex;gap:6px"><select data-q="olukDN" style="flex:1">${U.opt((C.yagmurHesap ? C.yagmurHesap.OLUK_DN : [155]).map(d => [d, 'Oluk DN' + d]), k.olukDN)}</select><select data-q="yborDN" style="flex:1">${U.opt((C.yagmurHesap ? C.yagmurHesap.BORU_DN : [120]).map(d => [d, 'İniş DN' + d]), k.yborDN)}</select></div>`)}
+${F('Oluk eğimi (%) / en büyük boru aralığı (m, 0 = sınırsız)', `<div style="display:flex;gap:6px"><input type="number" step="0.1" data-q="olukEgim" value="${k.olukEgim}" style="flex:1"><input type="number" step="1" data-q="yMaksAralik" value="${k.yMaksAralik}" style="flex:1"></div>`)}
 </div></div>
 <div class="bar" style="margin-top:10px"><button class="pri" data-c="SIHHITESISAT">Sıhhi tesisatı oluştur (armatür + boru)</button><button data-c="ARMATURYERLESTIR">Yalnız armatürler</button><button data-c="ARMATUR">Armatür ekle…</button><button data-c="ARMATURMODEL">Kütüphaneye model ata…</button><button data-c="SUGIRISI">Su girişini göster</button><button data-c="ROGARYERI">Rögar yerini göster</button><button data-c="SIHHIBORU">Boruları yeniden çiz</button><button data-c="TESISATPAFTA W">Sıhhi tesisat paftası</button><button data-c="SIHHISIL">Sil</button></div>
+${(() => { const yg = MT.yagmurDoc(); if (!yg.length) return ''; const n = yg.reduce((t, y) => t + y.h.nBoru, 0), A2 = yg.reduce((t, y) => t + y.h.A, 0), Q2 = yg.reduce((t, y) => t + y.h.Q, 0); return `<p class="mut">Yağmur suyu (TS EN 12056-3): çatı ${f(A2, 1)} m² · Q = ${f(Q2, 2)} l/s → <b>${n} adet DN${yg[0].h.borDN} iniş borusu</b>, DN${yg[0].h.olukDN} oluk. Yerleri ve hesap raporun 15. bölümündedir.</p>`; })()}
 ${h ? `<div class="kart"><div><b>${h.A.length} armatür</b><span>${f(h.ybTop || 0, 2)} YB · ${f(h.sbTop || 0, 0)} SB</span></div><div><b>${f(h.QTop || 0, 2)} l/s · ${h.cG ? h.cG.inc : '—'}</b><span>Temiz su debisi ve giriş çapı</span></div><div><b>${h.hacim} L</b><span>Elektrikli termosifon</span></div><div><b>Ø${h.dC || '—'}</b><span>Bina pis su çıkışı</span></div><div><b>${h.kritik ? f(h.kritik.top, 1) + ' mSS' : '—'}</b><span>Gerekli şebeke basıncı</span></div></div>${h.uyari.map(u => `<p class="bad">${esc(u)}</p>`).join('')}<p class="mut">Armatürleri plan üzerinde taşıyıp "Boruları yeniden çiz" ile güzergâhı yenileyebilirsiniz. Ayrıntılı hesap raporun 15. bölümündedir.</p>` : '<p class="mut">Önce ıslak hacimler mahal olarak tanımlı olmalı (WC, banyo / duş, soyunma, mutfak, laboratuvar). "Sıhhi tesisatı oluştur" armatürleri yerleştirir, su girişini ve rögarı en yakın dış duvara koyar, soğuk su – sıcak su – pis su borularını çizer.</p>'}
 <table style="margin-top:8px"><tr><th>Armatür</th>${Object.values(ARM).filter(a => !a.cihaz).map(a => `<th class="n">${esc(a.ad.split(' (')[0])}</th>`).join('')}</tr><tr><td>Yük birimi (YB)</td>${Object.values(ARM).filter(a => !a.cihaz).map(a => `<td class="n">${a.yb ? f(a.yb, 2) : '—'}</td>`).join('')}</tr><tr><td>Sarf birimi (SB)</td>${Object.values(ARM).filter(a => !a.cihaz).map(a => `<td class="n">${a.sb || '—'}</td>`).join('')}</tr></table>`;
     el.querySelectorAll('[data-q]').forEach(i => i.onchange = () => { const q = i.dataset.q; k[q] = i.dataset.s != null ? i.value : (U.num(i.value) ?? k[q]); U.dirty(); MT.sihhiPanel(el, m, U); });
