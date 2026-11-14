@@ -64,7 +64,7 @@
         // kesit çizgisi
         const da = a[2] - cutW, db = b[2] - cutW, dc = c[2] - cutW, X = [];
         for (const [p, q, dp, dq] of [[a, b, da, db], [b, c, db, dc], [c, a, dc, da]]) if ((dp < 0) !== (dq < 0) && dp !== dq) { const s = dp / (dp - dq); X.push([p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s]); }
-        if (!cizgisiz && X.length === 2 && Math.hypot(X[0][0] - X[1][0], X[0][1] - X[1][1]) > 1e-6) { X.g = e.id; X.lk = C.secLk ? C.secLk(e) : undefined; X.conc = CONC.has(e.type); if (C.secMat) X.mat = C.secMat(e); cut.push(X); }
+        if (!cizgisiz && X.length === 2 && Math.hypot(X[0][0] - X[1][0], X[0][1] - X[1][1]) > 1e-6) { X.g = e.id; X.lk = C.secLk ? C.secLk(e) : undefined; X.conc = CONC.has(e.type) || (e.type === 'merdiven' && (e.tip || 'beton') === 'beton'); /* betonarme merdiven kesilen beton (ANSI36), dolu ekipman taraması değil — ana oturum kararı 14.11.2026 */ if (C.secMat) X.mat = C.secMat(e); cut.push(X); }
       }
       const elk = C.secLk ? C.secLk(e) : undefined; if (cizgisiz) continue;
       for (const [p, q] of (t.edges.length || !C.creaseEdges ? t.edges : C.creaseEdges(t, 35)).concat(C.siluetKenar ? C.siluetKenar(t, D) : C.silEdges ? C.silEdges(t, D) : [])) {

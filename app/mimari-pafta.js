@@ -415,7 +415,7 @@
     }
     try { const KD = C.kapakDetay, bos = C.mimariKapakBosluklari ? C.mimariKapakBosluklari(ents) : [], tipler = DA ? DA.kapakTipleri(bos) : [];
       if (KD && tipler.length) { KD.katmanlar();
-        for (const t of tipler) { const gv = 'MIM_KAPAK_' + t.ad + '_' + Date.now().toString(36); KD.plani(t, [X0 + 0.5, Yc - t.l - 0.8], gv, 20); for (const e of C.doc.ents) if (e.gv === gv && e.type === 'text' && e.h >= 0.09) { C.ensureLayer('Yazi30', 72, 'CONTINUOUS', 30); e.layer = 'Yazi30'; } /* kapak adı (1/20'de 5 mm) başlık katmanında */ st.gvs.push(gv); detay.kapak.push({ gv, sc: 20 }); asagi(gv); }
+        for (const t of tipler) { const gv = 'MIM_KAPAK_' + t.ad + '_' + Date.now().toString(36); KD.plani(t, [X0 + 0.5, Yc - t.l - 0.8], gv, 20); for (const e of C.doc.ents) if (e.gv === gv && e.type === 'text' && e.h >= 0.09) { e.h = 2.5 * 20 / 1000; delete e._c; } /* kapak adı (SK1) başlık değil etiket: Mim_Yazi25, etiket boyu 2,5 mm (ana oturum kararı 14.11.2026) */ st.gvs.push(gv); detay.kapak.push({ gv, sc: 20 }); asagi(gv); }
         const ts = (bos[0] && bos[0].ts) || 0.15, gvK = 'MIM_KENAR_' + Date.now().toString(36); KD.kenar([X0 + 0.6, Yc - 0.3], gvK, 5, ts);
         /* malzeme yazıları düz açıklama olarak (açılım nesnesi Çokal stilinde DU / DÖ koduna döner; kapak parçaları açılım tablosunda yok) */
         for (const e of C.doc.ents.filter(q => q.gv === gvK && q.type === 'acilim')) { const p = e.p, a = e.a, sg = p[0] >= a[0] ? 1 : -1, hh = 0.01;

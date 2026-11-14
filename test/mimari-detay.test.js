@@ -111,4 +111,11 @@ t('kapı 1-1: menteşe ve açılış yönü modelden (sağ menteşe, dışa aç�
   assert.ok(D.dograma22(T, { duvar: false, yazi: false }).items.length === 2, 'kesilen kapı: üst kasa + kanat');
 });
 
+t('detay paftasında doğrama çizgileri DETAY_DOGRAMA (→ Kapi_Pencere), duvar parçası (parapet, lento, iki yandaki duvar) DETAY_KESIT kalır', () => {
+  const r = D.dogramaDetay(tip('P1', 'P', 70, 150, { adet: 21, parapet: 100 }), { sc: 20 }), cz = r.items.filter(it => /^[LPCA]$/.test(it.k));
+  assert.ok(cz.filter(it => it.ly === 'DETAY_DOGRAMA').length > 10, 'doğrama çizgileri');
+  assert.ok(cz.filter(it => it.duvar).length > 0 && cz.filter(it => it.duvar).every(it => it.ly !== 'DETAY_DOGRAMA'), 'duvar parçası doğrama katmanına geçmez');
+  assert.ok(r.items.filter(it => it.k === 'H').length > 0, 'taramalar duruyor');
+});
+
 console.log(`\n${n} test geçti.`);

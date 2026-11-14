@@ -108,6 +108,7 @@
     const D = liste(o.sc || 20), { H, td, kapi, sek, f } = olc(t), duvar = o.duvar !== false, yazi = o.yazi !== false;
     const ic = 0, dis = td, fx0 = dis - 0.03 - (kapi ? td - 0.03 : 0.07), fx1 = dis - 0.03;
     const alt = sek || kapi ? 0 : -Math.min(0.45, Math.max(0.25, (t.parapet || 100) / 100 * 0.4)), lus = H + 0.25;
+    const d0 = D.o.length; // duvar parçası (parapet, lento): detay paftasında duvar katmanında kalır, öbür çizgiler doğrama (Kapi_Pencere)
     if (duvar) {
       if (!sek && !kapi) { D.P([[ic, alt], [ic, 0], [dis, 0], [dis, alt]], false, 'DETAY_KESIT'); D.KIRIK([ic, alt], [dis, alt], 'DETAY_KESIT'); D.H([[ic, alt], [dis, alt], [dis, 0], [ic, 0]], 'tugla');
         D.L([ic - 0.02, alt], [ic - 0.02, -0.03]); D.L([dis + 0.02, alt], [dis + 0.02, -0.03]); }
@@ -115,6 +116,7 @@
       D.P([[ic, lus], [ic, H], [dis, H], [dis, lus]], false, 'DETAY_KESIT'); D.KIRIK([ic, lus], [dis, lus], 'DETAY_KESIT'); D.H([[ic, H], [dis, H], [dis, lus], [ic, lus]], 'beton');
       D.L([ic - 0.02, H], [ic - 0.02, lus]); D.L([dis + 0.02, H], [dis + 0.02, lus]);
     }
+    for (let i = d0; i < D.o.length; i++) D.o[i].duvar = true;
     if (sek) { // panel perdesi; detayda kılavuz ray ve tavan rayı (açık konum kesikli), motor
       D.R(fx0, 0.005, fx0 + 0.04, H - 0.02, 'DETAY_KESIT');
       if (yazi) { const r = 0.3, yR = H + 0.02, xR = fx0 - r, ark = [];
@@ -143,10 +145,12 @@
      o: { sc, duvar (true: iki yanda duvar parçası, tarama, kırık çizgi), mentese ('L' | 'R'), ters }. Döner: { items, kanat (açık kanadın boyu, m) } */
   const dograma11 = (t, o = {}) => {
     const D = liste(o.sc || 20), { W, td, kapi, sek, f } = olc(t), py = 0, pi = td, uz = 0.3;
+    const d0 = D.o.length;
     if (o.duvar !== false) {
       for (const [a, b] of [[-uz, 0], [W, W + uz]]) { D.P([[a, py], [b, py], [b, pi], [a, pi]], true, 'DETAY_KESIT'); D.H([[a, py], [b, py], [b, pi], [a, pi]], 'tugla'); }
       D.KIRIK([-uz, py], [-uz, pi], 'DETAY_KESIT'); D.KIRIK([W + uz, py], [W + uz, pi], 'DETAY_KESIT');
     }
+    for (let i = d0; i < D.o.length; i++) D.o[i].duvar = true;
     let kanat = 0;
     if (kapi) {
       const n = Math.max(1, t.kanat || 1), lw = (W - 2 * f) / n, M = menteseler(t, n, o), sy = o.ters ? -1 : 1, y0 = o.ters ? py : pi; kanat = lw;
@@ -201,6 +205,8 @@
     // ---- başlık ve adet ----
     const bb = kutu(D.o), tx = (bb[0] + bb[2]) / 2, ty = bb[3] + 12 * k;
     D.B([tx, ty], t.baslik, 4, '1/' + sc); D.T([tx + (String(t.baslik).length * 4 * 0.42 + 8) * k, ty + 0.5 * k], `(${t.adet} ADET)`, 3, 'L');
+    /* doğrama çizgileri detay paftasında da Kapi_Pencere katmanında (plan, kesit, görünüşle aynı; ana oturum kararı 14.11.2026): duvar parçası, ölçü, yazı, kesit işareti hariç */
+    for (const it of D.o) if (!it.duvar && /^[LPCA]$/.test(it.k) && /^DETAY_(KESIT|GORUNEN)$/.test(it.ly || 'DETAY_GORUNEN')) it.ly = 'DETAY_DOGRAMA';
     return { items: D.o, bb: kutu(D.o), parca };
   };
 
@@ -280,7 +286,7 @@
   const mt = () => (C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.kesitTarama && C.cizimKural.MIMARI.kesitTarama.malzeme) || {};
   const taramaOf = mat => { if (mat === 'solid') return { pat: 'SOLID', sc: 1 }; const q = mt()[mat]; if (q && (C.HATCH_PATTERNS || {})[q.desen] !== undefined) return { pat: q.desen, sc: q.sc, ang: q.aci || 0, ann: q.gercek ? false : undefined };
     return mat === 'tugla' ? { pat: 'AR-B816', sc: 0.394, ann: false } : { pat: 'ANSI36', sc: 0.3937 }; };
-  const KATMAN = { DETAY_GORUNEN: [8, 'CONTINUOUS', 15], DETAY_KESIT: [7, 'CONTINUOUS', 50], DETAY_KORKULUK: [151, 'CONTINUOUS', 25], DETAY_TARAMA: [8, 'CONTINUOUS', 9], DETAY_OLCU: [3, 'CONTINUOUS', 18], KESIT_ISARET: [133, 'CONTINUOUS', 15], YAZI: [7, 'CONTINUOUS', 25] };
+  const KATMAN = { DETAY_DOGRAMA: [23, 'CONTINUOUS', 25], DETAY_GORUNEN: [8, 'CONTINUOUS', 15], DETAY_KESIT: [7, 'CONTINUOUS', 50], DETAY_KORKULUK: [151, 'CONTINUOUS', 25], DETAY_TARAMA: [8, 'CONTINUOUS', 9], DETAY_OLCU: [3, 'CONTINUOUS', 18], KESIT_ISARET: [133, 'CONTINUOUS', 15], YAZI: [7, 'CONTINUOUS', 25] };
   /* çizim listesini görünüm grubuna (gv) çiz: base = modelde sol alt (liste koordinatı 0, 0'ın yeri), sc = pafta penceresi ölçeği */
   C.mimariDetayCiz = (items, base, gv, sc) => {
     const k = sc / 1000, X = q => [base[0] + q[0], base[1] + q[1], 0];

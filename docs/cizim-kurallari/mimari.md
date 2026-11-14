@@ -196,7 +196,7 @@ Kesitte program: yatay zincirde kesilen duvar ve perdelerin kalınlığı ile ar
 
 **Örneklerin birbirini tutmadığı yerler (en sık olan alındı):** beton ölçeği 50 / 2,5 (desen aralığı aynı); grobeton 5 / 0,1; dolgu 10 / 0,5; tuğla açısı 0 / 90. 1/10 tretuvar detayında (10, 5, 6) katmanlar başka desenlerle taranmış (kaplama ve beton ANSI36, harç AR-SAND 0,04, stabilize AR-SAND 0,08); kural 1/50 kesitlerdekini esas alır.
 **Örnekte görülen, programda karşılığı olmayan taramalar (kurala alınmadı):** şev `Sev` ANSI31 (8-Geri Devir, 1-Kaba-İnce), yol katmanları `Toprak` AR-SAND 2 ve 10 (asfalt ve temeli), görünüşte tabii zemin şeridi `Toprak` AR-PARQ1 2,5 / 315° (5, 6).
-**Beton olmayan kesilen parçalar** (korkuluk, doğrama, merdiven profili, çatı ahşabı): `Tarama` katmanında SOLID — KABUL (kullanıcı doğrulayacak).
+**Beton olmayan kesilen parçalar** (korkuluk, doğrama, çelik merdiven profili): `Tarama` katmanında SOLID — KABUL (kullanıcı doğrulayacak). Betonarme merdiven kesilen beton gibi (ANSI36; ana oturum kararı 14.11.2026). **Kesilen çatı ahşabı** (10-İdari Bina_R2 A'-A', `Cati` katmanı): taramasız, enine kesit dörtgeni + iki köşegen (10 × 10 aşık: kare + X); boyuna kesilen tahta yalnız dış hat (ana oturum kararı 14.11.2026: A-A ile A'-A' aynı gösterim).
 
 **Monolitik döküm (kullanıcı kararı 14.11.2026):** döşemeyle birlikte dökülen kiriş (üstü döşeme üstünde ya da döşeme altında, planda döşemenin altında) kesitte döşemeyle tek gövdedir: tek dış hat, tek tarama, aralarında çizgi yok (katman döşemenin katmanı). Pencere / kapı boşluklu duvar kesitte ve görünüşte tek dış hat + boşluk konturları olarak çizilir; lento ayrı çizilmez. Statik ve metraj kiriş ile döşemeyi ayrı eleman olarak okumaya devam eder.
 
@@ -212,7 +212,7 @@ Program katmanı → çizim katmanı:
 | Programdaki katman | Çizim katmanı |
 | --- | --- |
 | `KESIT`, `KESIT_<eleman>` (perde, temel, döşeme, kiriş, kolon), planda `INS_PERDE`, `INS_KOLON`, `INS_TEMEL…` | `Beton` |
-| `KESIT_CATI` (kesilen çatı: makas / aşık / mertek / dikme, kaplama katmanları ve örtü) | `Beton` — kullanıcı kararı 14.11.2026 ("kesitlerde çatı soluk gözüküyor"); kesilen ahşap `Tarama` katmanında SOLID (beton olmayan kesilen parça kabulü), kaplama ve örtü taramasız |
+| `KESIT_CATI` (kesilen çatı: makas / aşık / mertek / dikme, kaplama katmanları ve örtü) | `Beton` — kullanıcı kararı 14.11.2026 ("kesitlerde çatı soluk gözüküyor"); kesilen ahşap taramasız, enine kesitte çapraz (Çokal A'-A'), kaplama ve örtü taramasız |
 | aynı katmanlardaki kesikli çizgiler | `Beton_Kesik` |
 | `GORUNEN`, `GORUNEN_<eleman>`, görünüş (cephe) çizgileri, planda döşeme / kiriş | `Ongor` (kesikliyse `Arkagor`) |
 | `…_KORKULUK`, `…_MERDIVEN`, `…_TRETUVAR`, `…_GROBETON`, `…_SU`, `…SU_TUTUCU_BANT` | `Korkuluk`, `Merdiven`, `Tretuvar`, `Grobeton`, `Su`, `Sututucu` |

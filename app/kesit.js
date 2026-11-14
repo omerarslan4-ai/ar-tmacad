@@ -159,10 +159,16 @@
   /* Çokal pafta stilinde (PAFTASTIL COKAL) taramalar örnek projedeki gibidir: desen, açı, ölçek kural tablosundan (app/cizim-kural.js → MIMARI.kesitTarama;
      kullanıcı kararı 14.11.2026). Tabloda karşılığı olmayan malzeme (null) ve eski görünüm (PAFTASTIL KLASIK) aşağıdaki program desenleriyle taranır. */
   const kuralTarama = mat => { try { const K = C.cizimKural; if (!K || !K.kesitTaramaSec || !(C.pstil && C.pstil())) return null; const s = K.kesitTaramaSec(K.MIMARI, mat); if (!s || !(C.HATCH_PATTERNS || {})[s.pat]) return null; return { pat: s.pat, ang: s.ang, sc: s.sc, ann: s.ann }; } catch (e) { return null; } };
+  /* dörtgen kesit (eş doğrultulu ara noktalar atılır) → iki köşegen; dörtgen değilse çapraz yok */
+  const ahsapCapraz = lp => { const n = lp.length, K = [];
+    for (let i = 0; i < n; i++) { const a = lp[(i - 1 + n) % n], b = lp[i], c = lp[(i + 1) % n], cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]), l = Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]); if (l > 0 && Math.abs(cr) / l > 0.05) K.push(b); }
+    if (K.length !== 4) return []; const kenar = i => Math.hypot(K[(i + 1) % 4][0] - K[i][0], K[(i + 1) % 4][1] - K[i][1]);
+    return Math.max(kenar(0), kenar(1)) <= 0.35 ? [[K[0], K[2]], [K[1], K[3]]] : []; }; // yalnız enine kesit (≤ 35 cm); boyuna kesilen tahta (kuşaklama, göğüsleme) çaprazsız
+  C.ahsapCapraz = ahsapCapraz;
   C.secHatchSpec = (mat, base, plan) => {
     const kt = mat !== 'K' && kuralTarama(mat || 'B'); if (kt) return kt;
     const P = C.HATCH_PATTERNS || {}, b = P[base] ? base : 'ANSI31';
-    if (mat === 'KA') return C.pstil && C.pstil() && P.SOLID ? { pat: 'SOLID', ang: 0, sc: 1, ann: true } : null; // kesilen çatı ahşabı (makas, aşık, mertek): beton olmayan kesilen parça → dolu (kural tablosu: diger SOLID)
+    if (mat === 'KA') return null; // kesilen çatı ahşabı (aşık, mertek, dikme): Çokal 10-İdari A'-A' / A-A — taramasız, kesit kutusu + çapraz (C.ahsapCapraz); ana oturum kararı 14.11.2026 (eskiden dolu)
     if (mat === 'D') return { pat: b, ang: 90, sc: 1, ann: true };
     if (mat === 'G') return { pat: 'AR-CONC', ang: 0, sc: 0.5, ann: true };
     if (mat === 'K') return null;
@@ -286,6 +292,8 @@
     const LH = lk => { const n = lk ? 'KESIT_' + lk + '_TARAMA' : 'KESIT_TARAMA'; C.ensureLayer(n, 8, 'CONTINUOUS', 13); return n; };
     const i0 = C.doc.ents.length; // bu kesitin çizim nesneleri buradan sonra (ölçüler yazı / kot üstüne binmesin diye)
     for (const lp of R.loops.concat(R.equip)) { if (C.addFitted(lp, true, W, { layer: LC(lp.lk) })) nC++; }
+    /* kesilen ahşap (çatı): Çokal'daki gibi kesit dörtgeninin iki köşegeni (10 × 10 aşık: kare + X) */
+    for (const g of R.byMat || []) if (g.mat === 'KA') for (const lp of g.loops) for (const [p, q] of ahsapCapraz(lp)) C.add(C.newEnt('line', { a: W(p), b: W(q), layer: LC(lp.lk) }));
     for (const pl of R.open) { if (pl.terr) { C.add(C.newEnt(pl.length === 2 ? 'line' : 'pline', pl.length === 2 ? { a: W(pl[0]), b: W(pl[1]), layer: 'ZEMIN' } : { pts: pl.map(W), closed: false, layer: 'ZEMIN' })); nC++; } else if (C.addFitted(pl, false, W, { layer: LC(pl.lk) })) nC++; }
     { const vg = new Map(); for (const sg of R.vis) { const k = sg.lk || ''; if (!vg.has(k)) vg.set(k, []); vg.get(k).push(sg); } for (const [k, vs] of vg) nV += C.addFittedSegs(vs, W, { layer: LV(k || null) }); }
     const pat = C.secHatch || (() => { try { return localStorage.getItem('aritmacad.kesitTarama'); } catch (e) { return null; } })() || 'ANSI31';
@@ -401,8 +409,8 @@
         /* doğrama numarası (daire + kod) iç yatay ölçü zincirine binmesin: binerse zincirin üstüne kaydırılır */
         { const yeni = C.doc.ents.slice(i0), hD = yeni.filter(e => e.type === 'dim' && e.k === 'h' && e.p), mm1 = C.annoH(1);
           for (const c of yeni.filter(e => e.type === 'circle' && /DOGRAMA_NO$/.test(e.layer || ''))) { const tx = yeni.find(e => e.type === 'text' && e.layer === c.layer && Math.hypot(e.p[0] - c.c[0], e.p[1] - c.c[1]) < 1e-6);
-            for (let g = 0; g < 6; g++) { const d = hD.find(q => c.c[0] + c.r > Math.min(q.a[0], q.b[0]) && c.c[0] - c.r < Math.max(q.a[0], q.b[0]) && c.c[1] - c.r < q.p[1] + 3 * mm1 && c.c[1] + c.r > q.p[1] - 0.5 * mm1); if (!d) break;
-              const dy = d.p[1] + 3 * mm1 + c.r + 0.5 * mm1 - c.c[1]; c.c = [c.c[0], c.c[1] + dy, 0]; delete c._c; if (tx) { tx.p = [tx.p[0], tx.p[1] + dy, 0]; delete tx._c; } } } }
+            for (let g = 0; g < 6; g++) { const d = hD.find(q => c.c[0] + c.r > Math.min(q.a[0], q.b[0]) && c.c[0] - c.r < Math.max(q.a[0], q.b[0]) && c.c[1] - c.r < q.p[1] + 4 * mm1 && c.c[1] + c.r > q.p[1] - 0.5 * mm1); if (!d) break; // ölçü yazısı (≈ 2,8 mm) ile daire arası en az 1 mm (ana oturum kararı 14.11.2026; A-A 1560)
+              const dy = d.p[1] + 4 * mm1 + c.r + 0.5 * mm1 - c.c[1]; c.c = [c.c[0], c.c[1] + dy, 0]; delete c._c; if (tx) { tx.p = [tx.p[0], tx.p[1] + dy, 0]; delete tx._c; } } } }
       }
     }
     // mekanik poz balonları (POZNO ile aynı numaralar)
