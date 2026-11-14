@@ -4,7 +4,7 @@
         (Çokal R2'de: P pencere, PA panjur, AK alüminyum kapı, SK seksiyonel kapı). Plan etiketi (iki örnekte de aynı): daire içinde kod,
         daireden doğramaya çizgi, çizginin üstünde genişlik, altında yükseklik (cm). Çokal 10-İdari Bina_R2 planı: daire yarıçapı 3 mm,
         kod 2 mm (YZ), çizgi renk 243, ebat yazısı 2 mm. Detay başlığı: "P1 150/130 ALÜMİNYUM PENCERE".
-        C.kapiPencereTipleri() → [{ kod, tur, w, h, parapet, adet, kanat, malzeme, ids }] (doğrama detay paftası bunu kullanır).
+        C.kapiPencereTipleri() → [{ kod, tur, w, h, parapet, adet, kanat, malzeme, ids, duvar (cm), yon, panel (m) }] (doğrama detay paftası bunu kullanır).
    2) AKS: modelde aks nesnesi yoksa kolon merkezlerinden (yoksa perde eksenlerinden) türetilir. Numaralar soldan sağa (1, 2 …),
         harfler yukarıdan aşağıya (A üstte) — Çokal İdari / Blower ve Konya planlarında böyle.
       PLAN ÖLÇÜ SIRALARI (Çokal 10-İdari Bina_R2 kat planı, dört kenarda aynı): içten dışa 1) doğrama zinciri (dış yüz · boşluk kenarları ·
@@ -35,14 +35,15 @@
   const tipNumaralari = aciklar => {
     const G = new Map();
     for (const a of aciklar || []) { const on = ONEK[tipTuru(a)], w = cm(+a.w || 0), h = cm(+a.h || 0); if (!w || !h) continue; const k = on + '|' + w + '|' + h;
-      if (!G.has(k)) G.set(k, { onek: on, w, h, ids: [], par: new Map(), kanat: new Map(), mal: new Map() });
-      const g = G.get(k), say = (m, v) => m.set(v, (m.get(v) || 0) + 1); g.ids.push(a.id); say(g.par, cm(+a.par || 0)); say(g.kanat, +a.kanat || 1); say(g.mal, varsayilanMalzeme(a)); }
+      if (!G.has(k)) G.set(k, { onek: on, w, h, ids: [], par: new Map(), kanat: new Map(), mal: new Map(), duvar: new Map(), yon: new Map(), panel: new Map() });
+      const g = G.get(k), say = (m, v) => m.set(v, (m.get(v) || 0) + 1); g.ids.push(a.id); say(g.par, cm(+a.par || 0)); say(g.kanat, +a.kanat || 1); say(g.mal, varsayilanMalzeme(a));
+      say(g.duvar, cm(+a.duvar || 0.2)); say(g.yon, a.yon === 'R' ? 'R' : 'L'); say(g.panel, +a.pnl || 0.5); }
     const enSik = m => [...m.entries()].sort((p, q) => q[1] - p[1] || (p[0] < q[0] ? -1 : 1))[0][0];
     const tipler = [], kodOf = {};
     for (const on of ONEK_SIRA) {
       const L = [...G.values()].filter(g => g.onek === on).sort((p, q) => p.w - q.w || p.h - q.h);
       L.forEach((g, i) => { const kod = on + (i + 1), mal = enSik(g.mal), tur = TUR[on];
-        const t = { kod, onek: on, tur, w: g.w, h: g.h, parapet: enSik(g.par), adet: g.ids.length, kanat: enSik(g.kanat), malzeme: mal, ids: g.ids.slice(),
+        const t = { kod, onek: on, tur, w: g.w, h: g.h, parapet: enSik(g.par), adet: g.ids.length, kanat: enSik(g.kanat), malzeme: mal, ids: g.ids.slice(), duvar: enSik(g.duvar), yon: enSik(g.yon), panel: enSik(g.panel),
           etiket: `${kod} ${g.w}/${g.h}`, baslik: `${kod} ${g.w}/${g.h} ${on === 'SEK' ? tur : `${mal} ${tur}`}` };
         tipler.push(t); for (const id of g.ids) kodOf[id] = kod; });
     }
@@ -187,7 +188,25 @@
     return out;
   };
 
-  const api = { tipNumaralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu };
+  /* ---------- 6) GÖRÜNÜŞTE TOPRAK ALTI (firma kuralı 14.11.2026: toprak altında kalan yapı kısımları görünmez) ----------
+     Görünüşün izdüşümü (u yatay, v = kot): kapalı çevreler, açık çizgiler ve görünen kenarlar zemin kotunun (zg) altında kırpılır.
+     R: { loops: [[u, v] …], equip, open: [[u, v] …], vis: [[[u, v], [u, v]] …] } (katman bilgisi lk korunur). Döner: yeni R + { kesilen: n } */
+  const zeminAltiKirp = (R, zg) => {
+    const ust = q => q[1] >= zg - 1e-9, kes = (p, q) => { const t = (zg - p[1]) / (q[1] - p[1]); return [p[0] + (q[0] - p[0]) * t, zg]; };
+    let n = 0; const kopya = (src, dst) => { if (src.lk !== undefined) dst.lk = src.lk; if (src.terr !== undefined) dst.terr = src.terr; return dst; };
+    const cevre = lp => { const out = []; for (let i = 0; i < lp.length; i++) { const p = lp[i], q = lp[(i + 1) % lp.length], ip = ust(p), iq = ust(q); if (ip) out.push(p); if (ip !== iq) out.push(kes(p, q)); } if (out.length !== lp.length || out.some((q, i) => q !== lp[i])) n++; return kopya(lp, out); };
+    const alan = lp => { let a = 0; for (let i = 0; i < lp.length; i++) { const p = lp[i], q = lp[(i + 1) % lp.length]; a += p[0] * q[1] - q[0] * p[1]; } return Math.abs(a / 2); };
+    const parca = pl => { const out = []; let cur = []; for (let i = 0; i < pl.length; i++) { const p = pl[i]; if (ust(p)) { if (i && !ust(pl[i - 1])) cur.push(kes(pl[i - 1], p)); cur.push(p); } else { if (i && ust(pl[i - 1])) { cur.push(kes(pl[i - 1], p)); } if (cur.length > 1) out.push(kopya(pl, cur)); if (cur.length) n++; cur = []; } } if (cur.length > 1) out.push(kopya(pl, cur)); return out; };
+    const seg = sg => { const [p, q] = sg, ip = ust(p), iq = ust(q); if (ip && iq) return sg; n++; if (!ip && !iq) return null; return kopya(sg, ip ? [p, kes(p, q)] : [kes(p, q), q]); };
+    const L = lps => (lps || []).map(cevre).filter(lp => lp.length >= 3 && alan(lp) > 1e-8);
+    const out = Object.assign({}, R, { loops: L(R.loops), equip: L(R.equip), open: (R.open || []).flatMap(parca), vis: (R.vis || []).map(seg).filter(Boolean) });
+    if (R.byMat) out.byMat = R.byMat.map(g => Object.assign({}, g, { loops: L(g.loops) })).filter(g => g.loops.length);
+    out.kesilen = n; return out;
+  };
+  /* görünüşün zemin kotu: tretuvarın oturduğu zemin (zg) en düşüğü; yoksa "toprak / zemin" adlı seviye; yoksa null (kırpılmaz) */
+  const zeminKotu = (ogeler, seviyeler) => { const t = (ogeler || []).filter(e => e.type === 'tretuvar' && isFinite(+e.zg)).map(e => +e.zg);
+    if (t.length) return Math.min(...t); const s = (seviyeler || []).find(q => /toprak|tabii zemin|zemin kotu/i.test(String(q.ad || q.id || ''))); return s && isFinite(+s.z) ? +s.z : null; };
+  const api = { tipNumaralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
@@ -206,6 +225,7 @@
     const I = C._ins, out = []; if (!I || !I.hostFrame) return out;
     for (const e of ents || C.doc.ents) { if (e.type !== 'acik' || e.gv || !C.layer(e.layer).on) continue; const H = I.hostFrame(e); if (!H) continue; const { h, sf, F } = H, s = +e.s || 0, mid = (F.lB + F.rB) / 2;
       out.push({ e, id: e.id, kind: e.kind === 'kapi' ? 'kapi' : (e.kind === 'panjur' ? 'panjur' : 'pencere'), kTip: e.kTip, w: +e.w || 1, h: +e.hh || (e.kind === 'kapi' ? 2.1 : 1.2), par: +e.par || 0, kanat: +e.kanat || 1, malzeme: e.malzeme || e.mal,
+        duvar: Math.abs(F.rB - F.lB) || 0.2, yon: e.yon, pnl: e.pnl,
         c: [sf.a[0] + sf.u[0] * s + sf.nn[0] * mid, sf.a[1] + sf.u[1] * s + sf.nn[1] * mid], u: [sf.u[0], sf.u[1]], nn: [sf.nn[0], sf.nn[1]], z0: (+h.z0 || 0) + (+e.par || 0), host: h }); }
     return out;
   };

@@ -295,6 +295,23 @@
     if (n) { C.changed(); C.log(`${n} çatı oluşturuldu. Metraj: INSMETRAJ (örtü, XPS, membran, ahşap m³, oluk, mahya).`); }
   });
 
+  /* MIMARIPAFTA çatı planı eki (mimari-pafta.js): planda oluk, iniş boruları, mahya / kırma / dere çizgileri, eğim okları ve kotlar — iskelet (aşık, mertek) olmadan.
+     Döner: 2B parça listesi (C.prims biçimi) */
+  C.catiPlanSembol = e => {
+    const G = geomOf(e), out = [], th = C.annoH(2.0);
+      // yağmur oluğu (saçak boyunca) ve yağmur boruları (dış köşeler)
+      const gut = offsetPoly(G.foot, 0.07); out.push(P(gut.map(p => [p[0], p[1], 0]), true, { lw: 13, lt: 'DASHED' }));
+      for (let i = 0; i < G.foot.length; i++) { const a = G.foot[(i - 1 + G.foot.length) % G.foot.length], b = G.foot[i], c = G.foot[(i + 1) % G.foot.length]; if ((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) <= 1e-9) continue; const q = gut[i]; out.push(C.prim.CI([q[0], q[1], 0], 0.06, { lw: 18 }), TX([q[0] + th, q[1] + th, 0], th * 0.8, 'Yağmur borusu', 0, 'BL')); }
+      // mahya / kırma / dere çizgileri
+      for (const k of ['ridge', 'hip', 'valley', 'gableEdge']) for (const [A, B] of G.lines[k]) out.push(L([A[0], A[1], 0], [B[0], B[1], 0], { lw: k === 'ridge' ? 35 : 25 }));
+      // eğim okları ve kotlar
+      const done = new Set(), pct = pc => `Eğim %${Math.round(pc.slope * 100)}`;
+      for (const pc of G.pieces.slice().sort((a, b) => Math.abs(area(b.q)) - Math.abs(area(a.q)))) { const k = pc.r + ':' + pc.k + (pc.lower ? 'L' : ''); if (done.has(k)) continue; done.add(k); const c = pc.q.reduce((s2, p) => [s2[0] + p[0] / pc.q.length, s2[1] + p[1] / pc.q.length], [0, 0]), n = pc.x.n, Lr = Math.min(1.2, Math.sqrt(Math.abs(area(pc.q))) * 0.35), a = [c[0] + n[0] * Lr / 2, c[1] + n[1] * Lr / 2, 0], b = [c[0] - n[0] * Lr / 2, c[1] - n[1] * Lr / 2, 0], hw = Lr * 0.18; out.push(L(a, b, { lw: 18 }), L(b, [b[0] + n[0] * hw - n[1] * hw * 0.6, b[1] + n[1] * hw + n[0] * hw * 0.6, 0], { lw: 18 }), L(b, [b[0] + n[0] * hw + n[1] * hw * 0.6, b[1] + n[1] * hw - n[0] * hw * 0.6, 0], { lw: 18 })); out.push(TX([c[0] - n[1] * th * 1.2, c[1] + n[0] * th * 1.2, 0], th, pct(pc), Math.abs(Math.atan2(-n[0], n[1])) > Math.PI / 2 ? Math.atan2(-n[0], n[1]) + Math.PI : Math.atan2(-n[0], n[1]), 'MC')); }
+    return out;
+  };
+  C.catiGeom = e => geomOf(e);
+  /* MIMARIPAFTA çatı detayları: DETAY-A (saçak) ve DETAY-B (mahya), 1/10; O: modelde yer. Yeni nesneler C._gvCur görünümüne girer. */
+  C.catiDetaylari = (e, O) => drawDetails(e, O);
   /* ---------- ÇATI PAFTASI: çatı planı başlığı + ölçüleri, A-A / B-B kesitleri, DETAY-A (saçak) ve DETAY-B (mahya) 1/10 ---------- */
   const drawDetails = (e, O) => {
     const host = C.byId(e.host) || {}, tn = Math.tan((+e.deg || 18) * RAD), cs = Math.cos(Math.atan(tn)), t = +host.t || 0.15, sc = +host.sacak > 0 ? +host.sacak : Math.max(0.3, +e.ov || 0.5);

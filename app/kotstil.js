@@ -73,6 +73,11 @@
     const ps = C.pstil ? C.pstil() : null, pk = ps && ps.kot; // pafta çizim stili (pafta-stil.js): örnek projedeki kot işareti ve yazı stili
     const st = pk ? (kotStyle(), ps.yazi) : kotStyle(), tag = arr => arr.map(pr => pr.k === 'T' ? Object.assign(pr, { st }) : pr);
     const sty = pk ? pk.stil : C.kotStil();
+    /* kaplamalı döşemede plan kotu iki değerli (Çokal 10-İdari Bina_R2 planı, KOT katmanı): daire (r ≈ 1,1 mm) + sağa yatay çizgi (≈ 7,6 mm),
+       çizginin üstünde bitmiş (kaplama) kotu, altında kaba döşeme kotu; yazılar 2 mm, aralarında 3,6 mm (ör. +0.53 / +0.45) */
+    if (e.pk && e.v2 != null && isFinite(+e.v2)) { const r = tag(p0(Object.assign({}, e, { txt: '' }))).filter(pr => pr.k !== 'T'), p = M.p3(e.p), rr = C.annoH(2.2) * 0.75, th = C.annoH(pk ? pk.th : 2), L1 = C.annoH(7.6);
+      r.push(L([p[0] + rr, p[1], p[2]], [p[0] + rr + L1, p[1], p[2]]));
+      r.push(...tag([TX([p[0] + rr * 1.4, p[1] + th * 0.4, p[2]], th, C.fmtKot(+e.v2), 0, 'L'), TX([p[0] + rr * 1.4, p[1] - th * 1.4, p[2]], th, C.fmtKot(+e.v), 0, 'L')])); return r; }
     if (e.pk || sty === 'klasik') { const r = tag(p0(e)); if (e.pk && pk) for (const pr of r) if (pr.k === 'T') pr.h = C.annoH(pk.th); return r; } // plan kotu yazısı da pafta stilindeki boyda
     const th = C.annoH(pk ? pk.th : C.doc.set.textH), s = Math.max(C.annoH(2.5), th * 1.25), p = M.p3(e.p), z = p[2], f = e.ters ? -1 : 1;
     const txt = (e.txt ? e.txt + ' ' : '') + C.fmtKot(e.v), tw = C.measureText(C.txL ? C.txL(txt) : txt, th, C.textStyle(st));

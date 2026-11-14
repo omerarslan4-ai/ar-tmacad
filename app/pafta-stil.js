@@ -45,7 +45,9 @@
   if (T.aks) { const p0 = T.aks.prims; T.aks.prims = e => { const ps = C.pstil(), A = ps && ps.aks; if (!A) return p0(e);
       const h = A.th * kk(); return p0(Object.assign({}, e, { bp: A.bp })).map(pr => pr.k === 'L' && pr.lt === 'CENTER' ? Object.assign(pr, { lt: A.lt, lw: A.lw }) : pr.k === 'T' && pr.al === 'MC' ? Object.assign(pr, { h, st: A.st }) : pr); }; }
   if (T.kesitisaret) { const p0 = T.kesitisaret.prims; T.kesitisaret.prims = e => { const ps = C.pstil(), K = ps && ps.kesit; if (!K) return p0(e);
-      return p0(Object.assign({}, e, { sym: 'okdaire', th: K.r / 0.85 })).map(pr => (pr.k === 'T' ? Object.assign(pr, { st: K.st, h: K.th * kk() }) : pr)); }; } // daire yarıçapı K.r, harf K.th (mm)
+      /* sembol: önizlemede kendi sembolü; çizimde projenin seçtiği (KESITSEMBOL, doc.set.kesitSembol), seçilmemişse eskisi gibi 'okdaire' */
+      const sym = e._onizle ? e.sym : (C.doc.set.kesitSembol || 'okdaire'); if (sym === 'cokal') return p0(Object.assign({}, e, { sym })).map(pr => (pr.k === 'T' ? Object.assign(pr, { st: K.st }) : pr));
+      return p0(Object.assign({}, e, { sym, th: K.r / 0.85 })).map(pr => (pr.k === 'T' ? Object.assign(pr, { st: K.st, h: K.th * kk() }) : pr)); }; } // daire yarıçapı K.r, harf K.th (mm)
   if (T.baslik) { const p0 = T.baslik.prims; T.baslik.prims = e => { const ps = C.pstil(), B = ps && ps.baslik ? ps.baslik() : null; if (!B) return p0(e);
       const k = kk(), h = B.th * k, st = B.st, p = M.p3(e.p); if (e.ay != null && e.dmm != null) p[1] = e.ay - e.dmm * k;
       const y = C.textStyle(st), w = C.measureText(e.s, h, y) * (y.wf || 1), y1 = p[1] - h * 0.25, out = [TX(p, h, e.s, 0, 'BC', { st }), L([p[0] - w / 2, y1, 0], [p[0] + w / 2, y1, 0], { lw: 25 })]; // altı tek çizgili başlık

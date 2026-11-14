@@ -457,6 +457,8 @@
   };
 
   C.istasyonPaftalari = uret;
+  /* MIMARIPAFTA (mimari-pafta.js) çelik / sac kapak detayları için: kapak planı (1/20), kenar detayı (1/5), katmanlar, açılım düzeni */
+  C.kapakDetay = { plani: kapakPlani, kenar: kenarDetay, katmanlar, acilimDuzen };
   C.addCommand(['ISTASYONPAFTA', 'ISTPAFTA', 'MIMARIMEKANIKPAFTA'], 'Pompa istasyonu (3B) için mimari ve mekanik paftaları üretir: planlar, A-A / B-B kesitleri, akslar, malzeme açılımları, mahal listesi, kapak detayları; mekanik poz numaraları, ekipman, boru – ek parça ve vana listeleri. Yeniden çalıştırınca modelden günceller.', async (I) => {
     const ol = I && I.kw ? await I.kw('Plan ve kesit ölçeği', [['25', '1/25 (önerilen — pafta sayısı otomatik artar)'], ['50', '1/50']], String(C.doc.set.istOlcek || 25)) : '25'; if (!ol) return; C.doc.set.istOlcek = +ol;
     const res = await uret(+ol); if (!res) return;

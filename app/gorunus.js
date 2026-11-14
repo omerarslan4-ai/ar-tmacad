@@ -125,15 +125,38 @@
       return best;
     };
     const lay = tag + '_KOT'; C.ensureLayer(lay, 2, 'CONTINUOUS', 18);
+    /* kaplama (zemin kaplaması nesnesi): noktadaki kaplama üstü ve altındaki kaba döşeme üstü */
+    const KP = ents.filter(e => e.type === 'kaplama' && Array.isArray(e.pts) && e.pts.length > 2);
+    const kpOf = (q, zb) => KP.find(e => C.pointInPoly(q, e.pts) && Math.abs((+e.z0 || 0) + kalinlik(e) - zb) < 0.02 || C.pointInPoly(q, e.pts) && Math.abs((+e.z0 || 0) - zb) < 0.02);
+    const kalinlik = e => ((+e.zbt || 0) + (+e.sap || 0) + (+e.kt || 0) + (+e.xps || 0)) / 100;
+    const kaplamaUst = KP.length ? (q, zb) => { const e = kpOf(q, zb); return e ? (+e.z0 || 0) + kalinlik(e) : null; } : null;
+    const kabaAlt = (q, zb) => { const e = kpOf(q, zb); return e ? (+e.z0 || 0) : null; };
     const put = (q, v, txt) => C.add(C.newEnt('kot', { gv, pk: true, p: W(q), v: +v.toFixed(3), txt: txt || '', layer: lay }));
     let n = 0; const h = def.h;
     const SKIPK = new Set(['KORKULUK', 'MERDIVEN', 'SU_TUTUCU_BANT']);
     for (const lp of loops) {
       if (n >= 40) break; if (SKIPK.has(lp.lk)) continue; const hole = M.polyArea(lp) < 0;
       const q = spot(lp, !hole); if (!q) continue; const zs = zsAt(q[0], q[1]);
-      if (hole) { const below = zs.filter(z => z <= h + 1e-6); if (below.length) { put(q, Math.max(...below)); n++; } }
-      else if (zs.length) { const top = Math.max(...zs); if (top > h + 1e-6) { put(q, top, 'üst'); n++; } }
+      /* firma kuralı 14.11.2026: planda kot yalnız bina içinde görünen döşemelere (boş bölgede aşağıda görünen yüzey); duvar / perde / kolon / kiriş üstüne kot yazılmaz.
+         Döşemenin üstünde kaplama varsa iki kot: kaba döşeme ve bitmiş kaplama (Çokal İdari planı) */
+      if (hole) { const below = zs.filter(z => z <= h + 1e-6); if (below.length) { const zb = Math.max(...below), kp = kaplamaUst ? kaplamaUst(q, zb) : null;
+        if (kp != null && kp > (kabaAlt(q, zb) == null ? zb : kabaAlt(q, zb)) + 0.005) { const kab = kabaAlt(q, zb); C.add(C.newEnt('kot', { gv, pk: true, p: W(q), v: +(kab != null ? kab : zb).toFixed(3), v2: +kp.toFixed(3), txt: '', layer: lay })); } else put(q, zb); n++; } }
+      else if (zs.length && def.ustKot === true) { const top = Math.max(...zs); if (top > h + 1e-6) { put(q, top, 'üst'); n++; } }
     }
+    /* odalar (düşey elemanlarla çevrili bölgeler; mimari-oto.js → mahalBul): her odada görünen döşeme yüzeyleri kotlarına göre ayrılır (galeri, kanal tabanı …),
+       1 m²'den büyük her bölgeye bir kot, bölgenin ortasına en yakın noktaya */
+    const OA = C.mimariOtoApi;
+    if (OA && OA.mahalBul && loops.length && n < 40) { try {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const b of LB) { x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]); }
+      const odalar = OA.mahalBul(loops, [x0, y0, x1, y1], { h: 0.1, enAz: 1 }), konan = [];
+      for (const o of odalar) { const [a0, b0, a1, b1] = o.bb, st = Math.max(0.2, Math.min(a1 - a0, b1 - b0) / 14), G = new Map();
+        for (let x = a0 + st / 2; x < a1; x += st) for (let y = b0 + st / 2; y < b1; y += st) { const q = [x, y]; if (inAny(q)) continue; const zs = zsAt(x, y).filter(z => z <= h + 1e-6); if (!zs.length) continue;
+          const zb = Math.round(Math.max(...zs) * 100) / 100; if (!G.has(zb)) G.set(zb, []); G.get(zb).push(q); }
+        for (const [zb, Q] of G) { if (Q.length * st * st < 1 || n >= 40) continue; const c = Q.reduce((s2, q) => [s2[0] + q[0] / Q.length, s2[1] + q[1] / Q.length], [0, 0]);
+          let q = Q[0], bd = Infinity; for (const p of Q) { const d = Math.hypot(p[0] - c[0], p[1] - c[1]); if (d < bd && !konan.some(k => Math.hypot(k[0] - p[0], k[1] - p[1]) < 1.5)) { bd = d; q = p; } }
+          konan.push(q); const kp = kaplamaUst ? kaplamaUst(q, zb) : null;
+          if (kp != null && kp > (kabaAlt(q, zb) == null ? zb : kabaAlt(q, zb)) + 0.005) { const kab = kabaAlt(q, zb); C.add(C.newEnt('kot', { gv, pk: true, p: W(q), v: +(kab != null ? kab : zb).toFixed(3), v2: +kp.toFixed(3), txt: '', layer: lay })); } else put(q, zb); n++; } }
+    } catch (er) { console.error('plan kotları', er); } }
     return n;
   };
   C.makeView = (def) => { // def: {kind:'plan'|'view', h, depth, dir, title, place:[x,y]|'yerinde', ref, gv}
@@ -146,6 +169,11 @@
     const r = C.projectModel(opts);
     if (!r.cut.length && !r.vis.length) return null;
     const R = C.sectionMerge ? C.sectionMerge(r.cut, r.vis) : { loops: [], equip: [], open: [], vis: r.vis };
+    /* görünüşte toprak altı çizilmez (firma kuralı 14.11.2026; Çokal 6-Blower ÖN GÖRÜNÜŞ: görünüş zemin çizgisinde biter, zemin çizgisi Toprak katmanında, binanın iki yanına uzar) */
+    let zg = null; const OA = C.mimariOtoApi;
+    if (def.kind !== 'plan' && /^(ON|ARKA|SAG|SOL)$/.test(def.dir || '') && def.zemin !== false && OA && OA.zeminAltiKirp) {
+      zg = def.zemin != null && isFinite(+def.zemin) ? +def.zemin : OA.zeminKotu(C.doc.ents.filter(e => !e.gv), C.seviyeler ? C.seviyeler() : []);
+      if (zg != null) { const K = OA.zeminAltiKirp(R, zg); Object.assign(R, K); if (!R.loops.length && !R.vis.length && !R.open.length && !R.equip.length) return null; } }
     if (def.area && def.kind === 'plan') { // alan kırpma (planda u=x, v=y)
       const a = def.area, ins = (q, k) => k === 0 ? q[0] >= a[0] : k === 1 ? q[0] <= a[2] : k === 2 ? q[1] >= a[1] : q[1] <= a[3];
       const isect = (p, q, k) => { const t = k === 0 ? (a[0] - p[0]) / (q[0] - p[0]) : k === 1 ? (a[2] - p[0]) / (q[0] - p[0]) : k === 2 ? (a[1] - p[1]) / (q[1] - p[1]) : (a[3] - p[1]) / (q[1] - p[1]); return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]; };
@@ -171,6 +199,7 @@
     const LGf = lk => { if (!lk) { C.ensureLayer(LG, 8, 'CONTINUOUS', 18); return LG; } const n = LG + '_' + lk; C.ensureLayer(n, col(lk), 'CONTINUOUS', 18); return n; };
     const LTf = lk => { const n = lk ? LT + '_' + lk : LT; C.ensureLayer(n, 8, 'CONTINUOUS', 13); return n; };
     const mk = (type, p) => C.add(C.newEnt(type, Object.assign({ gv }, p)));
+    if (zg != null) { const yan = 2.0; C.ensureLayer('ARAZI', 27, 'CONTINUOUS', 20); mk('pline', { pts: [W([ub[0] - yan, zg]), W([ub[2] + yan, zg])], closed: false, layer: 'ARAZI' }); } // zemin çizgisi (Toprak); yanlara 2 m — KABUL
     for (const lp of R.loops.concat(R.equip)) C.addFitted(lp, true, W, { gv, layer: LKf(lp.lk) });
     for (const pl of R.open) C.addFitted(pl, false, W, { gv, layer: LKf(pl.lk) });
     { const vg = new Map(); for (const sg of R.vis) { const k = sg.lk || ''; if (!vg.has(k)) vg.set(k, []); vg.get(k).push(sg); } for (const [k, vs] of vg) C.addFittedSegs(vs, W, { gv, layer: def.kind === 'plan' ? LGf(k || null) : LKf(k || null) }); }

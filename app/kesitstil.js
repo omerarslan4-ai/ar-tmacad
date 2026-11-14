@@ -13,7 +13,7 @@
   C.KESIT_SEMBOLLER = [['ucgendaire', 'Üçgen + daire içinde harf'], ['yarimok', 'Yarısı dolu üçgen + harf altta'], ['okdaire', 'Daire içinde harf + dolu ok'], ['bayrak', 'Bayrak ┘ + harf'], ['ok', 'Ok ▼ + harf'], ['daire', 'Daire içinde harf + yön'], ['ucgen', 'Dolu üçgen + harf']];
   /* sembol önizlemesi (SVG) — gerçek çizim fonksiyonundan */
   C.kesitOnizle = (sym, mode, col) => {
-    const k = C.doc.set.anno / 1000, e = { a: [0, 0, 0], b: [4 * k * 9, 0, 0], n: [0, 1], name: 'A', sym, mode: mode || 'tam', th: 4, lw: 35, lt: 'PHANTOM' }, pr = C.T.kesitisaret.prims(e);
+    const k = C.doc.set.anno / 1000, e = { a: [0, 0, 0], b: [4 * k * 9, 0, 0], n: [0, 1], name: 'A', sym, mode: mode || 'tam', th: 4, lw: 35, lt: 'PHANTOM', _onizle: true }, pr = C.T.kesitisaret.prims(e);
     let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const ext = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
     for (const q of pr) { if (q.k === 'L') { ext(q.a[0], q.a[1]); ext(q.b[0], q.b[1]); } else if (q.k === 'S') q.pts.forEach(t => ext(t[0], t[1])); else if (q.k === 'C' || q.k === 'A') { ext(q.c[0] - q.r, q.c[1] - q.r); ext(q.c[0] + q.r, q.c[1] + q.r); } else if (q.k === 'T') { ext(q.p[0] - q.h, q.p[1] - q.h); ext(q.p[0] + q.h, q.p[1] + q.h * 1.2); } }
     const c = col || '#5fd3e6', Y = y => -y, sw = (x1 - x0) / 220;
@@ -76,6 +76,17 @@
     snaps: e => [{ p: M.p3(e.a), k: 'end' }, { p: M.p3(e.b), k: 'end' }],
     info: e => `${e.name}-${e.name} · sembol ${e.sym} · ${e.mode === 'uc' ? 'yalnız uçlar' : 'tam boy'} · ${e.lt || 'Katmandan'}`,
   };
+  /* Çokal R2 kesit sembolü (10-İdari Bina_R2, Kesit_Cizgisi katmanı; 1/50, kâğıt mm): daire r 5, içinde harf 5 (ARIAL);
+     daire merkezinden bakış yönüne 8,76 mm tepe, tepeden kesit hattı üzerinde merkezin iki yanına 7,5 mm'ye iki çizgi (açık üçgen);
+     daireden kesit hattı boyunca içe 13,6 mm çizgi parçası. Ölçüler: app/cizim-kural.js → MIMARI.kesitSembol (yoksa bu sayılar). */
+  const KS_COKAL = () => Object.assign({ r: 5, harf: 5, tepe: 8.76, taban: 7.5, kol: 13.6 }, (C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.kesitSembol) || {});
+  { const p0 = C.T.kesitisaret.prims; C.T.kesitisaret.prims = e => { if (e.sym !== 'cokal') return p0(e);
+    const k = C.doc.set.anno / 1000, K = KS_COKAL(), a = M.p3(e.a), b = M.p3(e.b), n = [e.n[0], e.n[1], 0], u = M.norm(M.sub(b, a)), o = { lt: e.lt || 'BYLAYER', lw: e.lw }, out = [], nm = e.name || 'A';
+    const r = K.r * k, d = M.dist2(a, b); if (e.mode === 'uc') { const l = Math.min((K.r + K.kol) * k, d / 3); out.push(L(a, M.add(a, M.mul(u, l)), o), L(b, M.sub(b, M.mul(u, l)), o)); } else out.push(L(a, b, o));
+    for (const [p, sg] of [[a, -1], [b, 1]]) { const c = M.add(p, M.mul(u, sg * r)), tep = M.add(c, M.mul(n, K.tepe * k));
+      out.push(CI(c, r, { lw: e.lw }), L(tep, M.add(c, M.mul(u, K.taban * k)), { lw: e.lw }), L(tep, M.sub(c, M.mul(u, K.taban * k)), { lw: e.lw }), TX(c, K.harf * k, nm, 0, 'MC')); }
+    return out; }; }
+  C.KESIT_SEMBOLLER.unshift(['cokal', 'Çokal R2: daire içinde harf + açık üçgen yön']);
   if (C.ANNO_TYPES) C.ANNO_TYPES.add('kesitisaret');
   C.makeSectionMark = (a, b, n, name, gv) => {
     const st = stil(); ensureLay();

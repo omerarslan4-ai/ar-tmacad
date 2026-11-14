@@ -252,3 +252,25 @@
   };
   window.DIL.ekle('en', 'English', C, W);
 })();
+/* MİMARİ PAFTALAR (MIMARIPAFTA, 14.11.2026): pafta adları, kapı / pencere, korkuluk, sac kapak, çatı detayları, kesit sembolü */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['KESİTLER', 'SECTIONS'], ['KAPI VE PENCERE DETAYLARI', 'DOOR AND WINDOW DETAILS'], ['KORKULUK DETAYI', 'RAILING DETAIL'], ['SAC KAPAK DETAYLARI', 'STEEL COVER PLATE DETAILS'],
+    ['ÇATI PLANI, KESİTLERİ VE DETAYLARI', 'ROOF PLAN, SECTIONS AND DETAILS'], ['#-# ÇATI KESİTİ', 'ROOF SECTION #-#'], ['MİMARİ', 'ARCHITECTURE'],
+    ['# ALÜMİNYUM PENCERE', '# ALUMINIUM WINDOW'], ['# ÇELİK KAPI', '# STEEL DOOR'], ['# ALÜMİNYUM KAPI', '# ALUMINIUM DOOR'], ['# SEKSİYONEL KAPI', '# SECTIONAL DOOR'], ['(# ADET)', '(# PCS)'],
+    ['GÖRÜNÜŞ', 'ELEVATION'], ['1-1 KESİTİ', 'SECTION 1-1'], ['2-2 KESİTİ', 'SECTION 2-2'], ['KESİT', 'SECTION'], ['DIŞ', 'OUTSIDE'], ['İÇ', 'INSIDE'],
+    ['ALÜMİNYUM DOĞRAMA (ISI YALITIMLI)', 'ALUMINIUM FRAME (THERMALLY BROKEN)'], ['4+12+4 ISICAM', '4+12+4 DOUBLE GLAZING'], ['ALÜMİNYUM DIŞ DENİZLİK', 'ALUMINIUM EXTERNAL SILL'],
+    ['MERMER İÇ DENİZLİK (3 cm)', 'MARBLE INTERNAL SILL (3 cm)'], ['DIŞ SIVA', 'EXTERNAL PLASTER'], ['İÇ SIVA', 'INTERNAL PLASTER'], ['YALITIMLI SEKSİYONEL PANEL', 'INSULATED SECTIONAL PANEL'],
+    ['MOTOR', 'MOTOR'], ['TAVAN RAYI (AÇIK KONUM)', 'CEILING TRACK (OPEN POSITION)'],
+    ['# KORKULUK DETAYI (h=# cm)', '# RAILING DETAIL (h=# cm)'], ['Ø42,4 KÜPEŞTE BORUSU', 'Ø42.4 HANDRAIL TUBE'], ['Ø33,7 ARA KÜPEŞTE', 'Ø33.7 MID RAIL'], ['Ø42,4 DİKME @# cm', 'Ø42.4 POST @# cm'],
+    ['150×4 mm TEKMELİK LAMASI', '150×4 mm TOE BOARD'], ['120×120×10 mm TABAN PLAKASI', '120×120×10 mm BASE PLATE'], ['2 ADET M12 KİMYASAL DÜBEL (L = 10 cm)', '2 No. M12 CHEMICAL ANCHORS (L = 10 cm)'],
+    ['BETONARME DÖŞEME', 'REINFORCED CONCRETE SLAB'],
+    ['Kesit sembolü', 'Section symbol'], ['Çokal R2: daire içinde harf + açık üçgen yön', 'Çokal R2: letter in circle + open direction triangle'],
+    ['Seçilen sembol projeye kaydedilir; plandaki bütün kesit işaretleri ve yeni alınacak kesitler bu sembolle çizilir.', 'The selected symbol is saved in the project; all section marks on plans and new sections use it.'],
+    ['Kesit sembolü: plandaki kesit işaretinin sembolünü önizlemeli listeden seçer (Çokal R2 dahil); projeye kaydedilir, mevcut kesit işaretleri güncellenir.', 'Section symbol: choose the plan section-mark symbol from a previewed list (incl. Çokal R2); saved in the project, existing marks are updated.'],
+    ['✓ Kesit sembolü: # · # kesit işareti güncellendi.', '✓ Section symbol: # · # section marks updated.'],
+    ['Mimari paftalar hazır', 'Architectural sheets ready'], ['Uygula', 'Apply'], ['İptal', 'Cancel'],
+  ]);
+})();

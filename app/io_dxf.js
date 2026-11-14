@@ -94,12 +94,15 @@
     const VPW = []; for (const L of LAYS) for (const vp of L.vps) { const k = 1000 / (vp.scale || 100), hw = vp.w / 2 / k, hh = vp.h / 2 / k; VPW.push({ sc: vp.scale || 100, gv: vp.gvOnly || null, x0: vp.cx - hw, x1: vp.cx + hw, y0: vp.cy - hh, y1: vp.cy + hh }); }
     const annoSc = e => { if (!VPW.length) return null; let b; try { b = C.bbox(e); } catch (er) { return null; } if (!b || !isFinite(b[0])) return null; const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2; for (const w of VPW) { if (w.gv && e.gv !== w.gv) continue; if (cx >= w.x0 && cx <= w.x1 && cy >= w.y0 && cy <= w.y1) return w.sc; } return null; };
     const primsAt = e => { const sc = annoSc(e); if (!sc || sc === doc.set.anno || !C.T[e.type] || !C.withAnno) return C.prims(e); try { return C.withAnno(sc, () => { let pr = C.T[e.type].prims(e); if (e.aoff && C.annoShift) pr = C.annoShift(e, pr); return pr; }); } catch (er) { return C.prims(e); } };
+    /* nesne çizgi tipi ölçeği (kod 48): opts.celtOlcek verildiyse, ana ölçekten başka ölçekli pafta penceresinde görünen nesne için pencere ölçeği / ana ölçek */
+    const ltOlcek = e => { if (!opts.celtOlcek || r12) return 0; const sc = annoSc(e); return sc && Math.abs(sc - opts.celtOlcek) > 1e-9 ? sc / opts.celtOlcek : 0; };
     const primRecs = (e, layer) => {
-      const comp = COMPOSITE.has(e.type), recs = [];
+      const comp = COMPOSITE.has(e.type), recs = [], ltK = ltOlcek(e);
       for (const pr of primsAt(e)) {
         const st = comp
           ? { layer, color: pr.color != null ? pr.color : (e.color === 256 ? 256 : 0), lt: pr.lt || 'BYLAYER', lw: pr.lw != null ? pr.lw : -1 }
           : { layer, color: pr.color != null ? pr.color : e.color, lt: pr.lt || e.lt, lw: pr.lw != null ? pr.lw : e.lw };
+        if (ltK) st.lts = ltK;
         recs.push({ pr, st });
       }
       return recs;
@@ -181,11 +184,11 @@
     g(9, '$INSBASE'); g(10, 0); g(20, 0); g(30, 0);
     g(9, '$EXTMIN'); g(10, fx(bb[0])); g(20, fx(bb[1])); g(30, 0);
     g(9, '$EXTMAX'); g(10, fx(bb[2])); g(20, fx(bb[3])); g(30, 0);
-    g(9, '$LTSCALE'); g(40, fx(doc.set.ltscale));
+    g(9, '$LTSCALE'); g(40, fx(opts.ltscale != null ? opts.ltscale : doc.set.ltscale)); // opts.ltscale / psltscale: Mimari pafta çıktısı (mimari-pafta.js → dxfCizgiOlcegi)
     g(9, '$TEXTSIZE'); g(40, fx(C.annoH(doc.set.textH)));
     g(9, '$CLAYER'); g(8, nameSafe(doc.cur.layer));
     g(9, '$MEASUREMENT'); g(70, 1);
-    if (!r12) { g(9, '$INSUNITS'); g(70, 6); g(9, '$LWDISPLAY'); g(290, doc.set.lwdisp ? 1 : 0); g(9, '$PSLTSCALE'); g(70, 1); }
+    if (!r12) { g(9, '$INSUNITS'); g(70, 6); g(9, '$LWDISPLAY'); g(290, doc.set.lwdisp ? 1 : 0); g(9, '$PSLTSCALE'); g(70, opts.psltscale != null ? opts.psltscale : 1); }
     const seedIdx = out.length; if (!r12) { g(9, '$HANDSEED'); g(5, 'FFFFF'); }
     g(0, 'ENDSEC');
     if (!r12) { g(0, 'SECTION'); g(2, 'CLASSES'); g(0, 'ENDSEC'); }
@@ -245,6 +248,7 @@
       if (st.lt && st.lt !== 'BYLAYER' && C.LT[st.lt]) g(6, ltName(st.lt)); else if (st.lt === 'BYBLOCK') g(6, 'ByBlock');
       if (st.color != null && st.color !== 256) g(62, st.color);
       if (!r12 && st.lw != null && st.lw !== -1) g(370, st.lw);
+      if (!r12 && st.lts) g(48, fx(st.lts));
       if (!r12 && sub) g(100, sub);
     };
     const writePrim = (pr, st, owner) => {
