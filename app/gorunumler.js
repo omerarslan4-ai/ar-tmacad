@@ -144,7 +144,7 @@
     for (let i = 0; i < T.length; i++) {
       if (yalniz && T[i] !== yalniz) continue;
       const tur = T[i], once = new Set(C.doc.ents.map(e => e.id));
-      const q0 = E.queue, ok0 = C._okErtele; E.queue = [...ANAH[tur], pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt((v.yerD && v.yerD[tur]) || v.yer)]; // tür görünümü kendi disiplin bölgesinde (BOLGEDUZENLE → v.yerD) C._okErtele = tur === 'MIMARI' && C.kesitOklari ? [] : ok0;
+      const q0 = E.queue, ok0 = C._okErtele; E.queue = [...ANAH[tur], pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt((v.yerD && v.yerD[tur]) || v.yer)]; /* tür görünümü kendi disiplin bölgesinde (BOLGEDUZENLE → v.yerD) */ C._okErtele = tur === 'MIMARI' && C.kesitOklari ? [] : ok0;
       let ertele = []; try { await def.fn(C.I, C); } finally { E.queue = q0 || []; if (tur === 'MIMARI' && C.kesitOklari) { ertele = C._okErtele || []; C._okErtele = ok0; } }
       const yeni = C.doc.ents.filter(e => !once.has(e.id));
       if (!yeni.length) { if (i === 0) return 0; continue; }

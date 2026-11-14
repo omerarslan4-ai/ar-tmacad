@@ -44,7 +44,7 @@
 - Boru etiketlerinde genel malzeme adı yerine malzeme kalitesi yazılır (ör. SS304, SS304L, SS316, SS316L; "PASLANMAZ" değil). Tüm boru tipleri için geçerli.
 - Ünite numaraları ünite eklenip çıkarıldıkça yeniden numaralanır.
 - Çizim, pafta ve raporlar için dil seçeneği vardır ve tüm disiplinlere uygulanır.
-- Mimari paftalama otomatiktir (14.11.2026): kesit yerleri belirlenince program planları, kesitleri, görünüşleri, mahal listesini, kapı / pencere / korkuluk detaylarını ve çatı planı, çatı kesiti, çatı detay paftasını kendisi hazırlar ve en uygun şekilde paftalara yerleştirir. Öbür disiplinlerin paftalamasını kullanıcı kendi birimi içinde yapar.
+- Mimari paftalama otomatiktir (14.11.2026): kesit yerleri belirlenince program planları, kesitleri, görünüşleri, mahal listesini, kapı / pencere / korkuluk detaylarını ve çatı planı, çatı kesiti, çatı detay paftasını kendisi hazırlar ve en uygun şekilde paftalara yerleştirir. Mekanik paftalama da otomatiktir (Mekanik sekmesi); Statik ve Elektrik paftalamasını kullanıcı kendi birimi içinde yapar.
 - Tasarım (model) alanında üretilen plan, kesit ve görünüşler disipline göre ayrı bölgelere konur (14.11.2026): Mimari bir bölgede, Mekanik, Elektrik, Statik kendi bölgelerinde; her bölgenin başında disiplin adı yazılır, bölgeler modelin dışında ve birbirine karışmaz.
 - Kesit paftası ile görünüş paftası ayrıdır (14.11.2026); kâğıt idaresi her pafta türünün kendi içinde uygulanır (ör. bütün kesitler bir paftada, bütün görünüşler başka bir paftada).
 - Pafta antedinin ölçek alanına paftadaki bütün çizimlerin ölçekleri yazılır (ör. "1/50, 1/20, 1/5"): önce ana çizimlerin ölçeği, sonra detay ölçekleri; paftalardan canlı güncellenir (14.11.2026).
