@@ -249,8 +249,9 @@
     for (const gv of gvs.filter(Boolean)) { const og = [];
       for (const e of C.doc.ents) { if (e.gv !== gv) continue;
         if (e.type === 'dim' && e.a && e.b && e.p && (e.k === 'h' || e.k === 'v')) { const h = e.k === 'h'; og.push({ ad: 'ölçü#' + e.id, k: 'olcu', a: h ? [e.a[0] / k, e.p[1] / k] : [e.p[0] / k, e.a[1] / k], b: h ? [e.b[0] / k, e.p[1] / k] : [e.p[0] / k, e.b[1] / k], p: [e.p[0] / k, e.p[1] / k], yazi: 2, metin: String(Math.round(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) * 100)) }); }
+        else if (e.type === 'acilim' && C.acilimYaziKutulari) { for (const b of C.acilimYaziKutulari(e)) og.push({ ad: 'acilim#' + e.id, k: 'kutu', bb: b.map(v => v / k) }); }
         else if (e.type === 'kot' || e.type === 'text') { let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (b && isFinite(b[0])) og.push({ ad: e.type + '#' + e.id, k: 'kutu', bb: b.map(v => v / k) }); } }
-      for (const [x, y] of A.olcuCakisma(og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01 })) /* sıralar arası modelde 25 cm */ if (/^ölçü/.test(x) || /^ölçü/.test(y)) out.push({ gv, x, y }); }
+      for (const [x, y] of A.olcuCakisma(og, { sira: 250 / (+C.doc.set.anno || 50) - 0.01 })) /* sıralar arası modelde 25 cm */ out.push({ gv, x, y }); } // ölçü, yazı, kot, açılım kodu ve oklu açıklama yazısı (denetim 14.11.2026)
     return out; };
   /* kesit işareti planlarda (Çokal R2 planları): modeldeki kesit hattı plan görünümüne taşınır, uçları planın (ölçü ve balonlar dahil) 4 mm dışında */
   const kesitIsaretiPlana = (gv, W, v, nm) => {
@@ -426,7 +427,7 @@
     /* Tasarım alanında Mimari bölgesi: görünümler ızgarada (her tür bir sıra), modelin ve öbür disiplin bölgelerinin dışında, başında "MİMARİ" */
     try { bolgeDuzenle([[...planlar.map(p => p.gv), mahGv], [...kes.map(v => v.gv), acGv], ['ON', 'ARKA', 'SAG', 'SOL'].map(d => gor[d]), [catiR.plan, ...(catiR.kesitler || []).map(v => v.gv), ...(catiR.detaylar || [catiR.detay])],
       detay.dograma.map(d => d.gv), [...detay.korkuluk, ...detay.kapak].map(d => d.gv)], kes.concat(catiR.kesitler || []), st); } catch (er) { console.error('mimari bölge', er); }
-    return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: yapiAdi(u), kesitBilgi, cakisma: olcuDenetle([...planlar.map(p => p.gv), ...kes.map(v => v.gv)]) };
+    return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: yapiAdi(u), kesitBilgi, cakisma: olcuDenetle([...planlar.map(p => p.gv), ...kes.map(v => v.gv), catiR.plan, ...(catiR.kesitler || []).map(v => v.gv)]) };
   };
   /* görünüm gruplarını Mimari bölgesine taşı. satirlar: [[gv]]; kesitler: canlı kesitlerin yeri (v.yer ve canlı görünüm kaydı) de taşınır */
   const bolgeDuzenle = (satirlar, kesitler, st) => {

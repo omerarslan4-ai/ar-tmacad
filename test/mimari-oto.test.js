@@ -214,4 +214,16 @@ t('oda bulma: pencereden kesilen planda doğrama boşluğu duvar sayılır (Kony
   assert.strictEqual(r.length, 1); assert.ok(Math.abs(r[0].alan - 19.3 * 7.6) < 1.5, 'alan ' + r[0].alan);
 });
 
+/* denetim 14.11.2026: Konya B-B'de iki doğramalı duvarın iç zincirleri (x 84,32 / 84,57 / 84,82 / 85,07) — 41 · 564 · 1064 iki kez */
+t('kesit iç düşey zincirleri: kaba zincir atılır, aynı ölçü bir kez (Konya B-B)', () => {
+  const v = (x, z0, z1) => ({ k: 'v', a: [x, z0], b: [x, z1], p: [x - 0.05, z0] });
+  const L = [v(4.32, -6.31, -5.9), v(4.32, -5.9, -0.26), v(4.32, -0.26, 4.74), v(4.57, -5.9, 4.74),
+    v(4.82, -6.31, -5.9), v(4.82, -5.9, -0.26), v(4.82, -0.26, 0.74), v(4.82, 0.74, 2.24), v(4.82, 2.24, 4.14), v(4.82, 4.14, 4.74), v(4.82, 4.74, 5.24), v(5.07, -5.9, 4.74), { k: 'h', a: [0, 0], b: [1, 0], p: [0, -1] }];
+  const R = A.icZincirSadele(L), V = R.filter(q => q.k === 'v');
+  assert.strictEqual(R.filter(q => q.k === 'h').length, 1);
+  assert.deepStrictEqual([...new Set(V.map(q => q.a[0]))].sort(), [4.57, 4.82], 'iki sıra');
+  const say = (z0, z1) => V.filter(q => Math.abs(q.a[1] - z0) < 1e-6 && Math.abs(q.b[1] - z1) < 1e-6).length;
+  assert.strictEqual(say(-6.31, -5.9), 1); assert.strictEqual(say(-5.9, -0.26), 1); assert.strictEqual(say(-5.9, 4.74), 1);
+});
+
 console.log(`\n${n} test geçti.`);

@@ -326,7 +326,21 @@
       if (sil) out.push([[P[q.a], P[q.a + 1], P[q.a + 2]], [P[q.b], P[q.b + 1], P[q.b + 2]]]); }
     return out;
   };
-  const api = { siluetKenar, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
+  /* KESİT İÇ DÜŞEY ZİNCİRLERİ (denetim 14.11.2026: Konya B-B'de 41 · 564 · 1064 iki kez, aynı hacimde dört düşey sıra): iki doğramalı duvarın zincirleri
+     aynı kot aralığını kaplıyorsa kaba olan (kırılma noktaları ötekinin içinde) atılır, aynı tek ölçü ikinci kez yazılmaz.
+     L: [{ k: 'v' | 'h' …, a: [s, z], b: [s, z], p: [s, z] }] (kesit koordinatı). Yatay ölçüler aynen kalır. */
+  const icZincirSadele = L => {
+    const yuv = v => Math.round(v * 200) / 200, D = [], O = [];
+    for (const q of L || []) { if (q.k !== 'v') { O.push(q); continue; } const x = yuv(q.a[0]); let g = D.find(r => Math.abs(r.x - x) < 0.01); if (!g) D.push(g = { x, q: [] }); g.q.push(q); }
+    const nok = g => new Set(g.q.flatMap(q => [yuv(q.a[1]), yuv(q.b[1])])), ara = g => { const z = g.q.flatMap(q => [q.a[1], q.b[1]]); return [yuv(Math.min(...z)), yuv(Math.max(...z))]; };
+    const at = new Set();
+    for (const A of D) for (const B of D) { if (A === B || at.has(A) || at.has(B)) continue; const a = ara(A), b = ara(B); if (a[0] < b[0] - 0.01 || a[1] > b[1] + 0.01) continue; // A, B'nin aralığında
+      const nA = nok(A), nB = nok(B); if (A.q.length > 1 && [...nA].every(z => nB.has(z)) && nB.size > nA.size) at.add(A); } // A kaba: noktaları B'de var
+    const gor = new Set(), out = [];
+    for (const g of D) { if (at.has(g)) continue; for (const q of g.q) { const k = yuv(Math.min(q.a[1], q.b[1])) + '|' + yuv(Math.max(q.a[1], q.b[1])); if (gor.has(k)) continue; gor.add(k); out.push(q); } }
+    return O.concat(out);
+  };
+  const api = { siluetKenar, icZincirSadele, tipNumaralari, kodYazi, kesitAksSiralari, aksTuret, aksEtiketleri, planOlcuSiralari, mahalBul, kesitYerleri, acikIzleri, dogramaCercevesi, okluAciklamaYeri, korkulukYazisi, catiUyeYazisi, catiKatmanYazisi, olukYazisi, inisBorusuYazisi, ikiSatir, kesitKeser, eksikKesitler, icElemanlar, olcuCakisma, olcuKutusu, zeminAltiKirp, zeminKotu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariOtoApi = api;
@@ -480,9 +494,13 @@
     return e => T.find(t => t.kh === Math.round(+e.kh || 110) && t.dik === Math.round(+e.dik || 150) && t.km === (e.km || 'galvaniz') && t.tk === (e.tk === 'H' ? 'H' : 'E')) || { kh: Math.round(+e.kh || 110) }; };
   const malAdi = e => { const K = C._mrd && C._mrd.KM; return K && K[e.km || 'galvaniz'] ? K[e.km || 'galvaniz'][0] : 'Sıcak daldırma galvaniz çelik'; };
   /* görünümdeki engeller (çizim koordinatı): kesilen kapalı alanlar, ölçü / kot / yazı / etiket kutuları, çizgiler */
+  /* açılım kodunun yazı kutuları (kodun çizgisi değil): prims içindeki yazılar */
+  const acilimYaziKutulari = e => { const out = []; let P = []; try { P = C.prims ? C.prims(e) : []; } catch (er) { } for (const pr of P || []) { if (pr.k !== 'T') continue; let b = null; try { b = C.bbox({ type: 'text', p: pr.p, h: pr.h, s: pr.s, al: pr.al, rot: (pr.rot || 0) * 180 / Math.PI, st: pr.st }); } catch (er) { } if (b && isFinite(b[0])) out.push(b); } return out; };
+  C.acilimYaziKutulari = acilimYaziKutulari;
   const engelTopla = list => { const alanlar = [], kutular = [], cizgiler = [];
     for (const e of list) {
       if (/^(dim|kot|text|baslik|leader|circle)$/.test(e.type)) { let b = null; try { delete e._c; b = C.bbox(e); } catch (er) { } if (b && isFinite(b[0])) kutular.push({ bb: b, a: 1e3 }); continue; }
+      if (e.type === 'acilim') { for (const b of acilimYaziKutulari(e)) kutular.push({ bb: b, a: 1e3 }); continue; } // malzeme açılım kodu: yalnız yazısı (çizgisi engel değil)
       if (e.type === 'pline' && Array.isArray(e.pts) && e.pts.length > 1) { const P = e.pts.map(q => [q[0], q[1]]); if (e.closed && P.length > 2 && /(^|_)KESIT(_|$)/.test(e.layer || '') && !/KORKULUK|DOGRAMA|MERDIVEN/.test(e.layer || '')) alanlar.push({ pts: P, a: 1e6, g: e.layer });
         for (let i = 1; i < P.length + (e.closed ? 1 : 0); i++) cizgiler.push([P[i - 1], P[i % P.length]]); }
       else if (e.type === 'line' && e.a && e.b) cizgiler.push([[e.a[0], e.a[1]], [e.b[0], e.b[1]]]);
@@ -572,6 +590,8 @@
     return G.length ? okKoy(G, C.doc.ents.slice(K.i0 || 0), {}, OKC) : 0;
   };
 
+  /* kesitin oklu açıklamaları: korkuluk, sonra çatı elemanları (kesit.js; disiplin görünümünde açılımdan sonra — gorunumler.js) */
+  C.kesitOklari = K => { let n = 0; for (const [f, ad] of [[C.korkulukOkKesit, 'korkuluk oku'], [C.catiOkKesit, 'çatı oku']]) if (f) try { n += f(K) || 0; } catch (er) { console.error(ad, er); } return n; };
   /* AKS: modelde aks yoksa kolon merkezlerinden (yoksa betonarme perde eksenlerinden) türetilir; MIMARIPAFTA her çalıştığında yeniler (oto: 'MIMARIPAFTA') */
   C.mimariAksHazirla = ents => {
     C.doc.ents = C.doc.ents.filter(e => !(e.type === 'aks' && e.oto === 'MIMARIPAFTA'));

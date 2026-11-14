@@ -29,4 +29,12 @@ t('uzun satır kelime sınırından bölünür', () => {
   assert.deepStrictEqual(kaydir('DOLGULAR, KAZIDAN ELDE EDİLEN UYGUN NİTELİKLİ MALZEME İLE YAPILACAKTIR', 30), ['DOLGULAR, KAZIDAN ELDE EDİLEN', 'UYGUN NİTELİKLİ MALZEME İLE', 'YAPILACAKTIR']);
   assert.deepStrictEqual(kaydir('C30/37 HAZIR BETON', 30), ['C30/37 HAZIR BETON']);
 });
+/* denetim 14.11.2026, Konya B-B: pencereler tuğla duvarı üç parçaya bölüyor (z 0,37 / 3,19 / 4,73), sağ duvarda iki parça (s 9,5 / 9,7) — her duvarda tek DU kodu */
+t('aynı duvara tek kod: parçalı tuğla duvar (Konya B-B)', () => {
+  const { tekDuvarKodu } = require('../app/acilim-kod.js'), T = ['Tuğla duvar, 20 cm'];
+  const L = [{ id: 1, tur: 'duvar', lines: T, src: { s: 1.8, z: 4.73 } }, { id: 2, tur: 'duvar', lines: T, src: { s: 1.8, z: 3.19 } }, { id: 3, tur: 'duvar', lines: T, src: { s: 1.8, z: 0.37 } },
+    { id: 4, tur: 'duvar', lines: ['Betonarme perde (C30/37), 50 cm'], src: { s: 1.75, z: -3.51 } }, { id: 5, tur: 'doseme', lines: T, src: { s: 1.8, z: 0 } },
+    { id: 6, tur: 'duvar', lines: T, src: { s: 9.5, z: 4.73 } }, { id: 7, tur: 'duvar', lines: T, src: { s: 9.6, z: 3.19 } }, { id: 8, tur: 'duvar', lines: T, src: { s: 9.6, z: 0.37 } }, { id: 9, tur: 'duvar', lines: T, src: { s: 9.7, z: 4.73 } }];
+  assert.deepStrictEqual([...tekDuvarKodu(L)].sort((a, b) => a - b), [1, 3, 6, 8, 9]); // her duvarda ortadaki (z 3,19) kalır; perde ve döşeme ayrı
+});
 console.log(n + ' test geçti');

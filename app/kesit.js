@@ -342,7 +342,8 @@
         for (const [pp, qq] of [[-dx, p[0] - b[0]], [dx, b[2] - p[0]], [-dy, p[1] - b[1]], [dy, b[3] - p[1]]]) { if (Math.abs(pp) < 1e-12) { if (qq < 0) return false; continue; } const t = qq / pp; if (pp < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t); if (t0 > t1) return false; } return true; };
       const maliyet = (x, y, f) => { let b; try { b = C.bbox({ type: 'kot', p: W([x, y]), v: +y.toFixed(3), txt: '', layer: 'KOT', ters: f < 0 }); } catch (er) { return Infinity; } if (!b || !isFinite(b[0])) return Infinity;
         const q = [b[0] - o0[0], b[1] - o0[1], b[2] - o0[0], b[3] - o0[1]], yb = Math.max(q[1], y + 0.005); // işaret ucu yüzeyde: kutunun altı yüzeyin hemen üstünden
-        let c = 0; for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) c += ortu([q[0] + (q[2] - q[0]) * i / 8, yb + (q[3] - yb) * j / 4]); /* kesilen betona değen nokta başına 1e6, öbür kesilen parçaya 1e3 (yer yoksa en az değen) */ for (const sx of aksS) if (sx > q[0] && sx < q[2]) c += 100; for (const sg of cizgi) if (kesisir(sg, [q[0], yb, q[2], q[3]])) c++; return c; };
+        let c = 0; for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) c += ortu([q[0] + (q[2] - q[0]) * i / 8, yb + (q[3] - yb) * j / 4]); /* kesilen betona değen nokta başına 1e6, öbür kesilen parçaya 1e3 (yer yoksa en az değen) */ for (const sx of aksS) if (sx > q[0] && sx < q[2]) c += 100; for (const sg of cizgi) if (kesisir(sg, [q[0], yb, q[2], q[3]])) c++; for (const k2 of konanK) if (q[0] < k2[2] && q[2] > k2[0] && yb < k2[3] && q[3] > k2[1]) c += 1e3; /* önceki kot yazısına binmesin (denetim: A-A tretuvar −0,11 / döşeme −0,26) */ return c; };
+      const konanK = [], konanV = new Set();
       /* Statik / proses KESITAL'ı (disiplin anahtarı yok): eski yerleşim — yazı kutusu kesilen çevreye değiyorsa önce öbür yana, sonra yüzey boyunca */
       const ks = C.annoH(2.5), kw = C.annoH(16), kutuBos = (x, y, f) => { const a0 = f > 0 ? x - ks * 0.6 : x - kw, a1 = f > 0 ? x + kw : x + ks * 0.6, b0 = y + ks * 0.15, b1 = y + ks * 2.2;
         for (let i = 0; i <= 6; i++) for (let j = 0; j <= 2; j++) if (covered([a0 + (a1 - a0) * i / 6, b0 + (b1 - b0) * j / 2])) return false; return true; };
@@ -356,7 +357,10 @@
         for (const dx of [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * adim).flatMap(d => [d, -d])]) { const xx = m[0] + dx; if (xx < m.x0 + 0.02 || xx > m.x1 - 0.02) continue;
           for (const f of [f00, -f00]) { const c = maliyet(xx, m[1], f) + Math.abs(dx) * 0.01; if (!en || c < en.c) en = { x: xx, f, c }; } if (en && en.c < 0.5) break; }
         const x = en ? en.x : m[0], f0 = en ? en.f : f00;
-        C.add(C.newEnt('kot', Object.assign({ p: W([x, m[1]]), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, f0 < 0 ? { ters: true } : {}))); nK++; }
+        if (en && en.c >= 1e3 && konanV.has(+m[1].toFixed(3))) continue; // aynı kot bu kesitte zaten yazılı ve burada yer yok: tekrar edilmez (üst üste binmesin)
+        konanV.add(+m[1].toFixed(3));
+        const ke = C.add(C.newEnt('kot', Object.assign({ p: W([x, m[1]]), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, f0 < 0 ? { ters: true } : {}))); nK++;
+        try { const b = C.bbox(ke); if (b && isFinite(b[0])) konanK.push([b[0] - o0[0], b[1] - o0[1], b[2] - o0[0], b[3] - o0[1]]); } catch (er) { } }
     }
     // otomatik ölçülendirme: altta perde / boşluk zinciri + toplam, solda temel / perde / döşeme kalınlıkları zinciri + toplam yükseklik; kapatmak için KESITAL OLCU=H
     /* korkuluk ara birleştirmeleri (Çokal 10-İdari Bina_R2 rampa korkuluğu): kesite paralel görünen korkulukta her dikmede ara küpeşte iki yanda dışbükey yayla
@@ -392,7 +396,7 @@
         dim('h', [x0, z0], [x1, z0], [0, yA - (disH ? dd : 0)]);
         if (disV) for (let i = 1; i < ZS.length; i++) dim('v', [x0, ZS[i - 1]], [x0, ZS[i]], [xA, 0]);
         dim('v', [x0, z0], [x0, z1], [xA - (disV ? dd : 0), 0]);
-        for (const q of icO) dim(q.k, q.a, q.b, q.p);
+        for (const q of (yeniDuzen && C.mimariOtoApi && C.mimariOtoApi.icZincirSadele ? C.mimariOtoApi.icZincirSadele(icO) : icO)) dim(q.k, q.a, q.b, q.p); // aynı düşey ölçü iki kez yazılmaz (denetim 14.11.2026, B-B)
         dimBot = yA - (disH ? dd : 0) - dd * 0.6; void zF;
         /* doğrama numarası (daire + kod) iç yatay ölçü zincirine binmesin: binerse zincirin üstüne kaydırılır */
         { const yeni = C.doc.ents.slice(i0), hD = yeni.filter(e => e.type === 'dim' && e.k === 'h' && e.p), mm1 = C.annoH(1);
@@ -418,8 +422,9 @@
           for (let i = 1; i < pts.length; i++) dm(pts[i - 1], pts[i], r1); dm(xw0, xw1, r2);
           Object.assign(ae, { dims: false, extp: S.extp }); delete ae._c; } } catch (er) { console.error('kesit aks ölçüsü', er); } } }
     /* korkuluk oklu açıklaması (firma kuralı 14.11.2026; Çokal İdari): ölçü, kot ve etiketlerden sonra — onlara ve kesilen betona binmez */
-    if (kv.MIMARI === 'E' && kv.YAZI !== 'H' && C.korkulukOkKesit) { try { C.korkulukOkKesit({ a, u, n, depth, W, inU, i0, zAt }); } catch (er) { console.error('korkuluk oku', er); } }
-    if (kv.MIMARI === 'E' && kv.YAZI !== 'H' && C.catiOkKesit) { try { C.catiOkKesit({ a, u, n, depth, W, inU, i0, zAt }); } catch (er) { console.error('çatı oku', er); } } // çatı elemanları oklu açıklama (Çokal çatı kesitleri gibi)
+    /* oklu açıklamalar (korkuluk, çatı elemanları): disiplin görünümü üretilirken (gorunumler.js) malzeme açılımından sonraya ertelenir — açılım kodlarına binmesin */
+    if (kv.MIMARI === 'E' && kv.YAZI !== 'H') { const K = { a, u, n, depth, W, inU, i0, zAt };
+      if (Array.isArray(C._okErtele)) C._okErtele.push(K); else C.kesitOklari(K); }
     for (const pl of chain(axes, 1e-4)) C.add(C.newEnt('pline', { pts: pl.map(W), closed: false, layer: 'EKSEN', lt: 'CENTER' }));
     for (const en of ends) C.add(C.newEnt('circle', { c: W(en.c), r: en.r, layer: LV(en.lk) }));
     if (!(C.seviyeKesit && C.seviyeKesit(W, ub)) && ub[1] < 5 && ub[3] > -5) { // kat seviyeleri varsa seviye çizgileri + toprak çizgisi; mutlak kotlu yapıda (0,00 uzaksa) 0 çizgisi çizilmez

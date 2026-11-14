@@ -17,7 +17,14 @@
   /* kod: tür ('doseme' → DÖ, 'duvar' → DU) + sıra; kayıt: { 'DÖ': [imza, …], 'DU': [imza, …] } */
   const ONEK = { doseme: 'DÖ', duvar: 'DU' };
   const kodVer = (kayit, tur, lines) => { const on = ONEK[tur] || 'DÖ', L = kayit[on] || (kayit[on] = []), imza = (lines || []).join('|'); let i = L.indexOf(imza); if (i < 0) { L.push(imza); i = L.length - 1; } return on + String(i + 1).padStart(2, '0'); };
-  const api = { satirBicim, kaydir, kodVer, ONEK };
+  /* aynı duvara tek kod (denetim 14.11.2026: Konya B-B'de sağ duvarda iki "DU01" üst üste — pencereler duvarı parçalara bölüyor, her parçaya kod konuyordu):
+     bir kesitte aynı türde, aynı katmanlı (satırlar), aynı yanda ve yatayda 0,6 m'den yakın duvar etiketlerinden biri kalır (düşey ortadaki).
+     L: [{ id, tur, side, lines, src: { s, z } }] → silinecek id kümesi */
+  const tekDuvarKodu = L => { const at = new Set(), D = (L || []).filter(e => e.tur === 'duvar' && e.src), gr = [];
+    for (const e of D) { const k = (e.lines || []).join('|') + '#' + (e.side || 1); let g = gr.find(q => q.k === k && Math.abs(q.s - e.src.s) < 0.6); if (!g) gr.push(g = { k, s: e.src.s, L: [] }); g.L.push(e); }
+    for (const g of gr) { if (g.L.length < 2) continue; const z = g.L.map(e => +e.src.z).sort((p, q) => p - q), zm = (z[0] + z[z.length - 1]) / 2; let tut = g.L[0]; for (const e of g.L) if (Math.abs(e.src.z - zm) < Math.abs(tut.src.z - zm)) tut = e; for (const e of g.L) if (e !== tut) at.add(e.id); }
+    return at; };
+  const api = { satirBicim, kaydir, kodVer, ONEK, tekDuvarKodu };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C || !C.T || !C.T.acilim) return;
 
@@ -61,7 +68,9 @@
         C.add(C.newEnt('acilim', { a, p, lines: it.lines.slice(), tur: it.tur, side: 1, src: { k: m.nm, s: sm, z: za, unite: e.id }, dis: 'Mimari', layer: (C.ensureLayer('MALZEME_ACILIM', 7, 'CONTINUOUS', 18), 'MALZEME_ACILIM') })); n++; } }
     void ps; return n;
   };
-  if (C.malzemeAcilimOto) { const o0 = C.malzemeAcilimOto; C.malzemeAcilimOto = function (m) { let n = o0.apply(this, arguments) || 0; try { if (etkin()) n += uniteAcilim(m); } catch (er) { console.error('ünite açılımı', er); } return n; }; }
+  if (C.malzemeAcilimOto) { const o0 = C.malzemeAcilimOto; C.malzemeAcilimOto = function (m) { const i0 = new Set(C.doc.ents.map(e => e.id)); let n = o0.apply(this, arguments) || 0; try { if (etkin()) n += uniteAcilim(m); } catch (er) { console.error('ünite açılımı', er); }
+    if (etkin()) try { const at = tekDuvarKodu(C.doc.ents.filter(e => e.type === 'acilim' && !i0.has(e.id))); if (at.size) { C.doc.ents = C.doc.ents.filter(e => !at.has(e.id)); n -= at.size; } } catch (er) { console.error('açılım tekilleme', er); } // aynı duvara tek kod
+    return n; }; }
   /* açılım tablosunun içeriği: kullanılan kodlar, tür sırasıyla */
   C.acilimTabloVeri = () => {
     const gor = new Map(); for (const e of C.doc.ents) if (e.type === 'acilim' && (e.lines || []).length) { const k = C.acilimKodu(e); if (!gor.has(k)) gor.set(k, { kod: k, tur: turu(e), satir: (e.lines || []).map(satirBicim) }); }

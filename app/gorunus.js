@@ -169,10 +169,14 @@
     try {
       const ust = q => { const z = zsAt(q[0], q[1]).filter(v => v <= h + 1e-6); return z.length ? Math.max(...z) : null; };
       for (const e of ents) { if (n >= 40) break;
-        if (e.type === 'tretuvar' && Array.isArray(e.pts) && e.pts.length > 1) { const P = e.pts, w = +e.w || 0.8, kap = P.length > 2; let en = null;
-          for (let i = 0; i < P.length - (kap ? 0 : 1); i++) { const A = P[i], B = P[(i + 1) % P.length], L = Math.hypot(B[0] - A[0], B[1] - A[1]); if (!en || L > en.L) en = { A, B, L }; }
-          if (!en || en.L < 0.5) continue; const u = [(en.B[0] - en.A[0]) / en.L, (en.B[1] - en.A[1]) / en.L], m = [(en.A[0] + en.B[0]) / 2, (en.A[1] + en.B[1]) / 2];
-          for (const sg of [1, -1]) { const q = [m[0] + u[0] * en.L * 0.15 - sg * u[1] * w / 2, m[1] + u[1] * en.L * 0.15 + sg * u[0] * w / 2], z = ust(q); if (z == null || inAny(q) || (kap && C.pointInPoly(q, P))) continue; put(q, z); n++; break; } }
+        if (e.type === 'tretuvar' && Array.isArray(e.pts) && e.pts.length > 1) { const P = e.pts, w = +e.w || 0.8, kap = P.length > 2;
+          /* doğrama numarası / ebat yazısı duvarın dışında, tretuvarın üstünde (mimari-oto.js): kot doğramalardan en uzak yere (bütün kenarlar boyunca) */
+          const DB = C.doc.ents.filter(x => x.type === 'acik' && !x.gv).map(x => { try { const b = C.bbox(x); return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]; } catch (er) { return null; } }).filter(Boolean);
+          let en = null;
+          for (let i = 0; i < P.length - (kap ? 0 : 1); i++) { const A = P[i], B = P[(i + 1) % P.length], L = Math.hypot(B[0] - A[0], B[1] - A[1]); if (L < 1) continue; const u = [(B[0] - A[0]) / L, (B[1] - A[1]) / L];
+            for (let f = 0.1; f <= 0.901; f += 0.05) for (const sg of [1, -1]) { const q = [A[0] + u[0] * L * f - sg * u[1] * w / 2, A[1] + u[1] * L * f + sg * u[0] * w / 2]; if (inAny(q) || (kap && C.pointInPoly(q, P))) continue;
+              const d = DB.length ? Math.min(...DB.map(c => Math.hypot(c[0] - q[0], c[1] - q[1]))) : 99, pu = Math.min(d, 3) - Math.abs(f - 0.5) * 0.1; if (!en || pu > en.pu) en = { q, pu }; } }
+          if (en) { const z = ust(en.q); if (z != null) { put(en.q, z); n++; } } }
         else if (e.type === 'kati' && (/rampa/i.test(e.ad || '') || /RAMPA/.test(e.layer || ''))) { let b; try { b = C.bbox(e); } catch (er) { continue; } if (!b || !isFinite(b[0])) continue;
           let lo = null, hi = null; for (let i = 1; i < 8; i++) for (let j = 1; j < 8; j++) { const q = [b[0] + (b[2] - b[0]) * i / 8, b[1] + (b[3] - b[1]) * j / 8], z = ust(q); if (z == null) continue; if (!lo || z < lo.z) lo = { q, z }; if (!hi || z > hi.z) hi = { q, z }; }
           if (lo && hi && hi.z - lo.z > 0.02) { put(hi.q, hi.z); put(lo.q, lo.z); n += 2; } else if (hi) { put(hi.q, hi.z); n++; } }

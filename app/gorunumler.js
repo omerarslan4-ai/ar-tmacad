@@ -127,6 +127,16 @@
   const gvOf = (v, g) => { const T = turler(v), k = g == null ? T[0] : disTur(g); return k === T[0] ? v.gv : ((v.gvD || {})[k] || v.gv); };
   const tumGv = v => [v.gv, ...Object.values(v.gvD || {})].filter(Boolean);
   const ANAH = { MIMARI: ['MIMARI=E'], GIZLI: ['GIZLI=E'], DUZ: [] };
+  /* malzeme açılım kodu ölçüye / kota / yazıya binerse (denetim 14.11.2026: C-C'de 500 ölçüsü) yazısı 2,5 mm adımlarla kaydırılır (duvar kodu düşeyde, döşeme kodu yatayda) */
+  const acilimKaydir = gv => {
+    const k = C.annoH(1), L = C.doc.ents.filter(e => e.gv === gv), engel = [];
+    for (const e of L) if (/^(dim|kot|text|baslik)$/.test(e.type)) { let b = null; try { delete e._c; b = C.bbox(e); } catch (er) { } if (b && isFinite(b[0])) engel.push(b); }
+    const ust = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1], carp = e => { let n = 0; for (const b of C.acilimYaziKutulari(e)) for (const g of engel) if (ust(b, g)) n++; return n; };
+    for (const e of L) { if (e.type !== 'acilim' || !e.p) continue; delete e._c; if (!carp(e)) { for (const b of C.acilimYaziKutulari(e)) engel.push(b); continue; }
+      const p0 = e.p.slice(), duvar = (e.tur || '') === 'duvar', adim = 2.5 * k; let en = { c: carp(e), p: p0 };
+      for (let i = 1; i <= 8 && en.c; i++) for (const sg of [1, -1]) { e.p = duvar ? [p0[0], p0[1] + sg * i * adim, p0[2] || 0] : [p0[0] + sg * i * adim, p0[1], p0[2] || 0]; delete e._c; const c = carp(e); if (c < en.c) en = { c, p: e.p.slice() }; if (!c) break; }
+      e.p = en.p; delete e._c; for (const b of C.acilimYaziKutulari(e)) engel.push(b); }
+  };
   /* kesiti modelden üret (KESITAL motoru), yeni nesneleri görünüm grubuna bağla — disiplin türü başına bir kez */
   const kesitUret = async (v, yalniz) => { // yalniz: yalnız bu türün görünümü üretilir (MIMARIPAFTA: 'MIMARI' — öbür disiplinlerin görünümüne dokunulmaz)
     const def = C.cmds.SECTION || C.cmds.KESITAL; if (!def) throw new Error('KESITAL komutu bulunamadı');
@@ -134,8 +144,8 @@
     for (let i = 0; i < T.length; i++) {
       if (yalniz && T[i] !== yalniz) continue;
       const tur = T[i], once = new Set(C.doc.ents.map(e => e.id));
-      const q0 = E.queue; E.queue = [...ANAH[tur], pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt(v.yer)];
-      try { await def.fn(C.I, C); } finally { E.queue = q0 || []; }
+      const q0 = E.queue, ok0 = C._okErtele; E.queue = [...ANAH[tur], pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt(v.yer)]; C._okErtele = tur === 'MIMARI' && C.kesitOklari ? [] : ok0;
+      let ertele = []; try { await def.fn(C.I, C); } finally { E.queue = q0 || []; if (tur === 'MIMARI' && C.kesitOklari) { ertele = C._okErtele || []; C._okErtele = ok0; } }
       const yeni = C.doc.ents.filter(e => !once.has(e.id));
       if (!yeni.length) { if (i === 0) return 0; continue; }
       let gv; if (i === 0) gv = v.gv = v.gv || ('V' + Date.now().toString(36)); else { v.gvD = v.gvD || {}; gv = v.gvD[tur] = v.gvD[tur] || ('V' + Date.now().toString(36) + tur[0]); }
@@ -154,6 +164,8 @@
           for (const e of C.doc.ents) if (!o2.has(e.id) && e.type === 'acilim') { e.gv = gv; e.dis = 'Mimari'; delete e.sp; }
         }
       } catch (er) { console.error('malzeme açılımı', er); }
+      if (tur === 'MIMARI' && C.acilimYaziKutulari) try { acilimKaydir(gv); } catch (er) { console.error('açılım kaydırma', er); }
+      if (ertele.length) { const o3 = new Set(C.doc.ents.map(e => e.id)); for (const K of ertele) C.kesitOklari(K); for (const e of C.doc.ents) if (!o3.has(e.id)) { e.gv = gv; delete e.sp; } } // oklu açıklamalar açılım kodlarından sonra (onlara binmez)
       top += yeni.length;
     }
     if (v.gvD && !yalniz) for (const k of Object.keys(v.gvD)) if (!T.includes(k) || k === T[0]) { const g2 = v.gvD[k]; C.doc.ents = C.doc.ents.filter(e => e.gv !== g2); delete v.gvD[k]; } // artık gerekmeyen tür
