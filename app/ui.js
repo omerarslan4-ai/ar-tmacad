@@ -309,6 +309,8 @@
     if (k === 'F2') { e.preventDefault(); toggleMic(); return; }
     { const ae = document.activeElement, typing = ae && (ae.tagName === 'TEXTAREA' || ae.isContentEditable || (ae.tagName === 'INPUT' && ae.id !== 'cmd' && !/checkbox|radio|range|button/.test(ae.type)) || (ae.id === 'cmd' && ae.value));
       if ((k === 'Delete' || k === 'Del' || e.keyCode === 46 || (k === 'Backspace' && !typing)) && !typing && C.currentView === 'layout' && !C.activeVp && C.layoutSel && C.vpDelete && !C.cmd.running) { e.preventDefault(); if (ae && ae.blur && ae.id !== 'cmd') ae.blur(); C.vpDelete([C.layoutSel]); return; } }
+    // Ctrl+S: bir yazı kutusundayken de programın kaydı çalışsın (tarayıcının "sayfayı kaydet" penceresi açılmasın); kutudaki değer önce işlensin diye odak bırakılır
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && k.toLowerCase() === 's') { e.preventDefault(); const ae = document.activeElement; if (ae && ae.id !== 'cmd' && inField(ae) && ae.blur) ae.blur(); C.cmd.run('KAYDET'); return; }
     if (inField(document.activeElement)) { if (k === 'Escape') document.activeElement.blur(); return; }
     if (e.ctrlKey || e.metaKey) {
       const kk = k.toLowerCase();
@@ -697,9 +699,9 @@
     }
     download(bytes, name, 'application/acad'); C.markSaved && C.markSaved(); C.log(`İndirildi: ${name} (AutoCAD ${v} DWG)`); C.lastFormat = 'dwg';
   }, { noUndo: true });
-  C.readAny = (f, m) => readAny(f, m);
-  async function readAny(file, merge) {
-    const nm = file.name.toLowerCase(); if (nm.endsWith('.aritma') && C.openProject) return C.openProject(file, merge);
+  C.readAny = (f, m, h) => readAny(f, m, h);
+  async function readAny(file, merge, handle) {
+    const nm = file.name.toLowerCase(); if (nm.endsWith('.aritma') && C.openProject) return C.openProject(file, merge, merge ? null : handle);
     let buf = new Uint8Array(await file.arrayBuffer());
     if (nm.endsWith('.dwg')) { buf = await C.dwg.toDxf(buf); if (!merge) { C.lastFormat = 'dwg'; C.dwgHandle = null; } }
     else if (!merge) C.lastFormat = 'dxf';
@@ -737,6 +739,14 @@
   C.openFile = readAny;
   C.addCommand(['OPEN', 'AC', 'AÇ'], 'ArıtmaCAD proje / DWG / DXF / KMZ / KML dosyası açar (birden fazla seçilebilir; her biri ayrı sekmede)', async () => {
     if (C.docTabs) { // çoklu seçim: her dosya kendi sekmesinde
+      /* dosya erişimi varsa dosyanın kendisini tut: .aritma açıldıktan sonra Ctrl+S her seferinde yer sormadan aynı dosyanın üstüne kaydeder */
+      if (window.showOpenFilePicker) {
+        let hs = null; try { hs = await window.showOpenFilePicker({ multiple: true, types: [{ description: 'ArıtmaCAD / AutoCAD / Google Earth', accept: { 'application/octet-stream': ['.aritma', '.dwg', '.dxf', '.kmz', '.kml'] } }] }); } catch (err) { if (err && err.name === 'AbortError') return; hs = null; }
+        if (hs) {
+          for (const h of hs) { if (!C.docTabs.acmaIcin()) break; try { const f = await h.getFile(); await readAny(f, false, h); } catch (err) { C.warn(h.name + ': ' + err.message); continue; } C.fileHandle = null; C.undoStack = []; C.redoStack = []; C.markSaved && C.markSaved(); C.emit('doc'); }
+          return;
+        }
+      }
       const fs = await new Promise(res => { const fi = $('#fileIn'); fi.value = ''; fi.accept = '.aritma,.dwg,.dxf,.kmz,.kml'; fi.multiple = true; fi.onchange = () => { const a = [...fi.files]; fi.multiple = false; res(a); }; fi.oncancel = () => { fi.multiple = false; res([]); }; fi.click(); });
       for (const f of fs) { if (!C.docTabs.acmaIcin()) break; try { await readAny(f, false); } catch (err) { C.warn(f.name + ': ' + err.message); continue; } C.fileHandle = null; C.undoStack = []; C.redoStack = []; C.markSaved && C.markSaved(); C.emit('doc'); }
       return;
