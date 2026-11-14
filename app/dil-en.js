@@ -408,3 +408,23 @@
     ['Kabuk modeli: # kolon (# perde içinde kaburga, # serbest), # kiriş çubuk eleman olarak alındı.', 'Shell model: # columns (# as ribs inside walls, # free), # beams taken as bar elements.'],
   ]);
 })();
+/* 3B HTML DIŞA AKTARIMI (html3b.js HTML3B, 14.11.2026): komut iletileri ve kaydedilen sayfadaki düğmeler */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['HTML — 3B model (tarayıcıda gezilir)', 'HTML — 3D model (browse in a web browser)'], ['3B HTML', '3D HTML'], ['Dışa aktar', 'Export'],
+    ['3B modeli tek HTML dosyası olarak kaydeder (her tarayıcıda açılır, internet gerekmez; fareyle döndür, kaydır, yakınlaş, WASD ile yürü)', 'Saves the 3D model as a single HTML file (opens in any browser, no internet needed; orbit, pan, zoom with the mouse, walk with WASD)'],
+    ['3B görünüm kullanılamıyor (WebGL kapalı); HTML üretilemedi.', '3D view unavailable (WebGL disabled); HTML not created.'],
+    ['3B nesne yok; HTML dosyasında gösterilecek model bulunamadı.', 'No 3D objects; there is no model to show in the HTML file.'],
+    ['3B HTML kaydedildi:', '3D HTML saved:'], ['3B görüntüleyici yüklenmedi', '3D viewer not loaded'], ['üçgen', 'triangles'], ['Çift tıklayıp tarayıcıda açın.', 'Double-click to open it in a browser.'],
+    ['Başa dön', 'Reset view'], ['İlk görünüşe dön (Home)', 'Back to the initial view (Home)'], ['Tümünü göster', 'Zoom extents'], ['Bütün modeli ekrana sığdır (çift tıklama)', 'Fit the whole model on screen (double-click)'],
+    ['Üstten', 'Top'], ['Üstten bakış', 'Top view'], ['Perspektif', 'Perspective'], ['Perspektif / paralel izdüşüm', 'Perspective / parallel projection'],
+    ['Yürü', 'Walk'], ['Yürüyerek gezme: fareyle etrafa bak, WASD ile yürü', 'Walk mode: look around with the mouse, walk with WASD'], ['Arka plan', 'Background'], ['Gökyüzü / beyaz / koyu', 'Sky / white / dark'],
+    ['Izgara', 'Grid'], ['Zemin ızgarasını aç / kapat', 'Show / hide the ground grid'], ['Yardım', 'Help'],
+    ['Model yükleniyor…', 'Loading model…'], ['Bu tarayıcıda WebGL (3B çizim) kapalı; model gösterilemiyor.', 'WebGL (3D graphics) is disabled in this browser; the model cannot be shown.'], ['Model açılamadı', 'The model could not be opened'],
+    ['Sol tuş + sürükle', 'Left button + drag'], ['döndür', 'orbit'], ['Sağ / orta tuş', 'Right / middle button'], ['kaydır (Shift + sol tuş da olur)', 'pan (Shift + left button also works)'],
+    ['Tekerlek', 'Wheel'], ['yakınlaş / uzaklaş', 'zoom in / out'], ['W A S D / oklar', 'W A S D / arrows'], ['ileri, sola, geri, sağa (Shift: hızlı)', 'forward, left, back, right (Shift: fast)'],
+    ['Q / E', 'Q / E'], ['aşağı / yukarı', 'down / up'], ['Home', 'Home'], ['başa dön', 'reset view'], ['Dokunmatik', 'Touch'], ['bir parmak döndür, iki parmak yakınlaş / kaydır', 'one finger orbits, two fingers zoom / pan'],
+  ]);
+})();

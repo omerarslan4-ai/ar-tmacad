@@ -601,5 +601,6 @@ gl_FragColor=vec4(d.z>=0.0?sky:gr,1.0);}else if(mode<1.5){gl_FragColor=vec4(1.0,
       else if (!C.cmd.running) { const ids = new Set(C.sel.map(q => q.id)); C.sel = C.sel.concat(out.filter(q => !ids.has(q.id))); C.emit('selection'); }
     }
   }
+  View3D.SHADERS = { VS, FS, TVS, TFS, WVS, WFS, BVS, BFS }; // html3b.js: dışa aktarılan HTML aynı ışık ve renkle çizer
   C.View3D = View3D;
 })(window.C);

@@ -74,6 +74,7 @@
       ['Katı', [B('UNION', 'Birleştir', 'uni'), B('SEPARATE', 'Ayır', 'sep')]],
       ['Düzenle', [s('MOVE', 'Taşı', 'move'), s('COPY', 'Kopyala', 'copy'), s('ROTATE', 'Döndür', 'rot'), s('SCALE', 'Ölçekle', 'scale'), s('ARRAY', 'Dizi', 'array'), s('ERASE', 'Sil', 'erase'), s('MATCHPROP', 'Özellik eşleştir', 'prop')]],
       ['Kesit', [B('KESITDUZLEMI', 'Kesit düzlemi', 'plane', [['KESITDUZLEMI N', 'Çizgiye dik'], ['KESITDUZLEMI D', 'İki nokta'], ['KESITDUZLEMI Y', 'Yatay (kot)'], ['KESITDUZLEMI K', 'Kesmeyi kapat'], ['KDKESIT', '2B kesit / plan üret']]), B('KESITAL', 'Kesit al', 'cut'), s('KOTPLANI', 'Kot planı', 'area'), s('GORUNUS', 'Görünüş', 'box'), s('GORUNUSGUNCELLE', 'Güncelle', 'undo'), s('KESITAYAR', 'Kesit stili', 'prop')]],
+      ['Dışa aktar', [B('HTML3B', '3B HTML', 'box'), s('OBJOUT', 'OBJ', 'box'), s('KMZOUT', 'KMZ', 'earth')]],
     ]],
     ['Pafta', [
       ['Düzen', [B('DUZEN YENI', 'Yeni düzen', 'sheet'), B('MVIEW M', 'Pencere ekle', 'rec', [['MVIEW M', 'Modelden alan seç'], ['MVIEW', 'Dikdörtgen çiz'], ['MVIEW C', 'Daire'], ['MVIEW P', 'Çokgen']]), s('@vpFrameDlg', 'Çerçeve', 'rec'), s('DETAY', 'Detay', 'detay'), s('VPYER', 'Yerini seç', 'move'), s('PAFTALA', 'Paftala', 'array'), s('SAYFADUZENI', 'Sayfa düzeni', 'prop')]],
