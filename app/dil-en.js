@@ -272,5 +272,6 @@
     ['Kesit sembolü: plandaki kesit işaretinin sembolünü önizlemeli listeden seçer (Çokal R2 dahil); projeye kaydedilir, mevcut kesit işaretleri güncellenir.', 'Section symbol: choose the plan section-mark symbol from a previewed list (incl. Çokal R2); saved in the project, existing marks are updated.'],
     ['✓ Kesit sembolü: # · # kesit işareti güncellendi.', '✓ Section symbol: # · # section marks updated.'],
     ['Mimari paftalar hazır', 'Architectural sheets ready'], ['Uygula', 'Apply'], ['İptal', 'Cancel'],
+    ['Plan ve kesit ölçeği', 'Plan and section scale'], ['1/# (önerilen — firma kuralı: #)', '1/# (recommended — company rule: #)'], ['bina ebatına göre', 'by building size'],
   ]);
 })();

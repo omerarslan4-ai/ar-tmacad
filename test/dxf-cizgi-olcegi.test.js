@@ -9,7 +9,7 @@ const P = require('../app/mimari-pafta.js');
 let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
 
 /* io_dxf.js'yi küçük bir C taklidiyle yükle */
-const kur = () => {
+const kur = (kural) => {
   const layers = { '0': { name: '0', color: 7, lt: 'CONTINUOUS', lw: -1, on: true }, AKS: { name: 'AKS', color: 1, lt: 'CENTER', lw: 13, on: true } };
   const ents = [{ id: 1, type: 'line', layer: 'AKS', a: [0, 0, 0], b: [10, 0, 0], color: 256, lt: 'BYLAYER', lw: -1, gv: 'D1' }, { id: 2, type: 'line', layer: 'AKS', a: [0, 5, 0], b: [10, 5, 0], color: 256, lt: 'BYLAYER', lw: -1, gv: 'P1' }];
   const C = {
@@ -23,6 +23,10 @@ const kur = () => {
   };
   const ctx = { window: { C }, C, console }; vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'app', 'io_dxf.js'), 'utf8'), ctx);
+  if (kural) { // çizim kuralları (Çokal pafta stili açık: eski projelerde de varsayılan) — app/cizim-kural.js + app/cizim-kural-uygula.js
+    Object.assign(C.LT, { HIDDEN: { d: 'Hidden', p: [6.35, -3.175] }, CENTER: { d: 'Center', p: [31.75, -6.35, 6.35, -6.35] } }); // app/core.js genel desenleri
+    Object.assign(C, { pstil: () => ({}), ensureLayer: (nm, c, lt, lw) => (layers[nm] = layers[nm] || { name: nm, color: c, lt, lw, on: true }), addCommand: () => { }, on: () => { }, emit: () => { } });
+    for (const f of ['cizim-kural.js', 'cizim-kural-uygula.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'app', f), 'utf8'), ctx); }
   return C;
 };
 const baslik = (txt, ad) => { const L = txt.split(/\r?\n/); const i = L.indexOf(ad); return i >= 0 ? L[i + 2] : null; };
@@ -44,6 +48,23 @@ t('io_dxf: Mimari seçeneğiyle $LTSCALE 0,05, $PSLTSCALE 0; 1/20 penceredeki ne
   const txt = C.dxfWrite(Object.assign({ plain: '2b', withLayouts: true, grp: 'Mimari' }, P.dxfCizgiOlcegi(50)));
   assert.strictEqual(baslik(txt, '$LTSCALE'), '0.05'); assert.strictEqual(baslik(txt, '$PSLTSCALE'), '0');
   assert.deepStrictEqual(kod48(txt), [0.4]);
+});
+
+const eq = (a, b) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b)); // vm bağlamındaki diziler için
+const K = kur(true), once = { HIDDEN: K.LT.HIDDEN.p.slice(), CENTER: K.LT.CENTER.p.slice() };
+t('çizim kuralları yüklüyken: genel çizgi tipi desenleri değişmez (HIDDEN 6,35 / 3,175); Mimari desenleri ayrı adla (HIDDEN_M 2 / 1, ACAD_ISO04W100_M 12 / 1,5)', () => {
+  eq(K.LT.HIDDEN.p, once.HIDDEN); eq(K.LT.CENTER.p, once.CENTER);
+  eq(K.LT.HIDDEN_M.p, [2, -1]); eq(K.LT.ACAD_ISO04W100_M.p, [12, -1.5, 0, -1.5]);
+  eq(K.mimariLtDesen().HIDDEN, [2, -1]);
+});
+t('çizim kuralları yüklüyken: TESISATDXF benzeri (ents, plain 2b, grup yok) ve bütün çizimin 2B DXF\'i eskisi gibi — $LTSCALE çizim ayarı, $PSLTSCALE 1, kod 48 yok, HIDDEN deseni genel', () => {
+  for (const o of [{ ents: K.doc.ents, plain: '2b', withLayouts: true }, { plain: '2b', withLayouts: true }]) {
+    const txt = K.dxfWrite(o); assert.strictEqual(baslik(txt, '$LTSCALE'), '0.1'); assert.strictEqual(baslik(txt, '$PSLTSCALE'), '1'); assert.deepStrictEqual(kod48(txt), []);
+    const L = txt.split(/\r?\n/), i = L.indexOf('HIDDEN'); if (i >= 0) { const j = L.indexOf('49', i); assert.strictEqual(+L[j + 1], 6.35); } }
+});
+t('pafta penceresi çizgi tipi ölçeği: varsayılanda ölçek / 1000 (1/50 → 0,05); kullanıcı LTSCALE\'i 2 katına çıkarırsa 2 kat', () => {
+  K.doc.set.ltscale = 0.05; assert.strictEqual(+K.vpCizgiOlcegi(50).toFixed(9), 0.05); assert.strictEqual(+K.vpCizgiOlcegi(20).toFixed(9), 0.02);
+  K.doc.set.ltscale = 0.1; assert.strictEqual(+K.vpCizgiOlcegi(50).toFixed(9), 0.1);
 });
 
 console.log(`\n${n} test geçti.`);

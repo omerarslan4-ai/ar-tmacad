@@ -372,8 +372,15 @@
   };
 
   /* ======================= ANA KOMUT ======================= */
+  /* ölçek (firma kuralı 14.11.2026, mimari-pafta.js → olcekSec): önce 1/50 A1 / A0; çok küçükse 1/25, A0'a sığmıyorsa 1/100.
+     Kullanıcı ölçeği elle seçtiyse (istOlcekElle) o kalır. Plan: yapının plan kutusu, kesit: uzun kenar × kot aralığı */
+  const olcekOner = () => { const A = C.mimariPaftaApi, y = PH().yapi; if (!A || !A.olcekSec || !y || !y.ids) return { olcek: 50, neden: '' };
+    const ids = new Set(y.ids), ents = C.doc.ents.filter(e => ids.has(e.id)), bb = C.extents(ents); if (!bb) return { olcek: 50, neden: '' };
+    let z0 = Infinity, z1 = -Infinity; for (const e of ents) { let t; try { t = C.entTris(e); } catch (er) { continue; } const P0 = t && t.pos; if (!P0) continue; for (let i = 2; i < P0.length; i += 3) { z0 = Math.min(z0, P0[i]); z1 = Math.max(z1, P0[i]); } }
+    const lx = bb[2] - bb[0], ly = bb[3] - bb[1]; return A.olcekSec([{ id: 'plan', w: lx, h: ly, kenarMm: 41, altMm: 15 }, { id: 'kesit', w: Math.max(lx, ly), h: isFinite(z1 - z0) ? z1 - z0 : 5, kenarMm: 30, altMm: 15 }]); };
+  C.istasyonOlcekOner = olcekOner;
   const uret = async (SC) => {
-    SC = +SC || +(C.doc.set.istOlcek || 25); const anno0 = C.doc.set.anno; C.doc.set.anno = SC; // görünüş yazıları / başlıklar kağıtta doğru boyda (pafta ölçeği)
+    SC = +SC || (C.doc.set.istOlcekElle && +C.doc.set.istOlcek) || olcekOner().olcek; const anno0 = C.doc.set.anno; C.doc.set.anno = SC; // görünüş yazıları / başlıklar kağıtta doğru boyda (pafta ölçeği)
     try { return await uret0(SC); } finally { C.doc.set.anno = anno0; }
   };
   const uret0 = async (SC) => {
@@ -433,7 +440,7 @@
     const mekBlok2 = [tEk, tBo, tVa];
     const nm = notMimari(y, r), nk = notMekanik(y, r, items), yapiAd = ad;
     const paf = [];
-    /* pafta sayısı otomatik: bloklar A1 (841 mm) genişliğini aşmayacak şekilde paftalara bölünür (1/25'te plan ve kesitler ayrı paftalara düşer) */
+    /* pafta sayısı otomatik: bloklar A1 (841 mm) genişliğini aşmayacak şekilde paftalara bölünür (büyük ölçekte plan ve kesitler ayrı paftalara düşer) */
     const keys = new Set(); let sira = { M: 0, MK: 0 };
     const bol = bl => { const out = []; let cur = [], cols = 0, colW = 0, colH = 0; const MAXW = 841 - MARJ.l - 8 - SUT - MARJ.r - 6;
       for (const b of bl) { const w = b.w + 10, h = b.h + 10; let yeniKol = cur.length && colH + h > IC, w2 = yeniKol ? cols + colW + w : cols + Math.max(colW, w);
@@ -460,7 +467,10 @@
   /* MIMARIPAFTA (mimari-pafta.js) çelik / sac kapak detayları için: kapak planı (1/20), kenar detayı (1/5), katmanlar, açılım düzeni */
   C.kapakDetay = { plani: kapakPlani, kenar: kenarDetay, katmanlar, acilimDuzen };
   C.addCommand(['ISTASYONPAFTA', 'ISTPAFTA', 'MIMARIMEKANIKPAFTA'], 'Pompa istasyonu (3B) için mimari ve mekanik paftaları üretir: planlar, A-A / B-B kesitleri, akslar, malzeme açılımları, mahal listesi, kapak detayları; mekanik poz numaraları, ekipman, boru – ek parça ve vana listeleri. Yeniden çalıştırınca modelden günceller.', async (I) => {
-    const ol = I && I.kw ? await I.kw('Plan ve kesit ölçeği', [['25', '1/25 (önerilen — pafta sayısı otomatik artar)'], ['50', '1/50']], String(C.doc.set.istOlcek || 25)) : '25'; if (!ol) return; C.doc.set.istOlcek = +ol;
+    const on = olcekOner(), oS = String(on.olcek), elle = C.doc.set.istOlcekElle && C.doc.set.istOlcek ? String(C.doc.set.istOlcek) : null;
+    const sec = [['50', '1/50'], ['25', '1/25'], ['100', '1/100']].map(([v, t]) => [v, v === oS ? `${t} (önerilen — firma kuralı: ${on.neden || 'bina ebatına göre'})` : t]);
+    const ol = I && I.kw ? await I.kw('Plan ve kesit ölçeği', sec, elle || oS) : (elle || oS); if (!ol) return;
+    C.doc.set.istOlcek = +ol; C.doc.set.istOlcekElle = String(ol) !== oS; // önerilenden başkası seçildiyse elle verilmiş sayılır, sonraki çalışmada korunur
     const res = await uret(+ol); if (!res) return;
     const L0 = res.paf[0]; if (L0) { C.layoutIdx = C.doc.layouts.indexOf(L0); C.grpCur = L0.grp; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60); }
     C.log(`İstasyon paftaları hazır (${res.paf.length}): ${res.paf.map(L => L.name.split(' — ').pop()).join(' · ')} — ${res.items.length} mekanik poz, ${res.nB} poz balonu. Model değişince ISTASYONPAFTA ile yeniden üretin; antet bilgileri statik penceresindeki "Pafta anteti" alanlarından gelir.`);

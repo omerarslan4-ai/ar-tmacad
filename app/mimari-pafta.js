@@ -477,7 +477,10 @@
   if (C.dxfWrite && !C._mimLtSarili) { C._mimLtSarili = true; const w0 = C.dxfWrite;
     C.dxfWrite = function (opts = {}) { const st = C.doc && C.doc.set && C.doc.set.mimPafta;
       if (!opts || opts.plain !== '2b' || !opts.grp || !/M[İI]MAR[İI]/i.test(opts.grp) || !st || !st.olcek || opts.ltscale != null) return w0.apply(this, arguments);
-      return w0.call(this, Object.assign({}, opts, dxfCizgiOlcegi(st.olcek))); }; }
+      /* Mimari desenleri (kâğıt mm; cizim-kural-uygula.js → '<AD>_M') bu çıktıda asıl adlarıyla (HIDDEN, CENTER2 …) yazılır; çıktıdan sonra genel desenler geri gelir */
+      const D = C.mimariLtDesen ? C.mimariLtDesen() : {}, eski = {};
+      for (const [n, p] of Object.entries(D)) { eski[n] = C.LT[n]; C.LT[n] = Object.assign({}, C.LT[n] || { d: n }, { p: p.slice() }); }
+      try { return w0.call(this, Object.assign({}, opts, dxfCizgiOlcegi(st.olcek))); } finally { for (const n of Object.keys(eski)) { if (eski[n]) C.LT[n] = eski[n]; else delete C.LT[n]; } } }; }
 
   C.addCommand(['MIMARIPAFTA', 'MIMARICIZ', 'MIMPAFTA'], 'Seçili yapının (seçim yoksa bütün modelin) mimari paftalarını "Mimari" grubuna hazırlar (Çokal R2 düzeni): ölçek bina ebatına göre (1/50; çok küçükse 1/25, A0\'a sığmazsa 1/100); kat planları ve mahal listesi; A-A / B-B / C-C kesitleri ve malzeme açılımı; görünüşler; çatı planı, çatı kesiti ve çatı detayları; kapı / pencere detayları (1/20); korkuluk ve sac kapak detayları. Antet: yüklediğiniz antet. Model değişince yeniden çalıştırın.', async () => {
     const res = await MIMARIPAFTA(); if (!res) return;

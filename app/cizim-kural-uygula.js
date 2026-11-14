@@ -21,17 +21,17 @@
     ACAD_ISO04W100: { d: 'ISO long-dash dot ____ . ____ .', p: [24, -3, 0.5, -3] },
   };
   for (const [n, v] of Object.entries(LT_EK)) if (C.LT && !C.LT[n]) C.LT[n] = v;
-  /* örnek çizimlerin kâğıttaki desenleri (MIMARI.cizgiTipi, mm): aks, gizli çizgi, kesit çizgisi, zemin çizgisi pafta ölçeğinden bağımsız aynı görünür */
-  if (C.LT) for (const [n, p] of Object.entries(R().cizgiTipi || {})) C.LT[n] = Object.assign({}, C.LT[n] || { d: n }, { p: p.slice() });
-  C.vpCizgiOlcegi = K.vpCizgiOlcegi;
-  /* AutoCAD çıktısı ($PSLTSCALE = 1 ile yazılır): desenler kâğıt mm'si olduğundan 2B mimari çıktıda $LTSCALE = 1 — pafta pencerelerinde
-     çizgi tipi her ölçekte örnekteki gibi görünür (eskiden $LTSCALE = ölçek / 1000 yazılıyordu: desen kâğıtta 20 kat küçülüp noktalı görünüyordu) */
-  if (C.dxfWrite && !C._ltOlcekSarili) { C._ltOlcekSarili = true; const w0 = C.dxfWrite;
-    C.dxfWrite = function (opts = {}) { const d = C.doc && C.doc.set; if (!d || opts.plain !== '2b' || !etkin() || (opts.grp && !/M[İI]MAR[İI]|GENEL/i.test(opts.grp))) return w0.apply(this, arguments);
-      const l0 = d.ltscale; d.ltscale = 1; try { return w0.apply(this, arguments); } finally { d.ltscale = l0; } }; }
+  /* örnek çizimlerin kâğıttaki desenleri (MIMARI.cizgiTipi, mm): yalnız Mimari kural katmanları kullanır. Genel C.LT desenlerine dokunulmaz
+     (statik / mekanik çizim, SVG, PDF ve DXF eskisi gibi); Mimari desenleri '<AD>_M' adıyla tanımlanır (ör. HIDDEN_M), Mimari kural katmanı ekranda
+     bu adı alır. Mimari grubu AutoCAD çıktısında asıl adlarla (HIDDEN …) ve bu desenlerle yazılır (mimari-pafta.js → dxfCizgiOlcegi / mimariLtDesen). */
+  const LT_M = n => n + '_M';
+  if (C.LT) for (const [n, p] of Object.entries(R().cizgiTipi || {})) C.LT[LT_M(n)] = { d: ((C.LT[n] && C.LT[n].d) || n) + ' (mimari)', p: p.slice() };
+  C.mimariLtDesen = () => Object.assign({}, R().cizgiTipi || {});
+  /* pafta penceresinde çizgi tipi ölçeği: kâğıtta desen mm'si (K.vpCizgiOlcegi) × kullanıcının LTSCALE çarpanı (varsayılan LTSCALE = ölçek / 1000 → 1) */
+  C.vpCizgiOlcegi = sc => K.vpCizgiOlcegi(sc) * ((C.doc && C.doc.set && +C.doc.set.ltscale) ? +C.doc.set.ltscale / ((+C.doc.set.anno || 50) / 1000) : 1);
   const MODEL = /^(INS_|ARI_|MEK_)|^(BETON|DUVAR|BORU|POMPA|VANA|SU|ARAZI|HARITA|SEVIYE)$/; // model ve genel çizim katmanları: ekranda kendi rengiyle kalır
   /* program katmanının ekrandaki özellikleri (kural yoksa null) */
-  const ekran = ad => { if (!ad || MODEL.test(ad)) return null; const h = K.esle(R(), ad); if (!h) return null; const t = R().katmanlar[h]; /* yalnız mimari kural katmanları (mekanik katmanların kuralı henüz yok) */ if (!t) return null; const o = K.ozellik(t); if (!C.LT[o.lt]) o.lt = 'CONTINUOUS'; return o; };
+  const ekran = ad => { if (!ad || MODEL.test(ad)) return null; const h = K.esle(R(), ad); if (!h) return null; const t = R().katmanlar[h]; /* yalnız mimari kural katmanları (mekanik katmanların kuralı henüz yok) */ if (!t) return null; const o = K.ozellik(t); if (C.LT[LT_M(o.lt)]) o.lt = LT_M(o.lt); else if (!C.LT[o.lt]) o.lt = 'CONTINUOUS'; return o; };
   const isle = (L, o) => { let d = false; if (L.color !== o.color) { L.color = o.color; d = true; } if (L.lt !== o.lt) { L.lt = o.lt; d = true; } if (o.lw >= 0 && L.lw !== o.lw) { L.lw = o.lw; d = true; } return d; };
   /* 1) yeni katman */
   { const e0 = C.ensureLayer; C.ensureLayer = function (name) { const yeni = C.doc && !C.doc.layers[name], L = e0.apply(this, arguments); try { if (yeni && L && etkin()) { const o = ekran(name); if (o) isle(L, o); } } catch (er) { } return L; }; }
