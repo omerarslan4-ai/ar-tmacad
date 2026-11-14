@@ -50,9 +50,10 @@
     const uvw = p => [dot(p, R), dot(p, U), dot(p, D)];
     const tris = [], edges = [], cut = [];
     const keep = w => cutW == null || w >= cutW - 1e-9;
+    const kenarsiz = opts.kenarsiz || null; // bu nesneler yalnız z-tamponu doldurur (önündekini örter), çizgisi çıkmaz (görünüşte doğrama: çizimi detaydan)
     for (const e of opts.ents) {
       let t; try { t = C.entTris(e); } catch (err) { continue; } if (!t || !t.pos.length) continue;
-      const P0 = t.pos;
+      const P0 = t.pos, cizgisiz = kenarsiz && kenarsiz.has(e.id);
       for (let i = 0; i < P0.length; i += 9) {
         const a = uvw([P0[i], P0[i + 1], P0[i + 2]]), b = uvw([P0[i + 3], P0[i + 4], P0[i + 5]]), c = uvw([P0[i + 6], P0[i + 7], P0[i + 8]]);
         if (cutW == null) { tris.push(a, b, c); continue; }
@@ -63,9 +64,9 @@
         // kesit çizgisi
         const da = a[2] - cutW, db = b[2] - cutW, dc = c[2] - cutW, X = [];
         for (const [p, q, dp, dq] of [[a, b, da, db], [b, c, db, dc], [c, a, dc, da]]) if ((dp < 0) !== (dq < 0) && dp !== dq) { const s = dp / (dp - dq); X.push([p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s]); }
-        if (X.length === 2 && Math.hypot(X[0][0] - X[1][0], X[0][1] - X[1][1]) > 1e-6) { X.g = e.id; X.lk = C.secLk ? C.secLk(e) : undefined; X.conc = CONC.has(e.type); if (C.secMat) X.mat = C.secMat(e); cut.push(X); }
+        if (!cizgisiz && X.length === 2 && Math.hypot(X[0][0] - X[1][0], X[0][1] - X[1][1]) > 1e-6) { X.g = e.id; X.lk = C.secLk ? C.secLk(e) : undefined; X.conc = CONC.has(e.type); if (C.secMat) X.mat = C.secMat(e); cut.push(X); }
       }
-      const elk = C.secLk ? C.secLk(e) : undefined;
+      const elk = C.secLk ? C.secLk(e) : undefined; if (cizgisiz) continue;
       for (const [p, q] of (t.edges.length || !C.creaseEdges ? t.edges : C.creaseEdges(t, 35)).concat(C.silEdges ? C.silEdges(t, D) : [])) {
         let a = uvw(p), b = uvw(q);
         if (cutW != null) { const ia = keep(a[2]), ib = keep(b[2]); if (!ia && !ib) continue; if (ia !== ib) { const s = (cutW - a[2]) / (b[2] - a[2]), m = [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s, cutW]; if (ia) b = m; else a = m; } if (Math.min(a[2], b[2]) > cutW + depth) continue; }
@@ -89,6 +90,7 @@
       }
     }
     const tol = Math.max(ps * 2, (w1 - w0) * 1e-4);
+    const zAt = (u, v) => { const ix = Math.floor(X(u)), iy = Math.floor(Y(v)); return ix < 0 || iy < 0 || ix >= nx || iy >= ny ? Infinity : Z[iy * nx + ix]; }; // noktadaki en yakın yüzeyin derinliği
     const vis = [];
     const visible = (x, y, w) => { const ix = Math.floor(x), iy = Math.floor(y); let m = -Infinity, any = false; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = ix + dx, yy = iy + dy; if (xx < 0 || yy < 0 || xx >= nx || yy >= ny) continue; const z = Z[yy * nx + xx]; if (z === Infinity) { any = true; continue; } if (z > m) m = z; } return any || w <= m + tol; };
     for (const ed of edges) {
@@ -101,7 +103,7 @@
       }
       if (ed.lk) for (let k = vis0; k < vis.length; k++) vis[k].lk = ed.lk;
     }
-    return { cut, vis, frame: { D, R, U } };
+    return { cut, vis, frame: { D, R, U }, zAt };
   };
 
   /* ---------- görünüş üretimi ve yerleştirme ---------- */
@@ -167,7 +169,11 @@
     /* görünüşte (cephe) bina içindeki elemanlar çizilmez: merdiven, iç duvar, ara döşeme, ekipman … (firma kuralı; pencere camı opak sayılır) */
     if (def.kind !== 'plan' && /^(ON|ARKA|SAG|SOL)$/.test(def.dir || '') && def.ic !== true && C.gorunusIcElemanlar) { const ic = C.gorunusIcElemanlar(ents); if (ic.size) ents = ents.filter(e => !ic.has(e.id)); }
     if (def.area) { const a = def.area, m = 0.01; ents = ents.filter(e => { const b = C.bbox(e); return !(b[2] < a[0] - m || b[0] > a[2] + m || b[3] < a[1] - m || b[1] > a[3] + m); }); }
-    const opts = def.kind === 'plan' ? { ents, d: [0, 0, -1], cutW: -def.h, depth: def.depth } : { ents, d: VIEWS[def.dir].d };
+    /* doğrama detaydan (def.dograma, MIMARIPAFTA; firma kuralı 14.11.2026): planda doğramanın 3B ağı kesilmez, 1-1 kesiti çizilir; görünüşte ağ yalnız örter
+       (pencere camı opak), çizgisi tip detayının görünüşünden gelir (mimari-oto.js) */
+    const dogr = def.dograma === true && (def.kind === 'plan' ? !!C.dogramaCizPlan : (!!C.dogramaCizGorunus && VIEWS[def.dir] && Math.abs(VIEWS[def.dir].d[2]) < 1e-9)), entsD = ents;
+    if (dogr && def.kind === 'plan') ents = ents.filter(e => e.type !== 'acik');
+    const opts = def.kind === 'plan' ? { ents, d: [0, 0, -1], cutW: -def.h, depth: def.depth } : { ents, d: VIEWS[def.dir].d, kenarsiz: dogr ? new Set(ents.filter(e => e.type === 'acik').map(e => e.id)) : null };
     const r = C.projectModel(opts);
     if (!r.cut.length && !r.vis.length) return null;
     const R = C.sectionMerge ? C.sectionMerge(r.cut, r.vis) : { loops: [], equip: [], open: [], vis: r.vis };
@@ -207,6 +213,7 @@
     { const vg = new Map(); for (const sg of R.vis) { const k = sg.lk || ''; if (!vg.has(k)) vg.set(k, []); vg.get(k).push(sg); } for (const [k, vs] of vg) C.addFittedSegs(vs, W, { gv, layer: def.kind === 'plan' ? LGf(k || null) : LKf(k || null) }); }
     if (R.loops.length && def.hatch !== 'YOK' && C.T.hatch) { if (C.secHatches) C.secHatches(R, W, g => LTf(g.lk), def.hatch || 'ANSI31', def.kind === 'plan', mk); else mk('hatch', { loops: R.loops.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), pat: def.hatch || 'ANSI31', sc: 1, ang: 0, ann: true, orig: [0, 0], layer: LT }); }
     if (R.equip.length && def.hatch !== 'YOK' && C.T.hatch) { const eg = new Map(); for (const lp of R.equip) { const k = lp.lk || ''; if (!eg.has(k)) eg.set(k, []); eg.get(k).push(lp); } for (const [k, eqs] of eg) mk('hatch', { loops: eqs.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), ...(C.ekipTarama ? C.ekipTarama() : { pat: 'ANSI37', sc: 0.5 }), ang: 0, ann: true, orig: [0, 0], layer: LTf(k || null) }); }
+    if (dogr) { try { if (def.kind === 'plan') C.dogramaCizPlan(gv, W, def.h, entsD); else C.dogramaCizGorunus({ ents: entsD, D: r.frame.D, R: r.frame.R, zAt: r.zAt, W, gv, layer: tag + '_DOGRAMA', zg }); } catch (er) { console.error('doğrama çizimi', er); } }
     if (def.kind === 'plan' && def.kot !== false) planKots(ents, R, def, W, gv, tag);
     // mekanik: boru / ek parça eksen çizgileri, boru adları ve poz numaraları (kot planında)
     if (def.kind === 'plan' && def.mek !== false) {

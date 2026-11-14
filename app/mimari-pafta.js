@@ -308,7 +308,7 @@
     katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
     const planlar = katlar.map(k => { const gv = gorunus({ kind: 'plan', h: k.h, depth: Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false, dograma: true }); if (!gv) return null;
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
-      const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
+      const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
     // --- kesitler: yapıyı kesen disiplin kesitleri; yoksa A-A ve B-B alınır
     const VL = G.liste(); let kes = VL.filter(v => v.tip === 'kesit' && v.a && v.b && kesiyorMu(v, bb));
@@ -375,9 +375,9 @@
           const nm = h.nm, v = { id: 'G' + Date.now().toString(36) + 'CATI' + catiR.kesitler.length, tip: 'kesit', kaynak: 'MIMARIPAFTA', ad: `${nm}-${nm} ÇATI KESİTİ`, nm, a: h.a, b: h.b, sp: h.sp, depth: h.depth, yer: [X0, Yc], olcek: SC, acilim: false };
           /* öbür elemanların 3B ağı kesit süresince gizlenir (C.doc.ents değiştirilmez: canlı görünüm imzası — proje.js — bozulmasın), doğrama numarası yazılmaz;
              işaret planda (aşağıda), modelde değil; canlı görünüm kaydı silinir (MIMARIPAFTA her çalışmada yeniden üretir) */
-          const once = new Set(C.doc.ents.map(e => e.id)), ms0 = C.meshes, de0 = C.dogramaEtiketKesit;
-          C.meshes = function (e) { return e && (sec.has(e.id) || e.gv) ? ms0.apply(this, arguments) : null; }; C.dogramaEtiketKesit = () => 0;
-          try { await G.kesitUret(v); } finally { C.meshes = ms0; C.dogramaEtiketKesit = de0; }
+          const once = new Set(C.doc.ents.map(e => e.id)), ms0 = C.meshes, de0 = C.dogramaEtiketKesit, dc0 = C.dogramaCizKesit, ko0 = C.korkulukOkKesit;
+          C.meshes = function (e) { return e && (sec.has(e.id) || e.gv) ? ms0.apply(this, arguments) : null; }; C.dogramaEtiketKesit = () => 0; C.dogramaCizKesit = () => []; C.korkulukOkKesit = () => 0; // çatı kesitinde doğrama ve korkuluk yok
+          try { await G.kesitUret(v); } finally { C.meshes = ms0; C.dogramaEtiketKesit = de0; C.dogramaCizKesit = dc0; C.korkulukOkKesit = ko0; }
           const yeni = C.doc.ents.filter(e => !once.has(e.id));
           const canli = C.doc.set.canli || {}; for (const e of yeni) if (e.canli) { delete canli[e.canli]; delete e.canli; }
           /* yalnız çatı seviyesi çizgisi kalır; çatı döşemesinin 1 m altından aşağıda kalan (su tutucu bant vb.) atılır */

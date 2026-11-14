@@ -20,6 +20,7 @@
       'Ongor': { renk: 9, tip: 'Continuous', kal: 0.15, ne: 'Görünüş çizgileri (kesilmeyen, önde görünen)' },
       'Arkagor': { renk: 8, tip: 'HIDDEN', kal: 0.15, ne: 'Arkada kalan / gizli kenarlar' },
       'Korkuluk': { renk: 151, tip: 'Continuous', kal: 0.25, ne: 'Korkuluk, küpeşte' },
+      'Kapi_Pencere': { renk: 23, tip: 'Continuous', kal: 0.25, ne: 'Kapı / pencere (doğrama) — plan, kesit ve görünüşte (10-İdari Bina_R2)' },
       'Merdiven': { renk: 95, tip: 'Continuous', kal: 0.30, ne: 'Merdiven' },
       'Tretuvar': { renk: 163, tip: 'Continuous', kal: 0.20, ne: 'Tretuvar, saha kaplaması' },
       'Grobeton': { renk: 233, tip: 'Continuous', kal: 0.15, ne: 'Grobeton' },
@@ -158,6 +159,8 @@
     esleme: [
       [/^PAFTA_PENCERE/, 'Defpoints'],
       [/(^|_)DOGRAMA_NO$/, 'YZ'],                         // kapı / pencere tip numarası (Çokal İdari: YZ katmanı)
+      [/(^|_)DOGRAMA$/, 'Kapi_Pencere'],                  // doğrama çizgileri plan, kesit ve görünüşte (Çokal İdari: Kapi_Pencere, renk 23, 0,25)
+      [/(^|_)ACIKLAMA_OKU$/, 'YZ'],                       // oklu açıklamanın oku (Çokal İdari: MULTILEADER YZ katmanında, yazısı Mim_Yazi25)
       [/^(PAFTA_ANTET|PFT_CERCEVE|PFT_TABLO|PFT_BASLIK)$/, 'ANTET'], [/^(PAFTA_YAZI|PFT_YAZI)$/, 'YAZI GENEL'],
       [/^(KESIT_DUZLEMI|KAZI.*|STA_.*|STATIK.*|DONATI.*|MT_.*|AC_.*|SAHA_.*|PENCERE|DETAY|PAFTA_INDEKS)$/, null], // başka disiplinin ve programın kendi yardımcı katmanları (PENCERE: pafta penceresi çerçevesi)
       [/(^|_)OLCU$/, 'ÖL'], [/(^|_)KOT$/, 'Kot'], [/(^|_)AKS(_BLOK)?$/, 'Aks'], [/^KESIT_ISARET$/, 'Kesit_Cizgisi'],
@@ -173,7 +176,7 @@
       [/^GORUNUS_.*_KESIT(_|$)/, 'Ongor'],                 // görünüşte (cephe) kesilen yok: çizgiler görünüş çizgisidir
       [/(^|_)KESIT(_|$)/, 'Beton'], [/(^|_)GORUNEN(_|$)/, 'Ongor'], [/(^|_)GIZLI(_|$)/, 'Arkagor'],
       [/^DETAY_BETON$/, 'Beton'],
-      [/^(YAZI|YAZI_KAPAK|MAHAL_LISTESI)$/, 'Mim_Yazi25'], [/^MALZEME_ACILIM_YAZI$/, 'Yazi25'], [/^MALZEME_ACILIM$/, 'Mim_Yazi25'], [/^MAHAL_ADI$/, 'MAHAL İSİM'],
+      [/^(YAZI|YAZI_KAPAK|MAHAL_LISTESI|PAFTA_LISTESI)$/, 'Mim_Yazi25'], [/^MALZEME_ACILIM_YAZI$/, 'Yazi25'], [/^MALZEME_ACILIM$/, 'Mim_Yazi25'], [/^MAHAL_ADI$/, 'MAHAL İSİM'],
       /* plan: model elemanlarının kendi katmanları (planda kesilenler Beton, üstten görünenler Ongor) */
       [/^(INS_(PERDE|KOLON|DUVAR.*|TEMEL.*|PARAPET|AYAK_DUVARI)|BETON|DUVAR)$/, 'Beton'],
       [/^INS_(DOSEME|CATI_DOSEMESI|KIRIS|PENCERE|KAPI|CATI)$/, 'Ongor'], [/^RAMPA$/, 'Ongor'], /* rampa: KABUL */
@@ -299,7 +302,8 @@
            Hat arkada görünen kolon / kiriş / doğrama çizgisinin (engelX) üstüne binmez: duvardan içeri doğru ilk boş yere kayar (boş yer yoksa en az çizgi kesen yer). */
         const sg = sagda ? -1 : 1, x0V = sagda ? xB : xA, sira = Y.siraModel ? +Y.siraModel : (Y.sira || 5) * e, yazi = 2.5 * e; // sıra aralığı modelde 0,25 m (her ölçekte)
         const KB = (Y.engelK || []).filter(b => b[1] < zB); /* hacmin altındaki ve içindeki kot / yazı kutuları (zincir alttaki boşluğa da inebilir) */
-        const carp = x => (Y.engelX || []).filter(q => q > x - yazi - e && q < x + 1.5 * e).length + 3 * KB.filter(b => b[2] > x - yazi - e && b[0] < x + 1.5 * e).length; /* ölçü çizgisi ve yazı şeridine düşen çizgi / kot sayısı */
+        const vOnce = out.filter(q => q.k === 'v' && Math.min(q.a[1], q.b[1]) < zB - 1e-6 && Math.max(q.a[1], q.b[1]) > zA + 1e-6).map(q => q.p[0]); /* daha önce konan düşey zincirler (öbür hacim / kat): sıra aralığından yakına gelinmez */
+        const carp = x => (Y.engelX || []).filter(q => q > x - yazi - e && q < x + 1.5 * e).length + 3 * KB.filter(b => b[2] > x - yazi - e && b[0] < x + 1.5 * e).length + 100 * vOnce.filter(q => Math.abs(q - x) < sira - 1e-6).length; /* ölçü çizgisi ve yazı şeridine düşen çizgi / kot / doğrama sayısı; başka zincirin üstü yasak */
         /* adaylar: duvardan içeri her 1 mm'de bir; önce en az çakışan, sonra duvara en yakın. Alt ve üst döşemesi olan ilk aday seçilir */
         const aday = []; for (let t = d; t + sira <= L - d + 1e-9; t += e) aday.push({ x: x0V + sg * t, c: carp(x0V + sg * t) + carp(x0V + sg * (t + sira)), t });
         aday.sort((p, q) => p.c - q.c || p.t - q.t); if (!aday.length) aday.push({ x: x0V + sg * Math.min(d, L * 0.5) });

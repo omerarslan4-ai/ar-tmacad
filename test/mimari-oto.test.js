@@ -144,4 +144,22 @@ t('eski çalıştırmadan kalan 2 kesit (uzun + montaj holü) korunur, eksik oda
   assert.strictEqual(A.eksikKesitler(K, [], M, [0, 0, 19.7, 8]).length, 3);
 });
 
+t('doğramanın yerel çerçevesi: Konya B cephesi (y = 0,10, dış güney) — dışa normal, dıştan bakınca sağ, menteşe ve açılış', () => {
+  const F = A.dogramaCercevesi({ c: [7, 0.1], u: [1, 0], nn: [0, 1], duvar: 0.2, w: 0.7 }, [9.85, 4]);
+  const z = v => v.map(q => q + 0); assert.deepStrictEqual(z(F.o), [0, -1]); assert.deepStrictEqual(z(F.x), [1, 0]);
+  assert.ok(Math.abs(F.P0[0] - 6.65) < 1e-9 && Math.abs(F.P0[1] - 0) < 1e-9, 'dış yüz sol ucu (6,65; 0)');
+  // K1 giriş cephesinde (x = 19,60, dış doğu), yon L: kanat +nn yönüne
+  const K = A.dogramaCercevesi({ c: [19.6, 1.2], u: [0, 1], nn: [-1, 0], duvar: 0.2, w: 1, el: 'L', yon: 'L' }, [9.85, 4]);
+  assert.deepStrictEqual(z(K.o), [1, 0]); assert.strictEqual(K.ters, false, 'kanat içe (−x) açılır'); assert.strictEqual(K.mentese, 'L', 'doğudan batıya bakınca s0 (güney) solda');
+});
+t('korkuluk oklu açıklaması (Çokal İdari): yazı "KR1 Korkuluk h=110 cm" / "(Sıcak Daldırma Galvaniz)"; kesilen betona ve ölçüye binmez', () => {
+  assert.deepStrictEqual(A.korkulukYazisi({ kod: 'KR1', kh: 110 }, 'Sıcak daldırma galvaniz çelik'), ['KR1 Korkuluk h=110 cm', '(Sıcak Daldırma Galvaniz)']);
+  assert.deepStrictEqual(A.korkulukYazisi({ kh: 90 }, 'Paslanmaz çelik (AISI 304, saten)')[1], '(Paslanmaz Çelik (AISI 304, Saten))');
+  // korkuluk y = 0, üstte (y 2 … 10) kesilen beton döşeme, sağ altta ölçü: ok sol alta gider
+  const beton = { pts: [[-30, 2], [30, 2], [30, 10], [-30, 10]], a: 1e6 }, olcu = { bb: [0, -12, 30, -2], a: 1e3 };
+  const r = A.okluAciklamaYeri({ adaylar: [[0, 0]], w: 20, h: 2, L: 11.7, aci: 59, alanlar: [beton], kutular: [olcu] });
+  assert.ok(r.maliyet < 1, 'maliyet ' + r.maliyet); assert.ok(r.kirik[1] < 0 && r.kirik[0] < 0, 'sol alt: ' + r.kirik);
+  assert.ok(Math.abs(Math.hypot(r.kirik[0], r.kirik[1]) - 11.7) < 1e-9 && Math.abs(r.son[1] - r.kirik[1]) < 1e-9 && Math.abs(Math.abs(r.son[0] - r.kirik[0]) - 20) < 1e-9, 'eğik kol 11,7, yatay kırılma yazı genişliğinde');
+});
+
 console.log(`\n${n} test geçti.`);

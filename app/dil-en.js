@@ -288,5 +288,6 @@
     ['Pafta listesi indirildi (# pafta, Excel\'de açılır).', 'Sheet list downloaded (# sheets, opens in Excel).'],
     ['Pafta listesi: bir pafta grubundaki (varsayılan Mimari) paftalar — SIRA NO, PAFTA NO, PAFTA ADI, ÖLÇEK; paftalardan canlı tablo, modelde ya da paftada tıklanan yere. PAFTALISTESI [Y = yerleştir | C = Excel (CSV) indir] [grup]', 'Sheet list: sheets of a sheet group (default Architecture) — NO., SHEET NO., SHEET TITLE, SCALE; live table from the sheets, placed where you click in the model or on a sheet. PAFTALISTESI [Y = place | C = download Excel (CSV)] [group]'],
     ['GÖRÜNÜŞLER', 'ELEVATIONS'], ['KAT PLANLARI', 'FLOOR PLANS'],
+    ['# Korkuluk h=# cm', '# Railing h=# cm'], ['Korkuluk h=# cm', 'Railing h=# cm'], ['(Sıcak Daldırma Galvaniz)', '(Hot-Dip Galvanized)'],
   ]);
 })();

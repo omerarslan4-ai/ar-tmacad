@@ -53,29 +53,36 @@
   const kanatSayisi = t => (t.kanat > 1 ? t.kanat : t.w <= 90 ? 1 : t.w <= 180 ? 2 : 3);
   /* açılan kanatlar: tek kanat açılır; iki kanatta sağdaki, üç ve fazlasında baştaki ve sondaki (Çokal P1 / P2) */
   const acilanlar = n => n === 1 ? [0] : n === 2 ? [1] : [0, n - 1];
-  /* t: { kod, onek, tur, w, h (cm), parapet, adet, kanat, malzeme, baslik, duvar (cm), yon, panel (m) }. o: { sc (1/20) }.
-     Döner: { items, bb, parca: { gorunus, kesit22, kesit11 } } — başlangıç: doğramanın dış sol alt köşesi (0, 0) */
-  const dogramaDetay = (t, o = {}) => {
-    const sc = o.sc || 20, D = liste(sc), k = D.k, W = t.w / 100, H = t.h / 100, td = Math.max(0.1, (t.duvar || 20) / 100);
-    const kapi = t.onek === 'K', sek = t.onek === 'SEK', f = kapi ? 0.05 : sek ? 0.08 : 0.06;
-    const parca = {};
-    // ---- GÖRÜNÜŞ ----
+  /* Doğrama çizimi tek kaynaktan (firma kuralı 14.11.2026: doğrama plan, kesit ve görünüşte detay paftasındaki tip detayına uygun çizilir):
+     dogramaGorunus (görünüş), dograma22 (düşey kesit), dograma11 (yatay kesit = plan) yerel koordinatta çizim listesi döndürür; detay paftası
+     (dogramaDetay) bunları yan yana dizer, plan / kesit / görünüş (mimari-oto.js → C.dogramaCizPlan / Kesit / Gorunus) modele oturtur. */
+  const olc = t => { const kapi = t.onek === 'K', sek = t.onek === 'SEK'; return { W: t.w / 100, H: t.h / 100, td: Math.max(0.1, (t.duvar || 20) / 100), kapi, sek, f: kapi ? 0.05 : sek ? 0.08 : 0.06 }; };
+  /* kapı kanatlarının menteşe yanı (yerel x: 'L' sol, 'R' sağ): çift kanatta dış uçlar; tek kanatta o.mentese (modeldeki kapı) ya da tipin yönü */
+  const menteseler = (t, n, o = {}) => Array.from({ length: n }, (_, i) => n === 2 ? (i === 0 ? 'L' : 'R') : ((o.mentese || t.yon) === 'R' ? 'R' : 'L'));
+  /* çizim listesini kaydır (m) */
+  const kaydir = (items, dx, dy) => { const P = q => [q[0] + dx, q[1] + dy]; return items.map(it => { const o = Object.assign({}, it); for (const k of ['a', 'b', 'c', 'p']) if (it[k]) o[k] = P(it[k]); if (it.pts) o.pts = it.pts.map(P); return o; }); };
+
+  /* GÖRÜNÜŞ (dıştan): kasa, kanat bölümleri, açılır kanat işareti (kilit yanından menteşeye açılım çizgileri), sabit camda ısıcam yazısı,
+     seksiyonel kapı panelleri, dış denizlik. Yerel koordinat: (0, 0) doğramanın dış sol alt köşesi (dıştan bakınca), x sağa, y yukarı (m).
+     o: { sc, yazi (true: cam / panel yazısı), doseme (true: kapı altında bitmiş döşeme çizgisi), mentese }. Döner: { items, paneller (pencere kayıt eksenleri) } */
+  const dogramaGorunus = (t, o = {}) => {
+    const D = liste(o.sc || 20), { W, H, kapi, sek, f } = olc(t), yazi = o.yazi !== false; let paneller = null;
     if (sek) {
       D.R(0, 0, W, H); D.R(f, 0, W - f, H - f); // kılavuz raylar ve üst kasa
       const np = Math.max(3, Math.round(H / (t.panel || 0.5))), ph = (H - f) / np;
       for (let i = 1; i < np; i++) D.L([f, i * ph], [W - f, i * ph]);
       for (let i = 0; i < np; i++) D.L([f + 0.05, i * ph + ph * 0.5], [W - f - 0.05, i * ph + ph * 0.5], 'DETAY_GORUNEN', 'HIDDEN'); // panel nervürü
       D.R(W / 2 - 0.08, 0.95, W / 2 + 0.08, 1.0); // kulp
-      D.T([W / 2, H * 0.62], 'YALITIMLI SEKSİYONEL PANEL', 2, 'C');
+      if (yazi) D.T([W / 2, H * 0.62], 'YALITIMLI SEKSİYONEL PANEL', 2, 'C');
     } else if (kapi) {
-      const n = Math.max(1, t.kanat || 1), lw = (W - 2 * f) / n, ust = H - f;
+      const n = Math.max(1, t.kanat || 1), lw = (W - 2 * f) / n, ust = H - f, M = menteseler(t, n, o);
       D.P([[0, 0], [0, H], [W, H], [W, 0]], false); D.P([[f, 0], [f, ust], [W - f, ust], [W - f, 0]], false);
       for (let i = 0; i < n; i++) { const x0 = f + i * lw, x1 = x0 + lw; D.R(x0 + 0.005, 0.01, x1 - 0.005, ust - 0.005);
         D.R(x0 + 0.08, 0.15, x1 - 0.08, 0.95); D.R(x0 + 0.08, 1.15, x1 - 0.08, ust - 0.12); // panel
-        const mentese = n === 2 ? (i === 0 ? 'L' : 'R') : (t.yon === 'R' ? 'R' : 'L'), hx = mentese === 'L' ? x0 : x1, kx = mentese === 'L' ? x1 : x0;
+        const mentese = M[i], hx = mentese === 'L' ? x0 : x1, kx = mentese === 'L' ? x1 : x0;
         D.L([kx, ust - 0.005], [hx, ust / 2], 'DETAY_GORUNEN', 'HIDDEN'); D.L([hx, ust / 2], [kx, 0.01], 'DETAY_GORUNEN', 'HIDDEN'); // açılış: kilit tarafından menteşe tarafına
         const kk = mentese === 'L' ? x1 - 0.07 : x0 + 0.07; D.R(kk - 0.012, 0.98, kk + 0.012, 1.08); D.L([kk, 1.04], [kk + (mentese === 'L' ? -0.12 : 0.12), 1.04]); }
-      D.L([-0.1, 0], [W + 0.1, 0]); // bitmiş döşeme
+      if (o.doseme !== false) D.L([-0.1, 0], [W + 0.1, 0]); // bitmiş döşeme
     } else {
       const n = kanatSayisi(t), mw = 0.06, pw = (W - 2 * f - (n - 1) * mw) / n, ac = acilanlar(n);
       D.R(0, 0, W, H);
@@ -86,11 +93,85 @@
             const kk = sol ? x1 - 0.035 : x0 + 0.035; D.R(kk - 0.01, (y0 + y1) / 2 - 0.06, kk + 0.01, (y0 + y1) / 2 + 0.06); }
         } else { const g = [x0 + 0.02, y0 + 0.02, x1 - 0.02, y1 - 0.02]; D.R(...g); const cx = (g[0] + g[2]) / 2, cy = (g[1] + g[3]) / 2;
           for (let j = 0; j < 3; j++) D.L([cx - 0.06 + j * 0.03, cy - 0.12], [cx + j * 0.03, cy - 0.06]);
-          if (pw > 0.35) D.T([cx, cy + 0.04], '4+12+4 ISICAM', 1.8, 'C'); }
+          if (yazi && pw > 0.35) D.T([cx, cy + 0.04], '4+12+4 ISICAM', 1.8, 'C'); }
       }
       D.R(-0.03, -0.035, W + 0.03, 0); // dış denizlik
-      parca.paneller = [0, ...Array.from({ length: n - 1 }, (_, i) => f + (i + 1) * pw + i * mw + mw / 2), W].map(v => +v.toFixed(4));
+      paneller = [0, ...Array.from({ length: n - 1 }, (_, i) => f + (i + 1) * pw + i * mw + mw / 2), W].map(v => +v.toFixed(4));
     }
+    return { items: D.o, paneller };
+  };
+
+  /* 2-2 KESİTİ (düşey, duvara dik): yerel x 0 = iç yüz, td = dış yüz; y 0 = boşluğun altı (denizlik / eşik), H = boşluğun üstü.
+     o: { sc, duvar (true: parapet ve lento parçası, tarama, sıva — detay paftası; kesitte duvarı kesit kendisi çizer), yazi (true: açıklamalar, tavan rayı, motor) }.
+     Kapıda üst kasa ve kanat (detay paftasında kapının 2-2 kesiti yok; bina kesitinde kesilen kapı için). Döner: { items, alt, lus, ic, dis } */
+  const dograma22 = (t, o = {}) => {
+    const D = liste(o.sc || 20), { H, td, kapi, sek, f } = olc(t), duvar = o.duvar !== false, yazi = o.yazi !== false;
+    const ic = 0, dis = td, fx0 = dis - 0.03 - (kapi ? td - 0.03 : 0.07), fx1 = dis - 0.03;
+    const alt = sek || kapi ? 0 : -Math.min(0.45, Math.max(0.25, (t.parapet || 100) / 100 * 0.4)), lus = H + 0.25;
+    if (duvar) {
+      if (!sek && !kapi) { D.P([[ic, alt], [ic, 0], [dis, 0], [dis, alt]], false, 'DETAY_KESIT'); D.KIRIK([ic, alt], [dis, alt], 'DETAY_KESIT'); D.H([[ic, alt], [dis, alt], [dis, 0], [ic, 0]], 'tugla');
+        D.L([ic - 0.02, alt], [ic - 0.02, -0.03]); D.L([dis + 0.02, alt], [dis + 0.02, -0.03]); }
+      else D.L([ic - 0.6, 0], [dis + 0.3, 0], 'DETAY_KESIT');
+      D.P([[ic, lus], [ic, H], [dis, H], [dis, lus]], false, 'DETAY_KESIT'); D.KIRIK([ic, lus], [dis, lus], 'DETAY_KESIT'); D.H([[ic, H], [dis, H], [dis, lus], [ic, lus]], 'beton');
+      D.L([ic - 0.02, H], [ic - 0.02, lus]); D.L([dis + 0.02, H], [dis + 0.02, lus]);
+    }
+    if (sek) { // panel perdesi; detayda kılavuz ray ve tavan rayı (açık konum kesikli), motor
+      D.R(fx0, 0.005, fx0 + 0.04, H - 0.02, 'DETAY_KESIT');
+      if (yazi) { const r = 0.3, yR = H + 0.02, xR = fx0 - r, ark = [];
+        for (let i = 0; i <= 8; i++) { const a = Math.PI / 2 * i / 8; ark.push([xR + r * Math.cos(a), yR - r + r * Math.sin(a) + r]); }
+        D.P([[fx0, H - 0.3], ...ark.reverse().map(q => [q[0], q[1] - r]), [fx0 - 1.0, yR]], false, 'DETAY_GORUNEN', 'HIDDEN'); D.AC([fx0 - 0.8, yR], [fx0 - 0.95, yR - 0.45], 'TAVAN RAYI (AÇIK KONUM)', 2);
+        D.R(fx0 - 0.9, yR + 0.02, fx0 - 0.5, yR + 0.22); D.AC([fx0 - 0.7, yR + 0.12], [fx0 - 0.95, yR + 0.55], 'MOTOR', 2); }
+    } else if (kapi) { const cm2 = (fx0 + fx1) / 2; D.R(fx0, H - f, fx1, H, 'DETAY_KESIT'); D.R(cm2 - 0.025, 0.01, cm2 + 0.025, H - f, 'DETAY_KESIT'); }
+    else {
+      D.R(fx0, 0, fx1, f, 'DETAY_KESIT'); D.R(fx0, H - f, fx1, H, 'DETAY_KESIT'); const cm2 = (fx0 + fx1) / 2;
+      D.L([cm2 - 0.012, f + 0.01], [cm2 - 0.012, H - f - 0.01]); D.L([cm2 + 0.012, f + 0.01], [cm2 + 0.012, H - f - 0.01]);
+      D.P([[fx1, 0], [dis + 0.05, -0.022], [dis + 0.05, -0.04], [fx1, -0.018]], true, 'DETAY_KESIT'); // dış denizlik (eğimli)
+      D.R(ic - 0.04, -0.03, fx0, 0, 'DETAY_KESIT'); // iç denizlik
+      if (yazi) {
+        D.AC([cm2, H * 0.6], [dis + 0.32, H * 0.75], 'ALÜMİNYUM DOĞRAMA (ISI YALITIMLI)', 2);
+        D.AC([cm2, H * 0.45], [dis + 0.32, H * 0.55], '4+12+4 ISICAM', 2);
+        D.AC([dis + 0.03, -0.03], [dis + 0.32, 0.12], 'ALÜMİNYUM DIŞ DENİZLİK', 2);
+        D.AC([ic + 0.02, -0.015], [ic - 0.3, 0.2], 'MERMER İÇ DENİZLİK (3 cm)', 2);
+        if (duvar) { D.AC([dis + 0.02, alt + 0.06], [dis + 0.32, alt + 0.02], 'DIŞ SIVA', 2); D.AC([ic - 0.02, alt + 0.1], [ic - 0.3, alt + 0.02], 'İÇ SIVA', 2); }
+      }
+    }
+    return { items: D.o, alt, lus, ic, dis };
+  };
+
+  /* 1-1 KESİTİ (yatay; planda da bu çizilir): yerel x 0 … W duvar boyunca (dıştan bakınca soldan sağa), y 0 = dış yüz, td = iç yüz.
+     Pencerede kasa ve kayıtlar (dış yüze yakın), cam, dış denizlik; kapıda kasa, açık kanat (90°) ve açılım yayı (içe; o.ters: dışa); seksiyonel kapıda raylar ve panel.
+     o: { sc, duvar (true: iki yanda duvar parçası, tarama, kırık çizgi), mentese ('L' | 'R'), ters }. Döner: { items, kanat (açık kanadın boyu, m) } */
+  const dograma11 = (t, o = {}) => {
+    const D = liste(o.sc || 20), { W, td, kapi, sek, f } = olc(t), py = 0, pi = td, uz = 0.3;
+    if (o.duvar !== false) {
+      for (const [a, b] of [[-uz, 0], [W, W + uz]]) { D.P([[a, py], [b, py], [b, pi], [a, pi]], true, 'DETAY_KESIT'); D.H([[a, py], [b, py], [b, pi], [a, pi]], 'tugla'); }
+      D.KIRIK([-uz, py], [-uz, pi], 'DETAY_KESIT'); D.KIRIK([W + uz, py], [W + uz, pi], 'DETAY_KESIT');
+    }
+    let kanat = 0;
+    if (kapi) {
+      const n = Math.max(1, t.kanat || 1), lw = (W - 2 * f) / n, M = menteseler(t, n, o), sy = o.ters ? -1 : 1, y0 = o.ters ? py : pi; kanat = lw;
+      D.R(0, py, f, pi, 'DETAY_KESIT'); D.R(W - f, py, W, pi, 'DETAY_KESIT');
+      for (let i = 0; i < n; i++) { const mentese = M[i], hx = mentese === 'L' ? f + i * lw : f + (i + 1) * lw, sg = mentese === 'L' ? 1 : -1;
+        D.R(Math.min(hx, hx + sg * 0.05), Math.min(y0, y0 + sy * lw), Math.max(hx, hx + sg * 0.05), Math.max(y0, y0 + sy * lw), 'DETAY_KESIT'); // açık kanat (90°)
+        const ark = []; for (let j = 0; j <= 16; j++) { const a = Math.PI / 2 * j / 16; ark.push([hx + sg * lw * Math.cos(a), y0 + sy * lw * Math.sin(a)]); } D.P(ark, false); }
+    } else if (sek) { D.R(0, py + 0.02, f, pi - 0.02, 'DETAY_KESIT'); D.R(W - f, py + 0.02, W, pi - 0.02, 'DETAY_KESIT'); D.R(f, pi - 0.06, W - f, pi - 0.02, 'DETAY_KESIT'); }
+    else {
+      const n = kanatSayisi(t), mw = 0.06, pw = (W - 2 * f - (n - 1) * mw) / n, ya = py + 0.03, yb = py + 0.10;
+      D.R(0, ya, f, yb, 'DETAY_KESIT'); D.R(W - f, ya, W, yb, 'DETAY_KESIT');
+      for (let i = 1; i < n; i++) { const x = f + i * pw + (i - 1) * mw; D.R(x, ya, x + mw, yb, 'DETAY_KESIT'); }
+      D.L([f, (ya + yb) / 2 - 0.012], [W - f, (ya + yb) / 2 - 0.012]); D.L([f, (ya + yb) / 2 + 0.012], [W - f, (ya + yb) / 2 + 0.012]);
+      D.R(-0.03, py - 0.03, W + 0.03, py + 0.03, 'DETAY_GORUNEN', 'HIDDEN'); // denizlik (altta, kesikli)
+    }
+    return { items: D.o, kanat };
+  };
+
+  /* t: { kod, onek, tur, w, h (cm), parapet, adet, kanat, malzeme, baslik, duvar (cm), yon, panel (m) }. o: { sc (1/20) }.
+     Döner: { items, bb, parca: { gorunus, kesit22, kesit11 } } — başlangıç: doğramanın dış sol alt köşesi (0, 0) */
+  const dogramaDetay = (t, o = {}) => {
+    const sc = o.sc || 20, D = liste(sc), k = D.k, { W, H, td, kapi, sek, f } = olc(t);
+    const parca = {};
+    // ---- GÖRÜNÜŞ ----
+    const G = dogramaGorunus(t, { sc }); D.o.push(...G.items); if (G.paneller) parca.paneller = G.paneller;
     // ölçüler: altta zincir + toplam, solda yükseklik
     const zincir = parca.paneller && parca.paneller.length > 2;
     const SR = 250 / sc; // ölçü sıraları arası modelde 0,25 m (firma kuralı 14.11.2026): 1/20'de 12,5 mm
@@ -103,54 +184,17 @@
     D.ALT([W / 2, -(dA + 17) * k], 'GÖRÜNÜŞ');
     parca.gorunus = [0, 0, W, H];
     // ---- 2-2 KESİTİ (düşey) ----
-    const gx = W + Math.max(0.55, 30 * k) + (sek ? 1.3 : 0), ic = gx, dis = gx + td, fx0 = dis - 0.03 - (kapi ? td - 0.03 : 0.07), fx1 = dis - 0.03;
     if (!kapi) {
-      const alt = sek ? 0 : -Math.min(0.45, Math.max(0.25, (t.parapet || 100) / 100 * 0.4)), lus = H + 0.25;
-      if (!sek) { D.P([[ic, alt], [ic, 0], [dis, 0], [dis, alt]], false, 'DETAY_KESIT'); D.KIRIK([ic, alt], [dis, alt], 'DETAY_KESIT'); D.H([[ic, alt], [dis, alt], [dis, 0], [ic, 0]], 'tugla');
-        D.L([ic - 0.02, alt], [ic - 0.02, -0.03]); D.L([dis + 0.02, alt], [dis + 0.02, -0.03]); }
-      else D.L([ic - 0.6, 0], [dis + 0.3, 0], 'DETAY_KESIT');
-      D.P([[ic, lus], [ic, H], [dis, H], [dis, lus]], false, 'DETAY_KESIT'); D.KIRIK([ic, lus], [dis, lus], 'DETAY_KESIT'); D.H([[ic, H], [dis, H], [dis, lus], [ic, lus]], 'beton');
-      D.L([ic - 0.02, H], [ic - 0.02, lus]); D.L([dis + 0.02, H], [dis + 0.02, lus]);
-      if (sek) { // panel perdesi, kılavuz ray ve tavan rayı (açık konum kesikli)
-        D.R(fx0, 0.005, fx0 + 0.04, H - 0.02, 'DETAY_KESIT'); const r = 0.3, yR = H + 0.02, xR = fx0 - r, ark = [];
-        for (let i = 0; i <= 8; i++) { const a = Math.PI / 2 * i / 8; ark.push([xR + r * Math.cos(a), yR - r + r * Math.sin(a) + r]); }
-        D.P([[fx0, H - 0.3], ...ark.reverse().map(q => [q[0], q[1] - r]), [fx0 - 1.0, yR]], false, 'DETAY_GORUNEN', 'HIDDEN'); D.AC([fx0 - 0.8, yR], [fx0 - 0.95, yR - 0.45], 'TAVAN RAYI (AÇIK KONUM)', 2);
-        D.R(fx0 - 0.9, yR + 0.02, fx0 - 0.5, yR + 0.22); D.AC([fx0 - 0.7, yR + 0.12], [fx0 - 0.95, yR + 0.55], 'MOTOR', 2);
-      } else {
-        D.R(fx0, 0, fx1, f, 'DETAY_KESIT'); D.R(fx0, H - f, fx1, H, 'DETAY_KESIT'); const cm2 = (fx0 + fx1) / 2;
-        D.L([cm2 - 0.012, f + 0.01], [cm2 - 0.012, H - f - 0.01]); D.L([cm2 + 0.012, f + 0.01], [cm2 + 0.012, H - f - 0.01]);
-        D.P([[fx1, 0], [dis + 0.05, -0.022], [dis + 0.05, -0.04], [fx1, -0.018]], true, 'DETAY_KESIT'); // dış denizlik (eğimli)
-        D.R(ic - 0.04, -0.03, fx0, 0, 'DETAY_KESIT'); // iç denizlik
-        D.AC([cm2, H * 0.6], [dis + 0.32, H * 0.75], 'ALÜMİNYUM DOĞRAMA (ISI YALITIMLI)', 2);
-        D.AC([cm2, H * 0.45], [dis + 0.32, H * 0.55], '4+12+4 ISICAM', 2);
-        D.AC([dis + 0.03, -0.03], [dis + 0.32, 0.12], 'ALÜMİNYUM DIŞ DENİZLİK', 2);
-        D.AC([ic + 0.02, -0.015], [ic - 0.3, 0.2], 'MERMER İÇ DENİZLİK (3 cm)', 2);
-        D.AC([dis + 0.02, alt + 0.06], [dis + 0.32, alt + 0.02], 'DIŞ SIVA', 2);
-        D.AC([ic - 0.02, alt + 0.1], [ic - 0.3, alt + 0.02], 'İÇ SIVA', 2);
-      }
+      const gx = W + Math.max(0.55, 30 * k) + (sek ? 1.3 : 0), K = dograma22(t, { sc }), ic = gx + K.ic, dis = gx + K.dis;
+      D.o.push(...kaydir(K.items, gx, 0));
       D.D([dis + 0.08, 0], [dis + 0.08, H], 'v', 6);
-      if (!sek) D.D([ic, alt], [dis, alt], 'h', -6);
-      D.ALT([(ic + dis) / 2, (sek ? -0.02 : alt) - 16 * k], '2-2 KESİTİ');
-      parca.kesit22 = [ic, alt, dis, lus];
+      if (!sek) D.D([ic, K.alt], [dis, K.alt], 'h', -6);
+      D.ALT([(ic + dis) / 2, (sek ? -0.02 : K.alt) - 16 * k], '2-2 KESİTİ');
+      parca.kesit22 = [ic, K.alt, dis, K.lus];
     }
     // ---- 1-1 KESİTİ (yatay; dış altta, iç üstte) ----
-    const lwMax = kapi ? (W - 2 * f) / Math.max(1, t.kanat || 1) : 0, y0 = -(dA + 25) * k - td - (kapi ? lwMax + 0.05 : 0), py = y0, pi = py + td, uz = 0.3; // kapıda açık kanat ve yay görünüşün altında kalır
-    for (const [a, b] of [[-uz, 0], [W, W + uz]]) { D.P([[a, py], [b, py], [b, pi], [a, pi]], true, 'DETAY_KESIT'); D.H([[a, py], [b, py], [b, pi], [a, pi]], 'tugla'); }
-    D.KIRIK([-uz, py], [-uz, pi], 'DETAY_KESIT'); D.KIRIK([W + uz, py], [W + uz, pi], 'DETAY_KESIT');
-    if (kapi) {
-      const n = Math.max(1, t.kanat || 1), lw = (W - 2 * f) / n;
-      D.R(0, py, f, pi, 'DETAY_KESIT'); D.R(W - f, py, W, pi, 'DETAY_KESIT');
-      for (let i = 0; i < n; i++) { const mentese = n === 2 ? (i === 0 ? 'L' : 'R') : (t.yon === 'R' ? 'R' : 'L'), hx = mentese === 'L' ? f + i * lw : f + (i + 1) * lw, sg = mentese === 'L' ? 1 : -1;
-        D.R(Math.min(hx, hx + sg * 0.05), pi, Math.max(hx, hx + sg * 0.05), pi + lw, 'DETAY_KESIT'); // açık kanat (90°)
-        const ark = []; for (let j = 0; j <= 16; j++) { const a = Math.PI / 2 * j / 16; ark.push([hx + sg * lw * Math.cos(a), pi + lw * Math.sin(a)]); } D.P(ark, false); }
-    } else if (sek) { D.R(0, py + 0.02, f, pi - 0.02, 'DETAY_KESIT'); D.R(W - f, py + 0.02, W, pi - 0.02, 'DETAY_KESIT'); D.R(f, pi - 0.06, W - f, pi - 0.02, 'DETAY_KESIT'); }
-    else {
-      const n = kanatSayisi(t), mw = 0.06, pw = (W - 2 * f - (n - 1) * mw) / n, ya = py + 0.03, yb = py + 0.10;
-      D.R(0, ya, f, yb, 'DETAY_KESIT'); D.R(W - f, ya, W, yb, 'DETAY_KESIT');
-      for (let i = 1; i < n; i++) { const x = f + i * pw + (i - 1) * mw; D.R(x, ya, x + mw, yb, 'DETAY_KESIT'); }
-      D.L([f, (ya + yb) / 2 - 0.012], [W - f, (ya + yb) / 2 - 0.012]); D.L([f, (ya + yb) / 2 + 0.012], [W - f, (ya + yb) / 2 + 0.012]);
-      D.R(-0.03, py - 0.03, W + 0.03, py + 0.03, 'DETAY_GORUNEN', 'HIDDEN'); // denizlik (altta, kesikli)
-    }
+    const lwMax = kapi ? (W - 2 * f) / Math.max(1, t.kanat || 1) : 0, py = -(dA + 25) * k - td - (kapi ? lwMax + 0.05 : 0), pi = py + td, uz = 0.3; // kapıda açık kanat ve yay görünüşün altında kalır
+    D.o.push(...kaydir(dograma11(t, { sc }).items, 0, py));
     D.D([0, py], [W, py], 'h', -8); D.T([W + uz + 0.05, py + td / 2], 'DIŞ', 2, 'L'); D.T([W + uz + 0.05, pi + 0.03], 'İÇ', 2, 'L');
     D.ALT([W / 2, py - 18 * k], '1-1 KESİTİ');
     parca.kesit11 = [-uz, py, W + uz, kapi ? pi + lwMax : pi];
@@ -227,7 +271,7 @@
   /* ---------- 4) ÇATI EĞİM OKU (plan): parça normali ve eğim yüzdesi ---------- */
   const egimYuzde = deg => Math.round(Math.tan((+deg || 0) * Math.PI / 180) * 100);
 
-  const api = { liste, kutu, dogramaDetay, kanatSayisi, acilanlar, korkulukTipleri, korkulukDetay, KORK, kapakTipleri, egimYuzde };
+  const api = { liste, kutu, kaydir, dogramaDetay, dogramaGorunus, dograma22, dograma11, menteseler, kanatSayisi, acilanlar, korkulukTipleri, korkulukDetay, KORK, kapakTipleri, egimYuzde };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariDetayApi = api;

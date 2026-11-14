@@ -89,4 +89,26 @@ t('kapı / pencere numara dairesi bütün tiplerde 3 mm (kullanıcı kararı): S
   assert.strictEqual(O.kodYazi('P1', { balonR: 3, kodMm: 2 }).wf, 0.7); assert.strictEqual(O.kodYazi('SEK1', { balonR: 3, kodMm: 2 }).wf, 0.56);
 });
 
+/* doğrama tek kaynaktan (firma kuralı 14.11.2026): görünüş, 2-2 ve 1-1 ayrı saf fonksiyonlar; plan / kesit / görünüş bunlarla çizilir */
+const kutuOf = it => D.kutu(it);
+t('doğrama parçaları: dogramaGorunus / dograma22 / dograma11 yerel koordinatta; detay paftası bunları kullanır (aynı çizgiler)', () => {
+  const T = tip('P2', 'P', 210, 150, { parapet: 100 });
+  const G = D.dogramaGorunus(T, { yazi: false }), b = kutuOf(G.items);
+  assert.ok(Math.abs(b[0] + 0.03) < 1e-9 && Math.abs(b[2] - 2.13) < 1e-9 && Math.abs(b[3] - 1.5) < 1e-9, 'görünüş 0 … W (denizlik ±3 cm), 0 … H: ' + b);
+  assert.ok(!G.items.some(q => q.k === 'T'), 'modelde yazı yok'); assert.ok(D.dogramaGorunus(T).items.some(q => q.s === '4+12+4 ISICAM'), 'detayda ısıcam yazısı');
+  const K22 = D.dograma22(T, { duvar: false, yazi: false }), b22 = kutuOf(K22.items);
+  assert.ok(b22[0] >= -0.041 && b22[2] <= 0.2 + 0.051 && !K22.items.some(q => q.k === 'H'), 'kesitte yalnız doğrama (kasa, cam, denizlikler); duvar ve tarama yok');
+  const K11 = D.dograma11(T, { duvar: false }), b11 = kutuOf(K11.items);
+  assert.ok(b11[0] >= -0.031 && b11[2] <= 2.131 && b11[1] >= -0.031 && b11[3] <= 0.2, 'planda doğrama duvar kalınlığı içinde (dış denizlik 3 cm dışarı)');
+});
+t('kapı 1-1: menteşe ve açılış yönü modelden (sağ menteşe, dışa açılan); çift kanatta iki yay', () => {
+  const T = tip('K1', 'K', 100, 250, {});
+  const ic = D.dograma11(T, { duvar: false, mentese: 'L' }), dis = D.dograma11(T, { duvar: false, mentese: 'R', ters: true });
+  const yay = r => r.items.find(q => q.k === 'P' && !q.cl && q.pts.length === 17);
+  assert.ok(yay(ic).pts.every(p => p[1] >= 0.2 - 1e-9), 'içe açılan yay iç yüzden (y ≥ td)'); assert.ok(Math.abs(yay(ic).pts[16][0] - 0.05) < 1e-9, 'sol menteşe');
+  assert.ok(yay(dis).pts.every(p => p[1] <= 1e-9), 'dışa açılan yay dış yüzden'); assert.ok(Math.abs(yay(dis).pts[16][0] - 0.95) < 1e-9, 'sağ menteşe');
+  assert.strictEqual(D.dograma11(tip('K2', 'K', 130, 250, { kanat: 2 }), { duvar: false }).items.filter(q => q.k === 'P' && !q.cl && q.pts.length === 17).length, 2);
+  assert.ok(D.dograma22(T, { duvar: false, yazi: false }).items.length === 2, 'kesilen kapı: üst kasa + kanat');
+});
+
 console.log(`\n${n} test geçti.`);

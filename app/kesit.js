@@ -207,8 +207,12 @@
         if (Math.abs(zt - z) > 0.03) continue; let b; try { b = C.bbox(x); } catch (er) { continue; } if (b[0] > kb[2] + 0.02 || b[2] < kb[0] - 0.02 || b[1] > kb[3] + 0.02 || b[3] < kb[1] - 0.02) continue; if (!best || (x.type !== 'plak' || x.kind === 'radye')) best = x; if (x.type === 'temel' || x.kind === 'radye' || x.temel) break; }
       kSup.set(k.id, best); return best; };
     const inU = q => q[0] > -2 && q[0] < Lc + 2;
+    /* gizli çizgi (Mimari kesit; kullanıcı 14.11.2026: "kesitlerde en yakın olan gözüksün"): arkada görünen kenarlar z-tamponla (gorunus.js projectModel, kesit düzleminden ileri);
+       doğrama ağı yalnız örter (cam opak), çizgisi tip detayından. Öbür disiplinlerin KESITAL'ı eskisi gibi (gizli çizgi ayıklanmaz) */
+    const hlr = kv.MIMARI === 'E' && C.projectModel ? { ents: [], kenarsiz: new Set() } : null;
     for (const e of C.doc.ents) {
       if (!C.layer(e.layer).on || e.type === 'sheet') continue;
+      if (e.type === 'acik' && kv.MIMARI === 'E' && C.dogramaCizKesit) { if (hlr) { hlr.ents.push(e); hlr.kenarsiz.add(e.id); } continue; } // Mimari kesit: doğrama 3B ağından değil, tip detayından (2-2 kesiti / görünüş) çizilir
       if (e.type === 'yalitim' && e.kind === 'bant') { // su tutucu bant: kesitte ağ yerine I tipi profil sembolü
         const n0 = e.pts.length, sg = []; for (let i = 1; i < n0; i++) sg.push([e.pts[i - 1], e.pts[i]]); if (e.closed && n0 > 2) sg.push([e.pts[n0 - 1], e.pts[0]]);
         for (const [p, q] of sg) { const dp = dist(p), dq = dist(q); if ((dp > 0) === (dq > 0) || dp === dq) continue; const s = dp / (dp - dq), X = [p[0] + (q[0] - p[0]) * s, p[1] + (q[1] - p[1]) * s, +e.z || 0], U = uv(X); if (inU(U)) bants.push({ u: U[0], z: +e.z || 0, w: (+e.w || 20) / 100, t: (+e.t || 5) / 1000 }); }
@@ -218,8 +222,8 @@
       const bb = C.bbox(e); // hızlı eleme
       const cs = [[bb[0], bb[1]], [bb[2], bb[1]], [bb[2], bb[3]], [bb[0], bb[3]]].map(p => dist(p));
       if (Math.max(...cs) < -0.01 || Math.min(...cs) > depth) continue;
-      if (e.type === 'blk' && kv.EKIPMAN !== 'KES' && C.projectModel) { let mm = null; try { mm = C.T.blk.mesh(e); } catch (er) { } if (mm && mm.length) { eqEnts.push(e); secEnts.add(e); continue; } } // 3B ekipman: kesilmez, görünüşü çizilir
-      const t = C.entTris(e); if (!t) continue;
+      if (e.type === 'blk' && kv.EKIPMAN !== 'KES' && C.projectModel) { let mm = null; try { mm = C.T.blk.mesh(e); } catch (er) { } if (mm && mm.length) { eqEnts.push(e); secEnts.add(e); if (hlr) { hlr.ents.push(e); hlr.kenarsiz.add(e.id); } continue; } } // 3B ekipman: kesilmez, görünüşü çizilir
+      const t = C.entTris(e); if (!t) continue; if (hlr) { hlr.ents.push(e); if (e.type === 'pipe') hlr.kenarsiz.add(e.id); }
       const P = t.pos, eCut = [];
       const kdD = e.type === 'kiris' && C.kirisDoseme ? C.kirisDoseme(e) : null; // döşemeyle birlikte dökülen kiriş: kesitte döşemeyle tek gövde (tek dış hat, tek tarama)
       for (let i = 0; i < P.length; i += 9) {
@@ -245,8 +249,13 @@
       }
       const elk = kdD ? lkOf(kdD) : lkOf(e);
       if (e.type === 'fit3' && C.fit3Line) for (const [p, q] of C.fit3Line(e)) { const dp = dist(p), dq = dist(q); if (Math.max(dp, dq) < -1e-6 || Math.min(dp, dq) > depth) continue; const A = uv(p), B = uv(q); if ((inU(A) || inU(B)) && Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-6) axes.push([A, B]); } // ek parça eksenleri (dirsek yayı, TE kolu)
-      for (const [p, q] of t.edges.concat(C.silEdges ? C.silEdges(t, n) : [])) { const dp = dist(p), dq = dist(q); if (dp < -1e-6 || dq < -1e-6 || dp > depth || dq > depth) continue; const A = uv(p), B = uv(q); if (!inU(A) && !inU(B)) continue; if (Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-5) { const sg = [A, B]; sg.lk = elk; vis.push(sg); secEnts.add(e); } }
+      if (!hlr) for (const [p, q] of t.edges.concat(C.silEdges ? C.silEdges(t, n) : [])) { const dp = dist(p), dq = dist(q); if (dp < -1e-6 || dq < -1e-6 || dp > depth || dq > depth) continue; const A = uv(p), B = uv(q); if (!inU(A) && !inU(B)) continue; if (Math.hypot(A[0] - B[0], A[1] - B[1]) > 1e-5) { const sg = [A, B]; sg.lk = elk; vis.push(sg); secEnts.add(e); } }
     }
+    let zAt = null;
+    if (hlr && hlr.ents.length) { try { const D3 = [n[0], n[1], 0], r = C.projectModel({ ents: hlr.ents, d: D3, cutW: a[0] * n[0] + a[1] * n[1], depth, kenarsiz: hlr.kenarsiz });
+      if (r.frame) { const Rr = r.frame.R, sgR = Rr[0] * u[0] + Rr[1] * u[1] >= 0 ? 1 : -1, a0 = Rr[0] * a[0] + Rr[1] * a[1];
+        for (const g of r.vis) { const A = [sgR * (g[0][0] - a0), g[0][1]], B = [sgR * (g[1][0] - a0), g[1][1]]; if ((!inU(A) && !inU(B)) || Math.hypot(A[0] - B[0], A[1] - B[1]) < 1e-5) continue; const s2 = [A, B]; s2.lk = g.lk; vis.push(s2); }
+        if (r.zAt) zAt = (s, z) => r.zAt(sgR * s + a0, z); } } catch (er) { console.error('kesit gizli çizgi', er); } }
     // 3B ekipman görünüşü (3B'deki gibi): gizli çizgileri ayıklanmış dış hat + belirgin kenarlar, bakış yönünde
     if (eqEnts.length) {
       try {
@@ -283,6 +292,10 @@
       const eqG = new Map(); for (const lp of R.equip) { const k = lp.lk || ''; if (!eqG.has(k)) eqG.set(k, []); eqG.get(k).push(lp); }
       for (const [k, eqs] of eqG) C.add(C.newEnt('hatch', { loops: eqs.map(lp => (C.denseLoop ? C.denseLoop(lp) : lp).map(q => { const w = W(q); return [w[0], w[1]]; })), ...(C.ekipTarama ? C.ekipTarama() : { pat: 'ANSI37', sc: 0.5 }), ang: 0, ann: true, orig: [0, 0], layer: LH(k || null) }));
     }
+    /* doğrama (firma kuralı 14.11.2026, Çokal İdari kesitleri Kapi_Pencere katmanı): kesilen doğramaya tip detayının 2-2 kesiti, arkada görünene görünüşü;
+       çizgileri görünen çizgilere katılır (kot yazısı ve iç ölçü zinciri üstüne binmesin) */
+    const dogKutu = []; // görünen doğramaların kutuları (s, z): iç ölçü zinciri doğramanın üstünden geçmesin
+    if (kv.MIMARI === 'E' && C.dogramaCizKesit) { try { const dS = C.dogramaCizKesit({ a, u, n, depth, W, inU, zAt }); for (const sg of dS) R.vis.push(sg); dogKutu.push(...(dS.kutular || [])); } catch (er) { console.error('kesit doğrama', er); } }
     // su tutucu bant profili (I tipi): şerit + iki yanda dişler + ortada boş bulb
     if (bants.length) {
       C.ensureLayer('KESIT_SU_TUTUCU_BANT', 2, 'CONTINUOUS', 25);
@@ -338,7 +351,7 @@
     /* korkuluk ara birleştirmeleri (Çokal 10-İdari Bina_R2 rampa korkuluğu): kesite paralel görünen korkulukta her dikmede ara küpeşte iki yanda dışbükey yayla
        (r = 0,61 × çap, merkez dikme yüzünden 0,34 × çap dışarıda, ±55°), küpeşte altında bir yay. Dikme yerleri ve borular 3B korkulukla aynı (merdiven.js railRun) */
     if (C.korkulukBirlesimKesit) { try { C.korkulukBirlesimKesit({ a, u, n, depth, W, inU }); } catch (er) { console.error('korkuluk birleşimi', er); } }
-    let nT = 0; if (C.dogramaEtiketKesit && kv.TIP !== 'H') { try { nT = C.dogramaEtiketKesit({ a, u, n, depth, W, inU }); } catch (er) { console.error('kesit doğrama no', er); } } // kapı / pencere tip numarası (ölçülerden önce: zincirler üstüne binmesin)
+    let nT = 0; if (C.dogramaEtiketKesit && kv.TIP !== 'H') { try { nT = C.dogramaEtiketKesit({ a, u, n, depth, W, inU, zAt }); } catch (er) { console.error('kesit doğrama no', er); } } // kapı / pencere tip numarası (ölçülerden önce: zincirler üstüne binmesin)
     let nD = 0, dimBot = Infinity;
     if (kv.OLCU !== 'H' && C.T.dim) {
       const SKIPD = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON', 'TRETUVAR']), LPD = R.loops.filter(lp => !SKIPD.has(lp.lk));
@@ -353,11 +366,11 @@
         if (C.pstil && C.pstil() && C.cizimKural && C.cizimKural.kesitOlcuNoktalari) { const r = C.cizimKural.kesitOlcuNoktalari(LPD.map(lp => ({ lk: lp.lk || '', pts: lp }))); if (r.xs.length || r.zs.length) { xs.length = 0; zs.length = 0; xs.push(...r.xs); zs.push(...r.zs); } } /* pafta stili: yalnız mimari elemanlar ölçülür (duvar, boşluk, döşeme) */
         const uniq = (v, tol) => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > tol) o.push(x); return o; };
         const XS = uniq(xs.concat([x0, x1]), 0.08), ZS = uniq(zs.concat([z0, z1]), 0.12), psD = C.pstil && C.pstil() && C.pstil().dim ? C.pstil().dim() : null, dd = C.annoH((psD && psD.sira) || 7), /* ölçü sıra aralığı pafta stilinden (kural tablosu) */ zb = z0 - (gb || 0);
-        const dim = (k, a, b, p) => { C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; };
+        const dimV = new Set(), dim = (k, a, b, p) => { const key = [k, ...a, ...b, ...p].map(v => typeof v === 'number' ? v.toFixed(3) : v).join('|'); if (dimV.has(key)) return; dimV.add(key); C.add(C.newEnt('dim', { k, a: W(a), b: W(b), p: W(p), layer: 'KESIT_OLCU' })); nD++; }; // aynı ölçü iki kez yazılmaz
         /* ilk sıranın yeri: pafta stilinde çizimin en dış çizgisinden (tretuvar dahil) ilk mm uzakta (kural tablosu → olcuYeri.ilkSira); eski görünümde betondan bir sıra aralığı */
         let yA = zb - dd, xA = x0 - dd * 1.6;
         /* bu kesitte daha önce konan yazı ve kotlar (kesit koordinatı): dış ölçü sırası bunların dışına, iç zincirler bunların üstüne binmez */
-        const Q = q => [q[0] - q0[0], q[1] - q0[1]], yaziKot = []; for (const e of C.doc.ents.slice(i0)) { if (e.type !== 'text' && e.type !== 'kot' && e.type !== 'circle') continue; let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (b && isFinite(b[0])) { const a = Q([b[0], b[1]]), c = Q([b[2], b[3]]); yaziKot.push([a[0], a[1], c[0], c[1]]); } }
+        const Q = q => [q[0] - q0[0], q[1] - q0[1]], yaziKot = []; for (const e of C.doc.ents.slice(i0)) { if (e.type !== 'text' && e.type !== 'kot' && e.type !== 'circle') continue; let b; try { delete e._c; b = C.bbox(e); } catch (er) { continue; } if (b && isFinite(b[0])) { const a = Q([b[0], b[1]]), c = Q([b[2], b[3]]); yaziKot.push([a[0], a[1], c[0], c[1]]); } } yaziKot.push(...dogKutu);
         if (psD && psD.ilk) { let ax = x0, az = zb; for (const lp of R.loops) { if (lp.lk === 'KORKULUK') continue; for (const q of lp) { ax = Math.min(ax, q[0]); az = Math.min(az, q[1]); } }
           for (const b of yaziKot) { if (b[0] < ax) ax = b[0]; } yA = az - C.annoH(psD.ilk); xA = ax - C.annoH(psD.ilk); }
         /* pafta stili (kullanıcı 13.11.2026): ölçüler yapının içinden zincir olarak verilir; dışarıda yalnız toplam boy ve toplam yükseklik kalır */
@@ -370,6 +383,11 @@
         dim('v', [x0, z0], [x0, z1], [xA - (disV ? dd : 0), 0]);
         for (const q of icO) dim(q.k, q.a, q.b, q.p);
         dimBot = yA - (disH ? dd : 0) - dd * 0.6; void zF;
+        /* doğrama numarası (daire + kod) iç yatay ölçü zincirine binmesin: binerse zincirin üstüne kaydırılır */
+        { const yeni = C.doc.ents.slice(i0), hD = yeni.filter(e => e.type === 'dim' && e.k === 'h' && e.p), mm1 = C.annoH(1);
+          for (const c of yeni.filter(e => e.type === 'circle' && /DOGRAMA_NO$/.test(e.layer || ''))) { const tx = yeni.find(e => e.type === 'text' && e.layer === c.layer && Math.hypot(e.p[0] - c.c[0], e.p[1] - c.c[1]) < 1e-6);
+            for (let g = 0; g < 6; g++) { const d = hD.find(q => c.c[0] + c.r > Math.min(q.a[0], q.b[0]) && c.c[0] - c.r < Math.max(q.a[0], q.b[0]) && c.c[1] - c.r < q.p[1] + 3 * mm1 && c.c[1] + c.r > q.p[1] - 0.5 * mm1); if (!d) break;
+              const dy = d.p[1] + 3 * mm1 + c.r + 0.5 * mm1 - c.c[1]; c.c = [c.c[0], c.c[1] + dy, 0]; delete c._c; if (tx) { tx.p = [tx.p[0], tx.p[1] + dy, 0]; delete tx._c; } } } }
       }
     }
     // mekanik poz balonları (POZNO ile aynı numaralar)
@@ -388,6 +406,8 @@
           C.ensureLayer('KESIT_OLCU', 3, 'CONTINUOUS', 18); const dm = (p0, p1, y) => { C.add(C.newEnt('dim', { k: 'h', a: W([p0, ub[3]]), b: W([p1, ub[3]]), p: W([p0, y]), layer: 'KESIT_OLCU' })); };
           for (let i = 1; i < pts.length; i++) dm(pts[i - 1], pts[i], r1); dm(xw0, xw1, r2);
           Object.assign(ae, { dims: false, extp: S.extp }); delete ae._c; } } catch (er) { console.error('kesit aks ölçüsü', er); } } }
+    /* korkuluk oklu açıklaması (firma kuralı 14.11.2026; Çokal İdari): ölçü, kot ve etiketlerden sonra — onlara ve kesilen betona binmez */
+    if (kv.MIMARI === 'E' && kv.YAZI !== 'H' && C.korkulukOkKesit) { try { C.korkulukOkKesit({ a, u, n, depth, W, inU, i0, zAt }); } catch (er) { console.error('korkuluk oku', er); } }
     for (const pl of chain(axes, 1e-4)) C.add(C.newEnt('pline', { pts: pl.map(W), closed: false, layer: 'EKSEN', lt: 'CENTER' }));
     for (const en of ends) C.add(C.newEnt('circle', { c: W(en.c), r: en.r, layer: LV(en.lk) }));
     if (!(C.seviyeKesit && C.seviyeKesit(W, ub)) && ub[1] < 5 && ub[3] > -5) { // kat seviyeleri varsa seviye çizgileri + toprak çizgisi; mutlak kotlu yapıda (0,00 uzaksa) 0 çizgisi çizilmez
