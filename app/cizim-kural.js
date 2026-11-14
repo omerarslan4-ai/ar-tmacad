@@ -81,9 +81,9 @@
     /* ÖLÇÜ YERLEŞİMİ (kâğıt mm) — Çokal R2 paftalarındaki 2.224 doğrusal ölçüden ölçüldü (13.11.2026).
        genel (1/50, "50" stili): sıralar 5 mm arayla; uzatma çizgisi sabit boylu (Çokal $DIMFXLON = 1): ölçü çizgisinden ölçülen noktaya
        doğru 4,1 mm (uzatmaIc) iner, öbür yanda 1 mm (uzatmaDis) taşar (toplam 5,1 mm; 14.11.2026 düzeltme: yön ters uygulanmıştı); ölçü çizgisi tiki 0,5 mm aşar; parça ölçüler içte, toplam ölçü en dış sırada.
-       detay (1/25 ve büyük, "1-20" stili): sıralar 6,5 – 7,5 mm arayla (program 7); uzatma çizgisi ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar; ölçü çizgisi taşması 1 mm. */
-    /* sıra aralığı (firma kuralı 14.11.2026): ölçü sıraları üst üste binmez, aralar 25 cm (1/50'de 5 mm) — plan, kesit, görünüş ve detayda aynı
-       (detay için örneklerde ölçülen 6,5 – 7,5 mm bu kuralla 5 mm'ye indi). */
+       detay (1/25 ve büyük, "1-20" stili): örneklerde sıralar 6,5 – 7,5 mm arayla; uzatma çizgisi ölçülen noktadan başlar (2 mm boşluk), ölçü çizgisini 1,25 mm aşar; ölçü çizgisi taşması 1 mm. */
+    /* sıra aralığı (firma kuralı 14.11.2026): ölçü sıraları üst üste binmez, aralar MODELDE 25 cm (siraModel = 0,25 m), her ölçekte aynı — kâğıtta
+       250 / ölçek mm (1/50 5, 1/25 10, 1/20 12,5 mm); plan, kesit, görünüş ve detayda aynı. siraAraligi (kâğıt mm) yalnız eski yedek değerdir. */
     /* ilkSira: ilk ölçü sırası çizimin en dış çizgisinden (tretuvar dahil; tretuvarın dışında) 14 mm uzakta — kullanıcı kararı 13.11.2026, "çizime göre revize ederiz" */
     olcuYeri: {
       /* siraModel: ölçü sıraları arası MODELDE 0,25 m, her ölçekte aynı (firma kuralı 14.11.2026): kâğıtta 250 / ölçek mm (1/50 5, 1/25 10, 1/100 2,5, 1/20 12,5 mm); siraAraligi: eski kâğıt mm (yedek) */
@@ -128,6 +128,8 @@
         'TR:kap': 'tretuvarKaplama', 'TR:harc': 'tretuvarAlt', 'TR:stab': 'tretuvarAlt', 'TR:bord': 'bordur', 'TR:beton': 'tretuvarBeton', 'TR:yatak': 'yatak' },
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
     /* MAHAL LİSTESİ — R2 İdari bina mahal listesi: başlık 4 mm (Yazi_Baslik katmanı; programda başlık katmanı Yazi30), öteki yazılar 2 mm (kullanıcı kararı 14.11.2026) */
+    /* GÖRÜNÜM BAŞLIĞI (10-İdari Bina_R2, 6-Blower_R2): görünüş / plan / detay başlığı 20 birim (4 mm), kesit başlığı 25 birim (5 mm); altındaki ölçek satırı "ÖL:1/…" 15 birim (3 mm) */
+    baslik: { gorunusMm: 4, kesitMm: 5, olcekMm: 3 },
     mahalListesi: { baslikMm: 4, yaziMm: 2, baslikStil: 'YZ' }, /* başlık stili YZ (kullanıcı kararı 14.11.2026; İdari'de TÜRKÇE idi) */
     /* MALZEME AÇILIMI ve PERDE / DÖŞEME NUMARALARI (Çokal R2: çöktürme, yoğunlaştırma, ön arıtma, terfi mimari paftalarından ölçüldü; kâğıt mm).
        etiket: kesitte elemanın yanındaki kod (DU01, DÖ02 …) — 2,5 mm YZ, katman Mim_Yazi25; koddan elemana ince çizgi (renk 243).

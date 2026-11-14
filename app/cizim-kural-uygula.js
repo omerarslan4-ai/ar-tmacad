@@ -36,13 +36,15 @@
   /* 1) yeni katman */
   { const e0 = C.ensureLayer; C.ensureLayer = function (name) { const yeni = C.doc && !C.doc.layers[name], L = e0.apply(this, arguments); try { if (yeni && L && etkin()) { const o = ekran(name); if (o) isle(L, o); } } catch (er) { } return L; }; }
   /* açık çizimin var olan katmanları */
+  /* proje açılınca (Çokal stilinde) var olan mimari kural katmanlarına da uygulanır: önceki sürümle kaydedilmiş projede Mimari desenleri (_M) gelir */
+  C.on && C.on('doc', () => setTimeout(() => { try { if (etkin() && C.cizimKuralUygula) C.cizimKuralUygula(); } catch (er) { } }, 0));
   C.cizimKuralUygula = () => { let n = 0; for (const L of Object.values(C.doc.layers)) { const o = ekran(L.name); if (o && isle(L, o)) n++; } return n; };
   /* 2) AutoCAD çıktısı */
   C.cizimKuralCikti = ({ body, blocks, PSL, layers, usedLt, opts }) => {
     if (!etkin() || (opts && opts.grp && !/M[İI]MAR[İI]|GENEL/i.test(opts.grp))) return null; // statik, mekanik, elektrik dosyalarına dokunulmaz (kuralları henüz yok)
     const kayit = body.slice(); for (const b of blocks || []) for (const it of b.items || []) kayit.push(it); for (const P of PSL || []) for (const it of P.items || []) kayit.push(it);
     const an = (C.doc.set.anno || 50) / 1000, r = K.ciktiUygula(R(), kayit, layers, { mm: q => q.st.ps ? q.pr.h : q.pr.h / (q.st.vsc ? q.st.vsc / 1000 : an) }); // yazının kâğıt boyu: onu gösteren pafta penceresinin ölçeğiyle (1/20 detay, 1/10 çatı detayı …)
-    for (const L of Object.values(layers)) { if (!C.LT[L.lt]) L.lt = 'CONTINUOUS'; usedLt.add(L.lt); }
+    for (const L of Object.values(layers)) { if (/_M$/.test(L.lt || '') && C.LT[L.lt.slice(0, -2)]) L.lt = L.lt.slice(0, -2); if (!C.LT[L.lt]) L.lt = 'CONTINUOUS'; usedLt.add(L.lt); } // _M (Mimari ekran deseni) → asıl ad
     C.cizimKuralSon = r; return r;
   };
   /* 3) kesit taramaları: kesit.js → secHatchSpec kural tablosundan seçer (MIMARI.kesitTarama) */

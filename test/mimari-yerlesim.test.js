@@ -67,4 +67,14 @@ t('merdivenli katta plan kesme kotu: Konya −5.90 katı, merdiven sahanlıklar�
   assert.strictEqual(A.planKesmeKotu({ z: 0, h: 1.2 }, [{ z0: 0, sahanliklar: [0.9, 1.6] }]).h, 1.55, 'ikinci sahanlığın 5 cm altı');
 });
 
+t('başlık boyları kural tablosunda: görünüş 4 mm, kesit 5 mm, ölçek satırı 3 mm (10-İdari, 6-Blower); seviye ve kot yazılarında özel eksi (U+2212) yok', () => {
+  globalThis.C = globalThis.C || {}; require('../app/cizim-kural.js');
+  assert.deepStrictEqual(globalThis.C.cizimKural.MIMARI.baslik, { gorunusMm: 4, kesitMm: 5, olcekMm: 3 });
+  const fs = require('fs'), path = require('path'), sv = fs.readFileSync(path.join(__dirname, '..', 'app', 'seviye.js'), 'utf8');
+  assert.ok(/const fz = v => .*'-'\)/.test(sv) && !/const fz = v => .*'−'/.test(sv), 'seviye yazısı normal tire');
+  // Çokal aks ölçü zinciri yalnız Mimari kesitlerde: disiplin kesiti Mimari ise KESITAL'e MIMARI=E gider, kesit.js zinciri bu anahtarla çizer
+  const gr = fs.readFileSync(path.join(__dirname, '..', 'app', 'gorunumler.js'), 'utf8'), ks = fs.readFileSync(path.join(__dirname, '..', 'app', 'kesit.js'), 'utf8');
+  assert.ok(/'MIMARI=E'/.test(gr) && /kv\.MIMARI === 'E'/.test(ks));
+});
+
 console.log(`\n${n} test geçti.`);

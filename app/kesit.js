@@ -304,6 +304,9 @@
     if (kv.KOT !== 'H') {
       const SKIP = new Set(['MERDIVEN', 'KORKULUK', 'SU_TUTUCU_BANT', 'GROBETON']), LP = R.loops, BB = LP.map(lp => { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity; for (const q of lp) { a = Math.min(a, q[0]); b = Math.min(b, q[1]); c = Math.max(c, q[0]); d = Math.max(d, q[1]); } return [a, b, c, d]; });
       const covered = q => LP.some((lp, k) => { const bb = BB[k]; return q[0] >= bb[0] && q[0] <= bb[2] && q[1] >= bb[1] && q[1] <= bb[3] && C.pointInPoly(q, lp); });
+      /* kot yazısı için örtü ağırlığı: kesilen betona / duvara değmek yasak (1e6), öbür kesilen parçalara (doğrama, kaplama, tretuvar) değmek istenmez (1e3) */
+      const BETON_LK = /PERDE|DUVAR|KOLON|DOSEME|TEMEL|KIRIS|RADYE|PARAPET|CATI/;
+      const ortu = q => { let w = 0; for (let k = 0; k < LP.length; k++) { const bb = BB[k]; if (q[0] < bb[0] || q[0] > bb[2] || q[1] < bb[1] || q[1] > bb[3] || !C.pointInPoly(q, LP[k])) continue; w = Math.max(w, BETON_LK.test(LP[k].lk || '') || !LP[k].lk ? 1e6 : 1e3); } return w; };
       const lv = [];
       for (const lp of LP) {
         if (SKIP.has(lp.lk)) continue; const sg = M.polyArea(lp) > 0 ? 1 : -1;
@@ -315,13 +318,20 @@
         }
       }
       lv.sort((p, q) => q[1] - p[1] || p[0] - q[0]); const done = [[ub[2] + 0.5, 0]];
-      /* kot yazısı kesilen elemanın (beton, tarama) üstüne binmesin: yazı kutusu kesilen bir çevreye değiyorsa önce öbür yana, sonra yüzey boyunca kaydırılır */
-      const ks = C.annoH(2.5), kw = C.annoH(16), kutuBos = (x, y, f) => { const a0 = f > 0 ? x - ks * 0.6 : x - kw, a1 = f > 0 ? x + kw : x + ks * 0.6, b0 = y + ks * 0.15, b1 = y + ks * 2.2;
-        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 2; j++) if (covered([a0 + (a1 - a0) * i / 6, b0 + (b1 - b0) * j / 2])) return false; return true; };
+      /* kot yazısının yeri (denetim 14.11.2026): işaretin ve yazının TAM kutusu (kot nesnesinin kendi çizimi) kesilen betona / taramaya değmez;
+         sonra aks çizgisine, sonra görünen öbür çizgilere en az değen yer seçilir — önce öbür yana, sonra yüzey boyunca kayar; uygun yer yoksa en az çakışan */
+      const o0 = W([0, 0]), aksS = (() => { try { return C.aksOnLine ? C.aksOnLine(a, u, ub[0] - 0.5, ub[2] + 0.5).map(q => q.s) : []; } catch (er) { return []; } })();
+      const cizgi = (R.vis || []).concat((R.open || []).flatMap(pl => pl.slice(1).map((q, i) => [pl[i], q])));
+      const kesisir = (sg, b) => { let t0 = 0, t1 = 1; const p = sg[0], dx = sg[1][0] - p[0], dy = sg[1][1] - p[1];
+        for (const [pp, qq] of [[-dx, p[0] - b[0]], [dx, b[2] - p[0]], [-dy, p[1] - b[1]], [dy, b[3] - p[1]]]) { if (Math.abs(pp) < 1e-12) { if (qq < 0) return false; continue; } const t = qq / pp; if (pp < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t); if (t0 > t1) return false; } return true; };
+      const maliyet = (x, y, f) => { let b; try { b = C.bbox({ type: 'kot', p: W([x, y]), v: +y.toFixed(3), txt: '', layer: 'KOT', ters: f < 0 }); } catch (er) { return Infinity; } if (!b || !isFinite(b[0])) return Infinity;
+        const q = [b[0] - o0[0], b[1] - o0[1], b[2] - o0[0], b[3] - o0[1]], yb = Math.max(q[1], y + 0.005); // işaret ucu yüzeyde: kutunun altı yüzeyin hemen üstünden
+        let c = 0; for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) c += ortu([q[0] + (q[2] - q[0]) * i / 8, yb + (q[3] - yb) * j / 4]); /* kesilen betona değen nokta başına 1e6, öbür kesilen parçaya 1e3 (yer yoksa en az değen) */ for (const sx of aksS) if (sx > q[0] && sx < q[2]) c += 100; for (const sg of cizgi) if (kesisir(sg, [q[0], yb, q[2], q[3]])) c++; return c; };
       for (const m of lv) { if (done.some(d => Math.abs(d[1] - m[1]) < 0.005 && Math.abs(d[0] - m[0]) < 1.5)) continue; done.push(m);
-        let f0 = m[0] < (ub[0] + ub[2]) / 2 ? -1 : 1, x = m[0], yer = null; const adim = Math.max(0.1, (m.x1 - m.x0) / 12);
-        for (const dx of [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * adim).flatMap(d => [d, -d])]) { const xx = m[0] + dx; if (xx < m.x0 + 0.02 || xx > m.x1 - 0.02) continue; for (const f of [f0, -f0]) if (kutuBos(xx, m[1], f)) { yer = { x: xx, f }; break; } if (yer) break; }
-        if (yer) { x = yer.x; f0 = yer.f; }
+        const f00 = m[0] < (ub[0] + ub[2]) / 2 ? -1 : 1, adim = Math.max(0.1, (m.x1 - m.x0) / 12); let en = null;
+        for (const dx of [0, ...Array.from({ length: 12 }, (_, i) => (i + 1) * adim).flatMap(d => [d, -d])]) { const xx = m[0] + dx; if (xx < m.x0 + 0.02 || xx > m.x1 - 0.02) continue;
+          for (const f of [f00, -f00]) { const c = maliyet(xx, m[1], f) + Math.abs(dx) * 0.01; if (!en || c < en.c) en = { x: xx, f, c }; } if (en && en.c < 0.5) break; }
+        const x = en ? en.x : m[0], f0 = en ? en.f : f00;
         C.add(C.newEnt('kot', Object.assign({ p: W([x, m[1]]), v: +m[1].toFixed(3), txt: '', layer: 'KOT' }, f0 < 0 ? { ters: true } : {}))); nK++; }
     }
     // otomatik ölçülendirme: altta perde / boşluk zinciri + toplam, solda temel / perde / döşeme kalınlıkları zinciri + toplam yükseklik; kapatmak için KESITAL OLCU=H
@@ -371,7 +381,7 @@
     let nA = 0; if (C.aksOnLine && kv.AKS !== 'H') { const ap = C.aksOnLine(a, u, ub[0] - 0.5, ub[2] + 0.5), ae = C.aksAddSection(ap, ub[1], ub[3], W); if (ae) nA = ap.length;
       /* pafta stilinde aks ölçüleri Çokal planlarındaki gibi (mimari-oto.js → planOlcuSiralari): kesitin üstünde içte dış yüz – akslar – dış yüz zinciri, dışta toplam;
          sıralar arası modelde 0,25 m, ilk sıra çizimin üstünden 14 mm; aks balonu en dış sıranın 11 mm üstünde (balon merkezi) */
-      if (ae && C.pstil && C.pstil() && kv.OLCU !== 'H') { try {
+      if (ae && kv.MIMARI === 'E' && C.pstil && C.pstil() && kv.OLCU !== 'H') { try { // yalnız Mimari kesitlerde (statik / proses KESITAL: aksın kendi ölçüleri)
         const DUS = /PERDE|DUVAR|KOLON/, wl = (R.loops || []).filter(lp => DUS.test(lp.lk || '')), xs0 = wl.flatMap(lp => lp.map(q => q[0]));
         if (xs0.length && C.mimariOtoApi && C.mimariOtoApi.kesitAksSiralari) { const k = C.annoH(1), Y = Object.assign({ ilkSira: 14, siraModel: 0.25 }, ((C.cizimKural && C.cizimKural.MIMARI.olcuYeri) || {}).genel || {}), AK = Object.assign({ balonR: 6, balonOte: 11 }, (C.cizimKural && C.cizimKural.MIMARI.aks) || {});
           const S = C.mimariOtoApi.kesitAksSiralari({ akslar: ap.map(q => q.s), dis: [Math.min(...xs0), Math.max(...xs0)], ust: ub[3], mm: k, ilk: Y.ilkSira, sira: Y.siraModel || 0.25, balonR: AK.balonR, balonOte: AK.balonOte }), pts = S.noktalar, r1 = S.y1, r2 = S.y2, xw0 = pts[0], xw1 = pts[pts.length - 1];

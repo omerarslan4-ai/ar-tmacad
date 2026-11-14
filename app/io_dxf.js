@@ -59,8 +59,10 @@
     const g = (c, v) => { out.push(String(c), String(v)); };
     const doc = C.doc;
     const usedLt = new Set(['CONTINUOUS']);
-    Object.values(doc.layers).forEach(l => usedLt.add(l.lt));
-    ents.forEach(e => { if (e.lt && C.LT[e.lt]) usedLt.add(e.lt); });
+    /* Mimari ekran desenleri ('<AD>_M', cizim-kural-uygula.js) AutoCAD'e asıl adıyla gider; '_M' adı DXF'e hiç yazılmaz */
+    const ltAd = n => (n && /_M$/.test(n) && C.LT[n.slice(0, -2)]) ? n.slice(0, -2) : n;
+    Object.values(doc.layers).forEach(l => usedLt.add(ltAd(l.lt)));
+    ents.forEach(e => { if (e.lt && C.LT[e.lt]) usedLt.add(ltAd(e.lt)); });
     ['CENTER', 'DASHED', 'HIDDEN', 'PHANTOM'].forEach(n => usedLt.add(n));
     const layers = Object.assign({}, doc.layers);
     const addLayer = (name, like) => { if (!layers[name]) layers[name] = Object.assign({}, like || layers['0'], { name }); };
@@ -203,7 +205,7 @@
     g(40, fx(Math.max(bb[3] - bb[1], (bb[2] - bb[0]) / 1.6) * 1.1 || 10)); g(41, 1.6); g(42, 50); g(43, 0); g(44, 0); g(50, 0); g(51, 0); g(71, 0); g(72, 100); g(73, 1); g(74, 3); g(75, 0); g(76, 0); g(77, 0); g(78, 0);
     g(0, 'ENDTAB');
     // nesnelerin kullandığı tüm çizgi tipleri tabloda tanımlı olmalı (tanımsız çizgi tipi = AutoCAD dosyayı açmaz)
-    { const addLt = n => { if (n && n !== 'BYLAYER' && n !== 'BYBLOCK' && C.LT[n]) usedLt.add(n); }; for (const it of body) addLt(it.st && it.st.lt); for (const b of blocks) for (const it of b.items || []) addLt(it.st && it.st.lt); }
+    { const addLt = n0 => { const n = ltAd(n0); if (n && n !== 'BYLAYER' && n !== 'BYBLOCK' && C.LT[n]) usedLt.add(n); }; for (const it of body) addLt(it.st && it.st.lt); for (const b of blocks) for (const it of b.items || []) addLt(it.st && it.st.lt); }
     const lts = [...usedLt].filter(n => C.LT[n]);
     tbl('LTYPE', lts.length + (r12 ? 0 : 2));
     const ltRec = (name, desc, pat) => {
@@ -213,7 +215,7 @@
     if (!r12) { ltRec('ByBlock', '', []); ltRec('ByLayer', '', []); }
     lts.forEach(n => ltRec(n === 'CONTINUOUS' ? 'Continuous' : n, C.LT[n].d, C.LT[n].p));
     g(0, 'ENDTAB');
-    const ltName = n => (!n || n === 'CONTINUOUS' || !C.LT[n] || !usedLt.has(n)) ? 'Continuous' : n; // tabloda olmayan çizgi tipi hiç yazılmaz
+    const ltName = n0 => { const n = ltAd(n0); return (!n || n === 'CONTINUOUS' || !C.LT[n] || !usedLt.has(n)) ? 'Continuous' : n; }; // tabloda olmayan çizgi tipi hiç yazılmaz
     const lays = Object.values(layers);
     tbl('LAYER', lays.length);
     for (const l of lays) {

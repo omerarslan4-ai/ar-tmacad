@@ -96,11 +96,17 @@
     let n = 0;
     for (const id of ids) {
       const v = V[id]; if (v.donuk && quiet) continue;
-      const olds = C.doc.ents.filter(e => e.canli === id); if (olds.length) { if (C.remove) C.remove(olds); else C.doc.ents = C.doc.ents.filter(e => e.canli !== id); }
+      const olds = C.doc.ents.filter(e => e.canli === id), gvEski = (olds.find(e => e.gv && e.type !== 'kesitisaret') || {}).gv; if (olds.length) { if (C.remove) C.remove(olds); else C.doc.ents = C.doc.ents.filter(e => e.canli !== id); }
       const d = C.cmds[v.cmd]; const nu = d.opts.noUndo; d.opts.noUndo = true; replayId = id;
-      try { await E.script(`${v.cmd} ${v.kv.join(' ')} ${v.tokens.join(' ')}`); n++; } catch (er) { C.warn(`${v.ad}: yeniden üretilemedi — ${er.message}`); } finally { replayId = null; d.opts.noUndo = nu; }
+      const id0 = C.doc.nextId || 0;
+      try { await E.script(`${v.cmd} ${v.kv.join(' ')} ${v.tokens.join(' ')}`); n++;
+        /* yeniden üretilen nesneler eski görünüm grubuna (disiplin paftalarının gösterdiği gv) döner; kesit işareti Tasarım'da kalır ve görünümüne bağlanır
+           (eskiden KESITAL sarmalayıcısının geçici gv'sinde kalıyordu: paftada kesit boşalıyor, modelde işaret yetim kalıyordu) */
+        if (gvEski) { const gw = C.gorunumApi ? C.gorunumApi.liste().find(q => q.gv === gvEski) : null;
+          for (const e of C.doc.ents) { if (e.canli !== id || (e.id || 0) < id0) continue; if (e.type === 'kesitisaret') { delete e.gv; if (gw) { e.gorunum = gw.id; gw.isaret = e.id; } } else if (e.gv !== gvEski) e.gv = gvEski; delete e._c; } } } catch (er) { C.warn(`${v.ad}: yeniden üretilemedi — ${er.message}`); } finally { replayId = null; d.opts.noUndo = nu; }
     }
     if (C.acilimYenile) C.acilimYenile();
+    if (C.kesitIsaretTemizle) { try { C.kesitIsaretTemizle(); } catch (er) { } } // her kesitin Tasarım'da tek işareti (mimari-pafta.js)
     for (const id of ids) if (!(V[id] && V[id].donuk && quiet)) staleIds.delete(id);
     prev = scan(); C.doc.set.canliSig = sigNow = prev.sig; C.changed(); renderPane();
     if (!quiet || n) C.log(`🔄 ${n} görünüm modelden yeniden üretildi${quiet ? ' (otomatik)' : ''}.`);

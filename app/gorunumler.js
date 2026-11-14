@@ -123,7 +123,8 @@
   const kesitUret = async (v) => {
     const def = C.cmds.SECTION || C.cmds.KESITAL; if (!def) throw new Error('KESITAL komutu bulunamadı');
     const once = new Set(C.doc.ents.map(e => e.id));
-    const q0 = E.queue; E.queue = [pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt(v.yer)];
+    const mim = v.kaynak === 'MIMARIPAFTA' || (v.gruplar || []).some(g => /M[İI]MAR/i.test(String(g))); // Mimari kesit: Çokal aks ölçü zinciri (kesit.js, MIMARI=E)
+    const q0 = E.queue; E.queue = [...(mim ? ['MIMARI=E'] : []), pt(v.a), pt(v.b), pt(v.sp), String(v.depth), v.nm, pt(v.yer)];
     try { await def.fn(C.I, C); } finally { E.queue = q0 || []; }
     const yeni = C.doc.ents.filter(e => !once.has(e.id));
     if (!yeni.length) return 0;

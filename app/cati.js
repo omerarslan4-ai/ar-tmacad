@@ -332,7 +332,7 @@
         const ca = Math.cos(a), sa = Math.sin(a); let nx = -sa, ny = ca; if (ny < 0) { nx = -nx; ny = -ny; } const T2 = (s2, n) => [x0 + s2 * ca + n * nx, y0 + s2 * sa + n * ny];
         for (let s2 = 0; s2 < len - 0.05; s2 += 0.36) { const seg = [[s2, 0.0], [s2 + 0.02, 0.045], [s2 + 0.06, 0.055], [s2 + 0.09, 0.035], [s2 + 0.40, 0.02], [s2 + 0.42, 0.005]].map(([u, n]) => T2(u, n)); pl(seg, false, 'DETAY'); }
       };
-      const title = (p, s2) => { add('text', { p: W(p[0], p[1]), h: 0.05, s: s2, rot: 0, al: 'C', layer: 'YAZI' }); const w2 = s2.length * 0.035; ln([p[0] - w2 / 2, p[1] - 0.015], [p[0] + w2 / 2, p[1] - 0.015], 'YAZI', { lw: 35 }); ln([p[0] - w2 / 2, p[1] - 0.025], [p[0] + w2 / 2, p[1] - 0.025], 'YAZI'); add('text', { p: W(p[0], p[1] - 0.07), h: th, s: 'ÖL:1/10', rot: 0, al: 'C', layer: 'YAZI' }); };
+      const title = (p, s2) => { add('text', { p: W(p[0], p[1]), h: 0.05, s: s2, rot: 0, al: 'C', layer: 'YAZI' }); const w2 = s2.length * 0.035; ln([p[0] - w2 / 2, p[1] - 0.015], [p[0] + w2 / 2, p[1] - 0.015], 'YAZI', { lw: 35 }); ln([p[0] - w2 / 2, p[1] - 0.025], [p[0] + w2 / 2, p[1] - 0.025], 'YAZI'); add('text', { p: W(p[0], p[1] - 0.07), h: 0.03, s: 'ÖL:1/10', rot: 0, al: 'C', layer: 'YAZI' }); };
       return { W, ln, pl, ht, tx, lead, wood, tiles, title };
     };
     /* DETAY-A: saçak */

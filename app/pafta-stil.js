@@ -50,9 +50,10 @@
       const sym = e._onizle ? e.sym : (C.doc.set.kesitSembol || 'okdaire'); if (sym === 'cokal') return p0(Object.assign({}, e, { sym })).map(pr => (pr.k === 'T' ? Object.assign(pr, { st: K.st }) : pr));
       return p0(Object.assign({}, e, { sym, th: K.r / 0.85 })).map(pr => (pr.k === 'T' ? Object.assign(pr, { st: K.st, h: K.th * kk() }) : pr)); }; } // daire yarıçapı K.r, harf K.th (mm)
   if (T.baslik) { const p0 = T.baslik.prims; T.baslik.prims = e => { const ps = C.pstil(), B = ps && ps.baslik ? ps.baslik() : null; if (!B) return p0(e);
-      const k = kk(), h = B.th * k, st = B.st, p = M.p3(e.p); if (e.ay != null && e.dmm != null) p[1] = e.ay - e.dmm * k;
+      const BK = (C.cizimKural && C.cizimKural.MIMARI && C.cizimKural.MIMARI.baslik) || null, kes = /KES[İI]T/i.test(String(e.s || '')); // kesit başlığı 5 mm, öbürleri 4 mm; ölçek satırı 3 mm (kural tablosu)
+      const k = kk(), h = (BK ? (kes ? BK.kesitMm : BK.gorunusMm) : B.th) * k, st = B.st, p = M.p3(e.p); if (e.ay != null && e.dmm != null) p[1] = e.ay - e.dmm * k;
       const y = C.textStyle(st), w = C.measureText(e.s, h, y) * (y.wf || 1), y1 = p[1] - h * 0.25, out = [TX(p, h, e.s, 0, 'BC', { st }), L([p[0] - w / 2, y1, 0], [p[0] + w / 2, y1, 0], { lw: 25 })]; // altı tek çizgili başlık
-      if (e.olcek !== false) out.push(TX([p[0], y1 - h * 0.35, 0], B.alt * k, B.onek + (e.ol || ('1/' + (+C.doc.set.anno.toFixed(2)))), 0, 'TC', { st }));
+      if (e.olcek !== false) out.push(TX([p[0], y1 - h * 0.35, 0], (BK ? BK.olcekMm : B.alt) * k, B.onek + (e.ol || ('1/' + (+C.doc.set.anno.toFixed(2)))), 0, 'TC', { st }));
       return out; }; }
   const tazele = () => { for (const e of C.doc.ents) if (e._c) { delete e._c.p; delete e._c.b; } if (C.views) for (const w of Object.values(C.views)) if (w && 'dirty' in w) w.dirty = true; C.emit && C.emit('layouts'); C.changed && C.changed(); };
   C.addCommand && C.addCommand(['PAFTASTIL', 'CIZIMSTILI'], 'Pafta çizim stili: yazı karakteri, ölçü, aks, kot, kesit işareti ve başlık kuralları. PAFTASTIL COKAL (örnek proje — varsayılan) | KLASIK (ArıtmaCAD eski görünümü)', async (I) => {

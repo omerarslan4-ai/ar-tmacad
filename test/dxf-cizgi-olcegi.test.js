@@ -67,4 +67,13 @@ t('pafta penceresi çizgi tipi ölçeği: varsayılanda ölçek / 1000 (1/50 →
   K.doc.set.ltscale = 0.1; assert.strictEqual(+K.vpCizgiOlcegi(50).toFixed(9), 0.1);
 });
 
+t('Mimari ekran desenleri (_M) DXF\'e hiç gitmez: katman HIDDEN_M → HIDDEN; Çokal ve KLASİK stilde, grup verilerek ve verilmeden', () => {
+  K.doc.layers.GORUNEN_GIZLI = { name: 'GORUNEN_GIZLI', color: 8, lt: 'HIDDEN_M', lw: 15, on: true };
+  const lt = txt => { const L = txt.split(/\r?\n/).map(q => q.trim()), o = []; for (let i = 0; i + 3 < L.length; i += 2) if (L[i] === '0' && L[i + 1] === 'LTYPE') { for (let j = i + 2; j < i + 40 && j + 1 < L.length; j += 2) if (L[j] === '2') { o.push(L[j + 1]); break; } } return o; };
+  for (const st of [() => ({}), () => null]) { K.pstil = st;
+    for (const o of [{ plain: '2b', withLayouts: true }, Object.assign({ plain: '2b', withLayouts: true, grp: 'Mimari' }, P.dxfCizgiOlcegi(50))]) {
+      const txt = K.dxfWrite(o), adlar = lt(txt); assert.ok(adlar.length > 0 && !adlar.some(a => /_M$/.test(a)), adlar.join(',')); assert.ok(!/HIDDEN_M/.test(txt), '_M adı yok'); } }
+  K.pstil = () => ({}); delete K.doc.layers.GORUNEN_GIZLI;
+});
+
 console.log(`\n${n} test geçti.`);

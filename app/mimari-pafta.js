@@ -262,6 +262,15 @@
     else if (pr.k === 'T') e = C.newEnt('text', Object.assign(b, { p: X(pr.p), h: pr.h, s: pr.s, rot: (pr.rot || 0) * 180 / Math.PI, al: pr.al, ann: false }));
     if (e) { const x = C.add(e); if (x) delete x.sp; } return e; };
 
+  /* yetim kesit işaretleri (önceki sürümlerin canlı yenilemesinde geçici gv'de kalan ya da görünümüne bağlanmamış kopyalar): her disiplin kesitinin
+     Tasarım'da tek işareti kalır (v.isaret; yoksa aynı adlı ve aynı hattaki işaret bağlanır); öbür kopyalar silinir. Plan işaretlerine (planIsaret) dokunulmaz */
+  const kesitIsaretTemizle = () => { const G = C.gorunumApi; if (!G) return 0; const VL = G.liste().filter(v => v.tip === 'kesit'), tut = new Set(), n0 = C.doc.ents.length;
+    for (const v of VL) { let m = C.byId(v.isaret); if (!m || m.type !== 'kesitisaret') m = C.doc.ents.find(e => e.type === 'kesitisaret' && !e.planIsaret && e.name === v.nm && v.a && Math.hypot(e.a[0] - v.a[0], e.a[1] - v.a[1]) < 0.05);
+      if (m) { delete m.gv; m.gorunum = v.id; v.isaret = m.id; tut.add(m.id); } }
+    const adlar = new Set(VL.map(v => v.nm));
+    C.doc.ents = C.doc.ents.filter(e => !(e.type === 'kesitisaret' && !e.planIsaret && !tut.has(e.id) && adlar.has(e.name) && (/^K/.test(e.gv || '') || (e.gorunum && !VL.some(v => v.id === e.gorunum)) || (e.canli && !e.gv && !e.gorunum)))); // yetim: geçici gv'de, bağlı görünümü silinmiş ya da canlı yenilemeden kalmış bağsız kopya
+    return n0 - C.doc.ents.length; };
+  C.kesitIsaretTemizle = kesitIsaretTemizle;
   const uret = async (SC) => {
     const G = C.gorunumApi; if (!G || !C.makeView) { C.warn('Görünüş / disiplin modülleri yüklenmemiş.'); return null; }
     const { ents, secim, u } = kapsam(); if (!ents.length) { C.warn('3B model yok: mimari pafta için önce yapıyı (perde, döşeme, duvar …) 3B modelleyin.'); return null; }
@@ -309,7 +318,8 @@
         if (!n) continue; if (h.mahaller) v.mahaller = h.mahaller; VL.push(v); kes.push(v); asagi(v.gv);
         for (const g of sGr) if (!/MIMAR/i.test(g)) G.paftayaKoy(v, g); // standart: bir kez alınan kesit bütün disiplin paftalarında
       }
-    } else for (const v of kes) if (v.kaynak === 'MIMARIPAFTA') { const gv = v.gv; G.sil(v); v.gv = gv; v.olcek = SC; try { await G.kesitUret(v); } catch (er) { console.error(er); } } // modelden yenile
+    } else for (const v of kes) { const gv = v.gv; G.sil(v); v.gv = gv; if (v.kaynak === 'MIMARIPAFTA') v.olcek = SC; try { await G.kesitUret(v); } catch (er) { console.error(er); } } // bütün kesitler (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler — eski aksız içerik paftada kalmaz
+    try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
     /* kesit işaretleri planlarda (her planda bütün kesitler; Çokal R2) */
     for (const p of planlar) { try { for (const v of kes) kesitIsaretiPlana(p.gv, p.W, v); baslikAlta(p.gv); } catch (er) { console.error('plan kesit işareti', er); } }
     // --- açılım tablosu (kodlu: DÖŞEMELER / DUVARLAR)
@@ -456,6 +466,7 @@
        04 ÇATI PLANI, KESİTİ VE DETAYLARI · 05 KAPI VE PENCERE DETAYLARI (1/20) · 06 KORKULUK VE KAPAK DETAYLARI (1/20, kenar 1/5) */
   const MIMARIPAFTA = async () => {
     const os = olcekTahmin() || { olcek: PAFTA_R2.olcek, kagit: 'A1', oranA1: 0, esik: OLCEK_ESIK, neden: '' }, SC = os.olcek;
+    try { if (C.cizimKuralUygula) C.cizimKuralUygula(); } catch (er) { console.error('çizim kuralı', er); } // eski projelerin mimari kural katmanları (çizgi tipi _M desenleri dahil)
     const anno0 = C.doc.set.anno, lt0 = C.doc.set.ltscale; C.doc.set.anno = SC; let r;
     try { r = await uret(SC); } finally { C.doc.set.anno = anno0; C.doc.set.ltscale = lt0; }
     if (!r) return null; const olc = (gv, sc) => (gv ? blokOlc(gv, sc || SC) : null), ileV = (b, v) => { if (b && v) b.v = v; return b; };

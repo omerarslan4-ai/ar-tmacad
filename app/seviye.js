@@ -12,7 +12,7 @@
   C.seviyeler = list;
   C.svGet = id => { const s = SV(); if (!s) return null; if (id === 'toprak') return { id: 'toprak', ad: 'Toprak kotu', z: +s.toprak || 0, toprak: true }; return s.list.find(l => l.id === id) || null; };
   C.svAktif = () => { const s = SV(); return s ? (s.list.find(l => l.id === s.aktif) || list().find(l => Math.abs(l.z) < 1e-6) || list()[0] || null) : null; };
-  const fz = v => (Math.abs(v) < 0.0005 ? '±0.00' : (v > 0 ? '+' : '−') + Math.abs(v).toFixed(2));
+  const fz = v => (Math.abs(v) < 0.0005 ? '±0.00' : (v > 0 ? '+' : '-') + Math.abs(v).toFixed(2)); // normal tire (turkce.shx'te U+2212 yok; kot yazılarıyla aynı)
   const absOf = z => { const s = SV(); return s && s.abs0 != null && isFinite(s.abs0) ? +s.abs0 + z : null; };
   C.svFmt = fz; C.svAbs = absOf;
   const nid = () => 'L' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
