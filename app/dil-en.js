@@ -344,6 +344,12 @@
     ['Statik eleman listesi (net hacim)', 'Structural member list (net volume)'], ['Alt yapı (m³)', 'Substructure (m³)'], ['Üst yapı (m³)', 'Superstructure (m³)'],
     ['Brüt (m³)', 'Gross (m³)'], ['Net (m³)', 'Net (m³)'], ['Ağırlık (kN)', 'Weight (kN)'], ['Toplam', 'Total'], ['Kolon', 'Column'], ['Kombinasyon', 'Combination'],
     ['Temel öz ağırlığı', 'Foundation self-weight'], ['Toplam N', 'Total N'], ['Eğilme (kolon yüzü)', 'Bending (column face)'], ['Seçilen', 'Selected'],
-    ['UYGUN', 'ADEQUATE'], ['YETERSİZ', 'INADEQUATE'], ['KALKMA', 'UPLIFT'],
+    ['UYGUN', 'ADEQUATE'], ['YETERSİZ', 'INADEQUATE'], ['KALKMA', 'UPLIFT'], ['DEVRİLME', 'OVERTURNING'],
+    ['Temel', 'Foundation'], ['Komb.', 'Comb.'], ['Zımbalama Vpd/Vpr (en büyük)', 'Punching Vpd/Vpr (max.)'], ['tekil temel', 'isolated footing'], ['sürekli temel', 'strip footing'], ['radye', 'raft'],
+    ['Radye (# cm)', 'Raft (# cm)'], ['Tekil temel # × #', 'Isolated footing # × #'], ['Sürekli temel (B = #)', 'Strip footing (B = #)'], ['Perde mesnedi', 'Wall support'], ['Yük', 'Load'],
+    ['Su yapısı — 3B kabuk (perde, radye, döşeme)', 'Water-retaining structure — 3D shell (walls, raft, slabs)'],
+    ['Gömülü alt yapı + üst yapı — iki aşama (üst yapı çerçeve, alt yapı 3B kabuk)', 'Buried substructure + superstructure — two stages (superstructure frame, substructure 3D shell)'],
+    ['Yalnız üst yapı — çerçeve + temel (kabuk yok)', 'Superstructure only — frame + foundation (no shell)'],
+    ['Su yapısı', 'Water-retaining structure'], ['Alt yapı + üst yapı', 'Substructure + superstructure'], ['Yalnız üst yapı', 'Superstructure only'],
   ]);
 })();

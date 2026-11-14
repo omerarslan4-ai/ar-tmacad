@@ -28,6 +28,22 @@ t('tekil temel (elle): σ = 262,5 kN/m²; My = 100 kNm ile σmaks = 337,5; zımb
   assert.ok(T1.temeller[0].zimb[0].gam < 1, 'kolon momenti zımbalama γ katsayısını düşürür');
   const S2 = tekilS(); S2.zemin.sig = 300; const T2 = P.temelHesap(S2, RCf(250)); assert.ok(!T2.ok && T2.uyar.some(u => /zemin gerilmesi/.test(u)), 'σmaks 450 > 300');
 });
+t('çekirdek dışında kısmi temas: tek yönde e > L/6 → σmaks = 2N / (3·B·(L/2 − e)); G + Q altında kalkma ve devrilme yetersiz', () => {
+  const poly = [[0, 0], [4, 0], [4, 2], [0, 2]];
+  for (const e of [0.5, 1.0, 1.5]) { const r = P.temasGerilme(poly, 1000, 0, 1000 * e), el = e <= 4 / 6 ? 1000 / 8 * (1 + 6 * e / 4) : 2 * 1000 / (3 * 2 * (2 - e)); yak(r.smax, el, 0.005 * el, 'e = ' + e); }
+  yak(P.temasGerilme(poly, 1000, 0, 1000).temas, 0.75, 0.01, 'temas boyu 3·(L/2 − e) = 3 m / 4 m');
+  assert.strictEqual(P.temasGerilme(poly, 1000, 0, 2100).ok, false, 'e > L/2: devrilme');
+  // tekil temel: N = 1050, My = 700 (e = 0,667 > 2/6) → σmaks = 2·1050 / (3·2·(1 − 0,667)) = 1050 kN/m² (doğrusal formül 787,5 verirdi)
+  const T = P.temelHesap(tekilS(), RCf(700)), z = T.temeller[0].zem.find(q => q.ad === 'G + Q');
+  yak(z.smax, 1050, 6, 'kısmi temas σmaks'); assert.ok(!z.ok && !T.ok && T.uyar.some(u => /kalkma|zemin gerilmesi/.test(u)));
+  // σem yeterli olsa da G + Q altında kalkma yetersizdir
+  const S2 = tekilS(); S2.zemin.sig = 5000; const T2 = P.temelHesap(S2, RCf(700)); assert.ok(!T2.ok && T2.uyar.some(u => /düşey yüklerde temel kenarında kalkma/.test(u)));
+});
+t('zımbalama dışmerkezliği e = M_pd / V_pd (TS 500 8.3.1): My = 100 kNm (1,4G → 140) ile γ = 1 / (1 + 1,5·(140 / 1153,0) / 0,84)', () => {
+  const zb = P.temelHesap(tekilS(), RCf(100)).temeller[0].zimb[0], Vpd = 1400 - 350 * 0.84 * 0.84;
+  yak(zb.Vpd, Vpd, 1e-6); yak(zb.gam, 1 / (1 + 1.5 * (140 / Vpd) / 0.84), 1e-9);
+});
+
 t('temel yoksa hesap yapılmaz, uyarı verilir; kolon temelin dışındaysa söylenir', () => {
   const S = tekilS(); S.temel = null; const T = P.temelHesap(S, RCf(0)); assert.ok(!T.ok && /temel/.test(T.uyar[0]));
   const S2 = tekilS(), RC = RCf(0); RC.kolonlar[0].x = 5; const T2 = P.temelHesap(S2, RC); assert.ok(T2.uyar.some(u => /altında temel bulunamadı/.test(u)));

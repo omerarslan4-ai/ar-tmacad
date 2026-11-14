@@ -5,7 +5,7 @@
    perde, dolgu, zemine oturan döşeme), üst yapı çerçeve sonucu RC (kolon ayağı tepkileri, statik-iki-asama.js › P.kolonTepki).
    Yöntem (rijit temel kabulü, elle izlenebilir):
      • her temel için yükler temel tabanının ağırlık merkezine indirgenir: N, Mx, My (kolon tepkisi kuvvet + moment, kaçıklık momenti dahil);
-       σ = N/A + My·(x − xc)/Iy − Mx·(y − yc)/Ix temel köşelerinde; G + Q ve G + Q ± E (X, Y) ≤ zemin emniyet gerilmesi; σmin < 0 kalkma uyarısı.
+       σ = N/A + My·(x − xc)/Iy − Mx·(y − yc)/Ix temel köşelerinde; G + Q ve G + Q ± E (X, Y) ≤ zemin emniyet gerilmesi; çekirdek dışında kısmi temas (P.temasGerilme); G + Q altında kalkma ve devrilme yetersiz sayılır.
      • zımbalama (TS 500 8.3.1): kolon yüzünden d/2 uzaktaki çevre, Vpd = Nd − q_net·(b1·b2) ≤ Vpr = γ·fctd·up·d,
        γ = 1 / (1 + 1,5·(ex + ey)/√(b1·b2)); kenar kolonda temel dışında kalan çevre kenarı sayılmaz.
      • tekil temel eğilmesi: kolon yüzünde konsol M = q_net·l²/2 (1 m şerit), As ≥ 0,002·h; 15 cm aralıkta yeten en küçük çap.
@@ -23,6 +23,25 @@
     for (let i = 0; i < n; i++) { const [x0, y0] = poly[i], [x1, y1] = poly[(i + 1) % n], c = x0 * y1 - x1 * y0; A += c; cx += (x0 + x1) * c; cy += (y0 + y1) * c; Ixx += (y0 * y0 + y0 * y1 + y1 * y1) * c; Iyy += (x0 * x0 + x0 * x1 + x1 * x1) * c; }
     A /= 2; cx /= 6 * A; cy /= 6 * A; Ixx /= 12; Iyy /= 12; const s = A < 0 ? -1 : 1; A = Math.abs(A); Ixx = s * Ixx - A * cy * cy; Iyy = s * Iyy - A * cx * cx;
     return { A, xc: cx, yc: cy, Ix: Ixx, Iy: Iyy };
+  };
+  /* çekme almayan zeminde temel gerilmesi (kısmi temas): σ = a + b·(x − xc) + c·(y − yc) yalnız temas bölgesinde (σ > 0); temel tabanı ızgara
+     hücrelerine bölünür, temas bölgesi yinelenerek bulunur (N, Mx, My dengesi). Bileşke çekirdek içindeyse doğrusal formülle aynıdır;
+     dışındaysa σmaks büyür (dikdörtgen, tek yönde e > L/6: σmaks = 2N / (3·B·(L/2 − e))). Bileşke tabanın dışındaysa (devrilme) ok = false.
+     Dönen { smax, smin (doğrusal formülle, kalkma göstergesi), temas (temas alanı / A), ok } */
+  P.temasGerilme = (poly, N, Mx, My, K, nb) => {
+    K = K || P.cokgenKesit(poly); nb = nb || 60; const xs = poly.map(p => p[0]), ys = poly.map(p => p[1]), x0 = Math.min(...xs), y0 = Math.min(...ys), dx = (Math.max(...xs) - x0) / nb, dy = (Math.max(...ys) - y0) / nb, H = [];
+    for (let i = 0; i < nb; i++) for (let j = 0; j < nb; j++) { const x = x0 + (i + 0.5) * dx, y = y0 + (j + 0.5) * dy; if (pip([x, y], poly)) H.push([x - K.xc, y - K.yc]); }
+    const dA = K.A / H.length, lin = q => N / K.A + My * q[0] / K.Iy - Mx * q[1] / K.Ix, smin = Math.min(...poly.map(p => lin([p[0] - K.xc, p[1] - K.yc])));
+    if (!(N > 0)) return { smax: Infinity, smin, temas: 0, ok: false };
+    if (smin >= -1e-9) return { smax: Math.max(...poly.map(p => lin([p[0] - K.xc, p[1] - K.yc]))), smin, temas: 1, ok: true };
+    let akt = H.map(q => lin(q) > 0), abc = null;
+    for (let it = 0; it < 60; it++) { const M3 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], r = [N, My, -Mx];
+      H.forEach((q, k) => { if (!akt[k]) return; const v = [1, q[0], q[1]]; for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) M3[a][b] += dA * v[a] * v[b]; });
+      const det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]), D = det(M3); if (!(Math.abs(D) > 1e-12)) return { smax: Infinity, smin, temas: 0, ok: false };
+      abc = [0, 1, 2].map(c => det(M3.map((row, i) => row.map((v, j) => (j === c ? r[i] : v)))) / D);
+      const yeni = H.map(q => abc[0] + abc[1] * q[0] + abc[2] * q[1] > 0); if (yeni.every((v, k) => v === akt[k])) break; akt = yeni; if (!akt.some(Boolean)) return { smax: Infinity, smin, temas: 0, ok: false }; }
+    const kose = poly.map(p => abc[0] + abc[1] * (p[0] - K.xc) + abc[2] * (p[1] - K.yc)), hc = H.map(q => abc[0] + abc[1] * q[0] + abc[2] * q[1]);
+    return { smax: Math.max(...kose, ...hc), smin, temas: akt.filter(Boolean).length / H.length, ok: true };
   };
   const dikdortgen = (x, y, bx, by, rot) => { const c = Math.cos((rot || 0) * Math.PI / 180), s = Math.sin((rot || 0) * Math.PI / 180); return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => [x + u * bx / 2 * c - v * by / 2 * s, y + u * bx / 2 * s + v * by / 2 * c]); };
   const KOMB = { emn: [['G + Q', { G: 1, Q: 1 }]], dep: [['G + Q + Ex', { G: 1, Q: 1, EX: 1 }], ['G + Q − Ex', { G: 1, Q: 1, EX: -1 }], ['G + Q + Ey', { G: 1, Q: 1, EY: 1 }], ['G + Q − Ey', { G: 1, Q: 1, EY: -1 }]],
@@ -54,15 +73,18 @@
       const B = { G: bil('G'), Q: bil('Q'), EX: bil('EX'), EY: bil('EY') };
       const komb = f => [0, 1, 2].map(k => Object.entries(f).reduce((s, [c, v]) => s + v * B[c][k], 0));
       const sigma = (f, q) => { const [N, Mx, My] = komb(f); return N / K.A + My * (q[0] - K.xc) / K.Iy - Mx * (q[1] - K.yc) / K.Ix; };
-      const zem = []; for (const tip of ['emn', 'dep']) for (const [ad2, f] of KOMB[tip]) { const s = poly.map(q => sigma(f, q)), N = komb(f)[0]; zem.push({ ad: ad2, tip, N, smax: Math.max(...s), smin: Math.min(...s), ort: N / K.A }); }
-      const zOk = zem.every(z => z.smax <= sig + 1e-6), kalkma = zem.some(z => z.smin < -1e-6);
+      /* zemin gerilmesi: çekirdek dışında kısmi temasla σmaks (P.temasGerilme). Kabul: G + Q altında kalkma olmaz (tam temas), depremli
+         kombinasyonda kısmi temas kabul edilir ama σmaks ≤ σem ve bileşke taban içinde kalmalı (devrilme yok) */
+      const zem = []; for (const tip of ['emn', 'dep']) for (const [ad2, f] of KOMB[tip]) { const [N, Mx, My] = komb(f), tg = P.temasGerilme(poly, N, Mx, My, K);
+        zem.push({ ad: ad2, tip, N, smax: tg.smax, smin: tg.smin, temas: tg.temas, devrilme: !tg.ok, ort: N / K.A, ok: tg.ok && tg.smax <= sig + 1e-6 && (tip === 'dep' || tg.smin >= -1e-6) }); }
+      const zOk = zem.every(z => z.ok), kalkma = zem.some(z => z.smin < -1e-6);
       // zımbalama (temel üstündeki kolonlar)
       const d = Math.max(0.05, t - cR - 0.01), zimb = [];
       for (const q of kol) { const b1 = (+q.bx || 0.4) + d, b2 = (+q.by || 0.4) + d, kenar = [[[q.x - b1 / 2, q.y - b2 / 2], [q.x + b1 / 2, q.y - b2 / 2]], [[q.x + b1 / 2, q.y - b2 / 2], [q.x + b1 / 2, q.y + b2 / 2]], [[q.x + b1 / 2, q.y + b2 / 2], [q.x - b1 / 2, q.y + b2 / 2]], [[q.x - b1 / 2, q.y + b2 / 2], [q.x - b1 / 2, q.y - b2 / 2]]];
         const up = kenar.filter(([a, b]) => pip([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], poly)).reduce((s, [a, b]) => s + Math.hypot(b[0] - a[0], b[1] - a[1]), 0); let en = null;
         for (const [ad2, f] of KOMB.tsm) { const Fq = [0, 1, 2, 3, 4, 5].map(k => Object.entries(f).reduce((s, [c, v]) => s + v * ((q.F[DUR[c]] || [])[k] || 0), 0)), Nd = -Fq[2]; if (!(Nd > 0)) continue;
           const yay = (f.G || 0) * (Gs + Gek) / K.A + (f.Q || 0) * Qek / K.A, qn = Math.max(0, sigma(f, [q.x, q.y]) - yay), Vpd = Math.max(0, Nd - qn * b1 * b2);
-          const ex = Math.abs(Fq[4]) / Nd, ey = Math.abs(Fq[3]) / Nd, gam = 1 / (1 + 1.5 * (ex + ey) / Math.sqrt(b1 * b2)), Vpr = gam * fctd * up * d;
+          const ex = Vpd > 0 ? Math.abs(Fq[4]) / Vpd : 0, ey = Vpd > 0 ? Math.abs(Fq[3]) / Vpd : 0, /* TS 500 8.3.1: e = M_pd / V_pd */ gam = 1 / (1 + 1.5 * (ex + ey) / Math.sqrt(b1 * b2)), Vpr = gam * fctd * up * d;
           if (!en || Vpd / Vpr > en.Vpd / en.Vpr) en = { kolon: q.no || ('S' + q.id), komb: ad2, Nd, qn, Vpd, Vpr, gam, up, d, b1, b2, ok: Vpd <= Vpr + 1e-6 }; }
         if (en) zimb.push(en); }
       // tekil temel eğilmesi (kolon yüzünde konsol, 1 m şerit, en elverişsiz taşıma gücü kombinasyonu)
@@ -73,8 +95,8 @@
           const sec = cubukSec(Mmax / (0.9 * d * fyd), t); egil.push({ yon, M: Mmax, komb: kb, sec }); } }
       const ok = zOk && zimb.every(z => z.ok) && (!egil || egil.every(e => e.sec.ok));
       const o = { tur, ad, poly, A: K.A, t, zt, zb, K, kol: kol.map(q => q.no || ('S' + q.id)), ek: ek.map(e => ({ ad: e.ad, tur: e.tur, Gk: e.Gk, Qk: e.Qk })), Gs, Gek, Qek, B, zem, zOk, kalkma, zimb, egil, ok, sig };
-      if (!zOk) uyar.push(`${ad}: zemin gerilmesi ${f2(Math.max(...zem.map(z => z.smax)), 1)} > ${f2(sig, 0)} kN/m² (zemin emniyet gerilmesi).`);
-      if (kalkma) uyar.push(`${ad}: temel kenarında çekme (kalkma) — σmin = ${f2(Math.min(...zem.map(z => z.smin)), 1)} kN/m²; temel boyutunu büyütün ya da kontrol edin.`);
+      for (const z of zem.filter(q => !q.ok)) uyar.push(z.devrilme ? `${ad}: ${z.ad} — bileşke temel tabanının dışında (devrilme / tam kalkma): temeli büyütün.` : z.smax > sig + 1e-6 ? `${ad}: ${z.ad} — zemin gerilmesi ${f2(z.smax, 1)} > ${f2(sig, 0)} kN/m² (zemin emniyet gerilmesi${z.temas < 1 ? `; kısmi temas, temas alanı %${f2(z.temas * 100, 0)}` : ''}).` : `${ad}: ${z.ad} — düşey yüklerde temel kenarında kalkma (σmin = ${f2(z.smin, 1)} kN/m²): temeli büyütün.`);
+      if (kalkma && zOk) uyar.push(`${ad}: depremli kombinasyonda temel kenarı kalkıyor (kısmi temas, temas alanı en az %${f2(Math.min(...zem.map(z => z.temas)) * 100, 0)}); σmaks kısmi temasla hesaplandı.`);
       zimb.filter(z => !z.ok).forEach(z => uyar.push(`${ad}: ${z.kolon} kolonu altında zımbalama Vpd = ${f2(z.Vpd, 0)} > Vpr = ${f2(z.Vpr, 0)} kN (${z.komb}) — temel kalınlığını artırın.`));
       (egil || []).filter(e => !e.sec.ok).forEach(e => uyar.push(`${ad}: ${e.yon} doğrultusunda eğilme donatısı sığmıyor (M = ${f2(e.M, 0)} kNm/m).`));
       out.temeller.push(o); return o; };
@@ -105,7 +127,7 @@
     for (const o of TH.temeller) {
       h += `<h3>${esc(o.ad)} — ${TUR_AD[o.tur] || o.tur}</h3><p>Taban alanı A = ${f(o.A)} m², I<sub>x</sub> = ${f(o.K.Ix)} m⁴, I<sub>y</sub> = ${f(o.K.Iy)} m⁴, kalınlık ${f(o.t * 100, 0)} cm, taban kotu ${f(o.zb)}. Üstündeki kolonlar: ${o.kol.length ? esc(o.kol.join(', ')) : '—'}.</p>`;
       h += `<table><tr><th class="l">Yük</th><th>G (kN)</th><th>Q (kN)</th></tr><tr><td class="l">Temel öz ağırlığı</td><td>${f(o.Gs, 1)}</td><td>—</td></tr>${o.ek.map(e => `<tr><td class="l">${esc(e.ad)} (${esc(e.tur)})</td><td>${f(e.Gk, 1)}</td><td>${e.Qk ? f(e.Qk, 1) : '—'}</td></tr>`).join('')}<tr><td class="l">Kolon ayağı tepkileri (${o.kol.length} kolon)</td><td>${f(o.B.G[0] - o.Gs - o.Gek, 1)}</td><td>${f(o.B.Q[0] - o.Qek, 1)}</td></tr><tr><th class="l">Toplam N</th><th>${f(o.B.G[0], 1)}</th><th>${f(o.B.Q[0], 1)}</th></tr></table>`;
-      h += `<table><tr><th class="l">Kombinasyon</th><th>N (kN)</th><th>σ<sub>ort</sub></th><th>σ<sub>maks</sub></th><th>σ<sub>min</sub> (kN/m²)</th><th>σ<sub>em</sub></th><th></th></tr>${o.zem.map(z => `<tr><td class="l">${z.ad}</td><td>${f(z.N, 1)}</td><td>${f(z.ort, 1)}</td><td>${f(z.smax, 1)}</td><td>${f(z.smin, 1)}</td><td>${f(o.sig, 0)}</td><td>${z.smax <= o.sig + 1e-6 && z.smin >= -1e-6 ? 'UYGUN' : z.smax > o.sig ? 'YETERSİZ' : 'KALKMA'}</td></tr>`).join('')}</table>`;
+      h += `<table><tr><th class="l">Kombinasyon</th><th>N (kN)</th><th>σ<sub>ort</sub></th><th>σ<sub>maks</sub></th><th>σ<sub>min</sub> (kN/m²)</th><th>σ<sub>em</sub></th><th></th></tr>${o.zem.map(z => `<tr><td class="l">${z.ad}</td><td>${f(z.N, 1)}</td><td>${f(z.ort, 1)}</td><td>${f(z.smax, 1)}</td><td>${f(z.smin, 1)}</td><td>${f(o.sig, 0)}</td><td>${z.ok ? (z.temas < 1 ? 'UYGUN (kısmi temas %' + f(z.temas * 100, 0) + ')' : 'UYGUN') : z.devrilme ? 'DEVRİLME' : z.smax > o.sig ? 'YETERSİZ' : 'KALKMA'}</td></tr>`).join('')}</table>`;
       if (o.zimb.length) h += `<p>Zımbalama (her kolon için en elverişsiz taşıma gücü kombinasyonu), faydalı yükseklik d = ${f(o.zimb[0].d * 100, 0)} cm:</p><table><tr><th class="l">Kolon</th><th>Komb.</th><th>N<sub>d</sub> (kN)</th><th>q<sub>net</sub> (kN/m²)</th><th>u<sub>p</sub> (m)</th><th>γ</th><th>V<sub>pd</sub> (kN)</th><th>V<sub>pr</sub> (kN)</th><th></th></tr>${o.zimb.map(z => `<tr><td class="l">${esc(z.kolon)}</td><td>${z.komb}</td><td>${f(z.Nd, 1)}</td><td>${f(z.qn, 1)}</td><td>${f(z.up)}</td><td>${f(z.gam, 3)}</td><td>${f(z.Vpd, 1)}</td><td>${f(z.Vpr, 1)}</td><td>${z.ok ? 'UYGUN' : 'YETERSİZ'}</td></tr>`).join('')}</table>`;
       if (o.egil) h += `<table><tr><th class="l">Eğilme (kolon yüzü)</th><th>M<sub>d</sub> (kNm/m)</th><th>A<sub>s</sub> ger. (cm²/m)</th><th>Seçilen</th></tr>${o.egil.map(e => `<tr><td class="l">${e.yon} doğrultusu (${e.komb})</td><td>${f(e.M, 1)}</td><td>${f(e.sec.req * 1e4)}</td><td>${e.sec.ok ? `Ø${e.sec.F}/${f(e.sec.s * 100, 0)} alt` : 'sığmıyor'}</td></tr>`).join('')}</table>`;
       if (o.tur === 'radye') h += `<p class="f">Not: radye eğilme donatısı bu hesapta yapılmamıştır (rijit temel kabulüyle yalnız zemin gerilmesi ve zımbalama). Radye donatısı için elastik zemine oturan plak çözümü gerekir.</p>`;
