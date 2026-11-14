@@ -824,6 +824,11 @@
     C.log('İndirildi: ' + rep() + ' + DWG-YAP.bat (İndirilenler klasöründe çift tıklayın).');
   };
   C.addCommand(['DISIPLINDXF', 'PAFTAGRUPDXF', 'DXFDISIPLIN', 'DWGPAFTA', 'AUTOCADPAFTA'], 'Her pafta grubunu (Mekanik, Mimari, Statik, Elektrik…) ayrı AutoCAD dosyası yapar: o grubun paftaları (Layout sekmeleri, ölçekli pencereler) ve pencerelerinde görünen 2B çizim. Seçtiğiniz klasöre yazar; yanına DWG-YAP.bat koyar (çift tık → hepsi DWG).', () => C.exportGroups(), { noUndo: true });
+  // yalnız Mimari paftaları: AutoCAD'de Layout sekmeleri (paftalar, antet, ölçekli pencereler) ile birlikte açılan tek DXF
+  C.addCommand(['MIMARIDXF', 'MIMARIPAFTADXF', 'MIMDXF'], 'Mimari paftalarını AutoCAD için DXF olarak kaydeder: her pafta bir Layout sekmesi (antet ve ölçekli pencereleriyle), çizimler model alanında. Seçtiğiniz klasöre yazar; yanına DWG-YAP.bat koyar.', () => {
+    if (!(C.doc.layouts || []).some(L => L.grp === 'Mimari')) { C.warn('Mimari paftası yok: önce Mimari sekmesinden "Mimari paftalar"ı çalıştırın.'); return; }
+    return C.exportGroups(['Mimari']);
+  }, { noUndo: true });
   C.addCommand(['DXF3B', '3BDXF', 'MODEL3BDXF', 'CIKTI3B'], '3B modeli AutoCAD için DXF olarak kaydeder: perde, döşeme, temel, kolon, kiriş, dolgu, boru, ekipman… yüzey ağı (polyface) olarak, kendi katmanlarında. 2B çizimler ve paftalar alınmaz.', async () => {
     const ents = C.doc.ents.filter(e => !e.gv && has3d(e)); if (!ents.length) { C.warn('Çizimde 3B eleman yok.'); return; }
     let txt; try { txt = C.dxfWrite({ ents, plain: '3b' }); } catch (err) { C.warn('3B DXF yazılamadı: ' + err.message); try { alert('3B DXF yazılamadı: ' + err.message); } catch (e2) { } return; }
