@@ -1,6 +1,6 @@
 /* Monolitik görünüm (app/insaat-monolit.js) — Konya İsale Terfi Merkezi modelinin sayılarıyla (araclar/konya-terfi-uret.js).
    1) Pencereli tuğla cephe duvarı tek kütle: parçalar arasındaki iç yüzler üretilmez, yalnız söveler (pencere yanları) açıkta kalır.
-   2) Çatı döşemesi (+5,24, 15 cm) altındaki 50×80 enine ve 30×50 boyuna kirişler, galeri döşemesi (DÖ04) altındaki 40×50 yürüme yolu kirişleri
+   2) Çatı döşemesi (+5,24, 15 cm) altındaki 50×80 enine ve 30×50 boyuna kirişler, galeri döşemesi (DÖ04) altındaki 40×50 yürüme yolu kirişleri ve 30×50 merdiven boşluğu kenar kirişi
       döşemeyle tek parça sayılır; kirişin görünen üstü döşeme altında biter, boşluk kenarıyla aynı hizadaki kiriş yüzü bulunur.
    3) Veri ayrı kalır: statik modele çevirme kirişleri ve döşemeleri ayrı eleman olarak okur.
    Çalıştır: node test/insaat-monolit.test.js */
@@ -68,12 +68,17 @@ t('çatı döşemesi (DÖ03, 15 cm) + 50×80 enine / 30×50 boyuna kirişler: te
 
 t('galeri döşemesi (DÖ04) + yürüme yolu kirişleri: tek parça; vinç boşluğu kenarındaki kiriş yüzü boşluk kenarıyla aynı hizada', () => {
   const G = byAd('Galeri döşemesi'), D = dosD(G);
-  const kir = E.filter(k => k.type === 'kiris' && Math.abs(k.zt - G.zt) < 1e-6); assert.strictEqual(kir.length, 7);
+  const kir = E.filter(k => k.type === 'kiris' && Math.abs(k.zt - G.zt) < 1e-6); assert.strictEqual(kir.length, 8);                  // 6 yürüme yolu + bölme duvarı altı + merdiven boşluğu kenar kirişi
   for (const k of kir) assert.ok(MN.kirisDoseme(kirisB(k), D), 'yürüme yolu kirişi döşemeyle tek parça');
   // y = 5,40 ekseninde 40 cm kiriş: alt yüzü (y 5,20) x 13,75 … 17,30 arasında boşluk kenarıyla aynı hizada, 17,30'dan sonra döşeme iki yanda
   const k = kir.find(q => Math.abs(q.a[1] - 5.4) < 1e-6 && Math.abs(q.b[1] - 5.4) < 1e-6), B = kirisB(k), r = MN.kirisDoseme(B, D);
   const ky = r.kenar.map(q => ({ x0: B.a[0] + B.u[0] * q.s0, x1: B.a[0] + B.u[0] * q.s1, y: B.a[1] + B.nn[1] * q.yan * B.w }));
   assert.strictEqual(ky.length, 1); yak(ky[0].y, 5.20, 1e-9); yak(Math.min(ky[0].x0, ky[0].x1), 13.75, 1e-3); yak(Math.max(ky[0].x0, ky[0].x1), 17.30, 1e-3);
+  // merdiven boşluğu kenar kirişi 30/50 (x 14,66 ekseni, y 5,40 → 8,00): dış yüzü (x 14,81) boşluk kenarıyla aynı hizada y 6,45 … 7,70 arasında, A perdesi iç yüzünde
+  // (y 7,70) döşeme biter, kirişin geri kalanı perdenin içinde; kiriş döşemeyle tek parça (ayrı çizgi yok)
+  const m = kir.find(q => q.ad === 'Merdiven boşluğu kenar kirişi'), Bm = kirisB(m), rm = MN.kirisDoseme(Bm, D);
+  assert.ok(rm && rm.ust); yak(rm.zc, D.za); assert.strictEqual(rm.kenar.length, 1); yak(Bm.a[0] + Bm.nn[0] * rm.kenar[0].yan * Bm.w, 14.81, 1e-9);
+  yak(Bm.a[1] + rm.kenar[0].s0, 6.45, 1e-9); yak(Bm.a[1] + rm.kenar[0].s1, 7.70, 1e-9); yak(m.zt - m.hb, U.z(204.91), 1e-9);
 });
 
 t('döşemenin dışındaki / başka kottaki kiriş tek parça sayılmaz', () => {
@@ -82,12 +87,12 @@ t('döşemenin dışındaki / başka kottaki kiriş tek parça sayılmaz', () =>
   assert.strictEqual(MN.kirisDoseme({ a: [2, 2], u: [1, 0], nn: [0, 1], w: 0.15, Lb: 5, zt: D.zt - 1, zb: D.zt - 1.5 }, D), null);
 });
 
-t('veri ayrı: statik modele çevirme 14 kirişi ve döşemeleri ayrı eleman olarak okur', () => {
+t('veri ayrı: statik modele çevirme 15 kirişi ve döşemeleri ayrı eleman olarak okur', () => {
   let O; try { O = require('./statik-ortam.js'); } catch (er) { console.log('  (statik ortamı yüklenemedi: ' + er.message + ')'); return; }
   const d = O.modelCevir(doc).d; assert.ok(d && d.cerceve);
   assert.strictEqual(d.cerceve.kirisler.length, E.filter(e => e.type === 'kiris').length);
   assert.ok(d.cerceve.dosemeler.length >= 2);
-  assert.strictEqual(E.filter(e => e.type === 'kiris').length, 14); assert.ok(E.some(e => e.type === 'plak' && e.ad === 'Çatı döşemesi'));
+  assert.strictEqual(E.filter(e => e.type === 'kiris').length, 15); assert.ok(E.some(e => e.type === 'plak' && e.ad === 'Çatı döşemesi'));
 });
 
 console.log(`insaat-monolit: ${n} test geçti`);

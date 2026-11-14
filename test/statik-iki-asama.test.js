@@ -24,7 +24,7 @@ t('Konya üst yapı çerçevesi: 10 kolon −0,26 kotunda başlar, yalnız çat�
   assert.strictEqual(IA.cer.kolonlar.length, 10); assert.ok(IA.cer.kolonlar.every(c => c.z0 === -0.26 && c.altKes));
   assert.strictEqual(IA.cer.kirisler.length, 7); assert.ok(IA.cer.kirisler.every(k => k.zt === 5.24));
   assert.deepStrictEqual(IA.cer.dosemeler.map(x => x.zt), [5.24]); assert.strictEqual(IA.cer.perdeler.length, 0);
-  assert.ok(IA.S.kabuk.kirisler.every(k => k.zt <= -0.26 + 0.15) && IA.S.kabuk.kirisler.length === 7, 'kabukta yalnız galeri kirişleri');
+  assert.ok(IA.S.kabuk.kirisler.every(k => k.zt <= -0.26 + 0.15) && IA.S.kabuk.kirisler.length === 8, 'kabukta yalnız galeri kirişleri (7 + merdiven boşluğu kenar kirişi)');
   assert.ok(IA.RC && IA.RC.deprem.cer3B, '3B çerçeve analizi yapılmış olmalı');
 });
 const RC = IA.RC, D3 = RC.deprem.cer3B, T = IA.T;
@@ -111,6 +111,11 @@ t('rapor bölümü: çözüm yolu, aktarılan tepkiler tablosu (10 kolon + topla
 t('Konya sonucu (14.11.2026): üst yapı UYGUN; alt yapıda perde ve radye mevcut kalınlıklarla yeterli, yalnız galeri döşemesi kesmesi; öneri firma aralığında', () => {
   assert.ok(RC.ok, 'üst yapı çerçevesi'); assert.ok(RC.kolonlar.every(c => c.ok));
   const yet = r.tasarim.filter(T => T.katman.some(k => !k.sec.ok) || !T.kesme.ok).map(T => T.eleman); assert.deepStrictEqual(yet, ['D5 döşeme'], 'yetmeyen: ' + yet.join(', '));
+  /* merdiven boşluğu kenar kirişi 30/50 (14.11.2026, kullanıcı kararı): galeri döşemesi kesmesi Vd 138,9 → 116,6 kN/m (Vcr 95,5) azaldı, ama yetmedi:
+     en büyük değer A perdesine bağlanan 50/50 kirişin (x 13,75) vinç boşluğu tarafında (x 13,36, y 7,39), merdiven boşluğunun dışında */
+  const D5 = r.tasarim.find(T => T.eleman === 'D5 döşeme'); yak(D5.kesme.Vd, 116.6, 1.5, 'galeri döşemesi kesmesi'); assert.ok(D5.kesme.Vd > D5.kesme.Vcr);
+  yak(D5.kesme.yeri[0], 13.36, 0.05); yak(D5.kesme.yeri[1], 7.39, 0.05);
+  const mk = IA.S.kabuk.kirisler.find(k => Math.abs(k.a[0] - 14.66) < 1e-6); assert.ok(mk && r.cubuk.some(c => c.tur === 'kiris' && c.id === mk.id), 'merdiven boşluğu kenar kirişi kabukta kaburga');
   assert.ok(r.qmax <= S.zemin.sig, 'zemin gerilmesi ' + r.qmax);
   const o = P.kabukOnerHesap(S); assert.ok(o.yeterli, o.sinir.join(' | ')); assert.deepStrictEqual(o.log, ['D5 25 cm']);
   const L = P.kabukSinir(o.kabuk); o.kabuk.walls.forEach((w, i) => assert.ok(w.t <= Math.min(0.70, L.perde[i].max) + 1e-9, w.ad));

@@ -49,7 +49,10 @@ const KONYA_DEPREM = (() => {
    üst yapı çerçevesi (kolon ayakları −0,26'da ankastre) UYGUN, kolonlar 8Ø20; alt yapı kabuğunda (kolon tepkileri yük olarak) perdeler ve radye
    bu kalınlıklarla YETERLİ (B dış düşey Ø28/10, A Ø25/10 – Ø32/15, radye alt Ø25/10). Yetmeyen yalnız galeri döşemesi (15 cm) kesmesi:
    merdiven boşluğunun perdede bittiği köşe yanında Vd 132 > Vcr 96 kN/m — "Kalınlık öner" 25 cm diyor; karar kullanıcıda (25 cm döşeme ya da
-   o köşede kenar kirişi / kesme donatısı), model 15 cm bırakıldı. Perde ve radye kalınlıkları değişmedi. */
+   o köşede kenar kirişi / kesme donatısı), model 15 cm bırakıldı. Perde ve radye kalınlıkları değişmedi.
+   14.11.2026 kullanıcı kararı: 25 cm döşeme yerine merdiven boşluğu kenar kirişi (MERDIVEN_KIRIS, 30/50). Sonuç: galeri döşemesi kesmesi
+   Vd 138,9 → 116,6 kN/m (Vcr 95,5) — azaldı ama yetmedi; en büyük değer x 13,36 / y 7,39'da, aks 4'teki 50/50 kirişin vinç boşluğu tarafında
+   (A perdesine bağlandığı yerin yanında), merdiven boşluğunun dışında. Kalan çözüm kullanıcıda. */
 const STATIK_T = { B: 0.5, A: 0.6, kisa: 0.4, radye: 0.6 };
 
 /* ---------- belge kurucu ---------- */
@@ -121,6 +124,13 @@ const GALERI_KIRIS = [
   [475, 25, 475, 200, 50], [925, 25, 925, 200, 50], [1375, 25, 1375, 200, 50], [1375, 540, 1375, 775, 50],
 ];
 
+/* merdiven boşluğu kenar kirişi 30/50 [x0, y0, x1, y1, en] cm (eksen), üst +205,41 (14.11.2026, kullanıcı kararı: galeri döşemesi kesmesi için
+   25 cm döşeme yerine kenar kirişi). Merdiven boşluğunun (x 1481…1930, y 645…770) kısa serbest kenarı x = 1481 boyunca: dış yüzü boşluk
+   kenarında, uçları y 540 boyuna yürüme yolu kirişine (40/50) ve A aksı perdesinin eksenine oturur. Yükseklik öbür galeri kirişleriyle aynı
+   (alt +204,91), en Çokal tip kiriş eni (30). Uzun serbest kenara (y = 645) asma kiriş konmadı: M1 merdiveninin ikinci kolu ve +203,35
+   sahanlığı bu kenarın altında; 50 cm sarkan kirişin altında baş yüksekliği 1,56 m kalırdı (döşeme altında şimdi 1,91 m). */
+const MERDIVEN_KIRIS = [[1466, 540, 1466, 800, 30]];
+
 /* cephe pencereleri: alt sıra 70/150 (denizlik +206,41), üst sıra 300/60 (denizlik +209,81) — aks 2…5 açıklıklarında üçer + birer */
 const ALT_PENCERE = [580, 700, 820, 1030, 1150, 1270, 1540, 1660, 1780];
 const UST_PENCERE = [700, 1150, 1660];
@@ -167,6 +177,8 @@ function uret() {
   ekle('kiris', 'INS_KIRIS', { a: [3.7, 0.3, 0], b: [3.7, 7.7, 0], bw: 0.4, hb: 0.6, zt: z(K.galeriUst), hiza: 'O', beton: 'C25/30' });
   // yürüme yolu kirişleri 40×50 (A-A ve B-B kesitleri, alt +204,91): vinç boşluğu kenarlarında boyuna kenar kirişi, aks 2…4'te kolona bağlanan enine kirişler
   for (const k of GALERI_KIRIS) ekle('kiris', 'INS_KIRIS', { a: [cm(k[0]), cm(k[1]), 0], b: [cm(k[2]), cm(k[3]), 0], bw: cm(k[4]), hb: 0.5, zt: z(K.galeriUst), hiza: 'O', beton: 'C25/30', ad: 'Yürüme yolu kirişi' });
+  // merdiven boşluğu kenar kirişi 30/50 (galeri döşemesi kesmesi; döşemeyle monolitik)
+  for (const k of MERDIVEN_KIRIS) ekle('kiris', 'INS_KIRIS', { a: [cm(k[0]), cm(k[1]), 0], b: [cm(k[2]), cm(k[3]), 0], bw: cm(k[4]), hb: 0.5, zt: z(K.galeriUst), hiza: 'O', beton: 'C25/30', ad: 'Merdiven boşluğu kenar kirişi' });
   // şap tuğla duvarların iç yüzüne kadar (betonarme perde yüzünden 10 cm dışarı) — program da açılışta kenarları bu yüzlere bağlıyor
   const SAP = GALERI.map(([x, y]) => [x === 0.4 ? 0.2 : x === 19.3 ? 19.5 : x, y === 0.3 ? 0.2 : y === 7.7 ? 7.8 : y]);
   // taşıyıcı olmayan döşeme katmanları zemin kaplaması nesnesidir (statik hesaba döşeme olarak girmez): 20 cm tesviye betonu + 3,5 cm harç + 2,5 cm karo mozaik (mimari: KARO MOZAİK)
@@ -219,7 +231,7 @@ function uret() {
   return { doc: B.doc, ozet: { nesne: B.doc.ents.length, say } };
 }
 
-module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, GUSE, guse, STATIK_T, KONYA_DEPREM, FS_ZD, F1_ZD, uret };
+module.exports = { OLCU, ABS0, z, KAIDE, KANAL, GALERI, GALERI_KIRIS, MERDIVEN_KIRIS, GUSE, guse, STATIK_T, KONYA_DEPREM, FS_ZD, F1_ZD, uret };
 
 if (require.main === module) {
   const cikti = process.argv[2] || path.join(__dirname, '..', 'test-proje', 'konya', 'Konya-terfi-insaat.aritma');

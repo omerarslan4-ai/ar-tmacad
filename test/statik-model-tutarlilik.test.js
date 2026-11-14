@@ -37,9 +37,11 @@ t('perde birleşimleri: L köşede iki eksen kesişir, T birleşimde kısa perde
   assert.deepStrictEqual(W[2].P[0].map(v => +v.toFixed(6)), [5, 0], 'T ucu U eksenine uzar');
 });
 
-t('Konya: statik eleman listesi net hacimle — toplam 371,65 m³ (brüt 390,59), perde 167,51 (brüt 179,34), metrajla aynı', () => {
-  const H = d.hacim; yak(H.net, 371.652, 0.01); yak(H.brut, 390.589, 0.01, 'brüt');
-  yak(H.top.Perde, 167.505, 0.01); yak(H.top.Temel, 117.99, 0.01); yak(H.top.Kolon, 28, 0.01); yak(H.top['Kiriş'], 26.071, 0.01); yak(H.top['Döşeme'], 8.689 + 23.397, 0.01);
+/* merdiven boşluğu kenar kirişi 30/50 (14.11.2026): brüt 0,30 · 0,50 · 2,60 = 0,390; net K2 yüzünden (5,60) A perdesi iç yüzüne (7,70) 0,30 · 0,50 · 2,10 = 0,315 m³;
+   galeri döşemesinden kiriş izi 0,30 · 2,10 · 0,15 = 0,0945 m³ düşer (kiriş döşeme kalınlığıyla birlikte sayılır) → net +0,2205 m³ */
+t('Konya: statik eleman listesi net hacimle — toplam 371,87 m³ (brüt 390,98), perde 167,51 (brüt 179,34), metrajla aynı', () => {
+  const H = d.hacim; yak(H.net, 371.652 + 0.2205, 0.01); yak(H.brut, 390.589 + 0.39, 0.01, 'brüt');
+  yak(H.top.Perde, 167.505, 0.01); yak(H.top.Temel, 117.99, 0.01); yak(H.top.Kolon, 28, 0.01); yak(H.top['Kiriş'], 26.071 + 0.315, 0.01); yak(H.top['Döşeme'], 8.689 - 0.0945 + 23.397, 0.01);
   const pB = H.liste.filter(e => e.tur === 'perde').reduce((s, e) => s + e.brut, 0); yak(pB, 179.335, 0.01, 'perde brüt');
   assert.ok(!H.liste.some(e => /taban betonu|kaide/i.test(e.no || '')), 'zemine oturan döşeme statik eleman değildir');
   // metrajla aynı kaynak: yapi-cakisma.js net
@@ -48,16 +50,16 @@ t('Konya: statik eleman listesi net hacimle — toplam 371,65 m³ (brüt 390,59)
 t('kolon gusesi (vinç konsolu) metrajdaki gibi kolon hacmine eklenir: Konya 8 guse × 0,50 · 0,40 · (0,50 + 0,30)/2 = 0,64 m³', () => {
   const C = O.modelCevir(O.konyaDoc()).C, zt = U.z(U.OLCU.kot.guseUst);
   C.kolonGuse = e => (e.guse === 'E' ? [{ w: 0.5, gL: 0.4, zt, zf: zt - 0.5, zu: zt - 0.3, f0: 0.25, loc: () => [0, 1, 0] }] : []);
-  try { const H = O.modelCevir(O.konyaDoc()).d.hacim; yak(H.top.Kolon, 28.64, 1e-6); yak(H.net, 371.652 + 0.64, 1e-3); assert.strictEqual(H.liste.filter(e => e.guse).length, 8);
+  try { const H = O.modelCevir(O.konyaDoc()).d.hacim; yak(H.top.Kolon, 28.64, 1e-6); yak(H.net, 371.873 + 0.64, 1e-3); assert.strictEqual(H.liste.filter(e => e.guse).length, 8);
     const B = P.netHacimBol(H, -0.26); yak(B.ust.Kolon, 11.75 + 0.64, 1e-6, 'guse üst yapıda'); }
   finally { delete C.kolonGuse; }
 });
 
-t('statik eleman listesi yalnız hesaplanan yapıyı sayar: belgede ayrı bir bina (kolon / kiriş / döşeme, radyesiz) varken Konya yine 371,65 m³', () => {
+t('statik eleman listesi yalnız hesaplanan yapıyı sayar: belgede ayrı bir bina (kolon / kiriş / döşeme, radyesiz) varken Konya yine 371,87 m³', () => {
   const doc = O.konyaDoc(); let id = 9000; const ek = (o) => doc.ents.push(Object.assign({ id: id++, layer: '0' }, o));
   for (const [x, y] of [[100, 0], [105, 0], [105, 4], [100, 4]]) ek({ type: 'kolon', sek: 'R', b: 0.3, d: 0.3, h: 3, z0: 0, p: [x, y, 0] });
   ek({ type: 'kiris', a: [100, 0, 0], b: [105, 0, 0], bw: 0.25, hb: 0.5, zt: 3 }); ek({ type: 'plak', kind: 'doseme', pts: [[100, 0], [105, 0], [105, 4], [100, 4]], t: 0.15, zt: 3 });
-  const H = O.modelCevir(doc).d.hacim; yak(H.net, 371.652, 1e-3); assert.ok(!H.liste.some(e => e.id >= 9000));
+  const H = O.modelCevir(doc).d.hacim; yak(H.net, 371.873, 1e-3); assert.ok(!H.liste.some(e => e.id >= 9000));
 });
 t('perde ayağı (kicker, temelle birlikte dökülür) temeldir — metrajla aynı sınıf (yapi-cakisma.js tek yer)', () => {
   const Y = O.modelCevir(O.konyaDoc()).C.yapiCakisma; assert.strictEqual(Y.turu({ type: 'perde', malz: 'beton', kicker: true }), 'temel'); assert.strictEqual(Y.turu({ type: 'perde', malz: 'beton' }), 'perde');
@@ -88,7 +90,7 @@ t('statik ayar kaydı (yapı türü, zemin) ayrı bir geri alma adımıdır; ayn
 t('alt yapı üst kotunda (−0,26) kotla bölme: kolonların alt kısmı alt yapıda, alt + üst = net', () => {
   const B = P.netHacimBol(d.hacim, -0.26);
   yak(B.altTop + B.ustTop, d.hacim.net, 0.01); yak(B.alt.Kolon, 10 * 0.25 * 6.5, 0.01); yak(B.ust.Kolon, 10 * 0.25 * 4.7, 0.01);
-  yak(B.alt.Perde, 167.505, 0.01); assert.ok(!B.ust.Perde && !B.ust.Temel); yak(B.alt['Döşeme'], 8.689, 0.01, 'galeri döşemesi alt yapıda'); yak(B.ust['Döşeme'], 23.397, 0.01, 'çatı üst yapıda');
+  yak(B.alt.Perde, 167.505, 0.01); assert.ok(!B.ust.Perde && !B.ust.Temel); yak(B.alt['Döşeme'], 8.689 - 0.0945, 0.01, 'galeri döşemesi alt yapıda'); yak(B.ust['Döşeme'], 23.397, 0.01, 'çatı üst yapıda');
   const S2 = Object.assign({}, S, { yapi: { tur: 'altUst', altUstKot: -0.26 } }), NA = P.netAgirlik(S2); yak(NA.V, B.altTop, 1e-6); yak(NA.G, B.altTop * S.mal.gc, 1e-6);
 });
 t('çerçeve deprem ağırlığı: perde içindeki kolon izi iki kez sayılmaz', () => {

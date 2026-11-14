@@ -44,6 +44,16 @@ t('yürüme yolu kirişleri: 40×50 kenar kirişleri ve enine kirişler, üst +2
   const g = tip('plak').find(e => e.ad === 'Galeri döşemesi'), ic = (p, q) => { let c = false; for (let i = 0, j = q.length - 1; i < q.length; j = i++) if ((q[i][1] > p[1]) !== (q[j][1] > p[1]) && p[0] < (q[j][0] - q[i][0]) * (p[1] - q[i][1]) / (q[j][1] - q[i][1]) + q[i][0]) c = !c; return c; };
   for (const e of k) for (const t2 of [0.1, 0.5, 0.9]) assert.ok(ic([e.a[0] + (e.b[0] - e.a[0]) * t2, e.a[1] + (e.b[1] - e.a[1]) * t2], g.pts), 'kiriş döşeme altında');
 });
+t('merdiven boşluğu kenar kirişi 30/50 (14.11.2026): kısa serbest kenarda, uçları yürüme yolu kirişine ve A perdesi eksenine oturur; merdivenle çakışmaz', () => {
+  const k = tip('kiris').filter(e => e.ad === 'Merdiven boşluğu kenar kirişi'); assert.strictEqual(k.length, 1); const m = k[0];
+  yak(m.bw, 0.30, 1e-9); yak(m.hb, 0.50, 1e-9); yak(m.zt, U.z(205.41), 1e-9); yak(m.zt - m.hb, U.z(204.91), 1e-9);
+  yak(m.a[0] + m.bw / 2, 14.81, 1e-9); yak(m.b[0], m.a[0], 1e-9);                                  // dış yüz merdiven boşluğu kenarında (x 14,81)
+  const K2 = tip('kiris').find(e => e.ad === 'Yürüme yolu kirişi' && e.a[1] === 5.4 && e.b[1] === 5.4);
+  yak(m.a[1], 5.40, 1e-9); assert.ok(m.a[0] > K2.a[0] && m.a[0] < K2.b[0], 'başlangıç ucu y 5,40 yürüme yolu kirişinin üstünde');
+  const A = tip('perde').find(e => e.ad === 'Perde A aksı'); yak(m.b[1], A.pts[0][1], 1e-9);         // bitiş ucu A perdesi ekseninde
+  // M1 son kolu y 6,45 … 7,70, x 14,81'den başlar (13 rıht × 27 cm − 1 → 3,24 m, x 18,05 → 14,81): kirişin dış yüzüne değer, içine girmez
+  const M1 = tip('merdiven')[0]; yak(M1.pts[2][0] - M1.w / 2 - 12 * M1.b / 100, 14.81, 1e-9);
+});
 t('galeri döşemesi: vinç boşluğu ve merdiven boşluğu dışarıda, kalınlığı sabit', () => {
   const g = tip('plak').find(e => e.ad === 'Galeri döşemesi');
   assert.ok(g.tSabit); yak(g.t, 0.15, 1e-9); yak(g.zt, U.z(205.41), 1e-9);
