@@ -40,7 +40,7 @@
 - Statik çizimler Tasarım (model) alanına değil Statik disiplin pafta grubuna gider. Bir kez alınan kesit tüm disiplin paftalarında (Mimari, Mekanik, Statik, Elektrik) kendiliğinden görünür.
 - Disiplin paftalarında 3B perspektif görünüş bulunur; beton içindeki donatı 3B'de yalnız Statik disiplininde görünür.
 - Antet: çizimin değil, kullanıcının programa yüklediği kendi anteti kullanılır.
-- Terfi istasyonu mimari/mekanik plan ve kesit paftalarında ölçek 1/25 (1/50 küçük kalıyor); pafta sayısı kendiliğinden ayarlanır.
+- Pafta ölçeği bina ebatına göre seçilir (14.11.2026): plan ve kesitler önce 1/50 ile A0 ya da A1 paftaya yerleştirilir; sığıyorsa 1/50 kalır. Çizim paftada çok küçük kalıyorsa 1/25, A0'a sığmayacak kadar büyükse 1/100 verilir. (Eski kural: terfi istasyonu mimari/mekanik plan ve kesitlerinde 1/25 — artık bu seçimin "çok küçük kalıyor" durumu.) Pafta sayısı kendiliğinden ayarlanır.
 - Boru etiketlerinde genel malzeme adı yerine malzeme kalitesi yazılır (ör. SS304, SS304L, SS316, SS316L; "PASLANMAZ" değil). Tüm boru tipleri için geçerli.
 - Ünite numaraları ünite eklenip çıkarıldıkça yeniden numaralanır.
 - Çizim, pafta ve raporlar için dil seçeneği vardır ve tüm disiplinlere uygulanır.
