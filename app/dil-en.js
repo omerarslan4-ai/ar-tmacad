@@ -349,7 +349,6 @@
     ['Radye (# cm)', 'Raft (# cm)'], ['Tekil temel # × #', 'Isolated footing # × #'], ['Sürekli temel (B = #)', 'Strip footing (B = #)'], ['Perde mesnedi', 'Wall support'], ['Yük', 'Load'],
     ['Su yapısı — 3B kabuk (perde, radye, döşeme)', 'Water-retaining structure — 3D shell (walls, raft, slabs)'],
     ['Gömülü alt yapı + üst yapı — iki aşama (üst yapı çerçeve, alt yapı 3B kabuk)', 'Buried substructure + superstructure — two stages (superstructure frame, substructure 3D shell)'],
-    ['Yalnız üst yapı — çerçeve + temel (kabuk yok)', 'Superstructure only — frame + foundation (no shell)'],
     ['Su yapısı', 'Water-retaining structure'], ['Alt yapı + üst yapı', 'Substructure + superstructure'], ['Yalnız üst yapı', 'Superstructure only'],
     /* temel uyarıları / rapor (statik-temel.js), kayıtsız proje uyarısı (statik-yapi-turu.js), −%5 dışmerkezlik (statik-kabuk-arayuz.js), yüzme tablosu */
     ['UYGUN (kısmi temas %#)', 'ADEQUATE (partial contact #%)'],
@@ -372,7 +371,7 @@
     ['Temel öz ağırlığı', 'Foundation self-weight'], ['Kolon ayağı tepkileri (# kolon)', 'Column base reactions (# columns)'], ['doğrultusu', 'direction'], ['sığmıyor', 'does not fit'], ['Uyarı:', 'Warning:'], ['UYARI:', 'WARNING:'],
     ['değerleri projede kayıtlı değil — varsayılanlar kullanılıyor (zemin emniyet gerilmesi # kN/m², φ #°, S', 'values are not stored in the project — defaults are used (allowable soil pressure # kN/m², φ #°, S', 'ic'],
     ['lütfen statik penceresinde girin (ArıtmaCAD penceresi açıksa projeye kaydedilir).', 'please enter them in the structural window (saved to the project if the ArıtmaCAD window is open).'],
-    ['zemin ve deprem', 'soil and seismic'], ['Zemin / deprem değerleri projeye kaydedildi.', 'Soil / seismic values saved to the project.'],
+    ['zemin ve deprem', 'soil and seismic'], ['Zemin / deprem / malzeme değerleri projeye kaydedildi.', 'Soil / seismic / material values saved to the project.'],
     ['Üst yapı E-X ek dışmerkezlik farkı (−%5)', 'Superstructure E-X accidental eccentricity difference (−5%)'], ['Üst yapı E-Y ek dışmerkezlik farkı (−%5)', 'Superstructure E-Y accidental eccentricity difference (−5%)'], ['(−%5)', '(−5%)'],
     ['radye üstünde, net hacim # m³)', 'on the raft, net volume # m³)', 'ic'], ['(dolgu, net hacim # m³)', '(fill, net volume # m³)', 'ic'], ['(net hacim # m³)', '(net volume # m³)', 'ic'],
     ['üst kısmı bu hesapta tasarlanmadı: üst yapı çerçevesinde yalnız kiriş mesnedidir.', 'upper part is not designed in this calculation: it is only a beam support in the superstructure frame.'],

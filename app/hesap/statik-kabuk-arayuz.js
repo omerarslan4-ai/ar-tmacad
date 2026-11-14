@@ -139,6 +139,8 @@
   /* ---------- hesap ---------- */
   const NQ = 8, QI = { M11: 0, M22: 1, M12: 2, N11: 3, N22: 4, N12: 5, V13: 6, V23: 7 };
   P.kabukHesap = (S, ilerle) => {
+    // perde üstündeki tuğla duvarların ağırlığı (radye yükünden çıkarılanlar) bütün yollarda perde üstüne düğüm yükü olarak
+    const PU = P.perdeUstuDuvarYuk ? P.perdeUstuDuvarYuk(S) : []; if (PU.length) S = Object.assign({}, S, { kabuk: Object.assign({}, S.kabuk, { kolonYuk: (S.kabuk.kolonYuk || []).concat(PU) }) });
     const t0 = Date.now(), M = S.kabuk, MAL = P.malzeme(S.mal), g = S.geo;
     const Atop = M.walls.reduce((s, w) => { let L = 0; const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) { const a = w.pts[i], b = w.pts[(i + 1) % w.pts.length]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); } return s + L * (w.zt - M.radye.kAlt); }, 0) + area(M.radye.pts) + (M.dosemeler || []).reduce((s, d) => s + area(d.pts), 0);
     const h = +(S.tas.kmesh > 0 ? S.tas.kmesh : Math.min(1.0, Math.max(0.25, Math.round(Math.sqrt(Atop / 5000) * 20) / 20)));

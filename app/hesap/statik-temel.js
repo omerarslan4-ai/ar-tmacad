@@ -168,7 +168,7 @@
       const Mdis = mx(q => Math.max(Math.abs(q.d.Mt), Math.abs(q.e.Mt), Math.abs(q.i.Mac))), Mic = mx(q => Math.max(Math.abs(q.i.Mt), Math.abs(q.d.Mac), Math.abs(q.e.Mac))), Md = Math.max(Mdis, Mic);
       const Rd = { Vt: mx(q => q.d.Vt) }, Ri = { Vt: mx(q => q.i.Vt) }, Re = { Vt: mx(q => q.e.Vt) };
       const sec = P.donatiSec({ M: Md, Ms: Md / 1.5, h: t, c: S.mal.cP || 0.05, kat: 2, su: false }, S, MAL), Vd = Math.max(Rd.Vt, Ri.Vt, Re.Vt), ks = P.kesme(Vd, d, MAL);
-      out.push({ ad: w.ad || 'Perde', H, t, ust, Hs, dTop, qDos, Ks, K0, dK: IT.dK, kh: IT.kh, yontem: S.dep.yontem === 'WOOD' ? 'Wood' : 'Mononobe-Okabe', uyar, Mdis, Mic, Md, Vd, sec, kesme: ks, konsolMt: Math.abs(Rk.Mt), ok: !!(sec && sec.ok) && ks.ok,
+      out.push({ ad: w.ad || 'Perde', H, t, ust, Hs, dTop, qDos, Ks, K0, dK: IT.dK, kh: IT.kh, yontem: S.dep.yontem === 'WOOD' ? 'Wood' : 'Mononobe-Okabe', uyar, Mdis, Mic, Md, Vd, sec, kesme: ks, konsolMt: Math.abs(Rk.Mt), konsolMe: Math.abs(Z[0].e.Mt), ok: !!(sec && sec.ok) && ks.ok,
         not: H <= 2 ? 'H ≤ 2 m: düşey donatı filizsiz tek parça, iki ucu gönyeli (firma kuralı)' : H < 6 ? 'H > 2 m: temel filizi + bindirme' : 'H ≥ 6 m: üç parça, yarı yükseklikte inşaat derzi' }); }
     return out;
   };
@@ -178,15 +178,8 @@
   P.temelKabuk = (S, RC) => {
     const K0 = S.kabuk; if (!K0 || !K0.radye || !Array.isArray(K0.walls) || !K0.walls.length || !P.kabukHesap) return null;
     const T = RC && P.kolonTepki ? P.kolonTepki(RC) : [];
-    /* subasman perdesinin üstüne oturan tuğla duvar (ekseni bir perde ekseninden ≤ yarı kalınlık + 15 cm): ağırlığı duvar boyunca perde üstüne
-       (≈ 1 m aralıklı düğüm yükleri); iç bölgedeki duvarlar P.radyeUstYuk ile radyeye yayılır */
-    const dseg = (q, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)); return Math.hypot(a[0] + dx * u - q[0], a[1] + dy * u - q[1]); };
-    const perdeUstu = q => K0.walls.some(w => { const n = w.kapali ? w.pts.length : w.pts.length - 1; for (let i = 0; i < n; i++) if (dseg(q, w.pts[i], w.pts[(i + 1) % w.pts.length]) <= w.t / 2 + 0.15) return true; return false; });
-    const duvarYuk = [], z0 = [0, 0, 0, 0, 0, 0];
-    for (const e of ((S.temel && S.temel.ek) || []).filter(x => x.tur === 'duvar' && Array.isArray(x.eksen) && x.eksen.length >= 2)) { const E = e.eksen, n = e.kapali ? E.length : E.length - 1; let L = 0; for (let i = 0; i < n; i++) L += Math.hypot(E[(i + 1) % E.length][0] - E[i][0], E[(i + 1) % E.length][1] - E[i][1]);
-      const orta = E.map((a, i) => [(a[0] + E[(i + 1) % E.length][0]) / 2, (a[1] + E[(i + 1) % E.length][1]) / 2]).slice(0, n); if (!(L > 0) || !orta.every(perdeUstu)) continue; const W = e.V * (P.TEMEL_GAMMA_TUGLA || 12);
-      for (let i = 0; i < n; i++) { const a = E[i], b = E[(i + 1) % E.length], Li = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(Li)); for (let k = 0; k < m; k++) { const u = (k + 0.5) / m; duvarYuk.push({ id: null, no: `${e.ad || 'Duvar'} (perde üstü)`, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, z: null, F: { G: [0, 0, -W * Li / L / m, 0, 0, 0], Q: z0, 'EX+': z0, 'EX-': z0, 'EY+': z0, 'EY-': z0 } }); } } }
-    const K = Object.assign({}, K0, { kirisler: [], dosemeler: [], kolonYuk: P.kabukKolonYuku ? P.kabukKolonYuku(T.concat(duvarYuk)) : [] }); // zemine (dolguya) oturan döşeme kabuğa plak olarak girmez: yükü dolgu üstünden radyeye (P.radyeUstYuk), perde üstü serbest (konsol — güvenli taraf)
+    // perde üstündeki tuğla duvarlar: P.kabukHesap ekler (P.perdeUstuDuvarYuk — bütün kabuk yollarında ortak)
+    const K = Object.assign({}, K0, { kirisler: [], dosemeler: [], kolonYuk: P.kabukKolonYuku ? P.kabukKolonYuku(T) : [] }); // zemine (dolguya) oturan döşeme kabuğa plak olarak girmez: yükü dolgu üstünden radyeye (P.radyeUstYuk), perde üstü serbest (konsol — güvenli taraf)
     const tas = Object.assign({}, S.tas, { wmax: Math.max(+S.tas.wmax || 0, P.TEMEL_WMAX) }); // su tutmayan temel: çatlak sınırı (kabul)
     return P.kabukHesap(Object.assign({}, S, { kabuk: K, tas }));
   };

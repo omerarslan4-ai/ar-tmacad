@@ -62,6 +62,30 @@ t('kısmi temasta zımbalama q_net gerçek temas dağılımından: kolon temas d
   const zb = P.temelHesap(tekilS(), RCf(800)).temeller[0].zimb[0]; yak(zb.qn, 0, 1e-9); yak(zb.Vpd, zb.Nd, 1e-9);
 });
 
+t('perde üstündeki tuğla duvar bütün kabuk yollarında perdeye yüklenir (su yapısı: ara perde üstünde duvarlı sığ hazne — duvar ağırlığı radye tepkisinde)', () => {
+  const ents = [{ type: 'plak', kind: 'radye', pts: [[-0.5, -0.5], [8.5, -0.5], [8.5, 5.5], [-0.5, 5.5]], t: 0.4, zt: 0.4 },
+    ...[[[0, 0], [8, 0]], [[8, 0], [8, 5]], [[8, 5], [0, 5]], [[0, 5], [0, 0]], [[4, 0], [4, 5]]].map(pts => ({ type: 'perde', pts, closed: false, tb: 0.3, tt: 0.3, egim: 'R', hiza: 'O', ofs: 0, malz: 'beton', z0: 0.4, h: 1.0 })),
+    { type: 'perde', pts: [[4, 0.15], [4, 4.85]], closed: false, tb: 0.2, tt: 0.2, egim: 'R', hiza: 'O', ofs: 0, malz: 'tugla', z0: 1.4, h: 2.5 }]
+    .map((e, i) => Object.assign({ id: i + 1, layer: '0' }, e));
+  const { d: dh } = O.modelCevir({ ents, layers: {}, set: {} }), Sh = O.uygula(P.ornekSaray(), JSON.parse(JSON.stringify(dh)));
+  assert.strictEqual(Sh.yapi.tur, 'su'); const du = dh.temel.ek.find(e => e.tur === 'duvar'); assert.ok(du && P.duvarPerdeUstu(du, Sh.kabuk.walls), 'duvar ara perdenin üstünde');
+  const Wd = du.V * P.TEMEL_GAMMA_TUGLA, PU = P.perdeUstuDuvarYuk(Sh); yak(-PU.reduce((s, q) => s + q.F.G[2], 0), Wd, 1e-9); assert.ok(!P.radyeUstYuk(Sh).some(y => y.tur === 'duvar'), 'radye yükünde değil');
+  Sh.tas.kmesh = 0.5; Sh.dep.SDS = 0; const r = P.kabukHesap(Sh), AG = r.AG, kz = Sh.zemin.kw, trib = new Float64Array(AG.nodes.length); for (const e of AG.els) if (e.tur === 'radye') for (const k of e.n) trib[k] += e.A / 4;
+  let yay = 0; for (let i = 0; i < AG.nodes.length; i++) if (trib[i] > 0) yay += -kz * trib[i] * r.U.G[i * 6 + 2]; let W = 0; for (const e of AG.els) W += Sh.mal.gc * e.t * e.A;
+  yak(yay, W + Wd, 1e-3 * (W + Wd), 'radye tepkisi = kabuk öz ağırlığı + duvar');
+});
+t('kolon tepkisinin radyeye dağıtımı düzensiz düğüm kümesinde (Sxy ≠ 0) de bileşkeyi korur', () => {
+  // 45° kesik köşeli radye; kolon kesik kenarın yanında → kolon izi düğüm kümesi simetrik değil
+  const M = { walls: [{ ad: 'P', pts: [[0, 0], [6, 0]], t: 0.3, zt: 2, tip: 'dis' }], radye: { pts: [[-0.5, -0.5], [6.5, -0.5], [6.5, 3], [3, 6.5], [-0.5, 6.5]], t: 0.5, kAlt: -0.5 }, dosemeler: [],
+    kolonYuk: [{ id: 99, no: 'S', x: 4.6, y: 4.6, z: 0, bx: 0.6, by: 0.6, F: { G: [3, -2, -500, 40, -70, 5] } }] };
+  const AG = P.kabukAg(M, { h: 0.25, kotlar: [] }), L = AG.dugumYuk.G.filter(x => x.ad === 'S'), q = M.kolonYuk[0];
+  const cx = L.reduce((s, x) => s + AG.nodes[x.n][0], 0) / L.length, cy = L.reduce((s, x) => s + AG.nodes[x.n][1], 0) / L.length, Sxy = L.reduce((s, x) => s + (AG.nodes[x.n][0] - cx) * (AG.nodes[x.n][1] - cy), 0);
+  assert.ok(Math.abs(Sxy) > 0.05, 'düzensiz küme: Sxy ' + Sxy);
+  const R = [0, 0, 0, 0, 0, 0]; for (const x of L) { const p = AG.nodes[x.n], rr = [p[0] - q.x, p[1] - q.y, p[2] - q.z], f = x.f; for (let k = 0; k < 3; k++) R[k] += f[k]; R[3] += f[3] + rr[1] * f[2] - rr[2] * f[1]; R[4] += f[4] + rr[2] * f[0] - rr[0] * f[2]; R[5] += f[5] + rr[0] * f[1] - rr[1] * f[0]; }
+  q.F.G.forEach((v, k) => yak(R[k], v, 1e-6 * (1 + Math.abs(v)), 'bileşen ' + k));
+  assert.ok(L.every(x => x.f[3] === 0 && x.f[4] === 0), 'Mx, My düşey kuvvet çiftiyle');
+});
+
 t('temel yoksa hesap yapılmaz, uyarı verilir; kolon temelin dışındaysa söylenir', () => {
   const S = tekilS(); S.temel = null; const T = P.temelHesap(S, RCf(0)); assert.ok(!T.ok && /temel/.test(T.uyar[0]));
   const S2 = tekilS(), RC = RCf(0); RC.kolonlar[0].x = 5; const T2 = P.temelHesap(S2, RC); assert.ok(T2.uyar.some(u => /altında temel bulunamadı/.test(u)));
@@ -107,7 +131,11 @@ t('şerit perde (elle): üçgen yük K·γ·(H − z), H 1,05 — konsol M = Kγ
   });
   t('subasman deprem itkisi: Wood seçilince ΔP = kh·γ·H² (S.dep.yontem), M-O tanımsızsa 0 + uyarı (NaN yok)', () => {
     const mo = P.subasmanHesap(SB)[0], SW = JSON.parse(JSON.stringify(SB)); SW.dep.yontem = 'WOOD'; const wd = P.subasmanHesap(SW)[0];
-    assert.strictEqual(wd.yontem, 'Wood'); assert.ok(isFinite(wd.Md) && Math.abs(wd.Md - mo.Md) > 1e-3, 'yöntem seçimi sonucu değiştirir');
+    assert.strictEqual(wd.yontem, 'Wood');
+    // elle (konsol, Wood, depremli kombinasyon G+Q+E: toprak + sürşarj + Wood artışı + atalet), Hs = 0,75, H = 1,05, γ 18, q 5:
+    //   toprak  Ks·(γ·Hs³/6 + q·Hs²/2) ; Wood toprak kh·γ·Hs·Hs²/2 ; Wood sürşarj (ters üçgen, dPq = kh·q·Hs) 2·dPq·Hs/3 ; atalet kh·γb·t·H²/2
+    const kh = 0.4 * SW.dep.SDS / SW.dep.r, Ks = P.itki(SW).Ks, Hs = 0.75, el = Ks * (18 * Hs ** 3 / 6 + 5 * Hs * Hs / 2) + kh * 18 * Hs * Hs * Hs / 2 + 2 * (kh * 5 * Hs) * Hs / 3 + kh * SW.mal.gc * 0.2 * 1.05 ** 2 / 2;
+    yak(wd.konsolMe, el, 0.015 * el, 'Wood elle'); assert.ok(isFinite(wd.Md) && Math.abs(wd.Md - mo.Md) > 1e-3, 'yöntem seçimi sonucu değiştirir');
     const SN = JSON.parse(JSON.stringify(SB)); SN.zemin.phi = 5; SN.dep.SDS = 2.5; SN.dep.r = 1; const nn = P.subasmanHesap(SN)[0];
     assert.ok(isFinite(nn.Md) && isFinite(nn.Vd) && nn.uyar.some(u => /Mononobe-Okabe dinamik toprak itkisi tanımsız/.test(u)));
   });
@@ -122,9 +150,9 @@ t('şerit perde (elle): üçgen yük K·γ·(H − z), H 1,05 — konsol M = Kγ
     yak(yay, W + ry, 1e-3 * (W + ry), 'zemin tepkisi = öz ağırlık + kolon / duvar yükleri + radye üstü yük');
     assert.ok(r.bilgi.some(s => /4 kolon ayağı tepkisi ve \d+ ek yük/.test(s)), 'perde üstündeki tuğla duvarlar perde üstüne');
     // perde üstündeki 4 tuğla duvar yalnız perde yükü; radye yükünde yalnız iç bölme duvarı (iki kez sayılmaz)
-    const ekD = dB.temel.ek.filter(e => e.tur === 'duvar'); assert.strictEqual(ekD.filter(e => P.duvarPerdeUstu(e)).length, 4);
+    const ekD = dB.temel.ek.filter(e => e.tur === 'duvar'); assert.strictEqual(ekD.filter(e => P.duvarPerdeUstu(e, SB.kabuk.walls)).length, 4);
     const RYd = P.radyeUstYuk(Object.assign({}, SB, { kabuk: Object.assign({}, SB.kabuk, { dosemeler: [] }) })).filter(y => y.tur === 'duvar'); assert.strictEqual(RYd.length, 1);
-    assert.ok(!RYd.some(y => ekD.filter(e => P.duvarPerdeUstu(e)).some(e => e.id === y.id)));
+    assert.ok(!RYd.some(y => ekD.filter(e => P.duvarPerdeUstu(e, SB.kabuk.walls)).some(e => e.id === y.id)));
     // kolon tepkisinin radye düğümlerine dağıtımı: her kolon ve durum için dağıtılan kuvvetlerin bileşkesi (kuvvet ve kolon noktasına göre
     // moment) girilen tepkiye eşit — Mx = Σ dy·fz, My = −Σ dx·fz (eski hatada moment çifti ters işaretliydi)
     const Tk = P.kabukKolonYuku(P.kolonTepki(RC)); let sayM = 0;
