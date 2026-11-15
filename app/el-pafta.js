@@ -17,7 +17,7 @@
   const uzun = e => e.pts.reduce((s, p, i) => i ? s + M.dist2(e.pts[i - 1], p) : 0, 0);
 
   /* tek kelimelik Türkçe karşılıklar yalnız satırın tamamına uygulanır: programın başka yerlerindeki metinlere sızmasın (denetim 15.11.2026) */
-  const IC_IFADE = new Set(["PANOSUNDAN","PANOSUNA","ACİL","APLİK","ELEKTRİK","TOPRAKLAMA","PROJESİ","NOTLAR:"]), satirla = L => L.map(e => (e.length === 2 && !/\s/.test(e[0]) && !IC_IFADE.has(e[0])) ? [e[0], e[1], 'satir'] : e);
+  const IC_IFADE = new Set(["PANOSUNDAN","PANOSUNA","ACİL","APLİK","ELEKTRİK","TOPRAKLAMA","PROJESİ","NOTLAR:","BESLEYEN:"]), satirla = L => L.map(e => (e.length === 2 && !/\s/.test(e[0]) && !IC_IFADE.has(e[0])) ? [e[0], e[1], 'satir'] : e);
   /* ======================= LEJANT, NOTLAR, DETAY (kâğıt mm) ======================= */
   /* sembolün kendi 2B çizimi (C.prims) kâğıt mm'ye çevrilir: model m × 1000 / açıklama ölçeği */
   const sembolG = (c, o, x, y) => { const k = 1000 / (+C.doc.set.anno || 50), e = Object.assign({ id: -1, type: 'elcihaz', z0: 0, p: [0, 0], ang: 0, on: [0, 1] }, o); let pr = []; try { pr = C.T.elcihaz.prims(e); } catch (er) { }
