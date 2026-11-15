@@ -1,5 +1,5 @@
 /* ArıtmaCAD — ücretsiz 3B model kütüphaneleri (kapı, pencere, ekipman…)
-   glTF / GLB / ZIP(glTF) / OBJ / STL okuma, Poly Haven (CC0, anahtarsız) ve Sketchfab (ücretsiz hesap anahtarı) arama-indirme */
+   glTF / GLB / ZIP(glTF) / OBJ / STL / COLLADA (.dae, KMZ — SketchUp 3D Warehouse; okuyucu dae-oku.js) okuma, Poly Haven (CC0, anahtarsız) ve Sketchfab (ücretsiz hesap anahtarı) arama-indirme */
 (function (C) {
   'use strict';
   const M = C.M;
@@ -84,6 +84,20 @@
     while (off + 8 <= len) { const cl = dv.getUint32(off, true), ct = dv.getUint32(off + 4, true); const data = buf.slice(off + 8, off + 8 + cl); if (ct === 0x4E4F534A) json = JSON.parse(new TextDecoder().decode(data)); else if (ct === 0x004E4942) bin = data; off += 8 + cl + ((4 - cl % 4) % 4); }
     if (!json) throw new Error('GLB içinde glTF bilgisi yok'); return { json, bin };
   };
+  /* resim dosyasının ortalama rengi (doku → tek renk) */
+  const ortRenk = async ab => {
+    try {
+      const bmp = await createImageBitmap(new Blob([ab])), cv = document.createElement('canvas'); cv.width = cv.height = 8; const x = cv.getContext('2d'); x.drawImage(bmp, 0, 0, 8, 8);
+      const d = x.getImageData(0, 0, 8, 8).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } const n = d.length / 4;
+      return [r / n / 255, g / n / 255, b / n / 255];
+    } catch (e) { return null; }
+  };
+  /* COLLADA metni → model; dokular getRes(yol) ile bulunur */
+  const daeModel = async (ab, getRes) => {
+    const m = C.daeOku.oku(new TextDecoder().decode(ab));
+    await C.daeOku.renkle(m, async yol => { const b = getRes ? await getRes(yol) : null; return b ? ortRenk(b) : null; });
+    return m;
+  };
   const normPath = p => decodeURIComponent(String(p)).replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
   const joinPath = (dir, p) => { const parts = (dir ? dir + '/' : '').concat(p).split('/'), o = []; for (const s of parts) { if (s === '..') o.pop(); else if (s && s !== '.') o.push(s); } return o.join('/'); };
   /* her biçimden 3B model -> {v, f, fc} */
@@ -91,7 +105,7 @@
     const low = name.toLowerCase(), ab = buf instanceof ArrayBuffer ? buf : buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
     const head = new Uint8Array(ab, 0, Math.min(4, ab.byteLength));
     if (low.endsWith('.glb') || (head[0] === 0x67 && head[1] === 0x6C && head[2] === 0x54 && head[3] === 0x46)) { const { json, bin } = C.readGLB(ab); return C.parseGLTF(json, bin, getRes); }
-    if (low.endsWith('.zip') || (head[0] === 0x50 && head[1] === 0x4B)) {
+    if (/\.(zip|kmz)$/.test(low) || (head[0] === 0x50 && head[1] === 0x4B)) {
       const files = await C.unzip(ab), map = new Map(); for (const f of files) map.set(normPath(f.name), f);
       const glb = files.find(f => /\.glb$/i.test(f.name)); if (glb) return C.loadModelBuffer(glb.name, glb.data);
       const gf = files.find(f => /\.gltf$/i.test(f.name));
@@ -100,12 +114,19 @@
         const res = async uri => { const k = joinPath(dir, normPath(uri)); let f = map.get(k); if (!f) { const bn = k.split('/').pop(); f = files.find(x => normPath(x.name).split('/').pop() === bn); } return f ? f.data.buffer.slice(f.data.byteOffset, f.data.byteOffset + f.data.byteLength) : null; };
         return C.parseGLTF(JSON.parse(new TextDecoder().decode(gf.data)), null, res);
       }
+      const daes = files.filter(f => /\.dae$/i.test(f.name)).sort((a, b) => b.data.byteLength - a.data.byteLength); // KMZ: models/*.dae (en büyüğü)
+      if (daes.length) {
+        const df = daes[0], dir = normPath(df.name).split('/').slice(0, -1).join('/');
+        const res = async uri => { const k = joinPath(dir, normPath(uri).replace(/^file:\/+/, '')); let f = map.get(k); if (!f) { const bn = k.split('/').pop(); f = files.find(x => normPath(x.name).split('/').pop() === bn); } return f ? f.data.buffer.slice(f.data.byteOffset, f.data.byteOffset + f.data.byteLength) : null; };
+        return daeModel(df.data.buffer.slice(df.data.byteOffset, df.data.byteOffset + df.data.byteLength), res);
+      }
       const other = files.find(f => /\.(obj|stl)$/i.test(f.name)); if (other) return C.loadModelBuffer(other.name, other.data);
-      throw new Error('ZIP içinde GLB / glTF / OBJ / STL bulunamadı');
+      throw new Error('ZIP / KMZ içinde GLB / glTF / DAE / OBJ / STL bulunamadı');
     }
     if (low.endsWith('.gltf')) return C.parseGLTF(JSON.parse(new TextDecoder().decode(ab)), null, getRes);
+    if (low.endsWith('.dae')) return daeModel(ab, getRes);
     if (/\.(obj|stl)$/.test(low)) { const m = C.readModel(name, ab); if (!m.f.length) throw new Error('Modelde üçgen bulunamadı'); return m; }
-    if (/\.(skp|dae|fbx|3ds|blend|dwg|rfa|ifc|step|stp|igs|iges)$/.test(low)) throw new Error(`${low.split('.').pop().toUpperCase()} biçimi doğrudan okunamıyor. Siteden GLB, glTF, OBJ ya da STL olarak indirin (SketchUp modelleri için: SketchUp'ta açıp STL/OBJ dışa aktarın).`);
+    if (/\.(skp|fbx|3ds|blend|dwg|rfa|ifc|step|stp|igs|iges)$/.test(low)) throw new Error(`${low.split('.').pop().toUpperCase()} biçimi doğrudan okunamıyor. Siteden GLB, glTF, DAE (Collada), KMZ, OBJ ya da STL olarak indirin (3D Warehouse: indirme menüsünden "Collada" ya da "KMZ" seçin).`);
     throw new Error('Tanınmayan model biçimi');
   };
 
@@ -114,7 +135,7 @@
   const UNITK = { m: 1, cm: 0.01, mm: 0.001, in: 0.0254 };
   C.TUR_KATMAN = { 'Kapı': ['MIMARI_KAPI', 32], 'Pencere': ['MIMARI_PENCERE', 140], 'Merdiven': ['MIMARI', 8], 'Korkuluk': ['MIMARI', 8], 'Mobilya': ['DONATI', 42], 'Pompa': ['POMPA', 5], 'Ekipman': ['EKIPMAN', 4], 'Vana': ['VANA', 1], 'İnsan': ['CEVRE', 8], 'Ağaç': ['CEVRE', 82], 'Araç': ['CEVRE', 8], 'Elektrik': ['ELEKTRIK', 6] };
   C.modelToDef = function (mesh, meta) {
-    let v = mesh.v.map(p => [p[0], p[1], p[2]]); const k = UNITK[meta.unit || 'm'] || 1; if (k !== 1) v = v.map(p => p.map(x => x * k));
+    let v = mesh.v.map(p => [p[0], p[1], p[2]]); const k = mesh.birimli ? 1 : (UNITK[meta.unit || 'm'] || 1); // DAE / KMZ kendi birimini taşır, metreye çevrilmiş gelir if (k !== 1) v = v.map(p => p.map(x => x * k));
     let bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; for (const p of v) for (let i = 0; i < 3; i++) { bb[i] = Math.min(bb[i], p[i]); bb[i + 3] = Math.max(bb[i + 3], p[i]); }
     let s = 1; if (meta.targetH > 0 && bb[5] - bb[2] > 1e-9) s = meta.targetH / (bb[5] - bb[2]);
     const cx = (bb[0] + bb[3]) / 2, cy = (bb[1] + bb[4]) / 2, z0 = bb[2], r = x => Math.round(x * 1e4) / 1e4;
@@ -176,7 +197,7 @@
   const OTHER = [
     ['Poly Pizza', 'https://poly.pizza', 'Düşük poligonlu binlerce model (CC0 / CC-BY). "Download → GLB" seçin.'],
     ['Kenney', 'https://kenney.nl/assets?q=3d', 'CC0 model paketleri (şehir, mobilya, araç). ZIP içindeki GLB / OBJ dosyalarını yükleyin.'],
-    ['SketchUp 3D Warehouse', 'https://3dwarehouse.sketchup.com', 'Kapı, pencere, ekipman. SKP doğrudan okunmaz: SketchUp\'ta açıp STL / OBJ olarak dışa aktarın.'],
+    ['SketchUp 3D Warehouse', 'https://3dwarehouse.sketchup.com', 'Kapı, pencere, ekipman. İndirme menüsünden "Collada (.dae)" ya da "KMZ" seçip dosyayı buraya sürükleyin (SKP doğrudan okunmaz).'],
     ['BIMobject', 'https://www.bimobject.com', 'Üretici BIM nesneleri (kapı, pencere, pompa, vana). OBJ ya da 3DS/IFC yerine "OBJ" indirin.'],
     ['GrabCAD Library', 'https://grabcad.com/library', 'Mühendislik modelleri (pompa, vana, blower, mikser). STL olarak indirin.'],
     ['Grundfos Product Center', 'https://product-selection.grundfos.com', 'Pompa CAD çizimleri (DWG / 3B). 3B için STL / OBJ seçin.'],
@@ -199,7 +220,7 @@
       <p class="hint" id="mlNote"></p>
       <div id="mlRes" class="blgrid"><p class="hint">Bir kategori seçin ya da arayın. Türkçe yazabilirsiniz (kapı → door).</p></div>
       <div class="bar"><button id="mlMore" style="display:none">Daha fazla…</button></div>
-      <div id="mlDrop" class="drop-zone">📂 İndirdiğiniz modeli buraya sürükleyin ya da <button id="mlFile">dosya seçin</button> — GLB, glTF (ZIP), OBJ, STL</div>
+      <div id="mlDrop" class="drop-zone">📂 İndirdiğiniz modeli buraya sürükleyin ya da <button id="mlFile">dosya seçin</button> — GLB, glTF (ZIP), DAE / KMZ (3D Warehouse), OBJ, STL</div>
       <h3>Diğer ücretsiz kaynaklar</h3>
       <ul class="mllinks">${OTHER.map(([n, u, d]) => `<li><a href="${u}" target="_blank" rel="noopener">${esc(n)}</a> — <span class="hint">${esc(d)}</span></li>`).join('')}</ul>
       <p class="hint">İndirilen modeller blok kütüphanenize (Kütüphane → Sizin bloklarınız) kaydedilir; planda üstten görünüş sınırı, 3B'de malzeme renkleriyle görünür ve malzeme listesinde (BOM) sayılır. Lisans ve yazar bilgisi bloğa yazılır.</p>`);
@@ -243,14 +264,14 @@
       try { const mesh = await C.loadModelBuffer(f.name, await f.arrayBuffer()); const def = C.modelToDef(mesh, { name: f.name.replace(/\.[^.]+$/, ''), src: f.name, tur: $('#mlTur').value, targetH: parseFloat($('#mlH').value) || 0, unit: $('#mlUnit').value }); finish(def, confirm(`"${def.name}" kütüphaneye eklendi (${def.dims.join(' × ')} m). Şimdi çizime yerleştirilsin mi?`)); }
       catch (e) { C.warn('Model okunamadı: ' + e.message); alert('Model okunamadı: ' + e.message); }
     };
-    $('#mlFile').onclick = async () => { const f = await C.pickFile('.glb,.gltf,.zip,.obj,.stl'); if (f) fromFile(f); };
+    $('#mlFile').onclick = async () => { const f = await C.pickFile('.glb,.gltf,.zip,.dae,.kmz,.obj,.stl'); if (f) fromFile(f); };
     const dz = $('#mlDrop'); dz.ondragover = e => { e.preventDefault(); dz.classList.add('on'); }; dz.ondragleave = () => dz.classList.remove('on');
     dz.ondrop = e => { e.preventDefault(); dz.classList.remove('on'); const f = e.dataTransfer.files[0]; if (f) fromFile(f); };
     if (st.q) run();
   };
-  C.addCommand(['MODELKUTUPHANESI', '3BKUTUPHANE', 'MODELARA', 'MODELINDIR'], 'Ücretsiz 3B model kütüphanesi: Poly Haven ve Sketchfab\'da kapı, pencere, pompa, ekipman arayıp indirir; GLB / glTF / OBJ / STL dosyası da yüklenebilir', async () => C.openModelLib(), { noUndo: true });
-  C.addCommand(['MODELYUKLE3', 'GLBYUKLE', 'GLTFYUKLE'], 'GLB / glTF (ZIP) / OBJ / STL 3B modelini kütüphaneye ekler (zemine oturur, ortalanır)', async (I) => {
-    const f = await C.pickFile('.glb,.gltf,.zip,.obj,.stl'); if (!f) return;
+  C.addCommand(['MODELKUTUPHANESI', '3BKUTUPHANE', 'MODELARA', 'MODELINDIR'], 'Ücretsiz 3B model kütüphanesi: Poly Haven ve Sketchfab\'da kapı, pencere, pompa, ekipman arayıp indirir; GLB / glTF / DAE / KMZ / OBJ / STL dosyası da yüklenebilir', async () => C.openModelLib(), { noUndo: true });
+  C.addCommand(['MODELYUKLE3', 'GLBYUKLE', 'GLTFYUKLE'], 'GLB / glTF (ZIP) / DAE / KMZ / OBJ / STL 3B modelini kütüphaneye ekler (zemine oturur, ortalanır; DAE / KMZ kendi birimini kullanır)', async (I) => {
+    const f = await C.pickFile('.glb,.gltf,.zip,.dae,.kmz,.obj,.stl'); if (!f) return;
     const unit = await I.kw('Model birimi', [['m'], ['cm'], ['mm'], ['in']], 'm');
     const h = await I.num('Gerçek yükseklik (m, 0 = modeldeki)', 0);
     const mesh = await C.loadModelBuffer(f.name, await f.arrayBuffer()); const def = C.modelToDef(mesh, { name: f.name.replace(/\.[^.]+$/, ''), src: f.name, unit, targetH: h || 0, tur: 'Ekipman' });
