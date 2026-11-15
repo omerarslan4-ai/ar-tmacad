@@ -159,7 +159,7 @@
     if (!e) return null; let W = 0, ad = '', zm = 0.3;
     if (e.type === 'mtrad') { if (e.tip !== 'E') return null; W = +e.Qn || 0; ad = `ELEKTRİKLİ ISITICI ${e.no || ''} (${Math.round(W)} W)`; zm = 0.3; }
     else if (e.type === 'mtfc') { if (e.tip === 'split') { W = Math.round((+e.Qn || 0) / EL.EER) + 30; ad = `SPLIT KLİMA ${e.no || ''} (${((+e.Qn || 0) / 1000).toFixed(1).replace('.', ',')} kW SOĞUTMA)`; zm = (e.zm != null ? +e.zm : 2.2) + 0.1; } else { W = 60; ad = `FANCOIL ${e.no || ''}`; zm = 2.6; } }
-    else if (e.type === 'mthv') { if (!/fan$|rooftop/.test(e.kind || '')) return null; W = +e.W || +e.P || Math.max(30, Math.round((+e.V || 0) * (e.kind === 'rooftop' ? 0.35 : 0.04))); ad = `${({ duvarfan: 'DUVAR TİPİ FAN', kanalfan: 'KANAL TİPİ FAN', catifan: 'ÇATI FANI', hucrefan: 'HÜCRELİ FAN', rooftop: 'ROOFTOP' })[e.kind] || 'FAN'} ${e.no || ''}`; zm = 2.4; }
+    else if (e.type === 'mthv') { if (!/fan$|rooftop/.test(e.kind || '')) return null; W = e.kind === 'rooftop' && +e.Qs > 0 ? Math.round(+e.Qs * 1000 / EL.EER + (+e.V || 0) * 0.04) /* rooftop: soğutma gücü / EER + fan */ : (+e.W || +e.P || Math.max(30, Math.round((+e.V || 0) * (e.kind === 'rooftop' ? 0.35 : 0.04)))); ad = `${({ duvarfan: 'DUVAR TİPİ FAN', kanalfan: 'KANAL TİPİ FAN', catifan: 'ÇATI FANI', hucrefan: 'HÜCRELİ FAN', rooftop: 'ROOFTOP' })[e.kind] || 'FAN'} ${e.no || ''}`; zm = 2.4; }
     else return null;
     if (!(W > 0)) return null;
     return { W: Math.round(W), ad: ad.replace(/\s+/g, ' ').replace(' (', ' (').trim(), faz: W > 3680 ? 3 : 1, zm, tur: e.type };

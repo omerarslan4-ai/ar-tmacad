@@ -182,7 +182,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = EL;
 
   /* çeviri: detay, tablo ve LED açıklamaları (satırın tamamı ya da metin içi ifade; '#' sayı) */
-  const satirla = L => L.map(e => (e.length === 2 && !/s/.test(e[0])) ? [e[0], e[1], 'satir'] : e); /* tek kelimeler yalnız tam satırda */
+  const satirla = L => L.map(e => (e.length === 2 && !/\s/.test(e[0])) ? [e[0], e[1], 'satir'] : e); /* tek kelimeler yalnız tam satırda */
   if (typeof window !== 'undefined' && window.DIL) window.DIL.ekle('en', 'English', satirla([
     ['TOPRAKLAMA BARASI TB-1', 'EARTHING BAR TB-1'], ['40x5 mm ELEKTROLİTİK BAKIR, 400 mm, KALAYLI', '40x5 mm ELECTROLYTIC COPPER, 400 mm, TINNED'], ['MESNET İZOLATÖRÜ', 'STANDOFF INSULATOR'], ['(EPOKSİ, M8, 40 mm)', '(EPOXY, M8, 40 mm)'],
     ['M10 PASLANMAZ CİVATA, PUL, YAYLI PUL, SOMUN', 'M10 STAINLESS BOLT, WASHER, SPRING WASHER, NUT'], ['PANO PE İLETKENİ — 16 mm² NYAF (sarı-yeşil)', 'PANEL PE CONDUCTOR — 16 mm² NYAF (green-yellow)'],

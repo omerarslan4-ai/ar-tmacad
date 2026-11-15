@@ -241,7 +241,7 @@
     const pano = add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'pano', sys: 'ayd', kod: st.pano, p: nokta(kP, sP), ang: Math.atan2(kP.u[1], kP.u[0]), on: kP.n, zm: 1.5 }, base0)));
     /* mekanik ekipman beslemesi (firma kuralı 15.11.2026): elektrikli ısıtıcı, klima, fan — her biri besleme noktası + kendi linyesi */
     const mekEk = [];
-    for (const m of C.doc.ents) { const g = EL.mekGuc(m); if (!g || !m.p) continue; const ma = oda(m.mid) || MT.mahaller().find(o => MT.inPoly([m.p[0], m.p[1]], o.pts)); if (!ma) continue;
+    for (const m of C.doc.ents) { const g = EL.mekGuc(m); if (!g) continue; const ma = m.p ? (oda(m.mid) || MT.mahaller().find(o => MT.inPoly([m.p[0], m.p[1]], o.pts))) : null; if (!ma) { uyari.push(`${g.ad}: mahali bulunamadı, besleme noktası konamadı — Elektrik ▸ Eleman ekle ile elle koyun ve linye verin (mekanik ekipman göz ardı edilmez).`); continue; }
       const ks = (kat.find(q => q.x.e === ma) || { K: kenarlar(ma) }).K; let bk = null, bd = Infinity; for (const k of ks) { const d = M.segDist([m.p[0], m.p[1]], k.a, k.b); if (d < bd) { bd = d; bk = k; } }
       if (!bk) continue; const s0 = (m.p[0] - bk.a[0]) * bk.u[0] + (m.p[1] - bk.a[1]) * bk.u[1], yarim = (m.type === 'mtrad' ? (+m.L || 0.6) : m.type === 'mtfc' ? 0.45 : 0.2) / 2 + 0.2;
       const bosMu = q => { const r = nokta(bk, q); return !yeni.some(c => c.type === 'elcihaz' && c.kind !== 'armatur' && c.kind !== 'dedektor' && Math.hypot(c.p[0] - r[0], c.p[1] - r[1]) < 0.35); };

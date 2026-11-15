@@ -105,5 +105,5 @@ Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince �
 ## 12. Mekanik ekipman beslemesi (firma kuralı 15.11.2026: "mekanik ekipmanları göz ardı etmeden projeye eklenmesi gerekiyor")
 - Mekanik tesisattaki her elektrikli cihaz (elektrikli ısıtıcı, split klima iç ünitesi, fancoil, fan, rooftop) için cihazın yanındaki en yakın boş duvara sigortalı bağlantı kutusu (`mekbes`) konur. Isıtıcıda +0,30 m, klimada iç ünite kotu, fanda +2,40 m.
 - Her cihaz panodan **kendi linyesiyle** beslenir: sigorta ≥ 16 A (1,25 × çalışma akımı), kablo sigortadan büyük akım taşıyan en küçük NYA (en az 2,5 mm²), 3,68 kW üstü üç faz.
-- Güç: ısıtıcı = cihaz gücü; split klima = soğutma kapasitesi / EER 3,2 + 30 W; fancoil 60 W; fan = katalog gücü (yoksa 0,04 W/(m³/h), en az 30 W).
+- Güç: ısıtıcı = cihaz gücü; split klima = soğutma kapasitesi / EER 3,2 + 30 W; fancoil 60 W; rooftop = soğutma gücü / EER 3,2 + 0,04 W/(m³/h) fan; fan = katalog gücü (yoksa 0,04 W/(m³/h), en az 30 W). Mahali bulunamayan cihaz atlanmaz, uyarı verilir (elle besleme noktası konur).
 - Tek hat şemasında, yükleme cetvelinde (açıklama: cihaz adı ve mahal), semboller listesinde ve raporda (§8a) görünür.
