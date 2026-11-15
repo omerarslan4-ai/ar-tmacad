@@ -79,7 +79,12 @@
     bara: e => { const F = cerceve(e), w = sb('kutu') * 2.5, hh = sb('kutu') * 0.6, h = C.annoH(mm('etiket')), o = e.alt ? sb('tabloH') + h * 3.2 : 0; /* panonun altındaki bara: planda pano sembolünün önüne çizilir, duvara kılavuz çizgisi */
       return [S([F.P(-w / 2, o), F.P(w / 2, o), F.P(w / 2, o + hh), F.P(-w / 2, o + hh)]), P([F.P(-w / 2, o), F.P(w / 2, o), F.P(w / 2, o + hh), F.P(-w / 2, o + hh)], true)].concat(o ? [L(F.P(-w / 2 - h * 0.6, 0), F.P(-w / 2 - h * 0.6, o + hh), { lt: 'HIDDEN' })] : []).concat([yaziT(F.P(0, o + hh + h * 1.2), h, (e.no || 'TB-1') + (e.alt ? ' (+0,30)' : ''), okunur(e.ang || 0), 'MC')]); },
   };
-  const AD = { armatur: 'Armatür', anahtar: 'Anahtar', priz: 'Priz', pano: 'Aydınlatma tablosu', tlfpriz: 'Telefon prizi', tdk: 'Telefon dağıtım kutusu', dedektor: 'Dedektör', buton: 'Yangın butonu (camı kır)', klakson: 'Flaşörlü klakson', fjb: 'Yangın alarm bağlantı kutusu', cubuk: 'Topraklama çubuğu', bara: 'Topraklama barası' };
+  /* mekanik cihaz besleme noktası (ısıtıcı / klima / fan): kare buat, içinde M, köşegen yarısı dolu; yanında cihaz adı ve linye */
+  SEMBOL.mekbes = e => { const F = cerceve(e), w = sb('kutu'), h = C.annoH(mm('etiket')), rot = okunur(e.ang || 0), out = [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w), F.P(-w / 2, w)], true), S([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w)]), TX(F.P(-w * 0.22, w * 0.62), C.annoH(mm('kutuYazi')), 'M', 0, 'MC', { color: YR(), st: 'elk' })];
+    if (e.linye) out.push(TX(F.P(w * 0.95, w * 0.5), C.annoH(mm('linye')), String(+e.linye), 0, 'MC', { color: YR(), st: 'elk' }));
+    if (e.ad) out.push(yaziT(F.P(0, w + h * 1.1), h * 0.9, String(e.ad).replace(/\s*\(.*\)$/, '') + ` ${Math.round(e.W || 0)} W`, rot, 'BC'));
+    return out; };
+  const AD = { mekbes: 'Mekanik cihaz beslemesi', armatur: 'Armatür', anahtar: 'Anahtar', priz: 'Priz', pano: 'Aydınlatma tablosu', tlfpriz: 'Telefon prizi', tdk: 'Telefon dağıtım kutusu', dedektor: 'Dedektör', buton: 'Yangın butonu (camı kır)', klakson: 'Flaşörlü klakson', fjb: 'Yangın alarm bağlantı kutusu', cubuk: 'Topraklama çubuğu', bara: 'Topraklama barası' };
   EL.AD = AD;
   T.elcihaz = {
     label: 'Elektrik cihazı',
@@ -132,6 +137,7 @@
       case 'anahtar': case 'priz': case 'tlfpriz': case 'buton': { const col = e.kind === 'buton' ? KIR : e.tip === 'etans' ? GRI : BEY; bx(out, F, -0.04, 0.04, 0, 0.012, zm - 0.04, zm + 0.04, col); if (e.kind === 'priz') sil(out, F.P(0, 0.012, zm), [F.n[0], F.n[1], 0], 0.022, 0.004, KOYU, 12); else if (e.kind === 'anahtar') bx(out, F, -0.015, 0.015, 0.012, 0.018, zm - 0.025, zm + 0.025, BEY); break; }
       case 'pano': bx(out, F, -0.25, 0.25, -0.1, 0.02, zm, zm + 0.5, GRI); bx(out, F, -0.23, 0.23, 0.02, 0.025, zm + 0.02, zm + 0.48, [0.85, 0.86, 0.88]); bx(out, F, 0.16, 0.2, 0.025, 0.035, zm + 0.22, zm + 0.28, KOYU); break;
       case 'tdk': case 'fjb': bx(out, F, -0.15, 0.15, -0.05, 0.02, zm, zm + 0.2, GRI); break;
+      case 'mekbes': bx(out, F, -0.05, 0.05, 0, 0.03, zm - 0.05, zm + 0.05, BEY); bx(out, F, -0.03, 0.03, 0.03, 0.034, zm - 0.03, zm + 0.03, [0.85, 0.15, 0.12]); break; /* cihaz bağlantı kutusu (sigortalı / anahtarlı) */
       case 'klakson': bx(out, F, -0.07, 0.07, 0, 0.08, zm, zm + 0.12, KIR); sil(out, F.P(0, 0.08, zm + 0.06), [F.n[0], F.n[1], 0], 0.035, 0.03, SAR, 12); break;
       case 'dedektor': sil(out, [e.p[0], e.p[1], zt - 0.05], [0, 0, 1], 0.055, 0.05, BEY, 18); sil(out, [e.p[0], e.p[1], zt - 0.052], [0, 0, 1], 0.012, 0.002, KIR, 8); break;
       case 'cubuk': { const z = EL.zTemel(); sil(out, [e.p[0], e.p[1], z - 3], [0, 0, 1], 0.012, 3, BAK, 10); sil(out, [e.p[0], e.p[1], z - 0.1], [0, 0, 1], 0.04, 0.12, GALV, 10); break; }
@@ -233,8 +239,20 @@
       return { k: k0, s: Math.max(0.3, Math.min(k0.L - 0.3, s0)) }; };
     const YP = yer(kSw, sSw + 0.55, 0.35, 0.55), kP = YP.k, sP = YP.s;
     const pano = add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'pano', sys: 'ayd', kod: st.pano, p: nokta(kP, sP), ang: Math.atan2(kP.u[1], kP.u[0]), on: kP.n, zm: 1.5 }, base0)));
+    /* mekanik ekipman beslemesi (firma kuralı 15.11.2026): elektrikli ısıtıcı, klima, fan — her biri besleme noktası + kendi linyesi */
+    const mekEk = [];
+    for (const m of C.doc.ents) { const g = EL.mekGuc(m); if (!g || !m.p) continue; const ma = oda(m.mid) || MT.mahaller().find(o => MT.inPoly([m.p[0], m.p[1]], o.pts)); if (!ma) continue;
+      const ks = (kat.find(q => q.x.e === ma) || { K: kenarlar(ma) }).K; let bk = null, bd = Infinity; for (const k of ks) { const d = M.segDist([m.p[0], m.p[1]], k.a, k.b); if (d < bd) { bd = d; bk = k; } }
+      if (!bk) continue; const s0 = (m.p[0] - bk.a[0]) * bk.u[0] + (m.p[1] - bk.a[1]) * bk.u[1], yarim = (m.type === 'mtrad' ? (+m.L || 0.6) : m.type === 'mtfc' ? 0.45 : 0.2) / 2 + 0.2;
+      const bosMu = q => { const r = nokta(bk, q); return !yeni.some(c => c.type === 'elcihaz' && c.kind !== 'armatur' && c.kind !== 'dedektor' && Math.hypot(c.p[0] - r[0], c.p[1] - r[1]) < 0.35); };
+      const aday = [s0 + yarim, s0 - yarim]; for (let d = 0.3; d < 2.5; d += 0.15) aday.push(s0 + yarim + d, s0 - yarim - d); aday.push(s0);
+      let s = aday.find(q => q > 0.2 && q < bk.L - 0.2 && serbest(bk, q, 0.1) && bosMu(q)); /* cihaz yanında, boşluk ve öbür elemanlardan uzak */
+      if (s == null) { /* duvar boydan boya pencere ise: mahalin cihaza en yakın boş duvar yeri */ let bd2 = Infinity; const kb0 = bk; for (const k of ks) for (let q = 0.2; q < k.L - 0.2; q += 0.05) { if (!serbest(k, q, 0.1)) continue; const r = nokta(k, q); if (yeni.some(c => c.type === 'elcihaz' && c.kind !== 'armatur' && c.kind !== 'dedektor' && Math.hypot(c.p[0] - r[0], c.p[1] - r[1]) < 0.35)) continue; const d = Math.hypot(r[0] - m.p[0], r[1] - m.p[1]); if (d < bd2) { bd2 = d; bk = k; s = q; } } if (s == null) { bk = kb0; s = Math.max(0.2, Math.min(bk.L - 0.2, s0)); } }
+      const bs = { z0: +ma.z0 || 0, mid: ma.id }; if (ma.sv != null) bs.sv2 = ma.sv;
+      const c = add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'mekbes', sys: 'priz', p: nokta(bk, s), ang: Math.atan2(bk.u[1], bk.u[0]), on: bk.n, zm: g.zm, W: g.W, faz: g.faz, ad: g.ad, mekId: m.id, mekTur: g.tur }, bs)));
+      mekEk.push({ ad: g.ad, W: g.W, faz: g.faz, mek: true, mahal: [ma.no || ma.ad], cihaz: [{ ref: c }] }); }
     /* linyeler */
-    const gr = EL.linyeGrupla(cihazlar), Ls = EL.linyeler(gr, st.ek || [], +st.yedek || 0), Y = EL.yuk(Ls, { div: st.div, L: st.L });
+    const gr = EL.linyeGrupla(cihazlar), Ls = EL.linyeler(gr, mekEk.concat(st.ek || []), +st.yedek || 0), Y = EL.yuk(Ls, { div: st.div, L: st.L });
     Ls.forEach(l => (l.cihaz || []).forEach(c => { c.ref.linye = l.no; }));
     for (const l of Ls) { if (!l.cihaz || !l.cihaz.length) continue; const refs = l.cihaz.map(c => c.ref);
       let pts = refs.map(c => c.p); if (l.tur === 'isik') { const sws = [...new Set(refs.map(c => c.mid))].map(id => anahtarOf.get(id)).filter(Boolean); sws.forEach(s => { s.linye = s.linye || l.no; }); pts = sws.map(s => s.p).concat(pts); }
@@ -283,7 +301,8 @@
     const st = EL.set(), cs = C.doc.ents.filter(e => e.type === 'elcihaz'); if (!cs.length) return null;
     const by = new Map(); for (const c of cs) if (c.linye && (c.kind === 'armatur' && !(EL.ARMATUR[c.kod] || {}).acil && !(EL.ARMATUR[c.kod] || {}).dis || c.kind === 'priz')) { const o = by.get(c.linye) || { tur: c.kind === 'priz' ? 'priz' : 'isik', n: 0, W: 0, mahal: [], cihaz: [] }; o.n++; o.W += +c.W || 0; const m = oda(c.mid); const ad = m ? (m.no || m.ad) : ''; if (ad && !o.mahal.includes(ad)) o.mahal.push(ad); by.set(c.linye, o); }
     for (const c of cs) if (c.linye && c.kind === 'armatur' && ((EL.ARMATUR[c.kod] || {}).acil || (EL.ARMATUR[c.kod] || {}).dis)) { const o = by.get(c.linye); if (o) o.W += +c.W || 0; }
-    const gr = [...by.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, o]) => o), Ls = EL.linyeler(gr, st.ek || [], +st.yedek || 0), Y = EL.yuk(Ls, { div: st.div, L: st.L });
+    const mekEk = cs.filter(c => c.kind === 'mekbes' && +c.W > 0).sort((a, b) => String(a.linye || '').localeCompare(String(b.linye || ''))).map(c => { const m = oda(c.mid); return { ad: c.ad, W: +c.W, faz: c.faz || 1, mek: true, mahal: m ? [m.no || m.ad] : [], cihaz: [{ ref: c }] }; });
+    const gr = [...by.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, o]) => o), Ls = EL.linyeler(gr, mekEk.concat(st.ek || []), +st.yedek || 0), Y = EL.yuk(Ls, { div: st.div, L: st.L });
     const top = C.doc.ents.find(e => e.type === 'elhat' && e.sys === 'top' && e.pts.length > 3); let T2 = null;
     if (top) { const pts = top.pts.slice(0, -1), cevre = top.pts.reduce((s, p, i) => i ? s + M.dist2(top.pts[i - 1], p) : 0, 0) - 8 * 0.5, alan = Math.abs(M.polyArea(pts)); T2 = EL.topraklama({ cevre, alan: Math.max(1, alan - cevre * 0.5), rho: st.rho, cubuk: cs.filter(c => c.kind === 'cubuk').length }); }
     return { st, Ls, Y, T: T2, H: EL.mahalHesap(), cs, hatlar: C.doc.ents.filter(e => e.type === 'elhat') };

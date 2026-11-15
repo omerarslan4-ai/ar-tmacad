@@ -72,4 +72,11 @@ t('detaylar (firma kuralı 15.11.2026, perspektif): bara, temel, şerit eki, LED
   /* paftadaki topraklama tablosu hesapla aynı sayıları taşır */
   const fz = (v, d) => (+v).toFixed(d).replace('.', ','); for (const s of [fz(R.Rh, 2) + ' Ω', fz(R.Rc1, 2) + ' Ω', R.cubuk + ' ad', fz(R.dokunma, 2) + ' V ✓']) assert(gs[6].T.some(q => q[3] === s), 'tabloda yok: ' + s); assert(gs[6].T.some(q => q[3].startsWith(fz(R.R, 2) + ' Ω'))); assert(gs[7].T.some(q => /LED/.test(q[3]))); assert(EL.ARMATUR['P-LED36W'].led && EL.ARMATUR['U-LED36W'].ip === 65);
 });
+t('mekanik ekipman (firma kuralı 15.11.2026): ısıtıcı, split klima ve fan elektrik gücü ve kendi linyesi; radyatör (sulu) ve panjur elektriksiz', () => {
+  const h = EL.mekGuc({ type: 'mtrad', tip: 'E', Qn: 1500, no: 'Eİ1' }), k = EL.mekGuc({ type: 'mtfc', tip: 'split', Qn: 3500, no: 'SK1' }), f = EL.mekGuc({ type: 'mthv', kind: 'duvarfan', W: 45 }), b = EL.mekGuc({ type: 'mtrad', tip: 'E', Qn: 5000 });
+  assert.strictEqual(h.W, 1500); assert.strictEqual(h.faz, 1); assert.strictEqual(k.W, Math.round(3500 / 3.2) + 30); assert.strictEqual(f.W, 45); assert.strictEqual(b.faz, 3);
+  assert.strictEqual(EL.mekGuc({ type: 'mtrad', tip: '22', Qn: 1500 }), null); assert.strictEqual(EL.mekGuc({ type: 'mthv', kind: 'panjur' }), null);
+  const L = EL.linyeler([], [Object.assign({ mek: true }, h), Object.assign({ mek: true }, b)], 0); assert.deepStrictEqual(L.map(x => [x.tur, x.In, x.faz, x.kablo]), [['mek', 16, 1, '3x2.5 NYA'], ['mek', 16, 3, '5x2.5 NYA']]);
+  assert.strictEqual(EL.kabloSec(25, false), '3x4 NYA');
+});
 console.log(`\n${n} test geçti.`);

@@ -114,7 +114,8 @@
   EL.linyeler = (gruplar, ek = [], yedek = 2) => {
     const L = [];
     for (const g of gruplar) L.push({ tur: g.tur, W: g.W, isik: g.tur === 'isik' ? g.n : 0, priz: g.tur === 'priz' ? g.n : 0, In: g.tur === 'isik' ? 10 : 16, faz: 1, kablo: '3x2.5 NYA', aciklama: g.tur === 'isik' ? 'IŞIK LİNYESİ' : '1Ø PRİZ LİNYESİ', mahal: g.mahal, cihaz: g.cihaz });
-    for (const e of ek) { const f3 = (+e.faz || 1) === 3, I = (+e.W || 0) / ((f3 ? Math.sqrt(3) * 400 : 230) * 0.85); L.push({ tur: 'ek', W: +e.W || 0, isik: 0, priz: 0, In: +e.In || Math.max(16, EL.sigortaSec(I * 1.25)), faz: f3 ? 3 : 1, kablo: e.kablo || (f3 ? '5x4 NYA' : '3x2.5 NYA'), aciklama: String(e.ad || 'EK YÜK').toLocaleUpperCase('tr'), mahal: [] }); }
+    for (const e of ek) { const f3 = (+e.faz || 1) === 3, I = (+e.W || 0) / ((f3 ? Math.sqrt(3) * 400 : 230) * 0.85), In = +e.In || Math.max(16, EL.sigortaSec(I * 1.25));
+      L.push({ tur: e.mek ? 'mek' : 'ek', W: +e.W || 0, isik: 0, priz: 0, In, faz: f3 ? 3 : 1, kablo: e.kablo || EL.kabloSec(In, f3), aciklama: String(e.ad || 'EK YÜK').toLocaleUpperCase('tr'), mahal: e.mahal || [], cihaz: e.cihaz }); }
     for (let i = 0; i < yedek; i++) L.push({ tur: 'yedek', W: 0, isik: 0, priz: 0, In: 10, faz: 1, kablo: '', aciklama: 'YEDEK', mahal: [] });
     L.forEach((x, i) => { x.no = String(i + 1).padStart(2, '0'); });
     return L;
@@ -146,6 +147,23 @@
   };
   /* linye gerilim düşümü (tek faz): %e = 200·L·P / (k·S·U²) */
   EL.linyeDusum = (P, Lm, S = 2.5) => 200 * Lm * P / (EL.k * S * 230 * 230);
+  /* özel linye kablosu (NYA boru içinde): sigortadan büyük akım taşıyan en küçük kesit, en az 2,5 mm² (firma: bütün hatlar 2,5 NYA) */
+  EL.kabloSec = (In, f3) => { const r = EL.NYA.find(([S, Iz]) => S >= 2.5 && Iz >= In) || EL.NYA[EL.NYA.length - 1]; return `${f3 ? 5 : 3}x${String(r[0]).replace('.', ',')} NYA`.replace(',', '.'); };
+
+  /* ======================= MEKANİK EKİPMAN BESLEMESİ ======================= */
+  /* Firma kuralı 15.11.2026: elektrikli ısıtıcı, klima, fan … her biri kendi linyesiyle elektrik projesine girer.
+     e: mekanik nesne (mtrad / mtfc / mthv) → { W (elektrik gücü), ad, faz, zm (besleme noktası yüksekliği, döşemeden m), tur } ya da null (elektriksiz)
+     klima elektrik gücü = soğutma kapasitesi / EER (3,2) + 30 W fan; kaset fancoil 60 W (fan motoru); fan: katalog gücü (W) ya da 0,04 W/(m³/h), en az 30 W */
+  EL.EER = 3.2;
+  EL.mekGuc = e => {
+    if (!e) return null; let W = 0, ad = '', zm = 0.3;
+    if (e.type === 'mtrad') { if (e.tip !== 'E') return null; W = +e.Qn || 0; ad = `ELEKTRİKLİ ISITICI ${e.no || ''} (${Math.round(W)} W)`; zm = 0.3; }
+    else if (e.type === 'mtfc') { if (e.tip === 'split') { W = Math.round((+e.Qn || 0) / EL.EER) + 30; ad = `SPLIT KLİMA ${e.no || ''} (${((+e.Qn || 0) / 1000).toFixed(1).replace('.', ',')} kW SOĞUTMA)`; zm = (e.zm != null ? +e.zm : 2.2) + 0.1; } else { W = 60; ad = `FANCOIL ${e.no || ''}`; zm = 2.6; } }
+    else if (e.type === 'mthv') { if (!/fan$|rooftop/.test(e.kind || '')) return null; W = +e.W || +e.P || Math.max(30, Math.round((+e.V || 0) * (e.kind === 'rooftop' ? 0.35 : 0.04))); ad = `${({ duvarfan: 'DUVAR TİPİ FAN', kanalfan: 'KANAL TİPİ FAN', catifan: 'ÇATI FANI', hucrefan: 'HÜCRELİ FAN', rooftop: 'ROOFTOP' })[e.kind] || 'FAN'} ${e.no || ''}`; zm = 2.4; }
+    else return null;
+    if (!(W > 0)) return null;
+    return { W: Math.round(W), ad: ad.replace(/\s+/g, ' ').replace(' (', ' (').trim(), faz: W > 3680 ? 3 : 1, zm, tur: e.type };
+  };
 
   /* ======================= TOPRAKLAMA ======================= */
   /* o: { cevre (bina dış çevresi m), alan (m²), rho (Ωm), cubuk (adet), Lc (çubuk boyu m), d (çubuk çapı m), IdN (A) } */
