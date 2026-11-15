@@ -561,7 +561,7 @@
       else if (pr.k === 'C') out.push(Object.assign({ type: 'circle', c: pr.c, r: pr.r }, b));
       else if (pr.k === 'A') out.push(Object.assign({ type: 'arc', c: pr.c, r: pr.r, a0: M.deg(pr.a0), a1: M.deg(pr.a1) }, b));
       else if (pr.k === 'T') out.push(Object.assign({ type: 'text', p: pr.p, h: pr.h, s: pr.s, rot: M.deg(pr.rot), al: pr.al, st: pr.st, wf: pr.wf, obl: pr.obl, mt: pr.mt, mw: pr.mw, ls: pr.ls }, b));
-      else if (pr.k === 'S') out.push(Object.assign({ type: 'solid', pts: pr.pts }, b));
+      else if (pr.k === 'S' && !pr.maske) out.push(Object.assign({ type: 'solid', pts: pr.pts }, b)); // yazı maskesi patlatmada atlanır (dolu kutuya dönmesin)
       else if (pr.k === 'X') out.push(Object.assign({ type: 'point', p: pr.p }, b));
     }
     return out;

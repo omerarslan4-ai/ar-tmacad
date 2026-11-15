@@ -283,7 +283,7 @@
     yaziMaske: 0.6,                                        // yazı arkası maskesi: yazının çevresinde kâğıt mm boşluk (çizgiler yazının altından geçer)
     yaziStilleri: { 'AAAA': { font: 'arial.ttf', gen: 1 }, 'elk': { font: 'romanstw.shx', gen: 0.85 } },
     /* yazı yükseklikleri (kâğıt mm) */
-    yaziMm: { etiket: 2, linye: 2, cetvel: 2.06, tekHat: 2.16, tabloBaslik: 2.4, detay: 2.4, lejant: 3, not: 3, baslik: 4, kutuYazi: 1.44, harf: 2.5, harfKucuk: 1.6 }, // kutuYazi: TDK / FJB içi (BB-003 7,2 birim); harf: dedektör D 12,5 birim, O 8 birim
+    yaziMm: { etiket: 2, linye: 2, cetvel: 2.06, tekHat: 2.16, tabloBaslik: 2.4, detay: 2.4, lejant: 3, not: 3, baslik: 4, kutuYazi: 1.44, harf: 2.5, harfKucuk: 1.6, olcu: 2.2, sutun: 2.2 }, // olcu: detay ölçü ve montaj yüksekliği yazıları; sutun: tablo sütun başlıkları (15.11.2026) // kutuYazi: TDK / FJB içi (BB-003 7,2 birim); harf: dedektör D 12,5 birim, O 8 birim
     yazi: { 'EYAZI': { stil: ['AAAA', 'elk'], mm: [2, 2.06, 2.16, 2.4, 3, 4] } },
     /* sembol ölçüleri (model cm, 1/50 — BB-002 semboller listesi) */
     sembol: { armaturKisa: 52, armaturUzun: 104, armaturEn: 6.7, armaturUc: 12.5, tabloW: 52, tabloH: 16.2, anahtarR: 8, prizR: 8.3, dedektorR: 10, kutu: 16, etansEnKat: 1.3 }, // etansEnKat: etanş armatür sembolü eni 6,7 × 1,3 = 8,7

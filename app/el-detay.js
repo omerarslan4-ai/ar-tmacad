@@ -12,6 +12,9 @@
   const f = (v, d = 2) => (isFinite(v) ? (+v).toFixed(d) : '—').replace('.', ',');
   const fi = v => isFinite(v) ? Math.round(v).toLocaleString('tr-TR') : '—';
   const CS = Math.cos(Math.PI / 6), SN = 0.5;
+  /* yazı yükseklikleri (kâğıt mm) kural tablosundan: cizim-kural.js → ELEKTRIK.yaziMm */
+  if (typeof window === 'undefined' && typeof require !== 'undefined') { try { require('./cizim-kural.js'); } catch (er) { } }
+  const mm = k => { const G = (typeof window !== 'undefined' ? window.C : globalThis.C) || {}, t = G.cizimKural && G.cizimKural.ELEKTRIK && G.cizimKural.ELEKTRIK.yaziMm; return t && t[k] != null ? t[k] : 2; };
 
   /* ---------- izometrik çizici ---------- */
   const iso = (c, ox, oy, k) => {
@@ -32,17 +35,17 @@
     /* düşey düzlemde (x–z) daire: civata başı, delik */
     const daireXZ = (cx, y, cz, r, st = 'i') => { const n = 16, pts = []; for (let i = 0; i <= n; i++) { const t = 2 * Math.PI * i / n; pts.push([cx + r * Math.cos(t), y, cz + r * Math.sin(t)]); } yol(pts, st); };
     /* oklu açıklama: noktadan dışarı eğik çizgi + yatay çizgi + yazı (sağa ya da sola) */
-    const not = (pt, dxmm, dymm, yazi, h = 2.4, sag = true) => { const p = P(...pt), q = [p[0] + dxmm, p[1] + dymm], r = [q[0] + (sag ? 4 : -4), q[1]]; c.L(p[0], p[1], q[0], q[1], 'h'); c.L(q[0], q[1], r[0], r[1], 'h');
+    const not = (pt, dxmm, dymm, yazi, h = mm('detay'), sag = true) => { const p = P(...pt), q = [p[0] + dxmm, p[1] + dymm], r = [q[0] + (sag ? 4 : -4), q[1]]; c.L(p[0], p[1], q[0], q[1], 'h'); c.L(q[0], q[1], r[0], r[1], 'h');
       (c.g.S = c.g.S || []).push([[p[0], p[1]], [p[0] + 0.9 * Math.cos(Math.atan2(dymm, dxmm) + 0.35), p[1] + 0.9 * Math.sin(Math.atan2(dymm, dxmm) + 0.35)], [p[0] + 0.9 * Math.cos(Math.atan2(dymm, dxmm) - 0.35), p[1] + 0.9 * Math.sin(Math.atan2(dymm, dxmm) - 0.35)]]);
       String(yazi).split('\n').forEach((s, i) => c.T(r[0] + (sag ? 1 : -1), r[1] + 0.6 - i * h * 1.35, h, s, sag ? 'L' : 'R', 0)); };
     /* ölçü (izometrik doğrultuda): a, b noktaları, kâğıtta dik kaydırma (mm), yazı */
-    const olcu = (a, b, kay, yazi, h = 2.2) => { const p = P(...a), q = P(...b), d = [q[0] - p[0], q[1] - p[1]], L = Math.hypot(d[0], d[1]) || 1, n = [-d[1] / L * kay, d[0] / L * kay], p2 = [p[0] + n[0], p[1] + n[1]], q2 = [q[0] + n[0], q[1] + n[1]];
+    const olcu = (a, b, kay, yazi, h = mm('olcu')) => { const p = P(...a), q = P(...b), d = [q[0] - p[0], q[1] - p[1]], L = Math.hypot(d[0], d[1]) || 1, n = [-d[1] / L * kay, d[0] / L * kay], p2 = [p[0] + n[0], p[1] + n[1]], q2 = [q[0] + n[0], q[1] + n[1]];
       c.L(p[0], p[1], p2[0] + n[0] * 0.15, p2[1] + n[1] * 0.15, 'h'); c.L(q[0], q[1], q2[0] + n[0] * 0.15, q2[1] + n[1] * 0.15, 'h'); c.L(p2[0], p2[1], q2[0], q2[1], 'h');
       for (const m of [p2, q2]) c.L(m[0] - 0.9, m[1] - 0.9, m[0] + 0.9, m[1] + 0.9, 'i');
       const ang = Math.atan2(d[1], d[0]), okn = ang > Math.PI / 2 || ang < -Math.PI / 2 ? ang + Math.PI : ang; c.T((p2[0] + q2[0]) / 2 + n[0] * 0.25, (p2[1] + q2[1]) / 2 + n[1] * 0.25, h, yazi, 'BC', okn); };
     return { P, cizgi, yol, kutu, gizliKutu, silindir, daireXZ, not, olcu };
   };
-  const baslik = (c, x, y, s, alt) => { c.T(x, y, 4, s, 'L', 0); const w = s.length * 4 * 0.62; c.L(x, y - 1.2, x + w, y - 1.2, 'k'); if (alt) c.T(x, y - 5.5, 2.4, alt, 'L', 0); };
+  const baslik = (c, x, y, s, alt) => { c.T(x, y, mm('baslik'), s, 'L', 0); const w = s.length * mm('baslik') * 0.62; c.L(x, y - 1.2, x + w, y - 1.2, 'k'); if (alt) c.T(x, y - 5.5, mm('detay'), alt, 'L', 0); };
   EL._iso = iso;
 
   /* ======================= TOPRAKLAMA BARASI (TB-1) ======================= */
@@ -62,9 +65,9 @@
     const xs = del[del.length - 1]; I.kutu(xs - 15, -9, -170, 30, 3.5, 190, 'k'); I.daireXZ(xs, -9, 8, 4, 'k'); I.daireXZ(xs, -9, 30, 4, 'k');
     /* açıklamalar */
     I.not([200, 0, 40], 30, 30, 'TOPRAKLAMA BARASI TB-1\n40x5 mm ELEKTROLİTİK BAKIR, 400 mm, KALAYLI');
-    I.not([30, 30, 35], -14, 26, 'MESNET İZOLATÖRÜ\n(EPOKSİ, M8, 40 mm)', 2.4, false);
+    I.not([30, 30, 35], -14, 26, 'MESNET İZOLATÖRÜ\n(EPOKSİ, M8, 40 mm)', mm('detay'), false);
     I.not([del[1], 0, 20], 22, 14, 'M10 PASLANMAZ CİVATA, PUL, YAYLI PUL, SOMUN');
-    del.slice(0, 4).forEach((x, i) => I.not([x, -3, -130 + i * 18], -20 - i * 4, -6 - i * 1.5, bag[i], 2.2, false));
+    del.slice(0, 4).forEach((x, i) => I.not([x, -3, -130 + i * 18], -20 - i * 4, -6 - i * 1.5, bag[i], mm('olcu'), false));
     I.not([xs, -9, -120], 20, -12, 'TEMEL TOPRAKLAMA FİLİZİ\n30x3,5 GALVANİZLİ ŞERİT (TEMELDEN)\n2 x M10 CİVATA İLE');
     I.not([440, 60, 60], 22, 2, 'DUVAR (BARA PANONUN ALTINDA,\nBİTMİŞ DÖŞEMEDEN +0,30 m)');
     I.olcu([0, 0, 40], [400, 0, 40], 7, '400');
@@ -89,10 +92,10 @@
     I.kutu(xc, yc - 2, -180, 700 + e, 3.5, 30, 'k'); I.cizgi([xc + 700 + e, yc, -150], [e, e, zs], 't');
     /* açıklamalar */
     I.not([900, e, zs + 30], 20, -24, 'TEMEL TOPRAKLAMA İLETKENİ\n30x3,5 GALVANİZLİ ŞERİT, KENARI ÜZERİNDE\nBETON İÇİNDE KAPALI HALKA, ≥ 5 cm BETON ÖRTÜSÜ');
-    I.not([e + 400, e, zs * 0.5], -10, -26, 'MESAFE TUTUCU (her 2 m)', 2.4, false);
+    I.not([e + 400, e, zs * 0.5], -10, -26, 'MESAFE TUTUCU (her 2 m)', mm('detay'), false);
     I.not([xf + 15, e, 1000], 18, 6, 'TOPRAKLAMA FİLİZİ (TB-1 BARASINA)\nDÖŞEMEDEN 1,5 m ÇIKAR');
-    I.not([xc, yc, -1200], -10, -8, 'BAKIR KILIFLI ÇELİK ÇUBUK\nØ20 mm, L = 3 m', 2.4, false);
-    I.not([xc, yc, 0], -16, 14, 'TOPRAKLAMA MUAYENE (ÖLÇÜ) KUTUSU\n300x300 mm, DÖKÜM KAPAKLI', 2.4, false);
+    I.not([xc, yc, -1200], -10, -8, 'BAKIR KILIFLI ÇELİK ÇUBUK\nØ20 mm, L = 3 m', mm('detay'), false);
+    I.not([xc, yc, 0], -16, 14, 'TOPRAKLAMA MUAYENE (ÖLÇÜ) KUTUSU\n300x300 mm, DÖKÜM KAPAKLI', mm('detay'), false);
     I.not([xc + 350, yc, -150], 12, -20, 'BAĞLANTI: 30x3,5 GALV. ŞERİT,\nÇUBUK KLEMENSİ İLE');
     I.not([1700, 1400, 200], 16, 10, 'RADYE / TEMEL BETONU');
     I.olcu([0, 0, 0], [e, 0, 0], 6, '10 cm');
@@ -105,7 +108,7 @@
     const c = cizer(), I = iso(c, 20, 30, 0.14);
     I.kutu(0, 0, 0, 260, 30, 3.5, 'k', 20); I.kutu(160, -2, 3.5, 260, 30, 3.5, 'k', 20);
     I.kutu(175, -20, 7, 70, 70, 10, 'k'); for (const [x, y] of [[188, -7], [232, -7], [188, 37], [232, 37]]) I.silindir(x, y, 17, 5, 8, 'k');
-    I.not([60, 0, 3.5], -8, 14, '30x3,5 GALVANİZLİ ŞERİT', 2.4, false); I.not([210, 15, 17], 14, 18, 'ÇAPRAZ BAĞLANTI KLEMENSİ 60x60 mm\n4 x M10 GALVANİZ CİVATA');
+    I.not([60, 0, 3.5], -8, 14, '30x3,5 GALVANİZLİ ŞERİT', mm('detay'), false); I.not([210, 15, 17], 14, 18, 'ÇAPRAZ BAĞLANTI KLEMENSİ 60x60 mm\n4 x M10 GALVANİZ CİVATA');
     I.olcu([160, 30, 7], [260, 30, 7], 6, '≥ 100');
     baslik(c, -10, 62, 'ŞERİT EK DETAYI (PERSPEKTİF)', 'ÖLÇEKSİZ · bindirme en az 10 cm, ek yeri bitüm esaslı boya ile korunur');
     return c.g;
@@ -119,7 +122,7 @@
     I.silindir(Lm / 2, 300, 300, 40, 30, 'i'); I.cizgi([Lm / 2, 300, 300], [Lm / 2, 100 + wm / 2, 300 - hm / 2], 't');
     for (const x of [80, Lm - 80]) I.cizgi([x, 100 + wm / 2, 300], [x, 100 + wm / 2, 300 - 12], 'k');
     I.not([Lm * 0.6, 100, 300 - hm], 16, -12, `${kod} ${a.ad || ''}\n${a.W || ''} W · ${a.lm || ''} lm · ${a.K || 4000} K · Ra≥${a.Ra || 80} · IP${a.ip || ''}\n${a.govde || ''}`);
-    I.not([80, 100 + wm / 2, 294], -10, 14, 'DÜBEL + 2 x Ø6 VİDA', 2.4, false); I.not([Lm / 2, 300, 330], 10, 16, 'BUAT (SIVA ALTI) — 3x2,5 NYA, Ø18 PVC BORU');
+    I.not([80, 100 + wm / 2, 294], -10, 14, 'DÜBEL + 2 x Ø6 VİDA', mm('detay'), false); I.not([Lm / 2, 300, 330], 10, 16, 'BUAT (SIVA ALTI) — 3x2,5 NYA, Ø18 PVC BORU');
     I.olcu([0, 100, 300 - hm], [Lm, 100, 300 - hm], -7, String(Lm));
     baslik(c, -10, 70, 'LED ARMATÜR MONTAJ DETAYI (PERSPEKTİF)', 'ÖLÇEKSİZ · tavana doğrudan montaj, armatür gövdesi topraklanır');
     return c.g;
@@ -132,7 +135,7 @@
     I.silindir(700, 600, 750, 55, 50, 'k'); I.silindir(700, 600, 735, 45, 15, 'k');
     I.olcu([0, 600, 800], [700 - 55, 600, 800], 8, '≥ 500');
     I.not([700, 600, 735], 16, -14, 'OPTİK DUMAN DEDEKTÖRÜ (TS EN 54-7)\nSOKETLİ TABAN, TAVANA MONTAJ\nDUVAR VE ARMATÜRDEN ≥ 0,5 m\nKAPSAMA 60 m² (ISI DEDEKTÖRÜ 30 m²)');
-    I.not([700, 600, 800], -12, 16, '2x1,5 JY(St)Y, Ø18 PVC BORU (SIVA ÜSTÜ)', 2.4, false);
+    I.not([700, 600, 800], -12, 16, '2x1,5 JY(St)Y, Ø18 PVC BORU (SIVA ÜSTÜ)', mm('detay'), false);
     baslik(c, -10, 72, 'DEDEKTÖR MONTAJ DETAYI (PERSPEKTİF)', 'ÖLÇEKSİZ');
     return c.g;
   };
@@ -141,14 +144,14 @@
   EL.detayYukseklik = (h = 2.8) => {
     const c = cizer(), k = 40, H = h * k, W = 4.2 * k;
     c.L(0, 0, W, 0, 'k'); c.L(0, H, W, H, 'k'); for (let x = 0; x < W; x += 6) c.L(x, 0, x - 3, -3, 'h'); for (let x = 0; x < W; x += 6) c.L(x, H, x + 3, H + 3, 'h');
-    c.T(W + 2, -1, 2.4, '±0,00 BİTMİŞ DÖŞEME', 'L', 0); c.T(W + 2, H - 1, 2.4, `+${f(h, 2)} TAVAN`, 'L', 0);
+    c.T(W + 2, -1, mm('detay'), '±0,00 BİTMİŞ DÖŞEME', 'L', 0); c.T(W + 2, H - 1, mm('detay'), `+${f(h, 2)} TAVAN`, 'L', 0);
     const el = [[0.4, 18, 'PRİZ (TOPRAKLI) +0,40 · MUTFAKTA TEZGAH ÜSTÜ +1,10', 'r'], [1.1, 48, 'ANAHTAR +1,10 (KAPI KENARINDAN 15 cm)', 's'], [1.5, 78, 'AYDINLATMA TABLOSU (ALT KENAR) +1,50', 'p'], [1.4, 110, 'YANGIN BUTONU +1,40', 'b'], [1.8, 136, 'TELEFON DAĞITIM KUTUSU +1,80', 't'], [2.25, 158, 'ACİL ÇIKIŞ ARMATÜRÜ (KAPI ÜSTÜ) +2,25', 'a']];
     for (const [z, x, ad, t] of el) { const y = z * k;
       if (t === 'p') c.B(x - 9, y, 18, 20, 'k'); else if (t === 'a') c.B(x - 7, y, 14, 5, 'k'); else c.B(x - 3, y - 3, 6, 6, 'k');
-      c.L(x - 12, 0, x - 12, y, 'h'); c.L(x - 13, y, x - 11, y, 'i'); c.T(x - 13, y / 2, 2.2, '+' + f(z, 2), 'MC', Math.PI / 2); c.T(x + 4, y + 7, 2.2, ad, 'L', 0); c.L(x, y + 3, x + 3, y + 6, 'h'); }
-    c.B(W - 32, 0, 24, 2.1 * k, 'i'); c.T(W - 20, 2.1 * k / 2, 2.2, 'KAPI', 'MC', Math.PI / 2);
+      c.L(x - 12, 0, x - 12, y, 'h'); c.L(x - 13, y, x - 11, y, 'i'); c.T(x - 13, y / 2, mm('olcu'), '+' + f(z, 2), 'MC', Math.PI / 2); c.T(x + 4, y + 7, mm('olcu'), ad, 'L', 0); c.L(x, y + 3, x + 3, y + 6, 'h'); }
+    c.B(W - 32, 0, 24, 2.1 * k, 'i'); c.T(W - 20, 2.1 * k / 2, mm('olcu'), 'KAPI', 'MC', Math.PI / 2);
     for (let i = 0; i < 2; i++) { const x = 40 + i * 70; c.L(x - 12, H - 3, x + 12, H - 3, 'k'); c.L(x - 12, H - 1, x + 12, H - 1, 'k'); }
-    c.T(40, H - 7, 2.2, 'LED ARMATÜR (TAVANA)', 'L', 0);
+    c.T(40, H - 7, mm('olcu'), 'LED ARMATÜR (TAVANA)', 'L', 0);
     baslik(c, 0, H + 14, 'MONTAJ YÜKSEKLİKLERİ (DUVAR GÖRÜNÜŞÜ)', 'Ö: 1/25 · yükseklikler bitmiş döşemeden, eleman ortasına (pano alt kenarına)');
     return c.g;
   };
@@ -158,9 +161,9 @@
     const c = cizer(), rh = 6, n = satirlar.length, col = [0]; gen.forEach(w => col.push(col[col.length - 1] + w)); const W = col[col.length - 1], top = 0;
     c.L(0, top, W, top, 'k'); c.L(0, top - rh, W, top - rh, 'k'); for (let i = 1; i <= n; i++) c.L(0, top - rh - i * rh, W, top - rh - i * rh, i === n ? 'k' : 'i');
     col.forEach((x, i) => c.L(x, top, x, top - rh - n * rh, i === 0 || i === col.length - 1 ? 'k' : 'i'));
-    bas.forEach((b, i) => c.T((col[i] + col[i + 1]) / 2, top - rh + 2, 2.2, b, 'MC', 0));
-    satirlar.forEach((r, j) => r.forEach((v, i) => c.T(i ? (col[i] + col[i + 1]) / 2 : col[i] + 1.5, top - rh - (j + 1) * rh + 2, 2.06, String(v), i ? 'MC' : 'L', 0)));
-    c.T(0, top + 5, 4, baslikYazi, 'L', 0); (alt || []).forEach((s, i) => c.T(0, top - rh - n * rh - 5 - i * 4.4, 2.4, s, 'L', 0));
+    bas.forEach((b, i) => c.T((col[i] + col[i + 1]) / 2, top - rh + 2, mm('sutun'), b, 'MC', 0));
+    satirlar.forEach((r, j) => r.forEach((v, i) => c.T(i ? (col[i] + col[i + 1]) / 2 : col[i] + 1.5, top - rh - (j + 1) * rh + 2, mm('cetvel'), String(v), i ? 'MC' : 'L', 0)));
+    c.T(0, top + 5, mm('baslik'), baslikYazi, 'L', 0); (alt || []).forEach((s, i) => c.T(0, top - rh - n * rh - 5 - i * 4.4, mm('detay'), s, 'L', 0));
     return c.g;
   };
   EL.tabloTopraklama = (R) => { if (!R) return null; return tablo('TOPRAKLAMA HESABI', ['HESAP', 'BAĞINTI', 'SONUÇ'], [
@@ -177,4 +180,35 @@
     [22, 96, 14, 20, 14, 12, 12], ['Bütün armatürler LED, sürücü dahil; Ra ≥ 80, ömür 50.000 saat (L70), güç faktörü ≥ 0,9. Acil armatür 3 saat aküllü.']); };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = EL;
+
+  /* çeviri: detay, tablo ve LED açıklamaları (satırın tamamı ya da metin içi ifade; '#' sayı) */
+  if (typeof window !== 'undefined' && window.DIL) window.DIL.ekle('en', 'English', [
+    ['TOPRAKLAMA BARASI TB-1', 'EARTHING BAR TB-1'], ['40x5 mm ELEKTROLİTİK BAKIR, 400 mm, KALAYLI', '40x5 mm ELECTROLYTIC COPPER, 400 mm, TINNED'], ['MESNET İZOLATÖRÜ', 'STANDOFF INSULATOR'], ['(EPOKSİ, M8, 40 mm)', '(EPOXY, M8, 40 mm)'],
+    ['M10 PASLANMAZ CİVATA, PUL, YAYLI PUL, SOMUN', 'M10 STAINLESS BOLT, WASHER, SPRING WASHER, NUT'], ['PANO PE İLETKENİ — 16 mm² NYAF (sarı-yeşil)', 'PANEL PE CONDUCTOR — 16 mm² NYAF (green-yellow)'],
+    ['KABLO TAVASI / METAL AKSAM — 16 mm² NYAF', 'CABLE TRAY / METAL PARTS — 16 mm² NYAF'], ['SU VE BORU TESİSATI EŞ POTANSİYEL — 6 mm² NYAF', 'WATER AND PIPING EQUIPOTENTIAL BONDING — 6 mm² NYAF'], ['TELEFON / YANGIN SANTRALİ — 6 mm² NYAF', 'TELEPHONE / FIRE ALARM PANEL — 6 mm² NYAF'], ['YEDEK', 'SPARE'],
+    ['TEMEL TOPRAKLAMA FİLİZİ', 'FOUNDATION EARTHING LEAD-OUT'], ['30x3,5 GALVANİZLİ ŞERİT (TEMELDEN)', '30x3,5 GALVANIZED STRIP (FROM FOUNDATION)'], ['2 x M10 CİVATA İLE', 'WITH 2 x M10 BOLTS'], ['DUVAR (BARA PANONUN ALTINDA,', 'WALL (BAR BELOW THE PANEL,'], ['BİTMİŞ DÖŞEMEDEN +0,30 m)', '+0,30 m ABOVE FINISHED FLOOR)'],
+    ['TOPRAKLAMA BARASI (TB-1) PERSPEKTİF DETAYI', 'EARTHING BAR (TB-1) PERSPECTIVE DETAIL'], ['ÖLÇEKSİZ · ölçüler mm', 'NOT TO SCALE · dimensions in mm'], ['ÖLÇEKSİZ', 'NOT TO SCALE'],
+    ['TEMEL TOPRAKLAMA İLETKENİ', 'FOUNDATION EARTH CONDUCTOR'], ['30x3,5 GALVANİZLİ ŞERİT, KENARI ÜZERİNDE', '30x3,5 GALVANIZED STRIP, ON EDGE'], ['BETON İÇİNDE KAPALI HALKA, ≥ 5 cm BETON ÖRTÜSÜ', 'CLOSED RING IN CONCRETE, ≥ 5 cm CONCRETE COVER'], ['MESAFE TUTUCU (her 2 m)', 'SPACER (every 2 m)'],
+    ['TOPRAKLAMA FİLİZİ (TB-1 BARASINA)', 'EARTHING LEAD-OUT (TO BAR TB-1)'], ['DÖŞEMEDEN 1,5 m ÇIKAR', 'PROJECTS 1,5 m ABOVE FLOOR'], ['BAKIR KILIFLI ÇELİK ÇUBUK', 'COPPER-BONDED STEEL ROD'], ['TOPRAKLAMA MUAYENE (ÖLÇÜ) KUTUSU', 'EARTHING INSPECTION (TEST) PIT'], ['300x300 mm, DÖKÜM KAPAKLI', '300x300 mm, CAST-IRON COVER'],
+    ['BAĞLANTI: 30x3,5 GALV. ŞERİT,', 'CONNECTION: 30x3,5 GALV. STRIP,'], ['ÇUBUK KLEMENSİ İLE', 'WITH ROD CLAMP'], ['RADYE / TEMEL BETONU', 'RAFT / FOUNDATION CONCRETE'], ['TEMEL TOPRAKLAMASI PERSPEKTİF DETAYI', 'FOUNDATION EARTHING PERSPECTIVE DETAIL'], ['ÖLÇEKSİZ · halka, filiz, çubuk ve muayene kutusu', 'NOT TO SCALE · ring, lead-out, rod and inspection pit'],
+    ['30x3,5 GALVANİZLİ ŞERİT', '30x3,5 GALVANIZED STRIP'], ['ÇAPRAZ BAĞLANTI KLEMENSİ 60x60 mm', 'CROSS CONNECTOR 60x60 mm'], ['4 x M10 GALVANİZ CİVATA', '4 x M10 GALVANIZED BOLTS'], ['ŞERİT EK DETAYI (PERSPEKTİF)', 'STRIP JOINT DETAIL (PERSPECTIVE)'], ['ÖLÇEKSİZ · bindirme en az 10 cm, ek yeri bitüm esaslı boya ile korunur', 'NOT TO SCALE · overlap at least 10 cm, joint protected with bitumen paint'],
+    ['DÜBEL + 2 x Ø6 VİDA', 'WALL PLUG + 2 x Ø6 SCREWS'], ['BUAT (SIVA ALTI) — 3x2,5 NYA, Ø18 PVC BORU', 'JUNCTION BOX (FLUSH) — 3x2,5 NYA, Ø18 PVC CONDUIT'], ['LED ARMATÜR MONTAJ DETAYI (PERSPEKTİF)', 'LED LUMINAIRE MOUNTING DETAIL (PERSPECTIVE)'], ['ÖLÇEKSİZ · tavana doğrudan montaj, armatür gövdesi topraklanır', 'NOT TO SCALE · surface-mounted on ceiling, luminaire body earthed'],
+    ['OPTİK DUMAN DEDEKTÖRÜ (TS EN 54-7)', 'OPTICAL SMOKE DETECTOR (TS EN 54-7)'], ['SOKETLİ TABAN, TAVANA MONTAJ', 'SOCKET BASE, CEILING MOUNTED'], ['DUVAR VE ARMATÜRDEN ≥ 0,5 m', '≥ 0,5 m FROM WALLS AND LUMINAIRES'], ['KAPSAMA 60 m² (ISI DEDEKTÖRÜ 30 m²)', 'COVERAGE 60 m² (HEAT DETECTOR 30 m²)'], ['2x1,5 JY(St)Y, Ø18 PVC BORU (SIVA ÜSTÜ)', '2x1,5 JY(St)Y, Ø18 PVC CONDUIT (SURFACE)'], ['DEDEKTÖR MONTAJ DETAYI (PERSPEKTİF)', 'DETECTOR MOUNTING DETAIL (PERSPECTIVE)'],
+    ['±0,00 BİTMİŞ DÖŞEME', '±0,00 FINISHED FLOOR'], ['# TAVAN', '# CEILING'], ['PRİZ (TOPRAKLI) +0,40 · MUTFAKTA TEZGAH ÜSTÜ +1,10', 'SOCKET (EARTHED) +0,40 · KITCHEN ABOVE WORKTOP +1,10'], ['ANAHTAR +1,10 (KAPI KENARINDAN 15 cm)', 'SWITCH +1,10 (15 cm FROM DOOR EDGE)'], ['AYDINLATMA TABLOSU (ALT KENAR) +1,50', 'LIGHTING PANEL (BOTTOM EDGE) +1,50'],
+    ['YANGIN BUTONU +1,40', 'MANUAL CALL POINT +1,40'], ['TELEFON DAĞITIM KUTUSU +1,80', 'TELEPHONE DISTRIBUTION BOX +1,80'], ['ACİL ÇIKIŞ ARMATÜRÜ (KAPI ÜSTÜ) +2,25', 'EMERGENCY EXIT LUMINAIRE (ABOVE DOOR) +2,25'], ['KAPI', 'DOOR'], ['LED ARMATÜR (TAVANA)', 'LED LUMINAIRE (ON CEILING)'], ['MONTAJ YÜKSEKLİKLERİ (DUVAR GÖRÜNÜŞÜ)', 'MOUNTING HEIGHTS (WALL ELEVATION)'],
+    ['Ö: 1/25 · yükseklikler bitmiş döşemeden, eleman ortasına (pano alt kenarına)', 'S: 1/25 · heights from finished floor to centre of item (panel: bottom edge)'],
+    ['HESAP', 'CALCULATION'], ['BAĞINTI', 'FORMULA'], ['SONUÇ', 'RESULT'], ['Toprak özgül direnci', 'Soil resistivity'], ['ρ (kabul)', 'ρ (assumed)'], ['Eşdeğer çap', 'Equivalent diameter'], ['Temel topraklayıcısı (halka)', 'Foundation earth electrode (ring)'], ['Tek çubuk (Ø20, L = # m)', 'Single rod (Ø20, L = # m)'],
+    ['Çubuk sayısı', 'Number of rods'], ['R ≤ # Ω olana kadar', 'until R ≤ # Ω'], ['Toplam yayılma direnci', 'Total earth resistance'], ['Dokunma gerilimi', 'Touch voltage'], ['Şerit boyu', 'Strip length'], ['çevre + bağlantılar', 'perimeter + connections'], ['TOPRAKLAMA HESABI', 'EARTHING CALCULATION'],
+    ['Topraklamalar Yönetmeliği (Ek-P) bağıntıları; çubuklar arası etkileşim %15. Ölçülen direnç hesaptan büyükse çubuk eklenir.', 'Formulas of the Turkish Earthing Regulation (Annex P); rod interaction 15%. If the measured resistance exceeds the calculation, rods are added.'],
+    ['KOD', 'CODE'], ['TANIM', 'DESCRIPTION'], ['GÜÇ', 'POWER'], ['IŞIK AKISI', 'LUMINOUS FLUX'], ['RENK', 'COLOUR'], ['ADET', 'QTY'], ['MAHAL', 'ROOM'], ['ARMATÜR', 'LUMINAIRE'], ['ARMATÜR LİSTESİ (LED)', 'LUMINAIRE SCHEDULE (LED)'], ['AYDINLATMA HESABI (LÜMEN YÖNTEMİ)', 'LIGHTING CALCULATION (LUMEN METHOD)'],
+    ['Bütün armatürler LED, sürücü dahil; Ra ≥ 80, ömür 50.000 saat (L70), güç faktörü ≥ 0,9. Acil armatür 3 saat aküllü.', 'All luminaires LED, driver included; Ra ≥ 80, life 50.000 h (L70), power factor ≥ 0,9. Emergency luminaire 3 h battery.'],
+    ['N = E · A / (Φ · η · MF), MF = #; k = a·b / (hm·(a+b)), hm = tavan − # m; yansıtma # / # / #; aydınlatma düzeyi TS EN #-#.', 'N = E · A / (Φ · η · MF), MF = #; k = a·b / (hm·(a+b)), hm = ceiling − # m; reflectances # / # / #; illuminance per TS EN #-#.'],
+    ['LED LİNEER ARMATÜR', 'LED LINEAR LUMINAIRE'], ['LED ETANŞ ARMATÜR', 'LED WATERPROOF LUMINAIRE'], ['LED ACİL ÇIKIŞ ARMATÜRÜ (3 SAAT)', 'LED EMERGENCY EXIT LUMINAIRE (3 HOURS)'], ['LED ETANŞ DUVAR APLİĞİ', 'LED WATERPROOF WALL LIGHT'], ['ömür # saat (L70)', 'life # h (L70)'],
+    ['sıva üstü', 'surface-mounted'], ['polikarbonat gövde ve difüzör', 'polycarbonate body and diffuser'], ['kendinden akülü (Ni-Cd 3', 'self-contained battery (Ni-Cd 3'], ['alüminyum döküm gövde', 'die-cast aluminium body'],
+    ['sıva üstü, opal difüzörlü alüminyum gövde 1200x70x50 mm', 'surface-mounted, aluminium body with opal diffuser 1200x70x50 mm'], ['sıva üstü, opal difüzörlü alüminyum gövde 600x70x50 mm', 'surface-mounted, aluminium body with opal diffuser 600x70x50 mm'],
+    ['polikarbonat gövde ve difüzör, paslanmaz klips 1270x90x80 mm', 'polycarbonate body and diffuser, stainless clips 1270x90x80 mm'], ['polikarbonat gövde ve difüzör, paslanmaz klips 670x90x80 mm', 'polycarbonate body and diffuser, stainless clips 670x90x80 mm'],
+    ['FLORESANT ARMATÜR (IP42)', 'FLUORESCENT LUMINAIRE (IP42)'], ['ETANŞ FLORESANT ARMATÜR (IP54)', 'WATERPROOF FLUORESCENT LUMINAIRE (IP54)'],
+    ['BÜTÜN AYDINLATMA ARMATÜRLERİ LED OLACAKTIR (4000 K, Ra ≥ 80, ÖMÜR 50.000 SAAT L70,', 'ALL LUMINAIRES SHALL BE LED (4000 K, Ra ≥ 80, LIFE 50.000 h L70,'], ['GÜÇ FAKTÖRÜ ≥ 0,9, SÜRÜCÜ DAHİL). ISLAK HACİMLERDE IP65 ETANŞ ARMATÜR KULLANILACAKTIR.', 'POWER FACTOR ≥ 0,9, DRIVER INCLUDED). IP65 WATERPROOF LUMINAIRES IN WET ROOMS.'],
+    ['ACİL ÇIKIŞ ARMATÜRÜ 3 SAAT AKÜLÜ, KESİNTİDE KENDİLİĞİNDEN YANAR.', 'EMERGENCY EXIT LUMINAIRE WITH 3 h BATTERY, LIGHTS AUTOMATICALLY ON POWER FAILURE.'],
+  ]);
 })(typeof window !== 'undefined' ? (window.C = window.C || {}) : null);

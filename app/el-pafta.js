@@ -65,7 +65,9 @@
   /* pafta penceresi süzgeci: plan penceresinde kesit planı + o sistemin elektrik nesneleri; şema penceresinde yalnız o şema */
   if (C.vpPrims && !C._elVpSar) { const v0 = C.vpPrims; C.vpPrims = function (vp, cb) { if (!vp || (!vp.elPlan && !vp.elSema)) return v0.call(this, vp, cb);
       if (vp.elSema) return v0.call(this, vp, (e, pr) => { if (e.id === vp.elSema) cb(e, pr); });
-      const S = SIS[vp.elPlan], z = vp.elZ; return v0.call(this, vp, (e, pr) => { if (e.gv) { if (e.gv === vp.elGv) cb(e, pr); return; } if (elEnt(e) && S.sys.includes(e.sys) && (z == null || Math.abs((+e.z0 || 0) - z) < 0.05)) cb(e, pr); }); }; C._elVpSar = true; }
+      /* çizim sırası (firma kuralı 15.11.2026, yazılar çizgi altında kalmaz): önce mimari altlık, sonra hatlar, en son cihazlar ve yazıları */
+      const S = SIS[vp.elPlan], z = vp.elZ, hat = [], cih = []; const r = v0.call(this, vp, (e, pr) => { if (e.gv) { if (e.gv === vp.elGv) cb(e, pr); return; } if (elEnt(e) && S.sys.includes(e.sys) && (z == null || Math.abs((+e.z0 || 0) - z) < 0.05)) (e.type === 'elhat' ? hat : cih).push([e, pr]); });
+      for (const [e, pr] of hat.concat(cih)) cb(e, pr); return r; }; C._elVpSar = true; }
   const gvler = () => { const s = ((C.doc.set.el || {}).planGv) || {}, o = new Set(); /* yalnız okur: elektriksiz projeye ayar yazmaz */ for (const k in s) for (const g of s[k] || []) o.add(g); return o; };
   { const P2 = C.View2D && C.View2D.prototype; if (P2 && !P2._elGiz) { const wf = (self, fn) => { if (self.isLayout || C.vpEdit) return fn(); const gs = gvler(); if (!gs.size) return fn(); const all = C.doc.ents; if (!all.some(e => e.gv && gs.has(e.gv))) return fn(); C.doc.ents = all.filter(e => !(e.gv && gs.has(e.gv))); try { return fn(); } finally { C.doc.ents = all; } }; for (const k of ['draw', 'pick', 'windowSel', 'snap', 'zoomExtents']) { const f0 = P2[k]; if (f0) P2[k] = function () { return wf(this, () => f0.apply(this, arguments)); }; } P2._elGiz = true; } }
   /* şemaları modelde binanın altına diz (paftada her biri kendi penceresinde) */

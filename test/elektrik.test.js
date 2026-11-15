@@ -68,6 +68,8 @@ t('detaylar (firma kuralı 15.11.2026, perspektif): bara, temel, şerit eki, LED
   const D = require('../app/el-detay.js'), R = EL.topraklama({ cevre: 20, alan: 25, rho: 100 });
   const gs = [D.detayBara(), D.detayTemel(), D.detayEk(), D.detayArmatur('P-LED36W'), D.detayDedektor(), D.detayYukseklik(2.5), D.tabloTopraklama(R), D.tabloArmatur({ 'P-LED36W': 3 })];
   for (const g of gs) { assert(g.L.length > 5 && g.T.length > 3); assert(!g.L.some(l => l.slice(0, 4).some(v => !isFinite(v)))); assert(!g.T.some(q => !isFinite(q[0]) || !isFinite(q[1]))); }
-  assert(gs[6].T.some(q => /Ω/.test(q[3]))); assert(gs[7].T.some(q => /LED/.test(q[3]))); assert(EL.ARMATUR['P-LED36W'].led && EL.ARMATUR['U-LED36W'].ip === 65);
+  assert(gs[6].T.some(q => /Ω/.test(q[3])));
+  /* paftadaki topraklama tablosu hesapla aynı sayıları taşır */
+  const fz = (v, d) => (+v).toFixed(d).replace('.', ','); for (const s of [fz(R.Rh, 2) + ' Ω', fz(R.Rc1, 2) + ' Ω', R.cubuk + ' ad', fz(R.dokunma, 2) + ' V ✓']) assert(gs[6].T.some(q => q[3] === s), 'tabloda yok: ' + s); assert(gs[6].T.some(q => q[3].startsWith(fz(R.R, 2) + ' Ω'))); assert(gs[7].T.some(q => /LED/.test(q[3]))); assert(EL.ARMATUR['P-LED36W'].led && EL.ARMATUR['U-LED36W'].ip === 65);
 });
 console.log(`\n${n} test geçti.`);

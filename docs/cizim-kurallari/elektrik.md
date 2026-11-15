@@ -27,7 +27,7 @@ Notlar:
 - BB-003'te yangın alarm hattı `ETELYNG` katmanında renk 7 idi; kâğıtta telefonla karışmasın diye kırmızı (1) ve kesikli yapıldı — bu bir kabuldür.
 - `SPDDOT` programda yok; yerine `DOT` kullanılır.
 - Nesneler rengini katmandan alır. **Bütün yazılar renk 7** (kâğıtta siyah; linye numaraları, sembol içi harfler, şema ve tablolar dahil). Örneklerde yazılar sarıydı (2); firma kuralı 15.11.2026: "paftalarda sarı renk kullanma, daha gözüken bir renk olsun". Şema / tablo / detay çizgileri de renk 7.
-- **Yazı maskesi** (15.11.2026, "yazılar kablo altında kalıyor"): her yazının arkası kâğıt renginde doldurulur (yazı çevresinde 0,6 mm boşluk, tablo `yaziMaske`); çizgiler yazının altından geçer. Hatlar cihazlardan, mimari altlık elektrikten önce çizilir. DXF'e maske yazılmaz.
+- **Yazı maskesi** (15.11.2026, "yazılar kablo altında kalıyor"): her yazının arkası kâğıt renginde doldurulur (yazı çevresinde 0,6 mm boşluk, tablo `yaziMaske`); çizgiler yazının altından geçer. Çizim sırası: mimari altlık → hatlar → cihazlar ve yazıları (pafta penceresi süzgeci bu sırayla verir). DXF'e maske yazılmaz.
 - Linye hattı örnekte 2,5 cm genişlikli çoklu çizgiydi; programda kalınlık katmandan (EHAT 0,35 mm) gelir.
 
 ## 3. Yazı
@@ -58,7 +58,7 @@ Armatür sembolü gövdenin gerçek boyudur (LED: 1,20 / 0,60 m; etanş 1,27 / 0
 Programda semboller blok değil, Çorlu paftalarında olduğu gibi çizgilerden oluşur.
 
 ## 5. Etiket biçimi (örnekten)
-- Armatür: `P-2x20W` (P = normal IP42, U = etanş IP54), armatürün yanında 2 mm; linye numarası `1`, `2` … armatürün üstünde `elk` 2 mm.
+- Armatür: `P-LED36W` (P = normal IP40, U = etanş IP65; örnekte floresan `P-2x20W` / IP42 – IP54 idi), armatürün yanında 2 mm; linye numarası `1`, `2` … armatürün üstünde `elk` 2 mm.
 - Linye hattı yanında kablo: `3x2.5 NYA`; tek hat şemasında her çıkış: linye no (01, 02 …), sigorta (`10A.`), kablo (`3x2.5 NYA`), açıklama (`IŞIK LİNYESİ (200W)`), düşey yazılı.
 - Besleme: `<besleyen pano> PANOSUNDAN <kablo> NYY`, ana şalter `3x50A.`, kaçak akım `KCAK-3x50A (30mA)`.
 
@@ -92,7 +92,7 @@ altında KURULU GÜÇ (W) · DİVERSİTE % · İŞLETME GÜCÜ (W).
 Seçim: alan > 12 m² → 36 W, değilse 18 W; ıslak hacim → U (etanş). Lejantta ve armatür listesinde kod, güç, ışık akısı, renk sıcaklığı, Ra, IP ve ömür (50.000 saat L70) yazılır.
 
 ## 10. Paftalardaki detaylar (firma kuralı 15.11.2026: "bolca detay, perspektif detaylandırma, standart çizim kurallarına göre")
-Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince çizgi + yatay çizgi + yazı, ucunda dolu ok), ölçüler mm, başlık 4 mm altı çizili, altında "ÖLÇEKSİZ".
+Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince çizgi + yatay çizgi + yazı, ucunda dolu ok), ölçüler mm, başlık 4 mm altı çizili, altında "ÖLÇEKSİZ"; açıklama yazıları 2,4 mm (`detay`), ölçü ve montaj yüksekliği yazıları 2,2 mm (`olcu`), tablo sütun başlıkları 2,2 mm (`sutun`), tablo satırları 2,06 mm (`cetvel`).
 - **Aydınlatma ve priz paftası:** aydınlatma hesap tablosu, LED armatür listesi, LED armatür montaj detayı (perspektif), montaj yükseklikleri (duvar görünüşü 1/25: priz +0,40, anahtar +1,10, pano alt kenarı +1,50, buton +1,40, TDK +1,80, acil +2,25), tek hat şeması, yükleme cetveli, semboller, notlar (LED notu dahil), 3B görünüş.
 - **Topraklama paftası:** topraklama hesap tablosu (ρ, D, Rh, Rç, çubuk sayısı, toplam R, dokunma gerilimi, şerit boyu), topraklama barası TB-1 perspektif detayı (400×40×5 Cu kalaylı, epoksi mesnet izolatörleri, M10 paslanmaz civatalar, bağlanan iletkenler: pano PE 16 mm², kablo tavası 16 mm², eş potansiyel 6 mm², santral 6 mm², temelden 30×3,5 filiz), temel topraklaması perspektif detayı (beton içinde kenarı üzerinde halka şerit, ≥ 5 cm örtü, mesafe tutucu her 2 m, 1,5 m filiz, Ø20 L = 3 m çubuk, 300×300 muayene kutusu), şerit ek detayı (≥ 10 cm bindirme, 60×60 çapraz klemens 4×M10), semboller, notlar, 3B görünüş.
 - **Telefon ve yangın alarm paftası:** dedektör montaj detayı (perspektif; duvar ve armatürden ≥ 0,5 m, kapsama 60 / 30 m²), semboller, notlar, 3B görünüş.
