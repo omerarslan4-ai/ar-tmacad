@@ -246,7 +246,7 @@
   ]));
   /* çeviri — paftalar (tam satır ve metin içi ifadeler: pano adı, mahal no gibi değişen parçalar olduğu yerde kalır) */
   if (window.DIL) window.DIL.ekle('en', 'English', satirla([
-    ['ELEKTRİK', 'ELECTRICAL'], ['Elektrik', 'Electrical'], ['3B GÖRÜNÜŞ', '3D VIEW'], ['AYDINLATMA VE PRİZ', 'LIGHTING AND SOCKETS'], ['TELEFON VE YANGIN ALARM', 'TELEPHONE AND FIRE ALARM'], ['TOPRAKLAMA', 'EARTHING'],
+    ['ELK-#', 'ELE-#'], ['ELEKTRİK', 'ELECTRICAL'], ['Elektrik', 'Electrical'], ['3B GÖRÜNÜŞ', '3D VIEW'], ['AYDINLATMA VE PRİZ', 'LIGHTING AND SOCKETS'], ['TELEFON VE YANGIN ALARM', 'TELEPHONE AND FIRE ALARM'], ['TOPRAKLAMA', 'EARTHING'],
     ['AYDINLATMA VE PRİZ TESİSATI PLANI', 'LIGHTING AND SOCKET INSTALLATION PLAN'], ['TELEFON VE YANGIN ALARM TESİSATI PLANI', 'TELEPHONE AND FIRE ALARM INSTALLATION PLAN'], ['PROJESİ', 'PROJECT'],
     ['IŞIK', 'LIGHT'], ['PRİZ', 'SOCKET'], ['NO', 'NO'], ['AKIM(A)', 'CURRENT(A)'], ['3 FAZ', '3 PHASE'], ['PANOSUNDAN', 'FROM PANEL'], ['PANOSUNA', 'PANEL:'], ['NOTLAR:', 'NOTES:'], ['ACİL', 'EMERG.'], ['APLİK', 'WALL LIGHT'],
     ['Galvanizli Şerit', 'galvanized strip'], ['Galv.Şerit', 'galv. strip'], ['TABİİ ZEMİN', 'NATURAL GROUND'], ['TOPRAKLAMA BARASI', 'EARTHING BAR'], ['Topraklama direnci', 'Earthing resistance'], ['Dokunma gerilimi', 'Touch voltage'],

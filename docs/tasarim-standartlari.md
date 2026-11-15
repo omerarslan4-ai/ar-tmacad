@@ -70,7 +70,7 @@ Program her yapının türünü modelden önerir (zeminin altında betonarme per
 - Ölçü sıraları üst üste binmez; sıralar arası modelde 25 cm, her ölçekte aynı (1/50'de kâğıtta 5 mm, 1/25'te 10 mm, 1/100'de 2,5 mm; 1/20 detayda 12,5 mm). Plan, kesit, görünüş ve detay, bütün ölçülendirmede geçerli (14.11.2026).
 - Çatı planı ve çatı kesitlerinde çatı elemanları (aşık, mertek, kuşaklama, dikme, kaplama katmanları, oluk, iniş borusu, mahya …) oklu açıklamayla yazılır; biçim birebir Çokal çatı kesitleri gibi (14.11.2026).
 - Kesitte yalnız en yakın doğrama görünür (arkadakiler örtülür); yalnız Mimari kesit alındığından bu kural Mimari kesitlerde uygulanır (14.11.2026; 40. madde ile güncellendi).
-- İngilizce paftalar (14.11.2026): açılım kodları DÖ01 → FL01, DU01 → WL01; pafta no MİM-01 → ARC-01; yer adları Türkçe harfle kalır; statik etiketlerde "gövde" → "main".
+- İngilizce paftalar (14.11.2026): açılım kodları DÖ01 → FL01, DU01 → WL01; pafta no MİM-01 → ARC-01, ELK-01 → ELE-01 (kullanıcı kararı 15.11.2026); yer adları Türkçe harfle kalır; statik etiketlerde "gövde" → "main".
 - Doğrama detayında iç ve dış sıva 2,8 cm (Çokal R2; 14.11.2026). Görünüş kotları binanın ve doğramanın solunda (onaylandı). Mahaller program tarafından kendiliğinden adlandırılmaz; ad kullanıcı tarafından verilir (Mahal adı).
 - Kesitte lento, duvardan ve betondan ayrı görünsün diye grobeton taraması (AR-CONC) ile taranır; mahya kotu çatı örtüsünün üstünden verilir; çatıda göğüsleme çift tahta 2x(5x10) (14.11.2026).
 - Plan ve kesitlerde yağmur oluğu, yağmur iniş borusu ve lentolar da oklu açıklamayla yazılır; lentoda ebat yazılır (ör. "Lento (20x20)", Çokal 6-Blower biçimi) — 14.11.2026.
