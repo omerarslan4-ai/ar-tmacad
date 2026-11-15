@@ -17,9 +17,13 @@ const o155 = Y.olukKap(155, 0);
 yak(o155.AE, Math.PI * 155 * 155 / 8, 1e-6, 'DN155 oluk kesit alanı');
 yak(o155.QN, 2.585, 0.005, 'DN155 oluk Q_N = 2,78e-5·A_E^1,25');
 yak(Y.FL(50), 1, 1e-9, 'F_L(50)'); yak(Y.FL(112.5), 0.915, 1e-9, 'F_L ara değer'); yak(Y.FL(600), 0.40, 1e-9, 'F_L tablo sonu');
-const b100 = Y.borKap(100), b120 = Y.borKap(120);
-yak(b100.Q, 10.5, 0.4, 'DN100 iniş borusu kapasitesi (f = 0,33)');
+const b100 = Y.borKap(100, { et: 0.7 }), b120 = Y.borKap(120, { et: 0.7 });
+yak(b100.Q, 10.5, 0.4, 'DN100 iniş borusu kapasitesi (f = 0,33, ince cidarlı)');
 ok(b120.Q > b100.Q * 1.5, 'DN120 kapasitesi DN100\'den belirgin büyük');
+/* PVC (firma kuralı 15.11.2026): oluk Ø100/125/150/200, iniş Ø75/90/110/125, et 1,8 mm */
+ok(Y.OLUK_DN.join() === '100,125,150,200' && Y.BORU_DN.join() === '75,90,110,125', 'PVC çap listeleri');
+yak(Y.borKap(110).di, 106.4, 1e-9, 'Ø110 PVC iç çap (et 1,8 mm)');
+ok(Y.borKap(110).Q > Y.borKap(90).Q * 1.5, 'Ø110 kapasitesi Ø90 çapınkinden belirgin büyük');
 
 /* 2) Konya terfi merkezi */
 let kp = dik(-0.5, -0.5, 20.2, 8.5);
@@ -28,7 +32,7 @@ const K = Y({ kind: 'kirma', pts: kp, ov: 0 }, { yagis: 300 });
 yak(K.A, 20.7 * 9.0, 0.01, 'Konya yatay izdüşüm alanı');
 yak(K.Q, 186.3 * 0.03, 0.01, 'Konya yağmur debisi');
 ok(K.nBoru === 4, 'Konya: 4 iniş borusu (köşelerde) — bulunan ' + K.nBoru);
-ok(K.olukDN === 155 && K.borDN === 120, 'Konya: DN155 oluk, DN120 iniş yeterli');
+ok(K.olukDN === 150 && K.borDN === 110, 'Konya: Ø150 PVC oluk, Ø110 PVC iniş yeterli');
 ok(K.borular.every(b => b.kose), 'Konya: bütün borular köşede');
 const uzun = K.kenarlar.filter(k => k.L > 15), kisa = K.kenarlar.filter(k => k.L < 15);
 uzun.forEach(k => yak(k.alan, (2 * 20.7 - 9) * 9 / 4, 0.01, 'Konya uzun saçak (yamuk) drenaj alanı'));
@@ -40,9 +44,11 @@ yak(K.enBuyukAralik, 20.7, 0.01, 'Konya en büyük boru aralığı');
 yak(K.dusus, 10.35 * 10 * 0.3, 0.01, 'Konya en uzun kolda oluk düşüşü (mm)');
 
 /* 3) Çokal İdari Bina: çizimdeki adet tutmalı */
-const Ck = Y({ kind: 'kirma', foot: dik(0, 0, 23.97, 10.49) }, { yagis: 300, olukDN: 155, borDN: 120 });
+const Ck = Y({ kind: 'kirma', foot: dik(0, 0, 23.97, 10.49) }, { yagis: 300 });
 ok(Ck.nBoru === 4, 'Çokal İdari: çizimdeki gibi 4 iniş borusu — bulunan ' + Ck.nBoru);
-ok(Ck.olukDN === 155 && Ck.borDN === 120 && !Ck.uyarilar.length, 'Çokal İdari: DN155 / DN120 yeterli');
+ok(Ck.olukDN === 150 && Ck.borDN === 110 && !Ck.uyarilar.length, 'Çokal İdari: Ø150 / Ø110 PVC yeterli');
+const Ce = Y({ kind: 'kirma', foot: dik(0, 0, 23.97, 10.49) }, { yagis: 300, olukDN: 155, borDN: 120 });
+ok(Ce.olukDN === 150 && Ce.borDN === 110, 'eski çinko ayarı (DN155 / DN120) PVC başlangıç çapına (Ø150 / Ø110) döner; yetmezse hesap büyütür');
 
 /* 4) genel davranış */
 const cw = Y({ kind: 'kirma', foot: [[0, 0], [0, 9], [20, 9], [20, 0]] });
@@ -66,4 +72,4 @@ ok(tr.nBoru === 0 && tr.uyarilar.length === 1, 'teras: oluk yok, uyarı');
 const kl = Y({ kind: 'kirma', foot: dik(0, 0, 40, 12) }, { yagis: 600, kolonlar: [[20, 0]] });
 ok(kl.kenarlar[0].konumlar.includes(20), 'ara boru kolona yakınsa kolona kayar: ' + kl.kenarlar[0].konumlar.join(', '));
 
-console.log(`yagmur: ${n} denetim geçti · Konya ${K.nBoru} × DN${K.borDN} iniş, DN${K.olukDN} oluk, Q = ${K.Q.toFixed(2)} l/s · Çokal İdari ${Ck.nBoru} boru`);
+console.log(`yagmur: ${n} denetim geçti · Konya ${K.nBoru} × Ø${K.borDN} iniş, Ø${K.olukDN} oluk, Q = ${K.Q.toFixed(2)} l/s · Çokal İdari ${Ck.nBoru} boru`);

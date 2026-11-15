@@ -223,8 +223,8 @@ t('çatı oklu açıklama yazısı: Çokal biçimi (ebat küçükten büyüğe, 
   assert.deepStrictEqual(A.catiKatmanYazisi({ tur: 'alt', key: 'tahta18', t: 0.018 }), ['Kaplama Tahtası', '1.8x10']);
   assert.deepStrictEqual(A.catiKatmanYazisi({ tur: 'su', key: 'bitum', t: 0.006 }), ['Bitümlü Örtü İle Su Yalıtımı']);
   assert.deepStrictEqual(A.ikiSatir('EPS Dolgulu Renkli Sac Galvaniz Panel (5 cm)'), ['EPS Dolgulu Renkli Sac', 'Galvaniz Panel (5 cm)']);
-  assert.deepStrictEqual(A.olukYazisi(155), ['DN155 Çinko Yağmur Oluğu']);
-  assert.deepStrictEqual(A.inisBorusuYazisi(120), ['DN120 Çinko Yağmur', 'İniş Borusu']);
+  assert.deepStrictEqual(A.olukYazisi(150), ['Ø150 PVC Yağmur Oluğu']); // firma kuralı 15.11.2026: PVC (Çokal'da DN155 Çinko)
+  assert.deepStrictEqual(A.inisBorusuYazisi(110), ['Ø110 PVC Yağmur', 'İniş Borusu']);
 });
 t('oklu açıklama yeri: delikli bölge (çatı kaplama bandı dış + iç çevre, aynı katman) içi boş sayılır', () => {
   const dis = [[0, 0], [20, 0], [20, 10], [0, 10]], ic = [[1, 1], [19, 1], [19, 9], [1, 9]];

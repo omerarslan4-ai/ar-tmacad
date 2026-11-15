@@ -296,7 +296,7 @@
   /* çatı elemanlarının oklu açıklama yazısı (Çokal 10-İdari Bina_R2 çatı paftası ÇKL-AAT-İB-03: ÇATI PLANI, A'-A', B'-B'; 6-Blower çatı kesiti):
      "Mertek 5x10", "Aşık 10x10", "D. Aşığı 10x10", "Dikme 10x10" (planda iki satır: "Dikme" / "10x10"), "Kuşaklama" / "2x5x10", "Göğüsleme" / "2x5x10",
      "Yastık 2.5x10", "Kaplama Tahtası" / "1.8x10", "EPS Dolgulu Renkli" / "Sac Galvaniz Panel (5 cm)", "Bitümlü Örtü İle Su Yalıtımı",
-     "DN155 Çinko Yağmur Oluğu", "DN120 Çinko Yağmur" / "İniş Borusu". Ebat küçükten büyüğe, cm, ondalık noktalı; sözcük başları büyük.
+     "DN155 Çinko Yağmur Oluğu", "DN120 Çinko Yağmur" / "İniş Borusu" — firma 15.11.2026'dan beri PVC: "Ø150 PVC Yağmur Oluğu", "Ø110 PVC Yağmur" / "İniş Borusu". Ebat küçükten büyüğe, cm, ondalık noktalı; sözcük başları büyük.
      t: eleman türü (cati.js mem.t), b / h (m), yer: 'plan' | 'kesit'. Göğüsleme kuşaklama gibi çift tahta (dikmenin iki yanında; kullanıcı kararı 14.11.2026): "2x5x10". */
   const ebatYaz = (b, h) => [b, h].map(v => +(v * 100).toFixed(1)).sort((x, y) => x - y).join('x');
   const basBuyuk = s => String(s || '').toLocaleLowerCase('tr').replace(/(^|[\s(/-])(\S)/g, (m, a, c) => a + c.toLocaleUpperCase('tr'));
@@ -314,10 +314,10 @@
     const ad = basBuyuk(String(k.ad || '').replace(/\s*\([^)]*\)\s*$/, '')), par = /\(([^)]*)\)\s*$/.exec(k.ad || '');
     const s = k.tur === 'ortu' && /panel/i.test(k.ad || '') ? `${ad} (${+(k.t * 100).toFixed(1)} cm)` : ad + (par && k.tur !== 'ortu' ? ` (${par[1]})` : '');
     return ikiSatir(s); };
-  const olukYazisi = dn => [`DN${dn} Çinko Yağmur Oluğu`];
+  const olukYazisi = dn => [`Ø${dn} PVC Yağmur Oluğu`];
   /* lento (Çokal 6-Blower_R2 kesit detayı: MTEXT Yazi25 "Lento" / "(20x20)", ok _ClosedBlank): en (duvar kalınlığı) x yükseklik, cm */
   const lentoYazisi = (en, h) => ['Lento', `(${Math.round(en * 100)}x${Math.round(h * 100)})`];
-  const inisBorusuYazisi = dn => [`DN${dn} Çinko Yağmur`, 'İniş Borusu'];
+  const inisBorusuYazisi = dn => [`Ø${dn} PVC Yağmur`, 'İniş Borusu'];
 
   /* ---------- 6) GÖRÜNÜŞTE TOPRAK ALTI (firma kuralı 14.11.2026: toprak altında kalan yapı kısımları görünmez) ----------
      Görünüşün izdüşümü (u yatay, v = kot): kapalı çevreler, açık çizgiler ve görünen kenarlar zemin kotunun (zg) altında kırpılır.
@@ -611,7 +611,7 @@
   const OKC = okKural('cati'), OKL = okKural('lento');
   /* aynı yazılı gruplar birleşir (ör. saçak aşığı ve duvar aşığı ikisi de "D. Aşığı 10x10"): tek ok */
   const yaziBirlestir = G => { const M2 = new Map(); for (const g of G) { const k = g.satir.join('|'); if (M2.has(k)) M2.get(k).adaylar.push(...g.adaylar); else M2.set(k, { adaylar: g.adaylar.slice(), satir: g.satir }); } return [...M2.values()]; };
-  const catiDn = c => ({ oluk: +c.olukDn || 155, boru: +c.boruDn || 120 }); // modelde çap yoksa Çokal İdari çatısındaki DN155 / DN120
+  const catiDn = c => ({ oluk: +c.olukDn || 150, boru: +c.boruDn || 110 }); // modelde çap yoksa PVC Ø150 / Ø110 (firma kuralı 15.11.2026)
   const uyeOrnek = (A, B, n) => { const o = []; for (let i = 1; i <= n; i++) { const t = i / (n + 1); o.push([A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, (A[2] || 0) + ((B[2] || 0) - (A[2] || 0)) * t]); } return o; };
   /* PLAN (ÇATI PLANI): iskelet elemanları, oluk, iniş boruları. W: model → çizim */
   C.catiOkPlan = (gv, W, cati) => {
