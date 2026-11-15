@@ -3,6 +3,7 @@
      • Her ünite ayrı PDF  • her pafta ayrı PDF  • hepsi tek PDF (her pafta bir sayfa, ünite adlarıyla yer imi)
      • Kâğıt boyutu her paftanın kendi sayfa düzeninden otomatik alınır (A0–A4, uzun paftalar ör. 898×594, özel ölçü); sayfa o boyutta ve yönde çıkar.
      • Dosyalar seçilen klasöre doğrudan yazılır (tarayıcının indirmeler klasörü değil); klasör bir kez seçilir ve hatırlanır.
+     • Eski "Yazdır / PDF", "Tümünü yazdır", ELEKTRIKCIKTI, TESISATCIKTI, PAFTAPDF de bu kayda gider (yazıcı için YAZICIYAZDIR, TUMUYAZICI).
      • Bölümde pafta yoksa önce o bölümün otomatik paftalama komutu çalışır (MIMARIPAFTA, TESISATPAFTA, ELEKTRIKPAFTA, STATIKCIZ).
    PDF tarayıcının yazdırma penceresi olmadan, burada yazılır: paftanın SVG çizimi (C.layoutSvg) vektör PDF'e çevrilir
    (çizgi, çokgen, yay, daire, dolgu, kırpma, kesik çizgi; çizgi fontlu yazılar çizgi olarak, TrueType yazılar PDF'in standart
@@ -403,7 +404,7 @@
 
   /* PDF üret ve kaydet. o: { bolum, kip, secili, mono } */
   C.paftaPdfKaydet = async (o) => {
-    const proje = dosyaAdi(C.doc.set.name || 'proje'), plan = dosyaPlani(lays(), Object.assign({ proje }, o));
+    const proje = dosyaAdi(C.doc.set.name || 'proje'), plan = o.paftalar ? (o.paftalar.length ? [{ ad: dosyaAdi(`${proje} - ${o.paftalar.length === 1 ? o.paftalar[0].name : 'paftalar'}`), paftalar: o.paftalar }] : []) : dosyaPlani(lays(), Object.assign({ proje }, o));
     if (!plan.length) { C.warn(tr('Kaydedilecek pafta yok.')); return null; }
     try { C.g3Guncelle && C.g3Guncelle(false); } catch (er) { }
     const dosyalar = [], ozet = [];
@@ -429,13 +430,14 @@
   };
 
   /* seçim penceresi */
-  const pencere = (bolum0) => new Promise(res => {
+  /* sabit: [düzen] verilirse (ör. açık pafta) bölüm / ünite seçimi yerine o paftalar gösterilir */
+  const pencere = (bolum0, sabit) => new Promise(res => {
     const gs = gruplar(), say = g => bolumPaftalari(lays(), g).length;
-    const b = C.modal(tr('PDF kaydet'), `
+    const b = C.modal(tr('PDF kaydet'), (sabit ? `<div class="fld" style="align-items:flex-start"><label>${tr('Pafta')}</label><div style="flex:1">${sabit.map(L => `<div><b>${esc(L.name)}</b> <small style="opacity:.75">— ${paftaKagidi(L).etiket}</small></div>`).join('')}</div></div><div style="display:none">` : '') + `
       <div class="fld"><label>${tr('Bölüm')}</label><select id="pdBol"><option value="TUMU">${tr('Tüm bölümler')} (${lays().length})</option>${gs.map(g => `<option value="${esc(g)}" ${g === bolum0 ? 'selected' : ''}>${esc(tr(g))} (${say(g) || tr('pafta yok') + (OTO[g] ? ' — ' + tr('otomatik paftalanır') : '')})</option>`).join('')}</select></div>
       <div class="fld" style="align-items:flex-start"><label>${tr('Üniteler')}</label><div id="pdUn" style="max-height:230px;overflow:auto;flex:1;border:1px solid var(--line);border-radius:4px;padding:4px 6px"></div></div>
       <div class="fld"><label>${tr('Kayıt şekli')}</label><select id="pdKip">
-        <option value="unite">${tr('Her ünite ayrı PDF')}</option><option value="pafta">${tr('Her pafta ayrı PDF')}</option><option value="tek">${tr('Hepsi tek PDF (her pafta bir sayfa)')}</option></select></div>
+        <option value="unite">${tr('Her ünite ayrı PDF')}</option><option value="pafta">${tr('Her pafta ayrı PDF')}</option><option value="tek">${tr('Hepsi tek PDF (her pafta bir sayfa)')}</option></select></div>${sabit ? '</div>' : ''}
       <div class="fld"><label>${tr('Renk')}</label><select id="pdRenk"><option value="S">${tr('Siyah-beyaz')}</option><option value="R">${tr('Renkli')}</option></select></div>
       <div class="fld"><label>${tr('Kayıt yeri')}</label><span style="display:flex;gap:6px;align-items:center;flex:1"><b id="pdYer" style="flex:1;overflow:hidden;text-overflow:ellipsis">…</b><button id="pdYerSec">${tr('Klasör seç…')}</button></span></div>
       <p class="hint">${tr('Kâğıt boyutu ve yönü her paftadan otomatik alınır (A0–A4, uzun ve özel ölçüler); sayfalar o boyutta kaydedilir.')} ${tr('PDF dosyaları seçtiğiniz klasöre doğrudan yazılır; klasör hatırlanır, değiştirmek için "Klasör seç".')}</p>
@@ -460,14 +462,14 @@
     $('#pdIptal').onclick = () => son(null);
     $('#pdTamam').onclick = async () => {
       const us = b._us || [], sec = [...b.querySelectorAll('[data-u]')].filter(c => c.checked).map(c => us[+c.dataset.u].ad);
-      if (us.length && !sec.length) { C.warn(tr('En az bir ünite seçin.')); return; }
+      if (!sabit && us.length && !sec.length) { C.warn(tr('En az bir ünite seçin.')); return; }
       if (window.showDirectoryPicker) { // klasör: hatırlanan (izinle) ya da şimdi seçilen — tıklamanın içinde
         if (klasor && !(await klasorIzin(klasor))) klasor = null;
         if (!klasor) klasor = await klasorSec();
         if (!klasor) { yerYaz(); return; }
       }
       ayarYaz('kip', $('#pdKip').value); ayarYaz('renk', $('#pdRenk').value);
-      son({ klasor, bolum: $('#pdBol').value, kip: $('#pdKip').value, mono: $('#pdRenk').value === 'S', secili: sec.length === us.length ? [] : sec });
+      son({ klasor, paftalar: sabit || null, bolum: $('#pdBol').value, kip: $('#pdKip').value, mono: $('#pdRenk').value === 'S', secili: sec.length === us.length ? [] : sec });
     };
     const tm = setInterval(() => { const m = document.querySelector('#modal'); if (m && m.classList.contains('hidden')) son(null); }, 300);
   });
@@ -482,6 +484,22 @@
     if (sec.bolum !== 'TUMU' && !bolumPaftalari(lays(), sec.bolum).length) { if (!(await otoPaftala(sec.bolum, I))) { C.warn(tr('Bu bölümde pafta yok.')); return; } C.emit('layouts'); }
     await C.paftaPdfKaydet(sec);
   }, { noUndo: true });
+
+  /* eski yazdırma komutları (tarayıcının yazdır penceresi bütün paftaları ilk paftanın kâğıdında basıyordu, uzun paftalar kesiliyordu)
+     artık doğrudan PDF kaydına gider; kâğıda (yazıcıya) basmak için eski yol YAZICIYAZDIR / TUMUYAZICI olarak kalır */
+  const yonlendir = (ad, bolumFn) => { const d = C.cmds[ad]; if (!d || d._pdf) return null; const f0 = d.fn; d._pdf = true;
+    d.fn = async (I) => { const bolum = bolumFn(); if (bolum !== 'TUMU' && !bolumPaftalari(lays(), bolum).length) { C.warn(tr('Bu bölümde pafta yok.')); return; } const sec = await pencere(bolum); if (sec) await C.paftaPdfKaydet(sec); };
+    return f0; };
+  const acikPafta = () => { const ls = lays(); return ls[Math.min(C.layoutIdx || 0, ls.length - 1)] || null; };
+  { const p0 = C.printLayout; if (p0 && !p0._pdf) {
+      C.printLayout = async function (I, svgOnly) { if (svgOnly) return p0.apply(this, arguments); if (C.currentView !== 'layout') C.setView('layout'); const L = acikPafta(); if (!L) { C.warn(tr('Pafta yok.')); return; } const sec = await pencere(L.grp || 'TUMU', [L]); if (sec) await C.paftaPdfKaydet(sec); };
+      C.printLayout._pdf = true;
+      C.addCommand(['YAZICIYAZDIR', 'KAGITYAZDIR'], 'Açık paftayı yazıcıya (kâğıda) gönderir: tarayıcının yazdırma penceresi açılır, kâğıt boyutu paftadan gelir. PDF için PDFKAYDET.', I => p0.call(C, I, false), { noUndo: true });
+  } }
+  { const f0 = yonlendir('PRINTALL', () => 'TUMU'); if (f0) C.addCommand(['TUMUYAZICI', 'TUMUNUKAGITYAZDIR'], 'Tüm paftaları yazıcıya (kâğıda) gönderir (tarayıcının yazdırma penceresi). PDF için PDFKAYDET.', f0, { noUndo: true }); }
+  yonlendir('ELEKTRIKCIKTI', () => 'Elektrik');
+  yonlendir('TESISATCIKTI', () => 'Mekanik');
+  yonlendir('PAFTAPDF', () => lays().some(L => L.grp === 'Statik') ? 'Statik' : 'TUMU');
 
   /* şerit: her sekmeye "PDF" paneli (bölüm sekmesinde o bölüm seçili gelir) */
   const PANEL = 'PDF';
