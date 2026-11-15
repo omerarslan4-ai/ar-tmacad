@@ -145,6 +145,8 @@
   };
   let curTab = 0;
   const render = () => {
+    if (curTab >= TABS.length) curTab = 0;
+    const ozel = typeof TABS[curTab][2] === 'function' ? TABS[curTab][2] : null; // bağlamsal sekme (ör. Guse): gövdeyi kendi doldurur — [ad, [], govde => …]
     const tabs = TABS.map((t, i) => `<button data-t="${i}" class="${i === curTab ? 'on' : ''}">${t[0]}</button>`).join('') + `<button class="rmin" title="Şeridi küçült / aç (sekmeye çift tık)">${rib.classList.contains('min') ? '▾' : '▴'}</button>`;
     const body = TABS[curTab][1].map(([title, items, more], pi) => {
       const bigs = items.filter(x => x.big), sms = items.filter(x => !x.big);
@@ -163,6 +165,7 @@
       if (b.dataset.o) b.oncontextmenu = ev => { ev.preventDefault(); const [pi, ii] = b.dataset.o.split(':').map(Number); showDrop(b, TABS[curTab][1][pi][1][ii].opts); };
     });
     rib.querySelectorAll('.rt.more').forEach(t => t.onclick = () => showDrop(t, TABS[curTab][1][+t.dataset.p][2]));
+    if (ozel) { try { ozel(rib.querySelector('.rbody')); } catch (er) { console.error(er); } }
     mark();
   };
   const mark = () => { const n = C.cmd.running && C.cmd.running.names[0]; rib.querySelectorAll('[data-c]').forEach(b => { const c = b.dataset.c.split(' ')[0]; b.classList.toggle('on', !!n && !!C.cmds[c] && C.cmds[c].names[0] === n); }); for (const id of ['v3orbit', 'v3pan']) { const o = rib.querySelector(`[data-c="@${id}"]`), src = $('#' + id); if (o && src) o.classList.toggle('on', src.classList.contains('on')); } };
@@ -171,5 +174,5 @@
   const I3 = () => TABS.findIndex(t => t[0] === '3B Modelleme'), sv = C.setView; let prevTab = 0; // sekme eklenince (Mekanik, Çelik) sıra değişir: her seferinde bulunur
   C.setView = function (v) { const r = sv.apply(this, arguments), i3d = I3(); if (v === '3d' && curTab !== i3d) { prevTab = curTab; curTab = i3d; render(); } else if (v !== '3d' && curTab === i3d) { curTab = prevTab === i3d ? 0 : prevTab; render(); } return r; };
   render();
-  C.ribbon = { render, tabs: TABS, select: name => { const i = TABS.findIndex(t => t[0] === name); if (i >= 0) { curTab = i; render(); } } };
+  C.ribbon = { render, tabs: TABS, current: () => (TABS[curTab] ? TABS[curTab][0] : null), select: name => { const i = TABS.findIndex(t => t[0] === name); if (i >= 0) { curTab = i; render(); } } };
 })(window.C);

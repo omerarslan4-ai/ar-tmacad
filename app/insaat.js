@@ -277,7 +277,7 @@
   const guseList = e => {
     if (e.guse !== 'E') return [];
     const y = String(e.gYon || 'R'), sides = y === 'ALL' ? ['R', 'L', 'F', 'A'] : y === 'RL' ? ['R', 'L'] : y === 'FA' ? ['F', 'A'] : [y];
-    const z0 = +e.z0 || 0, h = +e.h || 3, gz = e.gZ == null || e.gZ === '' ? 1 : +e.gZ, zt = e.gRef === 'KOT' ? gz : z0 + h - gz, gL = +e.gL || 0.4, hf = Math.max(0.05, +e.gHf || 0.6), hu = Math.max(0.02, Math.min(hf, +e.gHu || 0.3));
+    const z0 = +e.z0 || 0, h = +e.h || 3, gz = e.gZ == null || e.gZ === '' ? 1 : +e.gZ, zt = C.guseYer ? C.guseYer.ustKot(e) : (e.gRef === 'KOT' ? gz : z0 + h - gz) /* üst kot tek yerden: app/guse-yer.js */, gL = +e.gL || 0.4, hf = Math.max(0.05, +e.gHf || 0.6), hu = Math.max(0.02, Math.min(hf, +e.gHu || 0.3));
     const D = e.sek === 'D', b = D ? (+e.D || 0.5) : (+e.b || 0.4), d = D ? (+e.D || 0.5) : (+e.d || 0.4);
     return sides.map(sd => { const along = sd === 'R' || sd === 'L', f0 = (along ? b : d) / 2 - (D ? 0.02 : 0), w = +e.gW > 0 ? +e.gW : (along ? d : b) * (D ? 0.7 : 1), sg = sd === 'R' || sd === 'F' ? 1 : -1;
       const loc = (t, s2) => along ? [sg * t, s2] : [s2, sg * t]; return { sd, f0, w, zt, zf: zt - hf, zu: zt - hu, gL, loc }; });
