@@ -93,7 +93,7 @@
         this.flushB();
         ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dsh || []);
         switch (k) {
-          case 'S': { ctx.beginPath(); pr.pts.forEach((p, i) => { const q = this.w2s(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill(); break; }
+          case 'S': { if (pr.maske) ctx.fillStyle = this.dark ? '#1b1f24' : '#ffffff'; /* yazı maskesi: arka plan rengiyle (elektrik etiketleri, 15.11.2026) */ ctx.beginPath(); pr.pts.forEach((p, i) => { const q = this.w2s(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill(); break; }
           case 'X': { const q = this.w2s(pr.p); ctx.fillRect(q[0] - 1.5, q[1] - 1.5, 3, 3); break; }
           case 'T': { C.drawTextCanvas(ctx, pr, { w2s: q => this.w2s(q), s: this.s, rot: this.rot }); break; }
         }

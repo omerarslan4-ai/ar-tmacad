@@ -279,7 +279,8 @@
     sistem: /^(0|Defpoints)$/i,
     baskaDisiplin: /^(INS_|Mim_|MT_|Mek_|MEK_)/,
     katmandan: true,
-    yaziRenk: 2,                                           // örneklerde etiket ve tablo yazıları elle sarı
+    yaziRenk: 7,                                           // örneklerde etiket ve tablo yazıları elle sarıydı (2); firma kuralı 15.11.2026: paftada sarı yok, belirgin renk (7 = kâğıtta siyah)
+    yaziMaske: 0.6,                                        // yazı arkası maskesi: yazının çevresinde kâğıt mm boşluk (çizgiler yazının altından geçer)
     yaziStilleri: { 'AAAA': { font: 'arial.ttf', gen: 1 }, 'elk': { font: 'romanstw.shx', gen: 0.85 } },
     /* yazı yükseklikleri (kâğıt mm) */
     yaziMm: { etiket: 2, linye: 2, cetvel: 2.06, tekHat: 2.16, tabloBaslik: 2.4, detay: 2.4, lejant: 3, not: 3, baslik: 4, kutuYazi: 1.44, harf: 2.5, harfKucuk: 1.6 }, // kutuYazi: TDK / FJB içi (BB-003 7,2 birim); harf: dedektör D 12,5 birim, O 8 birim

@@ -86,7 +86,7 @@
       switch (pr.k) {
         case 'L': { const a = P(pr.a), b = P(pr.b); out.push(`<line x1="${a[0].toFixed(3)}" y1="${a[1].toFixed(3)}" x2="${b[0].toFixed(3)}" y2="${b[1].toFixed(3)}" ${st}/>`); break; }
         case 'P': out.push(`<${pr.c ? 'polygon' : 'polyline'} points="${pr.pts.map(q).join(' ')}" ${st}/>`); break;
-        case 'S': out.push(`<polygon points="${pr.pts.map(q).join(' ')}" fill="${col}" stroke="none"/>`); break;
+        case 'S': out.push(`<polygon points="${pr.pts.map(q).join(' ')}" fill="${pr.maske ? '#fff' : col}" stroke="none"/>`); break; // maske: yazı arkası kâğıt rengi
         case 'C': { const c = P(pr.c); out.push(`<circle cx="${c[0].toFixed(3)}" cy="${c[1].toFixed(3)}" r="${(pr.r * k).toFixed(3)}" ${st}/>`); break; }
         case 'A': { const p0 = P(M.polar(pr.c, pr.a0, pr.r)), p1 = P(M.polar(pr.c, pr.a1, pr.r)), sw = M.normAng(pr.a1 - pr.a0); out.push(`<path d="M${p0[0].toFixed(3)} ${p0[1].toFixed(3)} A${(pr.r * k).toFixed(3)} ${(pr.r * k).toFixed(3)} 0 ${sw > Math.PI ? 1 : 0} 0 ${p1[0].toFixed(3)} ${p1[1].toFixed(3)}" ${st}/>`); break; }
         case 'X': { const c = P(pr.p); out.push(`<circle cx="${c[0].toFixed(3)}" cy="${c[1].toFixed(3)}" r="0.2" fill="${col}"/>`); break; }

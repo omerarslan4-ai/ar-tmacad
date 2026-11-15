@@ -283,7 +283,7 @@
         switch (pr.k) {
           case 'L': out.push(`<line x1="${X(pr.a)}" y1="${Y(pr.a)}" x2="${X(pr.b)}" y2="${Y(pr.b)}" ${st}/>`); break;
           case 'P': out.push(`<${pr.c ? 'polygon' : 'polyline'} points="${pr.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" ${st}/>`); break;
-          case 'S': out.push(`<polygon points="${pr.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="${col}" stroke="none"/>`); break;
+          case 'S': out.push(`<polygon points="${pr.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="${pr.maske ? '#fff' : col}" stroke="none"/>`); break; // maske: yazı arkası
           case 'C': out.push(`<circle cx="${X(pr.c)}" cy="${Y(pr.c)}" r="${(pr.r * k).toFixed(3)}" ${st}/>`); break;
           case 'A': { const p0 = M.polar(pr.c, pr.a0, pr.r), p1 = M.polar(pr.c, pr.a1, pr.r), sw = M.normAng(pr.a1 - pr.a0); out.push(`<path d="M${X(p0)} ${Y(p0)} A${(pr.r * k).toFixed(3)} ${(pr.r * k).toFixed(3)} 0 ${sw > Math.PI ? 1 : 0} 0 ${X(p1)} ${Y(p1)}" ${st}/>`); break; }
           case 'X': out.push(`<circle cx="${X(pr.p)}" cy="${Y(pr.p)}" r="0.2" fill="${col}"/>`); break;

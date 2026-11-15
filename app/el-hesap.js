@@ -13,14 +13,19 @@
   const EL = {};
 
   /* ======================= KATALOG ======================= */
-  /* armatür: W = lamba + balast, lm = toplam ışık akısı; boy (m) sembol boyu (52 / 104 cm) */
+  /* armatür: W = sürücü dahil güç, lm = armatür ışık akısı; boy (m) gövde boyu (planda gerçek boyda çizilir).
+     Firma kuralı 15.11.2026: aydınlatma armatürleri LED. Kod Çorlu biçiminde: P = normal (IP40), U = etanş (IP65). Floresan kodları eski dosyalar için kalır. */
   EL.ARMATUR = {
-    'P-2x20W': { ad: 'FLORESANT ARMATÜR (IP42)', W: 50, lm: 2500, ip: 42, etans: false, boy: 0.52 },
-    'P-2x40W': { ad: 'FLORESANT ARMATÜR (IP42)', W: 95, lm: 5800, ip: 42, etans: false, boy: 1.04 },
-    'U-2x20W': { ad: 'ETANŞ FLORESANT ARMATÜR (IP54)', W: 50, lm: 2400, ip: 54, etans: true, boy: 0.52 },
-    'U-2x40W': { ad: 'ETANŞ FLORESANT ARMATÜR (IP54)', W: 95, lm: 5500, ip: 54, etans: true, boy: 1.04 },
-    'ACİL': { ad: 'ACİL ÇIKIŞ ARMATÜRÜ (3 SAAT, IP42)', W: 8, lm: 150, ip: 42, etans: false, boy: 0.30, acil: true },
-    'APLİK': { ad: 'ETANŞ DUVAR APLİĞİ (IP65)', W: 25, lm: 1200, ip: 65, etans: true, boy: 0.30, dis: true },
+    'P-LED36W': { ad: 'LED LİNEER ARMATÜR', W: 36, lm: 4300, ip: 40, etans: false, boy: 1.20, led: true, K: 4000, Ra: 80, omur: 50000, govde: 'sıva üstü, opal difüzörlü alüminyum gövde 1200x70x50 mm' },
+    'P-LED18W': { ad: 'LED LİNEER ARMATÜR', W: 18, lm: 2150, ip: 40, etans: false, boy: 0.60, led: true, K: 4000, Ra: 80, omur: 50000, govde: 'sıva üstü, opal difüzörlü alüminyum gövde 600x70x50 mm' },
+    'U-LED36W': { ad: 'LED ETANŞ ARMATÜR', W: 36, lm: 4000, ip: 65, etans: true, boy: 1.27, led: true, K: 4000, Ra: 80, omur: 50000, govde: 'polikarbonat gövde ve difüzör, paslanmaz klips 1270x90x80 mm' },
+    'U-LED18W': { ad: 'LED ETANŞ ARMATÜR', W: 18, lm: 2000, ip: 65, etans: true, boy: 0.67, led: true, K: 4000, Ra: 80, omur: 50000, govde: 'polikarbonat gövde ve difüzör, paslanmaz klips 670x90x80 mm' },
+    'ACİL': { ad: 'LED ACİL ÇIKIŞ ARMATÜRÜ (3 SAAT)', W: 3, lm: 150, ip: 42, etans: false, boy: 0.30, acil: true, led: true, K: 6500, govde: 'kendinden akülü (Ni-Cd 3,6 V), "ÇIKIŞ" yönlendirme etiketli, sürekli / kesintide yanar' },
+    'APLİK': { ad: 'LED ETANŞ DUVAR APLİĞİ', W: 15, lm: 1500, ip: 65, etans: true, boy: 0.30, dis: true, led: true, K: 4000, Ra: 80, govde: 'alüminyum döküm gövde, fotoselli' },
+    'P-2x20W': { ad: 'FLORESANT ARMATÜR (IP42)', W: 50, lm: 2500, ip: 42, etans: false, boy: 0.52, eski: true },
+    'P-2x40W': { ad: 'FLORESANT ARMATÜR (IP42)', W: 95, lm: 5800, ip: 42, etans: false, boy: 1.04, eski: true },
+    'U-2x20W': { ad: 'ETANŞ FLORESANT ARMATÜR (IP54)', W: 50, lm: 2400, ip: 54, etans: true, boy: 0.52, eski: true },
+    'U-2x40W': { ad: 'ETANŞ FLORESANT ARMATÜR (IP54)', W: 95, lm: 5500, ip: 54, etans: true, boy: 1.04, eski: true },
   };
   EL.PRIZ_W = 300;          // priz sortisi başına güç (Çorlu cetveli: 2 priz 600 W, 3 priz 900 W)
   EL.SIGORTA = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250];
@@ -54,12 +59,13 @@
   /* o: { a, b (oda kenarları m), A (alan, verilmezse a·b), h (tavan yüksekliği), hc (çalışma düzlemi, 0,85), E (lx), arm (kod), MF (0,8) } */
   EL.aydinlatma = o => {
     const a = Math.max(0.5, +o.a || 1), b = Math.max(0.5, +o.b || 1), A = +o.A || a * b, hm = Math.max(0.5, (+o.h || 2.8) - (o.hc == null ? 0.85 : +o.hc));
-    const ar = EL.ARMATUR[o.arm] || EL.ARMATUR['P-2x40W'], MF = +o.MF || 0.8, E = +o.E || 300, k = a * b / (hm * (a + b)), eta = EL.eta(k);
+    const ar = EL.ARMATUR[o.arm] || EL.ARMATUR['P-LED36W'], MF = +o.MF || 0.8, E = +o.E || 300, k = a * b / (hm * (a + b)), eta = EL.eta(k);
     const N = Math.max(1, Math.ceil(E * A / (ar.lm * eta * MF) - 1e-9)), Eg = N * ar.lm * eta * MF / A;
-    return { a, b, A, hm, k, eta, MF, E, N, Eg, W: N * ar.W, Wm2: N * ar.W / A, arm: o.arm || 'P-2x40W', lm: ar.lm };
+    return { a, b, A, hm, k, eta, MF, E, N, Eg, W: N * ar.W, Wm2: N * ar.W / A, arm: o.arm || 'P-LED36W', lm: ar.lm };
   };
   /* armatür tipi: etanş mahalde U, alan büyükse 2x40W */
-  EL.armaturSec = (A, etans) => (etans ? 'U-' : 'P-') + (A > 12 ? '2x40W' : '2x20W');
+  EL.armaturSec = (A, etans) => (etans ? 'U-' : 'P-') + (A > 12 ? 'LED36W' : 'LED18W'); // LED (firma kuralı 15.11.2026)
+  EL.armaturAciklama = k => { const a = EL.ARMATUR[k]; if (!a) return k; return `${k} ${a.ad}${a.led ? '' : ''} · ${a.W} W · ${a.lm} lm${a.K ? ' · ' + a.K + ' K' : ''}${a.Ra ? ' · Ra≥' + a.Ra : ''} · IP${a.ip}${a.omur ? ' · ömür ' + (a.omur / 1000) + '.000 saat (L70)' : ''}`; };
   /* N armatürün a × b odadaki ızgarası: yerel koordinat (0..a, 0..b) */
   EL.izgara = (N, a, b) => {
     let nx = Math.max(1, Math.round(Math.sqrt(N * a / b))); nx = Math.min(nx, N); const ny = Math.ceil(N / nx), out = [];

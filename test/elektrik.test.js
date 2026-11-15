@@ -29,7 +29,7 @@ t('Çorlu BBAT: besleme 100 m → 4x6 NYY (4 mm²\'de gerilim düşümü %1,9 > 
 t('faz dağılımı: toplam korunur, 3 fazlı yük eşit bölünür, dengesizlik %25\'in altında', () => {
   const L = corlu(), F = EL.fazDagit(L); yak(F.R + F.S + F.T, 6900, 1e-6); yak(L[4].dag.R, 5000 / 3, 1e-6); const mx = Math.max(F.R, F.S, F.T), mn = Math.min(F.R, F.S, F.T); assert((mx - mn) / mx < 0.25);
 });
-t('aydınlatma (lümen yöntemi): 5,0 × 3,5 m danışma, h 2,8 m, 300 lx, P-2x40W → 3 armatür (η 0,45), E ≥ 300 lx', () => {
+t('aydınlatma (lümen yöntemi): 5,0 × 3,5 m danışma, h 2,8 m, 300 lx, P-2x40W (eski floresan kodu da çalışır) → 3 armatür (η 0,45), E ≥ 300 lx', () => {
   const r = EL.aydinlatma({ a: 5.0, b: 3.5, h: 2.8, E: 300, arm: 'P-2x40W' });
   yak(r.k, 5 * 3.5 / (1.95 * 8.5), 1e-9, 'k'); assert(r.N >= 1 && r.Eg >= 300, `N=${r.N} Eg=${r.Eg}`); assert.strictEqual(r.N, 3);
 });
@@ -42,7 +42,7 @@ t('linye gruplama: ışık en çok 9 sorti, priz en çok 7 sorti', () => {
   const g = EL.linyeGrupla(c); assert.deepStrictEqual(g.map(x => [x.tur, x.n]), [['isik', 9], ['isik', 3], ['priz', 7], ['priz', 1]]);
 });
 t('mahal tipi: WC etanş, mutfak ısı dedektörü, danışma telefon prizi', () => {
-  assert(EL.mahalTip('WC').etans); assert.strictEqual(EL.mahalTip('MUTFAK').ded, 'isi'); assert.strictEqual(EL.mahalTip('DANIŞMA').tlf, 1); assert.strictEqual(EL.armaturSec(3, true), 'U-2x20W');
+  assert(EL.mahalTip('WC').etans); assert.strictEqual(EL.mahalTip('MUTFAK').ded, 'isi'); assert.strictEqual(EL.mahalTip('DANIŞMA').tlf, 1); assert.strictEqual(EL.armaturSec(3, true), 'U-LED18W'); assert.strictEqual(EL.armaturSec(20, false), 'P-LED36W'); assert(EL.ARMATUR['P-LED36W'].led);
 });
 t('topraklama: 5×5 m bina, ρ 100 Ωm → halka + 2 çubuk ≤ 10 Ω, dokunma gerilimi ≤ 50 V', () => {
   const r = EL.topraklama({ cevre: 20, alan: 25, rho: 100 }); assert(r.R <= 10, 'R=' + r.R); assert(r.uygun); assert(r.serit >= 20); assert(r.cubuk >= 2);
@@ -63,5 +63,11 @@ t('armatür yeri: L biçimli odada (kullanıcı 15.11.2026 "lamba duvarın için
 });
 t('armatür yeri: dikdörtgen odada ızgara noktası uygunsa yerinde kalır', () => {
   const R = [[0, 0], [5, 0], [5, 3.5], [0, 3.5]], id = EL.izgara(2, 5, 3.5), p = EL.armaturYeri(R, id, 0, 1.04); assert.deepStrictEqual(p, id);
+});
+t('detaylar (firma kuralı 15.11.2026, perspektif): bara, temel, şerit eki, LED armatür, dedektör, montaj yükseklikleri ve tablolar sayısal hatasız çizilir', () => {
+  const D = require('../app/el-detay.js'), R = EL.topraklama({ cevre: 20, alan: 25, rho: 100 });
+  const gs = [D.detayBara(), D.detayTemel(), D.detayEk(), D.detayArmatur('P-LED36W'), D.detayDedektor(), D.detayYukseklik(2.5), D.tabloTopraklama(R), D.tabloArmatur({ 'P-LED36W': 3 })];
+  for (const g of gs) { assert(g.L.length > 5 && g.T.length > 3); assert(!g.L.some(l => l.slice(0, 4).some(v => !isFinite(v)))); assert(!g.T.some(q => !isFinite(q[0]) || !isFinite(q[1]))); }
+  assert(gs[6].T.some(q => /Ω/.test(q[3]))); assert(gs[7].T.some(q => /LED/.test(q[3]))); assert(EL.ARMATUR['P-LED36W'].led && EL.ARMATUR['U-LED36W'].ip === 65);
 });
 console.log(`\n${n} test geçti.`);

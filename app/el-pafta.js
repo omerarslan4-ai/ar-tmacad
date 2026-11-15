@@ -26,20 +26,20 @@
       else if (q.k === 'C') { const n = 16, cc = X(q.c), r = q.r * k; for (let i = 0; i < n; i++) c.L(cc[0] + r * Math.cos(2 * Math.PI * i / n), cc[1] + r * Math.sin(2 * Math.PI * i / n), cc[0] + r * Math.cos(2 * Math.PI * (i + 1) / n), cc[1] + r * Math.sin(2 * Math.PI * (i + 1) / n), 'i'); }
       else if (q.k === 'S') { (c.g.S = c.g.S || []).push(q.pts.map(X)); } else if (q.k === 'T' && q.s && !/^\d+$/.test(q.s) && q.s !== (o.kod || '') && !/^TE|^TB|BBAT/.test(q.s)) c.T(X(q.p)[0], X(q.p)[1], q.h * k, q.s, q.al, q.rot, q.color); } };
   const SEMB = {
-    ayd: [['armatur', { kod: 'P-2x40W' }, 'P-2x40W FLORESANT ARMATÜR (IP42)'], ['armatur', { kod: 'U-2x40W' }, 'U-2x40W ETANŞ FLORESANT ARMATÜR (IP54)'], ['armatur', { kod: 'P-2x20W' }, 'P-2x20W FLORESANT ARMATÜR (IP42)'], ['armatur', { kod: 'U-2x20W' }, 'U-2x20W ETANŞ FLORESANT ARMATÜR (IP54)'],
-      ['armatur', { kod: 'ACİL' }, 'ACİL ÇIKIŞ ARMATÜRÜ (3 SAAT)'], ['armatur', { kod: 'APLİK' }, 'ETANŞ DUVAR APLİĞİ (IP65)'], ['pano', { kod: ' ' }, 'SIVA ALTI AYDINLATMA TABLOSU (IP42)'], ['anahtar', { tip: 'normal' }, 'NORMAL ANAHTAR'], ['anahtar', { tip: 'komutator' }, 'KOMÜTATÖR ANAHTAR'],
+    /* armatürler: modelde olan her kod, LED özellikleriyle (EL.armaturAciklama) — lejant kurulurken eklenir */
+    ayd: [['pano', { kod: ' ' }, 'SIVA ALTI AYDINLATMA TABLOSU (IP42)'], ['anahtar', { tip: 'normal' }, 'NORMAL ANAHTAR'], ['anahtar', { tip: 'komutator' }, 'KOMÜTATÖR ANAHTAR'],
       ['anahtar', { tip: 'vaevien' }, 'VAEVİEN ANAHTAR'], ['anahtar', { tip: 'etans' }, 'ETANŞ NORMAL ANAHTAR'], ['priz', { tip: 'toprakli' }, 'TOPRAK HATLI BİR FAZLI PRİZ'], ['priz', { tip: 'etans' }, 'ETANŞ TOPRAK HATLI PRİZ']],
     top: [['cubuk', { no: ' ' }, 'BAKIR KILIFLI ÇELİK TOPRAKLAMA ÇUBUĞU (Ø20mm , L=3m.)'], ['bara', { no: ' ' }, 'TOPRAKLAMA BUS-BAR (40x5 Cu)']],
     zayif: [['dedektor', { tip: 'duman' }, 'OPTİK DUMAN DEDEKTÖRÜ'], ['dedektor', { tip: 'isi' }, 'ISI DEDEKTÖRÜ'], ['buton', {}, 'BUTON (CAMI KIR)'], ['klakson', {}, 'FLAŞÖRLÜ KLAKSON'], ['fjb', {}, 'YANGIN ALARM BAĞLANTI KUTUSU'], ['tlfpriz', {}, 'TELEFON PRİZİ'], ['tdk', {}, 'TELEFON DAĞITIM KUTUSU']],
   };
-  EL.lejant = tur => { const c = EL._cizer(), rh = 10, list = SEMB[tur] || [], var_ = new Set(C.doc.ents.filter(e => e.type === 'elcihaz').map(e => e.kind + '|' + (e.kod || e.tip || ''))), sec = list.filter(([k, o]) => tur !== 'ayd' || var_.has(k + '|' + (o.kod || o.tip || '')) || k === 'pano');
+  EL.lejant = tur => { const c = EL._cizer(), rh = 10, list = SEMB[tur] || [], var_ = new Set(C.doc.ents.filter(e => e.type === 'elcihaz').map(e => e.kind + '|' + (e.kod || e.tip || ''))), sec0 = list.filter(([k, o]) => tur !== 'ayd' || var_.has(k + '|' + (o.kod || o.tip || '')) || k === 'pano'), arm = tur === 'ayd' ? Object.keys(EL.ARMATUR).filter(k => var_.has('armatur|' + k)).map(k => ['armatur', { kod: k }, EL.armaturAciklama(k)]) : [], sec = arm.concat(sec0);
     const h = mm('lejant'), n = sec.length + (tur === 'top' ? 2 : 0) + (tur === 'zayif' ? 1 : 0); c.T(0, n * rh + 8, mm('baslik'), tur === 'top' ? 'TOPRAKLAMA SEMBOLLERİ' : 'SEMBOLLER', 'L', 0, 2); c.L(0, n * rh + 6, 90, n * rh + 6, 'i');
-    let y = (n - 1) * rh + 3; for (const [k, o, ad] of sec) { sembolG(c, Object.assign({ kind: k }, o), 8, y - 2); c.T(24, y - 1, h, ad, 'L', 0, 2); y -= rh; }
+    let y = (n - 1) * rh + 3; for (const [k, o, ad] of sec) { sembolG(c, Object.assign({ kind: k }, o), 10, y - 2); c.T(30, y - 1, h, ad, 'L', 0, 2); y -= rh; }
     if (tur === 'top') { c.L(2, y + 1, 16, y + 1, 't'); c.T(24, y - 1, h, 'TOPRAKLAMA İLETKENİ (30x3.5 Galvanizli Şerit)', 'L', 0, 2); y -= rh; c.L(2, y + 1, 16, y + 1, 't'); c.L(2, y + 2, 16, y + 2, 't'); c.T(24, y - 1, h, 'TEMEL TOPRAKLAMA İLETKENİ (30x3.5 Galv.Şerit)', 'L', 0, 2); }
     if (tur === 'zayif') { c.T(0, y - 1, h, 'TELEFON KABLOLARI DAHİLDE PYCYM TİP , HARİÇTE A-2YF(L)Y TİP', 'L', 0, 2); }
     return c.g; };
   const NOT = {
-    ayd: ['NOTLAR: TESİSAT SIVA ALTI NYA KABLOLAR PVC BORU İÇİNE', 'ALINARAK YAPILACAKTIR. BÜTÜN HATLAR 2.5mm2 NYA', 'KABLO OLACAKTIR.', '{PANO} PANOSUNA GİRİŞ ALTTAN ÇIKIŞLAR', 'ÜSTTEN YAPILACAKTIR. PANO SIVA ALTI OLACAKTIR.', 'SIVA ALTINDA İLETKENLER ;', '3x2,5 NYA    Ø18 PVC ,', '5x2,5 VE 4x4 NYA    Ø26 PVC BORU İÇİNDEN GEÇİRİLECEKTİR.', 'IŞIK LİNYELERİNDE ARMATÜR TOPRAKLAMASI İÇİN AYRICA', 'BÜTÜN HATLARDA 2,5 mm2 ÇIPLAK BAKIR İLETKEN ÇEKİLECEKTİR.'],
+    ayd: ['NOTLAR: TESİSAT SIVA ALTI NYA KABLOLAR PVC BORU İÇİNE', 'ALINARAK YAPILACAKTIR. BÜTÜN HATLAR 2.5mm2 NYA', 'KABLO OLACAKTIR.', '{PANO} PANOSUNA GİRİŞ ALTTAN ÇIKIŞLAR', 'ÜSTTEN YAPILACAKTIR. PANO SIVA ALTI OLACAKTIR.', 'SIVA ALTINDA İLETKENLER ;', '3x2,5 NYA    Ø18 PVC ,', '5x2,5 VE 4x4 NYA    Ø26 PVC BORU İÇİNDEN GEÇİRİLECEKTİR.', 'IŞIK LİNYELERİNDE ARMATÜR TOPRAKLAMASI İÇİN AYRICA', 'BÜTÜN HATLARDA 2,5 mm2 ÇIPLAK BAKIR İLETKEN ÇEKİLECEKTİR.', 'BÜTÜN AYDINLATMA ARMATÜRLERİ LED OLACAKTIR (4000 K, Ra ≥ 80, ÖMÜR 50.000 SAAT L70,', 'GÜÇ FAKTÖRÜ ≥ 0,9, SÜRÜCÜ DAHİL). ISLAK HACİMLERDE IP65 ETANŞ ARMATÜR KULLANILACAKTIR.', 'ACİL ÇIKIŞ ARMATÜRÜ 3 SAAT AKÜLÜ, KESİNTİDE KENDİLİĞİNDEN YANAR.'],
     zayif: ['NOTLAR: YANGIN İHBAR TESİSATINDA JY(St)Y KABLOLAR KULLANILACAKTIR.', 'KABLOLAR, Ø18 PVC BORULAR İÇİNDEN ÇEKİLECEK VE TÜM TESİSAT', 'SIVA ÜSTÜ OLACAKTIR.', 'TELEFON TESİSATI SIVA ALTI PYCYM VE A-2YF(L)Y KABLOLARLA', 'Ø18 PVC BORU İÇİNE ALINARAK YAPILACAKTIR.', 'MERKEZİ YANGIN KONTROL PANOSUNDA GÖRÜLEN HER ALARM BEKÇİ BİNASINDAKİ', 'GÖSTERGE PANOSUNDAN DA GÖRÜLECEKTİR.'],
     top: ['NOTLAR: TEMEL TOPRAKLAMASI 30x3,5 GALVANİZLİ ŞERİT İLE TEMEL BETONU İÇİNDE', 'BİNA ÇEVRESİNDE KAPALI HALKA OLARAK YAPILACAKTIR.', 'ŞERİT EKLERİ KLEMENSLE YAPILACAK, EN AZ 10 cm BİNDİRİLECEKTİR.', 'BİNA TOPRAKLAMASI TESİSİN ANA TOPRAKLAMA ŞEBEKESİNE BAĞLANACAKTIR.', 'PANO, KABLO TAVASI VE BÜTÜN METAL AKSAM TOPRAKLAMA BARASINA BAĞLANACAKTIR.'],
   };
@@ -52,10 +52,13 @@
     return c.g; };
 
   /* ======================= PAFTALAR ======================= */
+  const armSay = () => { const o = {}; for (const e of C.doc.ents) if (e.type === 'elcihaz' && e.kind === 'armatur' && e.kod) o[e.kod] = (o[e.kod] || 0) + 1; return o; };
+  const anaArm = () => Object.entries(armSay()).filter(([k]) => !(EL.ARMATUR[k] || {}).acil && !(EL.ARMATUR[k] || {}).dis).sort((a, b) => b[1] - a[1]).map(q => q[0])[0] || 'P-LED36W';
+  const yukH = d => { const hs = (d.H || []).map(x => x.h).filter(v => v > 2); return hs.length ? Math.max(...hs) : 2.8; };
   const SIS = {
-    ayd: { ad: 'AYDINLATMA VE PRİZ TESİSATI', sys: ['ayd', 'priz', 'bes'], sema: d => [['tekhat', EL.tekHat(d.Ls, d.Y, { pano: d.st.pano, besleyen: d.st.besleyen, mm: { tekHat: mm('tekHat'), baslik: mm('baslik') } })], ['cetvel', EL.cetvel(d.Ls, d.Y, { pano: d.st.pano, mm: { cetvel: mm('cetvel'), baslik: mm('baslik') } })], ['lejant-ayd', EL.lejant('ayd')], ['not-ayd', EL.notlar('ayd')]] },
-    top: { ad: 'TOPRAKLAMA PLANI', sys: ['top'], sema: d => [['detay-top', EL.topDetay(d.T)], ['lejant-top', EL.lejant('top')], ['not-top', EL.notlar('top')]] },
-    zayif: { ad: 'TELEFON VE YANGIN ALARM TESİSATI', sys: ['tlf', 'yng'], sema: () => [['lejant-zayif', EL.lejant('zayif')], ['not-zayif', EL.notlar('zayif')]] },
+    ayd: { ad: 'AYDINLATMA VE PRİZ TESİSATI', sys: ['ayd', 'priz', 'bes'], sema: d => [['ayd-hesap', EL.tabloAydinlatma(d.H, d.st.MF)], ['arm-liste', EL.tabloArmatur(armSay())], ['det-arm', EL.detayArmatur(anaArm())], ['det-yuk', EL.detayYukseklik(yukH(d))], ['tekhat', EL.tekHat(d.Ls, d.Y, { pano: d.st.pano, besleyen: d.st.besleyen, mm: { tekHat: mm('tekHat'), baslik: mm('baslik') } })], ['cetvel', EL.cetvel(d.Ls, d.Y, { pano: d.st.pano, mm: { cetvel: mm('cetvel'), baslik: mm('baslik') } })], ['lejant-ayd', EL.lejant('ayd')], ['not-ayd', EL.notlar('ayd')]] },
+    top: { ad: 'TOPRAKLAMA PLANI', sys: ['top'], sema: d => [['top-hesap', EL.tabloTopraklama(d.T)], ['det-bara', EL.detayBara()], ['det-temel', EL.detayTemel()], ['det-ek', EL.detayEk()], ['lejant-top', EL.lejant('top')], ['not-top', EL.notlar('top')]] },
+    zayif: { ad: 'TELEFON VE YANGIN ALARM TESİSATI', sys: ['tlf', 'yng'], sema: () => [['det-ded', EL.detayDedektor()], ['lejant-zayif', EL.lejant('zayif')], ['not-zayif', EL.notlar('zayif')]] },
   };
   const SIRA = { ayd: 0, top: 1, zayif: 2 };
   const elEnt = e => e.type === 'elcihaz' || e.type === 'elhat';
@@ -88,7 +91,7 @@
     C.doc.layouts = (C.doc.layouts || []).filter(L => L.elPafta !== tur); const bl = [];
     const pad = 2.2, bb = [bb0[0] - pad, bb0[1] - pad, bb0[2] + pad, bb0[3] + pad], vw = (bb[2] - bb[0]) * 1000 / SC + 6, vh = (bb[3] - bb[1]) * 1000 / SC + 6;
     const z = Math.min(...MT.mahaller().map(e => +e.z0 || 0)), yapiE = C.doc.ents.filter(e => C.layer(e.layer).on && !e.gv && (!C.in3D || C.in3D(e)) && !/^mt|^el/.test(e.type) && !['arazi', 'kazi', 'sheet', 'cati', 'yalitim', 'kaplama'].includes(e.type));
-    let gv = null; try { if (C.makeView) { const once = new Set(C.doc.ents.map(e => e.id)), pl = C.makeView({ kind: 'plan', h: z + 1.2, depth: 1.22, place: 'yerinde', hatch: 'ANSI31', ents: yapiE }); if (pl) { gv = pl.gv; st.planGv[tur].push(gv); for (const e of C.doc.ents) if (!once.has(e.id)) { delete e.sp; delete e.sv2; if (e.type === 'baslik') e._elSil = 1; else { e.color = 8; delete e._c; } } C.doc.ents = C.doc.ents.filter(e => !e._elSil); } } } catch (er) { console.error(er); }
+    let gv = null; try { if (C.makeView) { const once = new Set(C.doc.ents.map(e => e.id)), pl = C.makeView({ kind: 'plan', h: z + 1.2, depth: 1.22, place: 'yerinde', hatch: 'ANSI31', ents: yapiE }); if (pl) { gv = pl.gv; st.planGv[tur].push(gv); for (const e of C.doc.ents) if (!once.has(e.id)) { delete e.sp; delete e.sv2; if (e.type === 'baslik') e._elSil = 1; else { e.color = 8; delete e._c; } } C.doc.ents = C.doc.ents.filter(e => !e._elSil); const gvE = C.doc.ents.filter(e => e.gv === gv); C.doc.ents = gvE.concat(C.doc.ents.filter(e => e.gv !== gv)); /* mimari altlık önce çizilir: elektrik yazıları üstte */ } } } catch (er) { console.error(er); }
     bl.push({ vp: Object.assign({ cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, scale: SC, lock: true, disiplin: 'Elektrik', label: /PLANI$/.test(S.ad) ? S.ad : S.ad + ' PLANI', elPlan: tur, elZ: z }, gv ? { elGv: gv } : {}), w: vw, h: vh, grup: 'PLAN' });
     /* şema / tablo / lejant / not: modelde binanın altında, paftada kendi boyunda */
     const k = C.doc.set.anno / 1000; let sl = []; try { sl = S.sema(d) || []; } catch (er) { console.error(er); }
@@ -167,7 +170,7 @@
   EL.paftaUret = async (k = 'T') => {
     let d = EL.durum(); if (!d) { const r = EL.yerlestir(); (r.uyari || []).forEach(u => C.warn(u)); if (!r.n) return null; d = EL.durum(); }
     C.undoStack.push(C.snapshot()); const os = MT.paftaOlcek ? MT.paftaOlcek() : { olcek: 50 }, SC = os.olcek, ad = [], korunan = []; let son = null;
-    const elle = t => (C.doc.layouts || []).some(L => L.elPafta === t && L.elle), SEMA = { ayd: ['tekhat', 'cetvel', 'lejant-ayd', 'not-ayd'], top: ['detay-top', 'lejant-top', 'not-top'], zayif: ['lejant-zayif', 'not-zayif'] };
+    const elle = t => (C.doc.layouts || []).some(L => L.elPafta === t && L.elle), SEMA = { ayd: ['ayd-hesap', 'arm-liste', 'det-arm', 'det-yuk', 'tekhat', 'cetvel', 'lejant-ayd', 'not-ayd'], top: ['top-hesap', 'det-bara', 'det-temel', 'det-ek', 'detay-top', 'lejant-top', 'not-top'], zayif: ['det-ded', 'lejant-zayif', 'not-zayif'] };
     for (const t of TUR_KW[k] || TUR_KW.T) { if (elle(t)) { korunan.push(SIS[t].ad); continue; } C.doc.ents = C.doc.ents.filter(e => !(e.type === 'elsema' && SEMA[t].includes(e.tur)));
       try { const Ls = EL.pafta(t, SC, d); for (const L of Ls || []) { son = son || L; ad.push(L.name); } } catch (er) { console.error(er); C.warn(`${SIS[t].ad}: ${er && er.message || er}`); } }
     if (korunan.length) C.log(`Elle düzeltilmiş olarak işaretli paftalar korundu: ${korunan.join(', ')} (işareti kaldırmak için paftayı açıp PAFTAELLE).`);

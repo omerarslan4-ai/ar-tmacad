@@ -285,6 +285,7 @@
         case 'A': head('ARC', 'AcDbCircle', st, owner); g(10, fx(pr.c[0])); g(20, fx(pr.c[1])); g(30, fx(pr.c[2] || 0)); g(40, fx(pr.r)); if (!r12) g(100, 'AcDbArc'); g(50, fx(M.deg(M.normAng(pr.a0)))); g(51, fx(M.deg(M.normAng(pr.a1)))); break;
         case 'X': head('POINT', 'AcDbPoint', st, owner); g(10, fx(pr.p[0])); g(20, fx(pr.p[1])); g(30, fx(pr.p[2] || 0)); break;
         case 'S': {
+          if (pr.maske) break; // yazı maskesi DXF'e dolu alan olarak yazılmaz (AutoCAD'de yazı arkası çizgileri örtmez)
           if (pr.tris && pr.pts.length > 4) { for (const t of pr.tris) writePrim({ k: 'S', pts: [pr.pts[t[0]], pr.pts[t[1]], pr.pts[t[2]]] }, st, owner); break; }
           const p = pr.pts; const q = p.length === 3 ? [p[0], p[1], p[2], p[2]] : [p[0], p[1], p[3], p[2]];
           head('SOLID', 'AcDbTrace', st, owner); q.forEach((v, i) => { g(10 + i, fx(v[0])); g(20 + i, fx(v[1])); g(30 + i, fx(v[2] || 0)); }); break;
