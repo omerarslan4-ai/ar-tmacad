@@ -196,14 +196,14 @@
     const k = await I.kw('Pafta', [['T', 'Hepsi'], ['A', 'Aydınlatma ve priz tesisatı'], ['P', 'Topraklama planı'], ['Z', 'Telefon ve yangın alarm']], 'T'); if (!k) return; await EL.paftaUret(k); });
   /* DXF (kullanıcı 15.11.2026: "DXF yaptığımda sadece elektrik paftaları, modelde pafta içerisinde gözükecek şekilde kaydetsin; 3B perspektifler AutoCAD'de gözükmüyor"):
      tek dosya; her Elektrik paftası bir Layout; model alanında YALNIZ o paftaların pencerelerinde görünenler — kesit planı altlığı, o sistemin elektrik nesneleri,
-     beslenen mekanik cihazlar (soluk), şema / tablo / detaylar ve çizgisel 3B görünüş. Üç paftanın planları aynı binayı gösterdiği için model alanında yan yana kaydırılır,
-     pencerelerin merkezi de aynı kadar kayar. Renkli (resim) 3B görünüşler DXF'e yazılamaz; elektrik 3B görünüşü çizgisel üretildiği için çizgi olarak gelir. */
+     beslenen mekanik cihazlar (soluk), şema / tablo / detaylar ve çizgisel 3B görünüş. Üç paftanın planları aynı binayı gösterdiği için ikinci ve sonraki paftaların planları bütün çizimin (bölgeler dahil) altına,
+     alt alta kaydırılır; pencerelerin merkezi de aynı kadar kayar (şema bölgesine binmez). Renkli (resim) 3B görünüşler DXF'e yazılamaz; elektrik 3B görünüşü çizgisel üretildiği için çizgi olarak gelir. */
   EL.dxfMetni = () => {
     const ls = (C.doc.layouts || []).filter(L => L.grp === 'Elektrik').sort((a, b) => String((a.f || {}).no || a.name).localeCompare(String((b.f || {}).no || b.name))); if (!ls.length) return null;
-    const bb = binaKutu() || [0, 0, 10, 10], adim = Math.max(30, (bb[2] - bb[0]) + 30), ents = [], gor = new Set(), klon = (e, dx) => { const c = JSON.parse(JSON.stringify(C.cleanEnt ? C.cleanEnt(e) : e)); c.id = C.doc.nextId + ents.length + 1; delete c._c; if (dx) C.xform(c, C.xMove([dx, 0, 0])); return c; };
-    const L2s = ls.map((L, i) => { const L2 = JSON.parse(JSON.stringify(L)), dx = i * adim; L2.vps = L2.vps.filter(v => !v.g3 || v.g3.tip === 'VEKTOR');
+    const bb = binaKutu() || [0, 0, 10, 10], tum = C.extents(C.doc.ents.filter(e => e.type !== 'sheet')) || bb, yAlt = Math.min(tum[1], bb[1]), hB = (bb[3] - bb[1]) + 20, kay = i => i === 0 ? 0 : (yAlt - bb[3]) - 20 - (i - 1) * hB, ents = [], gor = new Set(), klon = (e, dy) => { const c = JSON.parse(JSON.stringify(C.cleanEnt ? C.cleanEnt(e) : e)); c.id = C.doc.nextId + ents.length + 1; delete c._c; if (dy) C.xform(c, C.xMove([0, dy, 0])); return c; };
+    const L2s = ls.map((L, i) => { const L2 = JSON.parse(JSON.stringify(L)), dy = kay(i); L2.vps = L2.vps.filter(v => !v.g3 || v.g3.tip === 'VEKTOR');
       for (const v of L2.vps) {
-        if (v.elPlan) { const S = SIS[v.elPlan]; for (const e of C.doc.ents) { const al = (e.gv && e.gv === v.elGv) || (!e.gv && elEnt(e) && S.sys.includes(e.sys)) || (!e.gv && v.elPlan === 'ayd' && /^mt(rad|fc|hv|arm)$/.test(e.type) && EL.mekGuc(e)); if (!al) continue; const c = klon(e, dx); if (/^mt/.test(e.type)) { c.color = 8; c.lw = 13; } ents.push(c); } v.cx += dx; delete v.elPlan; delete v.elGv; }
+        if (v.elPlan) { const S = SIS[v.elPlan]; for (const e of C.doc.ents) { const al = (e.gv && e.gv === v.elGv) || (!e.gv && elEnt(e) && S.sys.includes(e.sys)) || (!e.gv && v.elPlan === 'ayd' && /^mt(rad|fc|hv|arm)$/.test(e.type) && EL.mekGuc(e)); if (!al) continue; const c = klon(e, dy); if (/^mt/.test(e.type)) { c.color = 8; c.lw = 13; } ents.push(c); } v.cy += dy; delete v.elPlan; delete v.elGv; }
         else if (v.elSema) { const e = C.byId(v.elSema); if (e && !gor.has(e.id)) { gor.add(e.id); ents.push(klon(e, 0)); } delete v.elSema; }
         else if (v.g3 && v.g3.gv) { for (const e of C.doc.ents) if (e.gv === v.g3.gv && !gor.has(e.id)) { gor.add(e.id); ents.push(klon(e, 0)); } v.gvOnly = v.g3.gv; delete v.g3; }
       } return L2; });
