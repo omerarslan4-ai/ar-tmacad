@@ -109,7 +109,7 @@
     prims: e => { const k = C.doc.set.anno / 1000, o = M.p3(e.p), out = [], g = e.g || { L: [], T: [] }, SK = (K() && K().semaKal) || { k: 35, i: 18, b: 70, t: 35, h: 13 }, ST = { k: { lw: SK.k, color: YR() }, i: { lw: SK.i, color: YR() }, b: { lw: SK.b, color: YR() }, t: { lw: SK.t, lt: 'HIDDEN', color: YR() }, h: { lw: SK.h, color: YR() } };
       for (const l of g.L) out.push(L([o[0] + l[0] * k, o[1] + l[1] * k, 0], [o[0] + l[2] * k, o[1] + l[3] * k, 0], ST[l[4]] || ST.i));
       for (const t of g.T) out.push(TX([o[0] + t[0] * k, o[1] + t[1] * k, 0], t[2] * k, t[3], t[5] || 0, t[4] || 'L', { color: t[6] == null || t[6] === 2 ? YR() : t[6], st: 'AAAA' }));
-      for (const s2 of g.S || []) out.push(S(s2.map(q => [o[0] + q[0] * k, o[1] + q[1] * k, 0]))); return e.maske === false ? out : EL.maskele(out); },
+      for (const s2 of g.S || []) out.push(S(s2.map(q => [o[0] + q[0] * k, o[1] + q[1] * k, 0]))); return /^det-/.test(e.tur || '') ? EL.maskele(out) : out; }, /* maske yalnız detaylarda (oklu açıklama çizgileri); tablo ve şemada satır çizgilerini kesmesin (kullanıcı 15.11.2026: "tablo bozuk") */
     snaps: e => [{ p: M.p3(e.p), k: 'ins' }],
     xf: (e, X) => { e.p = X.p(e.p); },
     info: e => `Elektrik şeması / tablo (${e.tur || ''})`,

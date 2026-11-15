@@ -45,7 +45,10 @@
       const ang = Math.atan2(d[1], d[0]), okn = ang > Math.PI / 2 || ang < -Math.PI / 2 ? ang + Math.PI : ang; c.T((p2[0] + q2[0]) / 2 + n[0] * 0.25, (p2[1] + q2[1]) / 2 + n[1] * 0.25, h, yazi, 'BC', okn); };
     return { P, cizgi, yol, kutu, gizliKutu, silindir, daireXZ, not, olcu };
   };
-  const baslik = (c, x, y, s, alt) => { c.T(x, y, mm('baslik'), s, 'L', 0); const w = s.length * mm('baslik') * 0.62; c.L(x, y - 1.2, x + w, y - 1.2, 'k'); if (alt) c.T(x, y - 5.5, mm('detay'), alt, 'L', 0); };
+  /* başlık çizimin ÜSTÜNE konur (kullanıcı 15.11.2026: "yazılar üst üste"): x, y yok sayılır; çizgi ve yazıların kutusu bulunur, başlık en üstün 4 mm üstünde, sol kenarda */
+  const baslik = (c, x0_, y0_, s, alt) => { let x = Infinity, yU = -Infinity; for (const l of c.g.L) { x = Math.min(x, l[0], l[2]); yU = Math.max(yU, l[1], l[3]); }
+    for (const t of c.g.T) { const w = String(t[3]).length * t[2] * 0.62, a = String(t[4] || 'L'), xa = a.includes('R') ? t[0] - w : a.includes('C') || a === 'M' ? t[0] - w / 2 : t[0]; x = Math.min(x, xa); yU = Math.max(yU, t[1] + t[2] * 1.3); }
+    if (!isFinite(x)) { x = 0; yU = 0; } const y = yU + 4 + (alt ? mm('detay') + 3.5 : 0); c.T(x, y, mm('baslik'), s, 'L', 0); const w = s.length * mm('baslik') * 0.62; c.L(x, y - 1.2, x + w, y - 1.2, 'k'); if (alt) c.T(x, y - 5.5, mm('detay'), alt, 'L', 0); };
   EL._iso = iso;
 
   /* ======================= TOPRAKLAMA BARASI (TB-1) ======================= */

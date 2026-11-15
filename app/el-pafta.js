@@ -92,6 +92,7 @@
   EL.pafta = (tur, SC, d) => {
     const S = SIS[tur], bb0 = binaKutu(); if (!S || !bb0 || !C.doc.ents.some(e => elEnt(e) && S.sys.includes(e.sys))) return null;
     const st = EL.set(); st.planGv = st.planGv || {}; const eski = st.planGv[tur] || []; if (eski.length) C.doc.ents = C.doc.ents.filter(e => !(e.gv && eski.includes(e.gv))); st.planGv[tur] = [];
+    { const eskiG3 = new Set((C.doc.layouts || []).filter(L => L.elPafta === tur).flatMap(L => L.vps.filter(v => v.g3 && v.g3.gv).map(v => v.g3.gv))); if (eskiG3.size) C.doc.ents = C.doc.ents.filter(e => !(e.gv && eskiG3.has(e.gv))); } /* eski çizgisel 3B görünüş çizgileri */
     C.doc.layouts = (C.doc.layouts || []).filter(L => L.elPafta !== tur); const bl = [];
     const pad = 2.2, bb = [bb0[0] - pad, bb0[1] - pad, bb0[2] + pad, bb0[3] + pad], vw = (bb[2] - bb[0]) * 1000 / SC + 6, vh = (bb[3] - bb[1]) * 1000 / SC + 6;
     const z = Math.min(...MT.mahaller().map(e => +e.z0 || 0)), yapiE = C.doc.ents.filter(e => C.layer(e.layer).on && !e.gv && (!C.in3D || C.in3D(e)) && !/^mt|^el/.test(e.type) && !['arazi', 'kazi', 'sheet', 'cati', 'yalitim', 'kaplama'].includes(e.type));
@@ -102,7 +103,8 @@
     for (const [t2, g] of sl) { if (!g) continue; const e = semaKoy(t2, g), gb = gKutu(g); if (!gb) continue; bl.push({ vp: { cx: e.p[0] + (gb[0] + gb[2]) / 2 * k, cy: e.p[1] + (gb[1] + gb[3]) / 2 * k, scale: C.doc.set.anno, lock: true, frame: { on: false }, frozen: [], disiplin: 'Genel', olceksiz: true, elSema: e.id }, w: gb[2] - gb[0] + 8, h: gb[3] - gb[1] + 8, grup: 'ŞEMA VE TABLOLAR' }); }
     /* 3B görünüş: çatı ve üst döşeme kaldırılmış, elektrik disiplini */
     const zTop = Math.max(...MT.mahaller().map(e => (+e.z0 || 0) + (+e.h || 3))), ids = C.doc.ents.filter(e => !e.gv && ((elEnt(e) && S.sys.includes(e.sys)) || (tur === 'ayd' && /^mt(rad|fc|hv|arm)$/.test(e.type) && EL.mekGuc(e)) || (!/^mt|^el/.test(e.type) && e.type !== 'cati' && e.type !== 'yalitim' && !(e.type === 'plak' && (+e.zt || 0) > zTop - 0.6) && e.type !== 'sheet' && (!C.in3D || C.in3D(e))))).map(e => e.id);
-    bl.push({ vp: { _yeni: true, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, olceksiz: true, g3: { mod: 'ELEKTRIK', yon: 'GB', tip: 'IZOMETRIK', kam: null, olcek: null, ids, gv: null }, label: ({ ayd: 'AYDINLATMA VE PRİZ', top: 'TOPRAKLAMA', zayif: 'TELEFON VE YANGIN ALARM' })[tur] + ' — 3B GÖRÜNÜŞ', elG3: tur }, w: 170, h: 125, grup: '3B GÖRÜNÜŞ' });
+    /* 3B görünüş yalnız aydınlatma ve priz paftasında (kullanıcı 15.11.2026: topraklama ve yangın alarmda gözükmesin); çizgisel (VEKTOR) — AutoCAD DXF'inde çizgi olarak görünür */
+    if (tur === 'ayd') bl.push({ vp: { _yeni: true, cx: 0, cy: 0, scale: 100, lock: true, frame: { on: false }, disiplin: 'Elektrik', g3: { mod: 'ELEKTRIK', yon: 'GB', tip: 'VEKTOR', kam: null, olcek: null, ids, gv: 'G3B_EL' + Date.now().toString(36) }, label: null, elG3: tur }, w: 190, h: 140, grup: '3B GÖRÜNÜŞ' });
     return paftaKur(tur, S.ad, bl);
   };
   EL.paftaNumarala = () => { const L = C.doc.layouts || [], idx = L.map((q, i) => q && q.elPafta ? i : -1).filter(i => i >= 0), T2 = idx.map(i => L[i]).sort((a, b) => (SIRA[a.elPafta] - SIRA[b.elPafta]) || ((a.elParca || 0) - (b.elParca || 0))); idx.forEach((i, k) => { L[i] = T2[k]; }); T2.forEach((q, k) => { q.f = Object.assign({}, q.f || {}, { no: 'ELK-' + String(k + 1).padStart(2, '0') }); }); };
@@ -192,7 +194,29 @@
     C.log(`${ad.length} Elektrik paftası, ölçek 1/${SC}${os.neden ? ' (' + os.neden + ')' : ''}: ${ad.join(' · ')}. Sol alttaki Elektrik grubundan açılır; tesisat değişince yeniden çalıştırın.`); return son; };
   C.addCommand(['ELEKTRIKPAFTA', 'ELPAFTA'], 'Elektrik paftaları (Elektrik grubu, otomatik): T = hepsi, A = aydınlatma ve priz tesisatı (tek hat şeması, yükleme cetveli), P = topraklama planı, Z = telefon ve yangın alarm; semboller, notlar ve 3B görünüş. Ölçek bina ebatına göre; pafta no ELK-01 …; yeniden çalıştırınca yenilenir (PAFTAELLE ile işaretli paftalar korunur).', async (I) => {
     const k = await I.kw('Pafta', [['T', 'Hepsi'], ['A', 'Aydınlatma ve priz tesisatı'], ['P', 'Topraklama planı'], ['Z', 'Telefon ve yangın alarm']], 'T'); if (!k) return; await EL.paftaUret(k); });
-  C.addCommand(['ELEKTRIKDXF', 'ELDXF'], 'Elektrik paftalarını AutoCAD için DXF olarak kaydeder (her pafta bir Layout; katmanlar EYAZI, EHAT, TOPILET, TLF, ETELYNG).', () => { if (!(C.doc.layouts || []).some(L => L.grp === 'Elektrik')) { C.warn('Elektrik paftası yok: önce ELEKTRIKPAFTA.'); return; } return C.exportGroups(['Elektrik']); }, { noUndo: true });
+  /* DXF (kullanıcı 15.11.2026: "DXF yaptığımda sadece elektrik paftaları, modelde pafta içerisinde gözükecek şekilde kaydetsin; 3B perspektifler AutoCAD'de gözükmüyor"):
+     tek dosya; her Elektrik paftası bir Layout; model alanında YALNIZ o paftaların pencerelerinde görünenler — kesit planı altlığı, o sistemin elektrik nesneleri,
+     beslenen mekanik cihazlar (soluk), şema / tablo / detaylar ve çizgisel 3B görünüş. Üç paftanın planları aynı binayı gösterdiği için model alanında yan yana kaydırılır,
+     pencerelerin merkezi de aynı kadar kayar. Renkli (resim) 3B görünüşler DXF'e yazılamaz; elektrik 3B görünüşü çizgisel üretildiği için çizgi olarak gelir. */
+  EL.dxfMetni = () => {
+    const ls = (C.doc.layouts || []).filter(L => L.grp === 'Elektrik').sort((a, b) => String((a.f || {}).no || a.name).localeCompare(String((b.f || {}).no || b.name))); if (!ls.length) return null;
+    const bb = binaKutu() || [0, 0, 10, 10], adim = Math.max(30, (bb[2] - bb[0]) + 30), ents = [], gor = new Set(), klon = (e, dx) => { const c = JSON.parse(JSON.stringify(C.cleanEnt ? C.cleanEnt(e) : e)); c.id = C.doc.nextId + ents.length + 1; delete c._c; if (dx) C.xform(c, C.xMove([dx, 0, 0])); return c; };
+    const L2s = ls.map((L, i) => { const L2 = JSON.parse(JSON.stringify(L)), dx = i * adim; L2.vps = L2.vps.filter(v => !v.g3 || v.g3.tip === 'VEKTOR');
+      for (const v of L2.vps) {
+        if (v.elPlan) { const S = SIS[v.elPlan]; for (const e of C.doc.ents) { const al = (e.gv && e.gv === v.elGv) || (!e.gv && elEnt(e) && S.sys.includes(e.sys)) || (!e.gv && v.elPlan === 'ayd' && /^mt(rad|fc|hv|arm)$/.test(e.type) && EL.mekGuc(e)); if (!al) continue; const c = klon(e, dx); if (/^mt/.test(e.type)) { c.color = 8; c.lw = 13; } ents.push(c); } v.cx += dx; delete v.elPlan; delete v.elGv; }
+        else if (v.elSema) { const e = C.byId(v.elSema); if (e && !gor.has(e.id)) { gor.add(e.id); ents.push(klon(e, 0)); } delete v.elSema; }
+        else if (v.g3 && v.g3.gv) { for (const e of C.doc.ents) if (e.gv === v.g3.gv && !gor.has(e.id)) { gor.add(e.id); ents.push(klon(e, 0)); } v.gvOnly = v.g3.gv; delete v.g3; }
+      } return L2; });
+    const all = C.doc.layouts; let txt = null; try { C.doc.layouts = L2s; txt = C.dxfWrite({ ents, plain: '2b', withLayouts: true }); } finally { C.doc.layouts = all; }
+    return { txt, n: ls.length, nEnt: ents.length };
+  };
+  C.addCommand(['ELEKTRIKDXF', 'ELDXF'], 'Elektrik paftalarını AutoCAD için tek DXF dosyası olarak kaydeder: her pafta bir Layout; model alanında yalnız paftalarda görünenler (kesit planı, elektrik tesisatı, beslenen mekanik cihazlar, şema, tablo, detaylar, çizgisel 3B görünüş). Katmanlar EYAZI, EHAT, TOPILET, TLF, ETELYNG.', async () => {
+    if (!(C.doc.layouts || []).some(L => L.grp === 'Elektrik')) { C.warn('Elektrik paftası yok: önce ELEKTRIKPAFTA ya da HESAPLA.'); return; }
+    try { C.g3Guncelle && C.g3Guncelle(true); } catch (er) { }
+    let r = null; try { r = EL.dxfMetni(); } catch (er) { console.error(er); C.warn('Elektrik DXF yazılamadı: ' + (er && er.message || er)); return; } if (!r || !r.txt) return;
+    const ad = (C.ascii ? C.ascii(C.doc.set.name || 'cizim') : (C.doc.set.name || 'cizim')).replace(/[^\w\-]+/g, '_');
+    C.download(r.txt, `${ad}_elektrik_paftalari.dxf`, 'application/dxf');
+    C.log(`Elektrik DXF indirildi: ${r.n} pafta (Layout), model alanında yalnız paftalarda görünen ${r.nEnt} nesne. 3B görünüş çizgisel olarak dosyada.`); }, { noUndo: true });
   C.addCommand(['ELEKTRIKCIKTI', 'ELCIKTI', 'ELEKTRIKPDF'], 'Elektrik paftalarını tek yazdırma işinde çıkarır: yazıcı ya da "PDF olarak kaydet" (çok sayfalı).', async (I) => {
     const ls = (C.doc.layouts || []).filter(L => L.grp === 'Elektrik').sort((a, b) => String((a.f || {}).no || a.name).localeCompare(String((b.f || {}).no || b.name))); if (!ls.length) { C.warn('Elektrik paftası yok: önce ELEKTRIKPAFTA.'); return; }
     const mode = await I.kw('Renk', [['R', 'Renkli'], ['S', 'Siyah-beyaz']], 'R'); if (!mode) return; try { C.g3Guncelle && C.g3Guncelle(false); } catch (er) { }
