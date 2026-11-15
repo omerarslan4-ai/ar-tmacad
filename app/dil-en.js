@@ -428,3 +428,19 @@
     ['Q / E', 'Q / E'], ['aşağı / yukarı', 'down / up'], ['Home', 'Home'], ['başa dön', 'reset view'], ['Dokunmatik', 'Touch'], ['bir parmak döndür, iki parmak yakınlaş / kaydır', 'one finger orbits, two fingers zoom / pan'],
   ]);
 })();
+/* PAFTA PDF KAYDI (pafta-pdf.js PDFKAYDET, 15.11.2026): pencere, şerit düğmesi ve iletiler */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['PDF kaydet', 'Save PDF'], ['PDF kaydet…', 'Save PDF…'], ['Tüm bölümler', 'All sections'], ['Bölüm', 'Section', 'satir'], ['Üniteler', 'Units', 'satir'], ['Hepsi', 'All', 'satir'],
+    ['Kayıt şekli', 'Save as'], ['Her ünite ayrı PDF', 'One PDF per unit'], ['Her pafta ayrı PDF', 'One PDF per sheet'], ['Hepsi tek PDF (her pafta bir sayfa)', 'All in one PDF (one page per sheet)'],
+    ['Renk', 'Colour', 'satir'], ['Siyah-beyaz', 'Black and white', 'satir'], ['Renkli', 'Colour print', 'satir'], ['İptal', 'Cancel', 'satir'], ['pafta', 'sheet(s)', 'satir'], ['pafta yok', 'no sheets', 'satir'], ['otomatik paftalanır', 'sheets are created automatically'],
+    ['Kâğıt boyutu ve yönü her paftadan otomatik alınır (A0–A4, uzun ve özel ölçüler); sayfalar o boyutta kaydedilir.', 'Paper size and orientation are taken from each sheet automatically (A0–A4, extended and custom sizes); pages are saved at that size.'],
+    ['Bu bölümde pafta yok; kaydederken otomatik paftalanır.', 'This section has no sheets; they are created automatically when saving.'], ['Bu bölümde pafta yok.', 'This section has no sheets.'],
+    ['En az bir ünite seçin.', 'Select at least one unit.'], ['Kaydedilecek pafta yok.', 'There are no sheets to save.'], ['PDF kaydı iptal edildi.', 'PDF save cancelled.'],
+    ['PDF kaydedildi', 'PDF saved'], ['dosya', 'file(s)', 'satir'], ['Her sayfa paftanın kendi kâğıt boyutunda.', 'Each page is at the sheet\'s own paper size.'], ['çizilemedi', 'could not be drawn'],
+    ['Otomatik paftalama yapılamadı', 'Automatic sheet creation failed'], ['bölümünde pafta yok — önce otomatik paftalama çalışıyor:', 'section has no sheets — running automatic sheet creation first:'], ['PDF hazırlanıyor:', 'Preparing PDF:'], ['Kayıt yeri', 'Save to', 'satir'], ['Klasör seç…', 'Choose folder…'], ['seçilmedi — kaydederken sorulur', 'not chosen — asked when saving'], ['PDF dosyaları seçtiğiniz klasöre doğrudan yazılır; klasör hatırlanır, değiştirmek için "Klasör seç".', 'PDF files are written straight into the folder you choose; the folder is remembered, use "Choose folder" to change it.'], ['İndirilenler', 'Downloads', 'satir'], ['klasör', 'folder', 'satir'],
+    ['Pafta yok. Önce bölümün paftalama komutunu çalıştırın (ör. MIMARIPAFTA, TESISATPAFTA, ELEKTRIKPAFTA).', 'No sheets. First run the section\'s sheet command (e.g. MIMARIPAFTA, TESISATPAFTA, ELEKTRIKPAFTA).'],
+  ]);
+})();
