@@ -68,7 +68,7 @@
     };
     T.mtsema = {
       label: 'Kolon şeması',
-      prims: e => { const k = C.doc.set.anno / 1000, o = M.p3(e.p), out = [], g = e.g || { L: [], T: [] }, ST = { g: { lw: 40, color: 1 }, d: { lw: 40, color: 5, lt: 'HIDDEN' }, r: { lw: 25, color: 1 }, i: { lw: 13, color: 8 }, k: { lw: 50, color: 7 }, s: { lw: 40, color: 4 }, x: { lw: 40, color: 6, lt: 'HIDDEN' }, f: { lw: 25, color: 4 }, y: { lw: 13, color: 6 }, h: { lw: 9, color: 8 }, m: { lw: 30, color: 3 } };
+      prims: e => { const k = C.doc.set.anno / 1000, o = M.p3(e.p), out = [], g = e.g || { L: [], T: [] }, ST = { g: { lw: 40, color: 1 }, d: { lw: 40, color: 5, lt: 'HIDDEN' }, r: { lw: 25, color: 1 }, i: { lw: 13, color: 8 }, k: { lw: 50, color: 7 }, s: { lw: 40, color: 4 }, x: { lw: 40, color: 6, lt: 'HIDDEN' }, f: { lw: 25, color: 4 }, y: { lw: 13, color: 6 }, h: { lw: 9, color: 8 }, m: { lw: 30, color: 3 }, v: { lw: 18, color: 7 } };
         for (const l of g.L) out.push(L([o[0] + l[0] * k, o[1] + l[1] * k, 0], [o[0] + l[2] * k, o[1] + l[3] * k, 0], ST[l[4]] || ST.i));
         for (const t of g.T) out.push(TX([o[0] + t[0] * k, o[1] + t[1] * k, 0], t[2] * k, t[3], t[5] || 0, t[4] || 'L', { color: t[6] || 7 })); return out; },
       snaps: e => [{ p: M.p3(e.p), k: 'ins' }],
@@ -186,6 +186,9 @@
     h = h || MT.kaloriferHesap(); if (!h) return null;
     const g = { L: [], T: [] }, Ln = (a, b, c, d, s) => g.L.push([a, b, c, d, s]), Tx = (x, y, hh, s, al, rot, col) => g.T.push([x, y, hh, s, al || 'L', rot || 0, col || 7]);
     const m = MT.set(), all = MT.mahaller(), katH = 46, x0 = 0, rw = 22, gap = 12, nk = h.katlar.length; let W = 0;
+    const VIT = MT.VIT, Lv = (a, b, c, d) => Ln(Math.round(a * 100) / 100, Math.round(b * 100) / 100, Math.round(c * 100) / 100, Math.round(d * 100) / 100, 'v');
+    const cihazCiz = (t, x, y, w, hh) => { if (!(VIT && VIT.cihaz(Lv, t, x, y, w, hh))) { Ln(x - w / 2, y, x + w / 2, y, 'r'); Ln(x + w / 2, y, x + w / 2, y + hh, 'r'); Ln(x + w / 2, y + hh, x - w / 2, y + hh, 'r'); Ln(x - w / 2, y + hh, x - w / 2, y, 'r'); } };
+    const vanaCiz = (x, y, dikey, termo) => { if (VIT) VIT.vana(Lv, x, y, 1.1, dikey, termo); };
     /* kazan */
     Ln(-52, -30, -24, -30, 'k'); Ln(-52, -8, -24, -8, 'k'); Ln(-52, -30, -52, -8, 'k'); Ln(-24, -30, -24, -8, 'k'); Tx(-38, -17, 3, 'KAZAN', 'MC'); Tx(-38, -22, 2.2, `${f(h.Qk / 1000, 1)} kW`, 'MC'); Tx(-38, -35, 2.2, `Pompa: ${f(h.debi / 1000, 2)} m³/h · ${f(h.Hp / 9810, 1)} mSS`, 'MC'); Tx(-38, -39.5, 2.2, `Kapalı genleşme deposu ≥ ${Math.ceil(h.Vg / 5) * 5} l`, 'MC');
     Ln(-24, -12, x0, -12, 'g'); Ln(-24, -26, x0 + 4, -26, 'd'); Ln(x0, -12, x0, 0, 'g'); Ln(x0 + 4, -26, x0 + 4, 0, 'd'); Tx(-12, -10, 2.2, h.kaz.dn, 'MC');
@@ -197,12 +200,12 @@
       Ln(x0 - 60, y - 2, x0 + wid + 6, y - 2, 'i'); Tx(x0 - 60, y, 2.5, `${kt2 ? kt2.ad : 'Kat'}  ${kt.z >= 0 ? '+' : ''}${f(kt.z, 2)}`, 'L', 0, 2); Tx(x0 - 60, y + 4.5, 2.2, `ΣQ = ${fi(kt.Q)} W`, 'L');
       const ilk = kt.zincir.filter(z => z.bas === 0).sort((a, b) => b.Q - a.Q)[0]; if (ilk) Tx(x0 + 9, y + 9.5, 2.2, ilk.b.dn, 'MC');
       sira.forEach((x, j) => { const r = x.rad, cx = x0 + 14 + j * (rw + gap) + rw / 2, mh = all.find(q => q.id === r.mid);
-        Ln(cx - rw / 2, y + 16, cx + rw / 2, y + 16, 'r'); Ln(cx - rw / 2, y + 28, cx + rw / 2, y + 28, 'r'); Ln(cx - rw / 2, y + 16, cx - rw / 2, y + 28, 'r'); Ln(cx + rw / 2, y + 16, cx + rw / 2, y + 28, 'r'); for (let q = 1; q < 6; q++) Ln(cx - rw / 2 + rw * q / 6, y + 16, cx - rw / 2 + rw * q / 6, y + 28, 'i');
-        Ln(cx - rw / 2 + 2, y + 8, cx - rw / 2 + 2, y + 16, 'g'); Ln(cx + rw / 2 - 2, y + 4, cx + rw / 2 - 2, y + 16, 'd');
-        Tx(cx, y + 34, 2.2, `${r.no} · ${mh ? mh.no : ''}`, 'MC', 0, 2); Tx(cx, y + 30.5, 2, `${r.tip}/${r.H}/${Math.round(r.L * 1000)}`, 'MC'); Tx(cx, y + 21, 2.2, `${fi(r.Qn)} W`, 'MC'); const b = MT.boruSec(r.Qn, h.k); Tx(cx, y + 11.5, 1.8, b.dn, 'MC'); });
+        cihazCiz('radyator', cx, y + 14.2, rw, 14.6); /* panel radyatör önden görünüşü */
+        Ln(cx - rw / 2 + 2, y + 8, cx - rw / 2 + 2, y + 16, 'g'); Ln(cx + rw / 2 - 2, y + 4, cx + rw / 2 - 2, y + 16, 'd'); vanaCiz(cx - rw / 2 + 2, y + 11.5, true, true); vanaCiz(cx + rw / 2 - 2, y + 10, true, false); /* termostatik vana + dönüş vanası */
+        Tx(cx, y + 34, 2.2, `${r.no} · ${mh ? mh.no : ''}`, 'MC', 0, 2); Tx(cx, y + 30.5, 2, `${r.tip}/${r.H}/${Math.round(r.L * 1000)}`, 'MC'); Tx(cx, y + 37.5, 2.2, `${fi(r.Qn)} W`, 'MC'); const b = MT.boruSec(r.Qn, h.k); Tx(cx, y + 11.5, 1.8, b.dn, 'MC'); });
     });
     Tx(-60, nk * katH + 8, 4, 'KALORİFER TESİSATI KOLON ŞEMASI', 'L', 0, 2); Tx(-60, nk * katH + 2.5, 2.2, `Sistem ${h.k.tg}/${h.k.td} °C · ${BORU[h.k.boru].ad} · toplam ${fi(h.Qtop)} W · kritik devre ${krAd(h)} ΔP = ${f(h.krit.dpTop / 1000, 1)} kPa`, 'L');
-    Ln(-60, -46, -48, -46, 'g'); Tx(-46, -47, 2.2, 'gidiş', 'L'); Ln(-30, -46, -18, -46, 'd'); Tx(-16, -47, 2.2, 'dönüş', 'L');
+    Ln(-60, -46, -48, -46, 'g'); Tx(-46, -47, 2.2, 'gidiş', 'L'); Ln(-30, -46, -18, -46, 'd'); Tx(-16, -47, 2.2, 'dönüş', 'L'); vanaCiz(-2, -46, false, true); Tx(1, -47, 2.2, 'termostatik vana', 'L'); vanaCiz(30, -46, false, false); Tx(33, -47, 2.2, 'dönüş vanası', 'L');
     return g;
   };
   const krAd = h => { const mh = MT.mahaller().find(q => q.id === h.krit.rad.mid); return `${h.krit.rad.no}${mh ? ' (' + mh.no + ' ' + mh.ad + ')' : ''}`; };
@@ -216,6 +219,29 @@
     let Qyil = 0; try { Qyil = MT.ts825(MT.hesapla()).Qyil; } catch (e) { }
     const I3 = P / (Math.sqrt(3) * 400), ana = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250].find(x => x >= I3 * 1.25) || 250;
     return { R, P, Qg, I3, ana, Qyil, list: R.map(r => { const mh = all.find(q => q.id === r.mid) || {}; return Object.assign({ r, mahal: `${mh.no || ''} ${mh.ad || ''}`.trim() }, hat(r.Qn)); }) };
+  };
+  /* elektrikli ısıtma kolon şeması: katlar (zemin / tavan), cihazların önden görünüşü (1 m = 20 mm), her cihaza ayrı linye */
+  MT.elKolonSemasi = (h) => {
+    h = h || MT.elektrikHesap(); if (!h) return null; const g = { L: [], T: [] }, Ln = (a, b, c, d, s) => g.L.push([a, b, c, d, s || 'i']), Tx = (x, y, hh, s, al, rot, col) => g.T.push([x, y, hh, s, al || 'L', rot || 0, col || 7]);
+    const VIT = MT.VIT, Lv = (a, b, c, d) => Ln(Math.round(a * 100) / 100, Math.round(b * 100) / 100, Math.round(c * 100) / 100, Math.round(d * 100) / 100, 'v');
+    const cihazCiz = (t, x, y, w, hh) => { if (!(VIT && VIT.cihaz(Lv, t, x, y, w, hh))) { Ln(x - w / 2, y, x + w / 2, y, 'r'); Ln(x + w / 2, y, x + w / 2, y + hh, 'r'); Ln(x + w / 2, y + hh, x - w / 2, y + hh, 'r'); Ln(x - w / 2, y + hh, x - w / 2, y, 'r'); } };
+    const vanaCiz = (x, y, dikey, termo) => { if (VIT) VIT.vana(Lv, x, y, 1.1, dikey, termo); };
+    const S = 20, katH = 92, sw = 46, zs = [...new Set(h.list.map(x => +x.r.z0 || 0))].sort((a, b) => a - b), m = MT.set();
+    let W = 0; zs.forEach(z => { W = Math.max(W, 20 + h.list.filter(x => (+x.r.z0 || 0) === z).length * sw); });
+    /* pano */
+    Ln(-40, 8, -22, 8, 'k'); Ln(-22, 8, -22, 40, 'k'); Ln(-22, 40, -40, 40, 'k'); Ln(-40, 40, -40, 8, 'k'); Ln(-37, 12, -25, 12, 'i'); Ln(-37, 36, -25, 36, 'i'); Tx(-31, 28, 2.2, 'ELEKTRİK', 'MC'); Tx(-31, 24.5, 2.2, 'PANOSU', 'MC'); Tx(-31, 19, 1.8, `ana ${h.ana} A`, 'MC', 0, 2); Tx(-31, 15.5, 1.8, '3 faz + N', 'MC');
+    zs.forEach((z, i) => { const y = i * katH, kt2 = Object.values(m.katlar || {}).find(q => Math.abs((q.z || 0) - z) < 1e-6), yZ = y + 8, yB = yZ + 2.6 * S, list = h.list.filter(x => (+x.r.z0 || 0) === z);
+      Ln(-72, yZ, W, yZ, 'k'); Tx(-72, yZ + 1.5, 2.2, `${kt2 ? kt2.ad + '  ' : ''}ZEMİN ${z >= 0 ? '+' : ''}${f(z, 2)}`, 'L', 0, 8); Ln(-72, yZ + 3 * S, W, yZ + 3 * S, 'k'); Tx(-72, yZ + 3 * S + 1.5, 2.2, 'TAVAN', 'L', 0, 8);
+      if (i) Ln(-22, 32, -22, yB, 'm'); else Ln(-22, 32, -22, yB, 'm'); Ln(-22, yB, 20 + (list.length - 0.5) * sw + 8, yB, 'm');
+      list.forEach((x, j) => { const r = x.r, E = (ELK[r.elTip] || ELK.konvektor), sat = E.l.find(q => q[0] >= r.Qn) || E.l[E.l.length - 1], w = Math.max(10, (r.L || sat[1]) * S), hh = Math.max(7, sat[2] / 1000 * S), xc = 20 + j * sw + sw / 2, yc = yZ + 0.15 * S;
+        cihazCiz('konvektor', xc, yc, w, hh); const xt = xc + w / 2 - w * 0.12; Ln(xt, yB, xt, yc + hh, 'm'); Ln(xt - 1, yB - 3, xt + 1, yB - 2, 'm'); Ln(xt - 1, yB - 4.5, xt + 1, yB - 3.5, 'm'); Ln(xt - 1, yB - 6, xt + 1, yB - 5, 'm');
+        const mAd = x.mahal || (MT._mhAd ? MT._mhAd(r.mid) : ''); Tx(xc - 2, yc + hh + 9.5, 2.2, (mAd ? `${r.no} · ${mAd}` : r.no || '').slice(0, 26), 'MC', 0, 2); Tx(xc - 2, yc + hh + 6, 2, `${fi(r.Qn)} W · ${x.ger}`, 'MC'); Tx(xc - 2, yc + hh + 2.6, 1.7, E.ad.split(' (')[0].slice(0, 30), 'MC', 0, 8);
+        Tx(xt + 1.6, yB - 13, 1.6, `${x.sg} A · ${x.kablo.split(' ')[0]}`, 'MC', Math.PI / 2, 3); });
+      Tx(W + 6, yB + 1.5, 1.8, 'her cihaz ayrı sigortalı linye, oda termostatlı', 'R', 0, 3);
+    });
+    const nk = zs.length; Tx(-72, nk * katH + 8, 4, 'ISITMA TESİSATI KOLON ŞEMASI (ELEKTRİKLİ ISITMA)', 'L', 0, 2); Tx(-72, nk * katH + 2.5, 2.2, `${h.list.length} cihaz · kurulu güç ${f(h.P / 1000, 1)} kW · ısı kaybı ${f(h.Qg / 1000, 1)} kW · ana sigorta ${h.ana} A (3 faz)`, 'L');
+    Ln(-72, -10, -60, -10, 'm'); Tx(-58, -11, 2.2, 'besleme linyesi (230 V / 400 V)', 'L');
+    return g;
   };
   MT.elektrikListe = () => {
     const h = MT.elektrikHesap(); if (!h) return null; const g = { L: [], T: [] }, Ln = (a, b, c, d, s) => g.L.push([a, b, c, d, s || 'i']), Tx = (x, y, hh, s, al, rot, col) => g.T.push([x, y, hh, s, al || 'L', rot || 0, col || 7]);
@@ -258,7 +284,7 @@
     C.addCommand(['KALORIFERBORU', 'KALBORU'], 'Kolondan radyatörlere çift borulu dağıtım şebekesini çizer, çapları hesaplar (kolon seçilmemişse radyatörlerin ortasına konur).', async () => { const h = MT.boruCiz(); if (!h) { C.warn('Önce radyatörleri yerleştirin (RADYATORYERLESTIR).'); return; } C.log(`Kalorifer boruları çizildi: ${h.nBoru} parça · kazan ${f(h.Qk / 1000, 1)} kW · pompa ${f(h.debi / 1000, 2)} m³/h, ${f(h.Hp / 9810, 1)} mSS.`); });
     C.addCommand(['KOLONSEMASI', 'KALORIFERSEMA'], 'Kalorifer kolon şeması: katlar, radyatörler, boru çapları, kazan, pompa ve genleşme deposu bilgisiyle; yerleştirme noktasını tıklayın.', async (I) => { const g = MT.kolonSemasi(); if (!g) { C.warn('Önce radyatörleri yerleştirin.'); return; } const p = await I.pt('Kolon şemasının yeri (sol alt)'); if (!p || typeof p === 'string') return; C.undoStack.push(C.snapshot()); C.doc.ents = C.doc.ents.filter(e => !(e.type === 'mtsema' && (!e.tur || e.tur === 'kolon'))); C.add(C.newEnt('mtsema', { layer: MT._lay('MT_KOLON_SEMASI', 7, 25), dis: 'Mekanik', p: M.p3(p), g, tur: 'kolon' })); });
     C.addCommand(['KALORIFER', 'KALORIFERTESISATI'], 'Kalorifer tesisatı (tek adım): ısı kaybı → radyatör seçimi ve yerleşimi → kolon yeri → boru şebekesi ve çapları.', async (I) => { const r = MT.radYerlestir(); if (!r.n) { C.warn('Önce MAHALBUL ile mahalleri oluşturun.'); return; } r.uyari.forEach(u => C.warn(u)); if (r.el) { C.log(`Elektrikli ısıtma: ${r.n} cihaz, kurulu güç ${f(r.Q / 1000, 1)} kW. Boru ve kazan yok; cihaz listesi için ISITICILISTE.`); return; } if (!kolon()) { const p = await I.pt('Kolon yeri (Enter = radyatörlerin ortası)'); if (p && typeof p !== 'string') C.add(C.newEnt('mtkolon', { layer: MT._lay('MT_KALORIFER', 1, 35), dis: 'Mekanik', p: [p[0], p[1]], no: 'K1' })); } const h = MT.boruCiz(); C.log(`Kalorifer: ${r.n} radyatör, ${h.nBoru} boru parçası · kazan ${f(h.Qk / 1000, 1)} kW · pompa ${f(h.debi / 1000, 2)} m³/h, ${f(h.Hp / 9810, 1)} mSS. Kolon şeması için KOLONSEMASI.`); });
-    C.addCommand(['ISITICILISTE', 'ELEKTRIKLIISITICILISTE'], 'Elektrikli ısıtıcı cihaz listesi tablosu (güç, akım, sigorta, kablo); yerleştirme noktasını tıklayın.', async (I) => { const g = MT.elektrikListe(); if (!g) { C.warn('Elektrikli ısıtıcı yok: Kalorifer sekmesinde ısıtma şeklini "Elektrikli ısıtıcı" seçip tesisatı oluşturun.'); return; } const p = await I.pt('Cihaz listesinin yeri (sol alt)'); if (!p || typeof p === 'string') return; C.undoStack.push(C.snapshot()); C.doc.ents = C.doc.ents.filter(e => !(e.type === 'mtsema' && e.tur === 'ellist')); C.add(C.newEnt('mtsema', { layer: MT._lay('MT_KOLON_SEMASI', 7, 25), dis: 'Mekanik', p: M.p3(p), g, tur: 'ellist' })); });
+    C.addCommand(['ISITICILISTE', 'ELEKTRIKLIISITICILISTE'], 'Elektrikli ısıtıcı cihaz listesi tablosu (güç, akım, sigorta, kablo); yerleştirme noktasını tıklayın.', async (I) => { const g = MT.elektrikListe(); if (!g) { C.warn('Elektrikli ısıtıcı yok: Kalorifer sekmesinde ısıtma şeklini "Elektrikli ısıtıcı" seçip tesisatı oluşturun.'); return; } const p = await I.pt('Cihaz listesinin yeri (sol alt)'); if (!p || typeof p === 'string') return; C.undoStack.push(C.snapshot()); C.doc.ents = C.doc.ents.filter(e => !(e.type === 'mtsema' && (e.tur === 'ellist' || e.tur === 'elkolon'))); C.add(C.newEnt('mtsema', { layer: MT._lay('MT_KOLON_SEMASI', 7, 25), dis: 'Mekanik', p: M.p3(p), g, tur: 'ellist' })); });
     C.addCommand(['KALORIFERSIL'], 'Radyatör, kalorifer borusu, kolon ve kolon şemasını siler.', async () => { const l = C.doc.ents.filter(e => e.type === 'mtrad' || ((e.type === 'mtboru' || e.type === 'mtkolon') && !e.sys) || (e.type === 'mtsema' && (!e.tur || e.tur === 'kolon' || e.tur === 'ellist'))); if (!l.length) return; C.undoStack.push(C.snapshot()); C.remove(l); C.log(`${l.length} kalorifer nesnesi silindi.`); });
   }
 })(typeof window !== 'undefined' ? (window.C = window.C || {}) : (globalThis.C = globalThis.C || {}));

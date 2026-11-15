@@ -12,7 +12,7 @@
   const YAL = { eps: 'eps', epsGri: 'eps', xps: 'xps', tasyunu: 'tasyunu', camyunu: 'camyunu', pir: 'pir', pur: 'pir' };
   const cizer = () => { const g = { L: [], T: [] }; return { g, L: (a, b, c, d, s) => g.L.push([a, b, c, d, s || 'i']), T: (x, y, h, s, al, rot, col) => g.T.push([x, y, h, s, al || 'L', rot || 0, col || 7]), B(x, y, w, h, s) { this.L(x, y, x + w, y, s); this.L(x + w, y, x + w, y + h, s); this.L(x + w, y + h, x, y + h, s); this.L(x, y + h, x, y, s); } }; };
   const gKutu = g => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const l of g.L) { x0 = Math.min(x0, l[0], l[2]); x1 = Math.max(x1, l[0], l[2]); y0 = Math.min(y0, l[1], l[3]); y1 = Math.max(y1, l[1], l[3]); } for (const t of g.T) { const w = String(t[3]).length * t[2] * 0.62, a = t[4] || 'L', xa = a[0] === 'M' ? t[0] - w / 2 : a[0] === 'R' ? t[0] - w : t[0]; if (t[5]) { x0 = Math.min(x0, t[0] - t[2]); x1 = Math.max(x1, t[0] + t[2]); y0 = Math.min(y0, t[1] - w / 2); y1 = Math.max(y1, t[1] + w / 2); } else { x0 = Math.min(x0, xa); x1 = Math.max(x1, xa + w); y0 = Math.min(y0, t[1] - t[2]); y1 = Math.max(y1, t[1] + t[2] * 1.6); } } return x0 === Infinity ? null : [x0, y0, x1, y1]; };
-  const OTO_SEMA = new Set(['kolon', 'ellist', 'radlist', 'sog', 'soglist', 'hvlist', 'yaldetay', 'caklist', 'deliklist', 'shkolon', 'shlist']);
+  const OTO_SEMA = new Set(['kolon', 'elkolon', 'ellist', 'radlist', 'sog', 'soglist', 'hvlist', 'yaldetay', 'caklist', 'deliklist', 'shkolon', 'shlist']);
   const otoGv = () => { const st = C.doc.set.mt || {}, o = new Set(st.yalGv || []); for (const k in st.planGv || {}) for (const g of st.planGv[k] || []) o.add(g); return o; };
   /* otomatik üretilen şema, tablo, kesit planı ve kesitler dışındaki model */
   const modelKutu = () => { const gs = otoGv(), es = C.doc.ents.filter(e => e.type !== 'sheet' && !(e.type === 'mtsema' && OTO_SEMA.has(e.tur)) && !(e.gv && gs.has(e.gv)) && !(e.type === 'kesitisaret' && e.name === 'Y')); try { return C.extents(es); } catch (er) { return null; } };
@@ -107,7 +107,7 @@
   const fcListe = () => cihazListe('SOĞUTMA — CİHAZ LİSTESİ', C.doc.ents.filter(e => e.type === 'mtfc'), e => [e.no, mhAd(e.mid), e.tip === 'split' ? 'Split klima (iç + dış ünite)' : 'Kaset tipi fancoil', e.model || '', `${f((e.Qn || 0) / 1000, 1)} kW`]);
   const SIS = {
     isitma: { ad: 'ISITMA TESİSATI', kisa: 'ISITMA', var: () => C.doc.ents.some(e => e.type === 'mtrad'), ents: e => e.type === 'mtrad' || ((e.type === 'mtboru' || e.type === 'mtkolon') && !e.sys),
-      sema: () => MT.elektrikHesap && MT.elektrikHesap() ? [['ellist', MT.elektrikListe()]] : [['kolon', MT.kolonSemasi()], ['radlist', radListe()]] },
+      sema: () => MT.elektrikHesap && MT.elektrikHesap() ? [['elkolon', MT.elKolonSemasi ? MT.elKolonSemasi() : null], ['ellist', MT.elektrikListe()]] : [['kolon', MT.kolonSemasi()], ['radlist', radListe()]] },
     sogutma: { ad: 'SOĞUTMA TESİSATI', kisa: 'SOĞUTMA', var: () => C.doc.ents.some(e => e.type === 'mtfc'), ents: e => e.type === 'mtfc' || ((e.type === 'mtboru' || e.type === 'mtkolon') && e.sys === 'sog'),
       sema: () => { let g = null; try { g = MT.sogutmaSemasi(); } catch (er) { } return [['sog', g], ['soglist', fcListe()]]; } },
     hava: { ad: 'HAVALANDIRMA', kisa: 'HAVALANDIRMA', var: () => C.doc.ents.some(e => e.type === 'mthv'), ents: e => e.type === 'mthv' || e.type === 'mtkanal',
@@ -260,7 +260,7 @@
   }, { noUndo: true });
   C.addCommand(['TESISATDXF', 'TESISATDXFKAYDET'], 'Tesisat paftalarını AutoCAD için DXF kaydeder: her pafta ayrı dosya (Layout sekmesi + ölçekli pencereler; model alanında kesit planı, tesisat, şema ve tablolar). 3B görünüş resimleri DXF\'e alınmaz.', async (I) => {
     const ls = tPaftalar().sort((a, b) => SIRA[a.mtPafta] - SIRA[b.mtPafta]); if (!ls.length) { C.warn('Tesisat paftası yok: önce TESISATPAFTA ile oluşturun.'); return; }
-    const st = MT.set(), ad = C.ascii ? C.ascii(C.doc.set.name || 'cizim').replace(/[^\w\-]+/g, '_') : 'cizim', EK = { yalitim: 'isi_yalitimi', isitma: 'isitma', sogutma: 'sogutma', hava: 'havalandirma', sihhi: 'sihhi_tesisat' }, TUR = { isitma: ['kolon', 'ellist', 'radlist'], sogutma: ['sog', 'soglist'], hava: ['hvlist'], yalitim: ['yaldetay'], sihhi: ['shkolon', 'shlist'] }; let n = 0;
+    const st = MT.set(), ad = C.ascii ? C.ascii(C.doc.set.name || 'cizim').replace(/[^\w\-]+/g, '_') : 'cizim', EK = { yalitim: 'isi_yalitimi', isitma: 'isitma', sogutma: 'sogutma', hava: 'havalandirma', sihhi: 'sihhi_tesisat' }, TUR = { isitma: ['kolon', 'elkolon', 'ellist', 'radlist'], sogutma: ['sog', 'soglist'], hava: ['hvlist'], yalitim: ['yaldetay'], sihhi: ['shkolon', 'shlist'] }; let n = 0;
     const all = C.doc.layouts;
     for (const L of ls) { const t = L.mtPafta, gs = new Set(t === 'yalitim' ? (st.yalGv || []) : ((st.planGv || {})[t] || [])), S = SIS[t];
       const ents = C.doc.ents.filter(e => (e.gv && gs.has(e.gv)) || (!e.gv && ((S && S.ents(e)) || (S && (e.type === 'mtmahal' || e.type === 'mtdelik' || e.type === 'mtcakis')) || (e.type === 'mtsema' && TUR[t].includes(e.tur)))));
@@ -285,7 +285,7 @@
     const elle = t => (C.doc.layouts || []).some(L => L.mtPafta === t && L.elle);
     const ekle = Ls => { for (const L of [].concat(Ls || [])) { son = son || L; ad.push(`${L.name} (${L.kagit || ''} ${Math.round(L.pw || 0)}×${Math.round(L.ph || 0)} mm, ${L.f && L.f.olcek ? L.f.olcek : '1/' + SC})`); } };
     /* hepsi yenilenirken önceki otomatik şema / tablo / detaylar kaldırılır (elle korunan sistemlerinki kalır), yenileri temiz düzende konur */
-    const SEMA_TUR = { isitma: ['kolon', 'ellist', 'radlist'], sogutma: ['sog', 'soglist'], hava: ['hvlist'], yalitim: ['yaldetay'], sihhi: ['shkolon', 'shlist'] }, sakla = new Set(Object.keys(SEMA_TUR).filter(elle).flatMap(t => SEMA_TUR[t]));
+    const SEMA_TUR = { isitma: ['kolon', 'elkolon', 'ellist', 'radlist'], sogutma: ['sog', 'soglist'], hava: ['hvlist'], yalitim: ['yaldetay'], sihhi: ['shkolon', 'shlist'] }, sakla = new Set(Object.keys(SEMA_TUR).filter(elle).flatMap(t => SEMA_TUR[t]));
     if (k === 'T') C.doc.ents = C.doc.ents.filter(e => !(e.type === 'mtsema' && OTO_SEMA.has(e.tur) && !sakla.has(e.tur)));
     if (k === 'Y' || k === 'T') { if (elle('yalitim')) korunan.push('ISI YALITIMI'); else try { ekle(await MT.yalitimPafta(I, SC)); } catch (er) { console.error(er); C.warn('Isı yalıtım paftası: ' + (er && er.message || er)); } }
     if (k !== 'Y') for (const t of turler) { if (!SIS[t]) continue; if (elle(t)) { korunan.push(SIS[t].ad); continue; } const Ls = MT.tesisatPafta(t, SC); if (Ls) ekle(Ls); else if (turler.length === 1) C.warn(`${SIS[t].ad}: bu sistemin tesisatı henüz çizilmemiş.`); }

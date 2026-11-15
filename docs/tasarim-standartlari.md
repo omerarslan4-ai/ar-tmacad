@@ -177,6 +177,7 @@ Program her yapının türünü modelden önerir (zeminin altında betonarme per
 - Mekanik tesisat raporu kullanıcının örnek rapor biçimini izler (Yayladağ AAT idari bina mekanik tesisat hesapları raporu ve AAT-B101 sıhhi tesisat paftası).
 - Çatı yağmur oluğu ve yağmur iniş boruları sıhhi tesisat raporunda hesaplanır (çatı alanı, yağış şiddeti, boru ve oluk çapı, adet); hesaplanan adet kadar iniş borusu çizime (model, plan, kesit, görünüş, çatı planı) eklenir. Oluk ve iniş borusu detayları Çokal binalarındaki gibi (14.11.2026).
 - İndirilen ağır 3B armatür modelleri programı yavaşlatıyor; hafif, yerleşik 3B armatür çizimleri kullanılır.
+- Kolon şemaları örnek projedeki gibidir (kullanıcı kararı 15.11.2026; örnek: Yayladağ AAT-B101-TP-01_ST "KOLON ŞEMASI"): vitrifiyeler (lavabo, klozet, alaturka, pisuvar, duş, evye, yer süzgeci) örnek paftadaki önden görünüş çizimleriyle, gerçek ölçüsünde (1 m = 20 mm), ZEMİN çizgisine oturarak çizilir (`app/mt-vitrifiye.js`); su bağlantısı armatürün yanından iner, pis su sifondan / süzgeçten aşağı iner. Örnekte ısıtma ve soğutma kolon şeması yoktur; aynı çizgi diliyle radyatör, elektrikli konvektör, kaset fancoil, split iç ve dış ünite önden görünüşleri ve vanalar (termostatik vana, dönüş vanası, servis vanası) çizilir. Elektrikli ısıtmada ve split klimada da kolon şeması çıkar.
 
 ## Çalışma şekli
 - Program yalnız tamamen bittiğinde kurulabilir masaüstü uygulamasına (Electron/Tauri) çevrilecek; şimdilik .bat ile tarayıcıda çalışır.

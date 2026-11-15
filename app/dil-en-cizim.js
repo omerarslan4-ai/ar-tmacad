@@ -155,6 +155,16 @@
     ['Klozet (rezervuarlı)', 'WC (with cistern)'], ['Klozet', 'WC'], ['Lavabo', 'Washbasin'], ['Sıcak su (lt/h)', 'Hot water (l/h)'], ['Soğuk su (lt/h)', 'Cold water (l/h)'],
     ['soğuk su', 'cold water'], ['sıcak su', 'hot water'], ['temiz su', 'potable water'], ['pis su', 'waste water'], ['Pis su yatay', 'Horizontal drainage'],
     ['gerekli giriş basıncı', 'required inlet pressure'], ['mSS', 'mWC'], ['Yer süzgeci', 'Floor drain'], ['ŞEBEKEDEN', 'FROM MAINS'], ['ÇEK VALF', 'CHECK VALVE'], ['RÖGAR', 'MANHOLE'], ['HAVALIK', 'VENT PIPE'],
+    /* ---------- mekanik: kolon şemaları (vitrifiye / cihaz önden görünüşlü) ---------- */
+    ['SIHHİ TESİSAT KOLON ŞEMASI', 'PLUMBING RISER DIAGRAM'], ['KALORİFER TESİSATI KOLON ŞEMASI', 'HEATING RISER DIAGRAM'], ['SOĞUTMA TESİSATI KOLON ŞEMASI', 'COOLING RISER DIAGRAM'],
+    ['ISITMA TESİSATI KOLON ŞEMASI (ELEKTRİKLİ ISITMA)', 'HEATING RISER DIAGRAM (ELECTRIC HEATING)'], ['SOĞUTMA TESİSATI KOLON ŞEMASI (SPLİT KLİMA)', 'COOLING RISER DIAGRAM (SPLIT AIR CONDITIONING)'],
+    ['termostatik vana', 'thermostatic valve'], ['dönüş vanası', 'lockshield valve'], ['gidiş', 'flow'], ['dönüş', 'return'],
+    ['gaz hattı', 'gas line'], ['sıvı hattı', 'liquid line'], ['yoğuşma drenajı', 'condensate drain'], ['yoğuşma Ø20 → süzgeç', 'condensate Ø20 → drain'],
+    ['Ø# gaz', 'Ø# gas'], ['Ø# sıvı', 'Ø# liquid'], ['DIŞ ÜNİTE · # kW elk.', 'OUTDOOR UNIT · # kW elec.'], ['bakır boru, kauçuk izoleli', 'copper pipe, rubber insulated'],
+    ['duvar tipi iç ünite +2,20', 'wall-mounted indoor unit +2.20'], ['ELEKTRİK', 'ELECTRICAL'], ['PANOSU', 'PANEL'], ['3 faz + N', '3 phase + N'], ['ana # A', 'main # A'],
+    ['besleme linyesi (230 V / 400 V)', 'supply circuit (230 V / 400 V)'], ['Elektrikli fanlı ısıtıcı', 'Electric fan heater'], ['Infrared / ışınımlı panel ısıtıcı', 'Infrared radiant panel heater'],
+    ['Pisuvar', 'Urinal'], ['Duş', 'Shower'], ['Evye', 'Kitchen sink'], ['Laboratuvar evyesi', 'Laboratory sink'], ['Alaturka hela', 'Squat toilet'],
+    ['Çamaşır makinesi bağlantısı', 'Washing machine connection'], ['Bulaşık makinesi bağlantısı', 'Dishwasher connection'],
     ['ODA', 'ROOM']
   ];
 

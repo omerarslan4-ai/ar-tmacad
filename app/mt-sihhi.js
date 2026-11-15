@@ -416,24 +416,32 @@
      KOLON ŞEMASI (açılım) + ARMATÜR LİSTESİ — kağıt mm
      ==================================================================== */
   MT.sihhiSema = (h) => { h = h || MT.sihhiHesap(); if (!h) return null; const g = { L: [], T: [] }, Ln = (a, b, c, d, s) => g.L.push([a, b, c, d, s || 'i']), Tx = (x, y, hh, s, al, rot, col) => g.T.push([x, y, hh, s, al || 'L', rot || 0, col || 7]);
-    const k = h.k, ar = h.A.filter(a => a.tip !== 'termosifon'), ad = a => MT._mhAd ? MT._mhAd(a.mid) : '', gx = 26, n = ar.length, W = 30 + n * gx, yS = 64, yH = 58, yP = 0, yA = 22;
+    /* vitrifiyeler örnek paftadaki önden görünüşleriyle (MT.VIT), 1/50 kağıt ölçeğinde (1 m = 20 mm) döşeme çizgisine oturur */
+    const k = h.k, ar = h.A.filter(a => a.tip !== 'termosifon'), ad = a => MT._mhAd ? MT._mhAd(a.mid) : '', n = ar.length, S = 20, yZ = 8, yS = 64, yH = 58, yP = 0, VIT = MT.VIT;
+    const r2 = v => Math.round(v * 100) / 100, Lv = (a, b, c, d) => Ln(r2(a), r2(b), r2(c), r2(d), 'v');
     /* armatürler girişten uzaklığa göre: en uzak sağda */
     const uz = a => h.G ? Math.abs(a.p[0] - h.G.p[0]) + Math.abs(a.p[1] - h.G.p[1]) : 0; ar.sort((a, b) => uz(a) - uz(b));
-    Ln(-30, 76, W, 76, 'k'); Tx(-30, 78, 2.2, 'TAVAN', 'L', 0, 8); Ln(-30, yP + 8, W, yP + 8, 'k'); Tx(-30, yP + 9.5, 2.2, 'ZEMİN ±0.00', 'L', 0, 8);
-    /* soğuk su ana hattı (mavi 's'), sıcak su (kırmızı 'd' kesikli), pis su (mor 'x') */
+    /* her armatürün yuvası: genişlik çizime göre */
+    let cx = 8; const Y = ar.map(a => { const bb = (VIT && VIT.kutu(a.tip)) || [-0.25, 0, 0.25, 0.8], w = Math.max(24, (bb[2] - bb[0]) * S + 14), xc = cx + w / 2, xa = xc - (bb[0] + bb[2]) / 2 * S; cx += w; return { a, bb, w, xl: xc - w / 2, xr: xc + w / 2, xc, xa, xs: xa + bb[2] * S + 2.5, xh: xa + bb[0] * S - 2.5, xp: a.tip === 'dus' ? xc : xa }; });
+    const W = cx + 4;
+    Ln(-30, 76, W, 76, 'k'); Tx(-30, 78, 2.2, 'TAVAN', 'L', 0, 8); Ln(-30, yZ, W, yZ, 'k'); Tx(-30, yZ + 1.5, 2.2, 'ZEMİN ±0.00', 'L', 0, 8);
     let ybK = 0, sbK = 0; const ybs = [], sbs = []; for (let i = n - 1; i >= 0; i--) { ybK += ARM[ar[i].tip].yb; ybs[i] = ybK; } for (let i = n - 1; i >= 0; i--) { sbK += ARM[ar[i].tip].sb; sbs[i] = sbK; }
-    Ln(-18, yP - 8, -18, yS, 's'); Ln(-18, yS, 14 + (n - 1) * gx, yS, 's'); Tx(-20, yP - 12, 2.2, `ŞEBEKEDEN ${h.cG ? h.cG.inc : ''}`, 'L', 0, 5); if (h.cG) Tx(-16, yS + 1.5, 2, `${h.cG.inc}-${f(h.ybTop, 2)}yb`, 'L', 0, 5);
-    const sicVar = h.ts.length && h.sic.length, tx = -6; if (sicVar) { Ln(tx - 5, 34, tx + 5, 34, 'k'); Ln(tx - 5, 52, tx + 5, 52, 'k'); Ln(tx - 5, 34, tx - 5, 52, 'k'); Ln(tx + 5, 34, tx + 5, 52, 'k'); Tx(tx, 45, 2, 'ELK.', 'MC'); Tx(tx, 42, 2, 'TERM.', 'MC'); Tx(tx, 38.5, 2, `${h.hacim} LT`, 'MC', 0, 2); Ln(tx - 3, 52, tx - 3, yS, 's'); Ln(tx + 3, 52, tx + 3, yH, 'd'); const son = ar.reduce((m, a, i) => ARM[a.tip].sicak ? i : m, -1); if (son >= 0) Ln(tx + 3, yH, 14 + son * gx - 3, yH, 'd'); }
-    Ln(8, yP, 14 + (n - 1) * gx + 4, yP, 'x'); Ln(8, yP, -24, yP - 3, 'x'); Tx(-24, yP - 7.5, 2.2, `RÖGAR R1 · Ø${h.dC || 100}-${f(h.sbTop || 0, 0)}sb · eğim %${k.egim}`, 'L', 0, 6); Tx(-2, yP + 1.5, 1.8, 'ÇEK VALF', 'MC', 0, 6);
-    ar.forEach((a, i) => { const A2 = ARM[a.tip], x = 14 + i * gx;
-      /* armatür kutusu */
-      Ln(x - 8, yA, x + 8, yA, 'r'); Ln(x - 8, yA + 14, x + 8, yA + 14, 'r'); Ln(x - 8, yA, x - 8, yA + 14, 'r'); Ln(x + 8, yA, x + 8, yA + 14, 'r'); Tx(x, yA + 9, 2.2, a.no || '', 'MC', 0, 2); Tx(x, yA + 5.5, 1.7, A2.ad.split(' (')[0].slice(0, 14), 'MC'); Tx(x, yA + 2.2, 1.6, ad(a).slice(0, 15), 'MC', 0, 8);
-      if (A2.yb > 0) { Ln(x - 3, yS, x - 3, yA + 14, 's'); const c = MT.temizCap(A2.yb, k); Tx(x - 4.5, yA + 24, 1.7, `${c.inc}-${f(A2.yb, 2)}yb`, 'MC', Math.PI / 2, 5); if (i < n - 1) { const c2 = MT.temizCap(Math.max(0.25, ybs[i + 1] || 0), k); if (ybs[i + 1] > 0) Tx(x + gx / 2, yS + 1.5, 1.7, `${c2.inc}-${f(ybs[i + 1], 2)}yb`, 'MC', 0, 5); } }
-      if (A2.sicak && sicVar) { Ln(x + 3, yH, x + 3, yA + 14, 'd'); }
-      if (A2.sb > 0) { Ln(x, yA, x, yP, 'x'); Tx(x + 1.8, yP + 12, 1.7, `Ø${Math.max(A2.dp, k.minPis)}-${A2.sb}sb`, 'MC', Math.PI / 2, 6); if (i > 0) Tx(x - gx / 2, yP - 3.5, 1.7, `Ø${MT.pisCap(sbs[i], false, Math.max(k.minPis, ar.slice(i).some(q => ARM[q.tip].dp >= 100) ? 100 : 0))}-${f(sbs[i], 0)}sb`, 'MC', 0, 6); }
+    /* soğuk su ana hattı (mavi 's'), sıcak su (kırmızı 'd' kesikli), pis su (mor 'x') */
+    const sonS = Y.reduce((m, q) => ARM[q.a.tip].yb > 0 ? q.xs : m, 14);
+    Ln(-18, yP - 8, -18, yS, 's'); Ln(-18, yS, sonS, yS, 's'); Tx(-20, yP - 12, 2.2, `ŞEBEKEDEN ${h.cG ? h.cG.inc : ''}`, 'L', 0, 5); if (h.cG) Tx(-16, yS + 1.5, 2, `${h.cG.inc}-${f(h.ybTop, 2)}yb`, 'L', 0, 5);
+    const sicVar = h.ts.length && h.sic.length, tx = -6; if (sicVar) { Ln(tx - 5, 34, tx + 5, 34, 'k'); Ln(tx - 5, 52, tx + 5, 52, 'k'); Ln(tx - 5, 34, tx - 5, 52, 'k'); Ln(tx + 5, 34, tx + 5, 52, 'k'); Tx(tx, 45, 2, 'ELK.', 'MC'); Tx(tx, 42, 2, 'TERM.', 'MC'); Tx(tx, 38.5, 2, `${h.hacim} LT`, 'MC', 0, 2); Ln(tx - 3, 52, tx - 3, yS, 's'); Ln(tx + 3, 52, tx + 3, yH, 'd'); const son = Y.reduce((m, q) => ARM[q.a.tip].sicak ? q.xh : m, null); if (son != null) Ln(tx + 3, yH, son, yH, 'd'); }
+    const sonP = Y.reduce((m, q) => ARM[q.a.tip].sb > 0 ? q.xp : m, 8);
+    Ln(8, yP, sonP + 4, yP, 'x'); Ln(8, yP, -24, yP - 3, 'x'); Tx(-24, yP - 7.5, 2.2, `RÖGAR R1 · Ø${h.dC || 100}-${f(h.sbTop || 0, 0)}sb · eğim %${k.egim}`, 'L', 0, 6); Tx(-2, yP + 1.5, 1.8, 'ÇEK VALF', 'MC', 0, 6);
+    Y.forEach((q, i) => { const { a, bb, xc, xa, xs, xh, xp } = q, A2 = ARM[a.tip], yUst = yZ + bb[3] * S, yb = yZ + (bb[3] > A2.zs ? Math.min(Math.max(A2.zs, bb[1] + 0.05), bb[3] - 0.05) : A2.zs) * S;
+      /* vitrifiye görünüşü (örnek paftadan); kütüphanede yoksa kutu */
+      if (!(VIT && VIT.ciz(Lv, a.tip, xa, yZ, S))) { Lv(xa - 5, yZ, xa + 5, yZ); Lv(xa + 5, yZ, xa + 5, yUst); Lv(xa + 5, yUst, xa - 5, yUst); Lv(xa - 5, yUst, xa - 5, yZ); }
+      Tx(xc, yUst + 5, 2.2, a.no || '', 'MC', 0, 2); Tx(xc, yUst + 2.2, 1.6, A2.ad.split(' (')[0].slice(0, 16), 'MC'); const m = ad(a); if (m) Tx(xc, yUst + 7.8, 1.5, m.slice(0, 16), 'MC', 0, 8);
+      if (A2.yb > 0) { Ln(xs, yS, xs, yb, 's'); Ln(xs, yb, xa + 1.5, yb, 's'); const c = MT.temizCap(A2.yb, k); Tx(xs + 1.4, (yS + Math.max(yb, yUst)) / 2, 1.6, `${c.inc}-${f(A2.yb, 2)}yb`, 'MC', Math.PI / 2, 5); if (i < n - 1 && ybs[i + 1] > 0) { const c2 = MT.temizCap(Math.max(0.25, ybs[i + 1]), k); Tx(q.xr, yS + 1.5, 1.7, `${c2.inc}-${f(ybs[i + 1], 2)}yb`, 'MC', 0, 5); } }
+      if (A2.sicak && sicVar) { Ln(xh, yH, xh, yb, 'd'); Ln(xh, yb, xa - 1.5, yb, 'd'); }
+      if (A2.sb > 0) { Ln(xp, yZ + (a.tip === 'dus' ? 0 : Math.min(bb[1], 0.4)) * S, xp, yP, 'x'); Tx(xp + 1, yP + 2.6, 1.5, `Ø${Math.max(A2.dp, k.minPis)}-${A2.sb}sb`, 'L', 0, 6); if (i > 0) Tx(q.xl, yP - 3.5, 1.7, `Ø${MT.pisCap(sbs[i], false, Math.max(k.minPis, ar.slice(i).some(z => ARM[z.tip].dp >= 100) ? 100 : 0))}-${f(sbs[i], 0)}sb`, 'MC', 0, 6); }
     });
-    /* havalık */
-    const hi = ar.findIndex(a => ARM[a.tip].dp >= 100); if (hi >= 0) { const x = 14 + hi * gx + 9.5; Ln(x, yP, x, 84, 'i'); Ln(x - 2, 84, x + 2, 84, 'i'); Tx(x + 1.5, 80, 1.7, 'Ø70 HAVALIK', 'L', 0, 8); }
+    /* havalık: ilk Ø100 bağlantılı armatürün solunda */
+    const hq = Y.find(q => ARM[q.a.tip].dp >= 100); if (hq) { const x = hq.xa + hq.bb[0] * S - 4.5; Ln(x, yP, x, 84, 'x'); Ln(x - 2, 84, x + 2, 84, 'i'); Ln(x - 2, 84, x, 86.5, 'i'); Ln(x + 2, 84, x, 86.5, 'i'); Tx(x + 1.5, 80, 1.7, 'Ø70 HAVALIK', 'L', 0, 8); }
     Ln(-30, -22, -20, -22, 's'); Tx(-18, -23, 2, 'soğuk su', 'L'); Ln(2, -22, 12, -22, 'd'); Tx(14, -23, 2, 'sıcak su', 'L'); Ln(34, -22, 44, -22, 'x'); Tx(46, -23, 2, 'pis su', 'L');
     Tx(-30, 94, 4, 'SIHHİ TESİSAT KOLON ŞEMASI', 'L', 0, 2); Tx(-30, 88.5, 2.2, `Q = ${f(k.K, 2)}·√YB${h.QTop ? ' = ' + f(h.QTop, 2) + ' l/s' : ''} · temiz su PPRC PN25 · pis su PVC · gerekli giriş basıncı ${h.kritik ? f(h.kritik.top, 1) + ' mSS' : '—'}`, 'L');
     return g; };
