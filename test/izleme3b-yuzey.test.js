@@ -25,4 +25,21 @@ t('izleme noktası yüzün dışındaysa ve çizgi yüzü imleçten uzakta deliy
   assert.strictEqual(yuzey({ p: [5, 1, 0], lines: [{ o: [0, 1, 0], u: [1, 0, 0], lbl: '0°' }, { o: [5, 1, -3], u: [0, 0, 1], lbl: 'Z+' }] }, f, proj, [500, 0]), null);
   assert.strictEqual(yuzey({ p: [4, 3, 1], lines: [{ o: [4, 3, 1], u: [0, 1, 0], lbl: '90°' }] }, f, proj, [400, 100]), null); // çizgi yüzden uzaklaşıyor
 });
+/* hangi yüz: kural yalnız o yüzde çizim yapılırken geçerli; arkada döşeme / perde var diye havadaki izleme kapanmaz */
+const sec = global.window.C.izleme3bYuzSec, doseme = { p: [2, 2, 0], n: [0, 0, 1] }, uzakPerde = { p: [9, 4, 1], n: [-1, 0, 0] };
+t('döşemeden mavi eksende yükselirken (yükseklik hizası, Z+ kesişimi) yüz kuralı uygulanmaz', () => {
+  assert.strictEqual(sec({ faceHit: null, base: [0, 0, 0], two: true, axisHit: 2, pick: () => doseme }), null);      // eksen döşemenin normali
+  assert.strictEqual(sec({ faceHit: null, base: [0, 0, 0], two: true, axisHit: 2, pick: () => uzakPerde }), null);   // arkada uzak perde
+});
+t('havada nesne izleme ve yerde kutupsal izleme: taban o yüzde değilse yüz kuralı uygulanmaz', () => {
+  assert.strictEqual(sec({ faceHit: uzakPerde, base: [0, 0, 0], two: false, axisHit: null }), null);                 // yerde çizerken imleç uzak perdenin önünden geçiyor
+  assert.strictEqual(sec({ faceHit: doseme, base: [1, 1, 2.5], two: false, axisHit: null }), null);                  // havadaki tabandan izleme, arkada döşeme
+});
+t('perde yüzünde çizim: taban o yüzdeyse ya da ilk noktaysa nokta yüzde kalır', () => {
+  assert.strictEqual(sec({ faceHit: f, base: [5, 2, 0.4], two: true, axisHit: null }), f);
+  assert.strictEqual(sec({ faceHit: f, base: null, two: false, axisHit: null }), f); assert.strictEqual(sec({ faceHit: f, base: null, two: true, axisHit: null }), f); // ilk nokta tıklanan yüzde başlar
+  assert.strictEqual(sec({ faceHit: null, base: [5, 2, 0.4], two: true, axisHit: 0, pick: () => f }), f);            // X ekseni perde yüzünün içinde
+  assert.strictEqual(sec({ faceHit: null, base: [5, 2, 0.4], two: true, axisHit: 1, pick: () => f }), null);         // Y ekseni yüzden dışarı çıkıyor: serbest
+  const pl = { o: [0, 0, 1], n: [0, 0, 1] }; assert.deepStrictEqual(sec({ plane3: pl, faceHit: null, base: null }), { p: pl.o, n: pl.n });
+});
 console.log(`\n${n} test geçti.`);

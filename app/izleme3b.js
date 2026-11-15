@@ -83,6 +83,20 @@
       const X = M.add(L.o, M.mul(L.u, t)), s = project(X); if (!s) continue; const dd = Math.hypot(s[0] - cur[0], s[1] - cur[1]); if (dd < 12 && (!en || dd < en.dd)) en = { dd, X, L }; }
     return en ? { p: en.X, lines: [en.L], label: 'Yüzeyde · hizada ' + en.L.lbl, axis: null, two: false } : null;
   };
+  /* izleme sonucunun bağlanacağı yüz (yoksa null → izleme eskisi gibi serbest). Kural yalnız O YÜZDE ÇİZİM yapılırken geçerlidir:
+       - komut bir düzlemde çiziyorsa (yüzeye dikdörtgen / daire) o düzlem;
+       - nokta yüzden geldiyse (faceHit): taban noktası o yüzün düzlemindeyse ya da taban yoksa (ilk nokta: tıklanan yüzde başlar; havada başlamak için
+         Düzlem "Otomatik" yerine XY seçilir ya da yüzeye yapışma kapatılır);
+       - eksen çıkarımı yüzey noktasının yerini aldıysa: taban imlecin altındaki yüzün düzlemindeyse ve izlenen eksen o düzlemin içindeyse.
+     Böylece döşemeden mavi eksende yükselirken yükseklik hizası, başka yerdeki tabandan nesne izleme ve yerde kutupsal izleme (arkada perde / döşeme varken) eskisi gibi çalışır. */
+  C.izleme3bYuzSec = o => {
+    const duz = (f, q) => Math.abs(M.dot(M.sub(q, f.p), M.norm(f.n))) < 0.002, pl = o.plane3;
+    if (pl && pl.o && pl.n) return { p: pl.o, n: pl.n };
+    if (o.faceHit) return !o.base || duz(o.faceHit, o.base) ? o.faceHit : null;
+    if (o.base && o.axisHit != null && o.axisHit >= 0 && o.axisHit < 3 && o.pick) { const f = o.pick(), u = [[1, 0, 0], [0, 1, 0], [0, 0, 1]][o.axisHit];
+      if (f && duz(f, o.base) && Math.abs(M.dot(u, M.norm(f.n))) < 1e-3) return f; }
+    return null;
+  };
   const pa0 = P3.pointAt;
   P3.pointAt = function (sx, sy) {
     const p = pa0.call(this, sx, sy); this.track = null; const E = C.cmd;
@@ -93,8 +107,8 @@
     if (!tr.two && this.axisHit != null) return p; // tek çizgi: mevcut eksen çıkarımı (kırmızı / yeşil / mavi) yeterli
     /* imleç bir yüzün (perde, döşeme …) üstündeyse nokta o yüzde kalmalıdır: izleme noktası yüzün düzleminde değilse
        izleme çizgisinin yüzü deldiği yer alınır (imlece yakınsa); o da yoksa yüzey noktası olduğu gibi kalır */
-    let yuz = this.faceHit || (E.plane3 && E.plane3.o && E.plane3.n ? { p: E.plane3.o, n: E.plane3.n } : null); /* komut bir düzlemde çiziyorsa (yüzeye dikdörtgen / daire) o düzlem */
-    if (!yuz && this.plane === 'OTO' && st.snapKinds.face !== false) yuz = this.pick(sx, sy); /* eksen çıkarımı yüzey noktasının yerini almış olabilir: imlecin altındaki yüz yine de geçerlidir */
+    const yuz = C.izleme3bYuzSec({ faceHit: this.faceHit, plane3: E.plane3, base: E.base ? M.p3(E.base) : null, two: tr.two, axisHit: this.axisHit,
+      pick: () => (this.plane === 'OTO' && st.snapKinds.face !== false ? this.pick(sx, sy) : null) });
     if (yuz) { const yer = C.izleme3bYuzey(tr, yuz, q => this.project(q), [sx, sy]);
       if (!yer) return p;
       if (yer !== tr) { this.track = yer; this.axisHit = null; this.alignRef = null; this.inferTag = yer.label; return yer.p; } }
