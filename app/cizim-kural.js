@@ -293,6 +293,20 @@
     /* PROGRAM KATMANI → ÇİZİM KATMANI (elektrik modülü doğrudan bu adlarla çizer) */
     esleme: [[/^EL_?YAZI$/i, 'EYAZI'], [/^EL_?HAT$/i, 'EHAT'], [/^EL_?TOP/i, 'TOPILET'], [/^EL_?TLF$/i, 'TLF'], [/^EL_?YNG$/i, 'ETELYNG']],
   };
+  /* ---------- ÇELİK (TASLAK, 15.11.2026): kullanıcıdan örnek çelik paftası henüz gelmedi; katmanlar program içi düzen için konuldu,
+     örnek gelince ölçülüp değiştirilecek (docs/cizim-kurallari/celik.md). Çelik modülü (app/celik.js) katmanı buradan alır. ---------- */
+  K.CELIK = {
+    ad: 'Çelik', belge: 'docs/cizim-kurallari/celik.md', birim: 'm', taslak: true,
+    olcekler: [50, 20, 10, 5],
+    katmanlar: {
+      'CELIK_ELEMAN': { renk: 4, tip: 'Continuous', kal: 0.35, ne: 'Çelik kolon, kiriş, çubuk (planda kesit / kenar çizgileri, 3B gövde)' },
+      'CELIK_AKS': { renk: 1, tip: 'CENTER2', kal: 0.13, ne: 'Çelik eleman ekseni (eleman nesnesinin içinde çizgi tipiyle)' },
+      'CELIK_DETAY': { renk: 7, tip: 'Continuous', kal: 0.35, ne: 'Kesit ve birleşim detayları (taban levhası, alın levhası, aşık)' },
+      'CELIK_METRAJ': { renk: 8, tip: 'Continuous', kal: 0.13, ne: 'Çelik metraj tablosu çizgileri ve yazıları' },
+    },
+    yaziMm: { etiket: 2.5, detay: 2.5, baslik: 4, tablo: 2.5, olcu: 2 },
+    cizgi: { kalin: 50, orta: 35, ince: 25, cokInce: 18, yardimci: 13, eksenRenk: 1 }, // detay / kesit çizgi kalınlıkları (1/100 mm): kesilen dış hat, görünen kenar, yardımcı; eksen rengi
+  };
   /* ÇİZGİ TİPİ ÖLÇEĞİ (saf): pafta penceresinde (1/vpOlcek) desen birimi başına model metresi — desen kâğıtta mm olarak görünür.
      Ekranda / SVG'de çizgi = desen × ölçek × (model m → kâğıt mm: 1000 / vpOlcek) = desen mm. */
   K.vpCizgiOlcegi = vpOlcek => (+vpOlcek || 50) / 1000;

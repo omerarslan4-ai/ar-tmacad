@@ -168,8 +168,8 @@
   const mark = () => { const n = C.cmd.running && C.cmd.running.names[0]; rib.querySelectorAll('[data-c]').forEach(b => { const c = b.dataset.c.split(' ')[0]; b.classList.toggle('on', !!n && !!C.cmds[c] && C.cmds[c].names[0] === n); }); for (const id of ['v3orbit', 'v3pan']) { const o = rib.querySelector(`[data-c="@${id}"]`), src = $('#' + id); if (o && src) o.classList.toggle('on', src.classList.contains('on')); } };
   C.on('cmdstart', () => setTimeout(mark, 0)); C.on('cmdend', () => setTimeout(mark, 0));
   // 3B'ye geçince 3B Modelleme sekmesi, geri dönünce Giriş
-  const i3d = TABS.findIndex(t => t[0] === '3B Modelleme'), sv = C.setView; let prevTab = 0;
-  C.setView = function (v) { const r = sv.apply(this, arguments); if (v === '3d' && curTab !== i3d) { prevTab = curTab; curTab = i3d; render(); } else if (v !== '3d' && curTab === i3d) { curTab = prevTab === i3d ? 0 : prevTab; render(); } return r; };
+  const I3 = () => TABS.findIndex(t => t[0] === '3B Modelleme'), sv = C.setView; let prevTab = 0; // sekme eklenince (Mekanik, Çelik) sıra değişir: her seferinde bulunur
+  C.setView = function (v) { const r = sv.apply(this, arguments), i3d = I3(); if (v === '3d' && curTab !== i3d) { prevTab = curTab; curTab = i3d; render(); } else if (v !== '3d' && curTab === i3d) { curTab = prevTab === i3d ? 0 : prevTab; render(); } return r; };
   render();
   C.ribbon = { render, tabs: TABS, select: name => { const i = TABS.findIndex(t => t[0] === name); if (i >= 0) { curTab = i; render(); } } };
 })(window.C);
