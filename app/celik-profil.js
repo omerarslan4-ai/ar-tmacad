@@ -34,6 +34,9 @@
   // T (EN 10055, h = b; tw = tf = t; r1 = t, r2 = t/2): [h, t]
   const TT = [[30, 4], [35, 4.5], [40, 5], [45, 5.5], [50, 6], [60, 7], [70, 8], [80, 9], [100, 11], [120, 13], [140, 15]];
   // Lama (EN 10058): genişlik × kalınlık
+  // Vinç rayı (DIN 536-1, A tipi): [ad, k (mantar eni), h, b1 (taban eni), tw (gövde), tf (taban kalınlığı), kg/m (tablo)].
+  // Kesit sadeleştirilmiştir (taban + gövde + mantar); mantar yüksekliği alanı tablo ağırlığına eşitleyecek biçimde bulunur.
+  const RAY = [['A45', 45, 55, 125, 24, 12, 22.1], ['A55', 55, 65, 150, 31, 14, 31.8], ['A65', 65, 75, 175, 38, 16, 43.1], ['A75', 75, 85, 200, 45, 19, 56.2], ['A100', 100, 95, 200, 60, 21, 74.3], ['A120', 120, 105, 220, 72, 23, 100]];
   const LAMA = []; for (const b of [20, 25, 30, 40, 50, 60, 70, 80, 100, 120, 150, 200, 250, 300]) for (const t of [4, 5, 6, 8, 10, 12, 15, 20, 25, 30]) if (t <= b / 2.5 && (b >= 100 || t <= 20)) LAMA.push([b, t]);
 
   const fx = v => String(+(+v).toFixed(1)).replace(/\.0$/, '');
@@ -53,6 +56,7 @@
     CHS: { ad: 'Boru', uzun: 'Boru profil (CHS)', tur: 'CHS', std: 'EN 10219', liste: CHS.map(r => ({ ad: `BORU${fx(r[0])}x${fx(r[1])}`, h: r[0], b: r[0], D: r[0], t: r[1] })) },
     T: { ad: 'T', uzun: 'T profil', tur: 'T', std: 'EN 10055', liste: TT.map(r => ({ ad: 'T' + r[0], h: r[0], b: r[0], tw: r[1], tf: r[1], r: r[1], r2: r[1] / 2 })) },
     LAMA: { ad: 'Lama', uzun: 'Lama (yassı çelik)', tur: 'FL', std: 'EN 10058', liste: LAMA.map(r => ({ ad: `LAMA${r[0]}x${r[1]}`, h: r[1], b: r[0], t: r[1] })) },
+    RAY: { ad: 'Ray', uzun: 'Vinç rayı (A tipi)', tur: 'RAY', std: 'DIN 536-1', liste: RAY.map(r => { const [ad, k, h, b, tw, tf, G] = r, A = G / RO * 1e6; return { ad, k, h, b, tw, tf, hk: +((A - b * tf - tw * (h - tf)) / (k - tw)).toFixed(2) }; }) },
   };
   const IDX = {}; for (const [k, a] of Object.entries(AILE)) for (const p of a.liste) { p.aile = k; p.tur = a.tur; p.std = a.std; IDX[p.ad] = p; }
 
@@ -68,6 +72,7 @@
     else if ((m = /^(?:Ø|O|CHS|BORU)(\d+(?:\.\d+)?)X(\d+(?:\.\d+)?)$/.exec(t))) t = `BORU${m[1]}X${m[2]}`;
     else if ((m = /^(?:SHS|RHS|KUTU|KUTUPROFIL)(\d+)X(\d+)(?:X(\d+(?:\.\d+)?))?$/.exec(t))) t = m[3] ? `KUTU${m[1]}X${m[2]}X${m[3]}` : `KUTU${m[1]}X${m[1]}X${m[2]}`;
     else if ((m = /^(?:-|LAMA|FL|FLT)(\d+)X(\d+)$/.exec(t))) t = `LAMA${m[1]}X${m[2]}`;
+    else if ((m = /^(?:RAY|RAIL)?(A\d+)$/.exec(t))) t = m[1];
     t = t.replace(/X/g, 'x').replace(/^(KUTU|BORU|LAMA|L)/, x => x);
     return IDX[t] ? t : (IDX[t.replace(/^l/, 'L')] ? t.replace(/^l/, 'L') : null);
   };
@@ -115,6 +120,8 @@
       dis = yuvarla([[-B, -H, ro], [B, -H, ro], [B, H, ro], [-B, H, ro]]); ic = yuvarla([[-B + t, -H + t, ri], [B - t, -H + t, ri], [B - t, H - t, ri], [-B + t, H - t, ri]]); }
     else if (p.tur === 'CHS') { dis = daire(p.D / 2, 64); ic = daire(p.D / 2 - p.t, 64); }
     else if (p.tur === 'FL') { const H = h / 2, B = b / 2; dis = [[-B, -H], [B, -H], [B, H], [-B, H]]; }
+    else if (p.tur === 'RAY') { const H = h / 2, B = b / 2, w = p.tw / 2, k = p.k / 2, yt = -H + p.tf, ym = H - p.hk; // taban, gövde, mantar
+      dis = [[-B, -H], [B, -H], [B, yt], [w, yt], [w, ym], [k, ym], [k, H], [-k, H], [-k, ym], [-w, ym], [-w, yt], [-B, yt]]; }
     else return null;
     const o = { dis: yon(dis, true), ic: ic ? yon(ic, false) : null, p };
     return (KES[p.ad] = o);
@@ -154,7 +161,7 @@
   const goster = ad => { const k = adCoz(ad); if (!k) return String(ad || ''); const p = IDX[k], tr = v => String(v).replace('.', ',');
     if (/^(HE[ABM]|IP[EN]|UP[NE])/.test(k)) return k.replace(/(\D+)(\d+)/, '$1 $2'); if (p.tur === 'T') return 'T ' + p.h;
     if (p.tur === 'L') return `L ${tr(fx(p.h))}×${tr(fx(p.b))}×${tr(fx(p.t))}`; if (p.tur === 'RHS') return `□ ${fx(p.h)}×${fx(p.b)}×${tr(fx(p.t))}`;
-    if (p.tur === 'CHS') return `Ø ${tr(fx(p.D))}×${tr(fx(p.t))}`; if (p.tur === 'FL') return `Lama ${p.b}×${p.t}`; return k; };
+    if (p.tur === 'CHS') return `Ø ${tr(fx(p.D))}×${tr(fx(p.t))}`; if (p.tur === 'RAY') return 'Ray ' + k; if (p.tur === 'FL') return `Lama ${p.b}×${p.t}`; return k; };
 
   /* ---------------- METRAJ ----------------
      liste: [{ prof, L (m), adet? }] ; levhalar: [{ ad, a (m), b (m), t (m), adet? }] ; bulonlar: [{ ad, adet, kg? }]

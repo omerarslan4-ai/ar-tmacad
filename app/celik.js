@@ -6,7 +6,13 @@
                    kenar çizgileri + eksen + profil adıyla; 3B'de kesit dış hattı eksen boyunca uzatılmış gerçek gövde (köşe yarıçaplarıyla).
      celikkesit  : ölçülü profil kesiti çizimi { p, prof, olcek }
      celikdetay  : birleşim detayı { p, tur: taban|alin|asik, prof, prof2, olcek } (2B, gerçek boyutta; yazılar ölçeğe göre)
-   Komutlar: CELIKPROFIL (katalog), CELIKKOLON, CELIKKIRIS, CELIKCUBUK, CELIKKESIT, TABANLEVHASI, CELIKDETAY, CELIKMETRAJ.
+     celik.rol   : cati (çatı kirişi) | asik | vinc (vinç kirişi) | ray (vinç rayı) — üretici komutların koyduğu etiket (bilgi ve metraj için)
+     celik.vguse : vinç gusesi (yalnız kolon) { yon: F|A|R|L|FA|RL, tip: K konsol | D kademeli kolon, zt (guse üst kotu, m), e (ray ekseni – kolon ekseni, m), prof }
+                   parçalar C.celikYer.guseParcalari ile kolondan türetilir; 3B, plan ve metraja kolonla birlikte girer.
+     celiktakoz  : vinç yolu ucundaki durdurucu takoz { p (kiriş üstü uç noktası), t (içeri yön), L, bw, H (m) }
+   Yerleşim hesapları (saf): app/celik-yerlesim.js (C.celikYer).
+   Komutlar: CELIKPROFIL (katalog), CELIKKOLON, CELIKKIRIS, CELIKCUBUK, CELIKKESIT, TABANLEVHASI, CELIKDETAY, CELIKMETRAJ,
+             CATIKIRISI (beşik / tek eğimli çatı kirişleri), ASIKDIZ (aşıklar), VINCGUSESI, VINCYOLU (vinç kirişi + ray + takoz).
    C.celikStatikCubuklar(): statik çözücüye çubuk eleman olarak verilmek üzere (ileride) uç noktaları ve kesit değerleri. */
 (function (C) {
   'use strict';
@@ -53,8 +59,14 @@
     const ank = []; for (const sy of [-1, 1]) { ank.push(P2(-B / 2 + k, sy * (A / 2 - k)), P2(B / 2 - k, sy * (A / 2 - k))); if (t.n >= 6) ank.push(P2(0, sy * (A / 2 - k))); }
     return { kose, ank, z: a[2], P2 };
   };
+  /* vinç gusesi parçaları (kolondan türetilir; sanal celik elemanları) */
+  const guseOf = e => { const g = e.vguse; if (!g || e.kind !== 'kolon' || !C.celikYer) return []; const pr = K.profil(e.prof), F = frame(e); if (!pr || !F.dus) return [];
+    return C.celikYer.guseParcalari({ a: F.a, b: F.b, rot: +e.rot || 0, hc: pr.h, bc: pr.b }, g).parcalar.map(p => ({ type: 'celik', kind: p.kind, a: p.a, b: p.b, ref: p.ref, rol: p.rol, prof: g.prof || e.prof, rot: p.kind === 'kolon' ? +e.rot || 0 : 0, malz: e.malz })); };
   const mesh = e => {
-    const F = frame(e), ks = K.kesit(e.prof), out = I_().newMesh(); if (!ks) return [out];
+    const out = I_().newMesh(); govde(out, e); for (const p of guseOf(e)) govde(out, p); return [out];
+  };
+  const govde = (out, e) => {
+    const F = frame(e), ks = K.kesit(e.prof); if (!ks) return;
     const rings = [ks.dis, ks.ic].filter(Boolean), Lm = F.len, col = RENK;
     // kapaklar
     const ec = C.earcutHalkalar(rings);
@@ -73,7 +85,6 @@
       prizma(out, Y.kose, z - zt, z, [0.55, 0.58, 0.62], true);
       for (const p of Y.ank) { prizma(out, cokgen(p, d / 2, 12), z - zt - 0.25, z + 0.9 * d + 0.012, [0.6, 0.6, 0.55]); prizma(out, cokgen(p, d * 0.85, 6, Math.PI / 6), z + 0.004, z + 0.004 + 0.8 * d, [0.5, 0.5, 0.48], true); prizma(out, cokgen(p, d * 1.05, 16), z, z + 0.004, [0.55, 0.55, 0.5]); }
     }
-    return [out];
   };
 
   /* ---------------- plan (2B) ---------------- */
@@ -89,6 +100,8 @@
       out.push(L([c[0] - F.vx[0] * r, c[1] - F.vx[1] * r, 0], [c[0] + F.vx[0] * r, c[1] + F.vx[1] * r, 0], { lt: 'CENTER', lw: KL().yardimci, color: KL().eksenRenk }), L([c[0] - F.vy[0] * r, c[1] - F.vy[1] * r, 0], [c[0] + F.vy[0] * r, c[1] + F.vy[1] * r, 0], { lt: 'CENTER', lw: KL().yardimci, color: KL().eksenRenk }));
       if (e.taban) { const Y = tabanYer(e); out.push(P(Y.kose.map(q => [q[0], q[1], 0]), true, { lw: KL().ince })); for (const p of Y.ank) out.push(CI([p[0], p[1], 0], e.taban.d / 2000, { lw: KL().cokInce })); }
       out.push(TX([c[0] + r * 0.75, c[1] + r * 0.75, 0], th, gs(e), 0, 'L', { color: 7 }));
+      for (const g of guseOf(e)) for (const q of prims(g)) if (q.k !== 'T') out.push(Object.assign(q, q.lt === 'CENTER' ? {} : { lt: 'HIDDEN' })); // guse kiriş altında: kesikli
+      if (e.vguse) out.push(TX([c[0] - r * 0.75, c[1] - r * 0.75 - th, 0], th * 0.8, `guse +${M.fmt(+e.vguse.zt, 2)}`, 0, 'R', { color: 7 }));
       return out;
     }
     const d2 = [(F.b[0] - F.a[0]) / plan, (F.b[1] - F.a[1]) / plan], n2 = [-d2[1], d2[0]];
@@ -102,12 +115,16 @@
     return out;
   };
 
+  const ROL = { cati: 'Çatı kirişi', asik: 'Aşık', vinc: 'Vinç kirişi', ray: 'Vinç rayı', guse: 'Vinç gusesi', vincayak: 'Vinç ayağı' };
   T.celik = {
     label: 'Çelik eleman', ifc: 'IfcMember',
     prims, mesh,
-    xf: (e, X) => { const tp = p => { const r = X.p(M.p3(p)); return [r[0], r[1], r[2] != null ? r[2] : (p[2] || 0)]; }; const F = frame(e); e.a = tp(e.a); e.b = tp(e.b); if (F.dus && X.v) { const v = X.v([Math.cos((+e.rot || 0) * RAD), Math.sin((+e.rot || 0) * RAD), 0]); e.rot = +(Math.atan2(v[1], v[0]) / RAD).toFixed(6); } delete e._c; },
+    xf: (e, X) => { const tp = p => { const r = X.p(M.p3(p)); return [r[0], r[1], r[2] != null ? r[2] : (p[2] || 0)]; }; const F = frame(e), za = M.p3(e.a)[2]; e.a = tp(e.a); if (e.vguse) e.vguse.zt = +(+e.vguse.zt + e.a[2] - za).toFixed(6); e.b = tp(e.b); if (F.dus && X.v) { const r0 = (+e.rot || 0) * RAD, v = X.v([Math.cos(r0), Math.sin(r0), 0]); e.rot = +(Math.atan2(v[1], v[0]) / RAD).toFixed(6);
+      if (e.vguse) { const g = e.vguse, r1 = e.rot * RAD, ax = [Math.cos(r1), Math.sin(r1)], ay = [-Math.sin(r1), Math.cos(r1)], yon0 = { F: [-Math.sin(r0), Math.cos(r0)], A: [Math.sin(r0), -Math.cos(r0)], R: [Math.cos(r0), Math.sin(r0)], L: [-Math.cos(r0), -Math.sin(r0)] };
+        const yeniYon = sd => { const w = X.v([yon0[sd][0], yon0[sd][1], 0]), dx = w[0] * ax[0] + w[1] * ax[1], dy = w[0] * ay[0] + w[1] * ay[1], l = Math.hypot(w[0], w[1]) || 1; if (sd === 'F' || sd === 'A') g.e = +(+g.e * l).toFixed(6); return Math.abs(dy) >= Math.abs(dx) ? (dy >= 0 ? 'F' : 'A') : (dx >= 0 ? 'R' : 'L'); };
+        if (g.yon === 'FA' || g.yon === 'RL') yeniYon(g.yon[0]); else g.yon = yeniYon(g.yon); } } delete e._c; },
     snaps: e => { const F = frame(e), out = [{ p: F.a, k: 'end' }, { p: F.b, k: 'end' }, { p: M.lerp(F.a, F.b, 0.5), k: 'mid' }]; if (F.dus && F.pr) { const h = F.pr.h / 2, b = F.pr.b / 2; for (const s of [0, F.len]) for (const [x, y] of [[-b, -h], [b, -h], [b, h], [-b, h], [0, h], [0, -h], [b, 0], [-b, 0]]) out.push({ p: F.W(x, y, s), k: 'end' }); } return out; },
-    info: e => { const p = K.profil(e.prof), Lm = boyOf(e); return `Çelik ${e.kind === 'kolon' ? 'kolon' : e.kind === 'kiris' ? 'kiriş' : 'çubuk'} ${gs(e)} · ${e.malz || 'S275'} · L=${M.fmt(Lm, 2)} m · ${p ? M.fmt(p.G, 1) + ' kg/m · ' + M.fmt(p.G * Lm, 1) + ' kg' : 'profil bulunamadı'}${e.taban ? ` · taban levhası ${e.taban.a}×${e.taban.b}×${e.taban.t} mm, ${e.taban.n}×M${e.taban.d}` : ''}`; },
+    info: e => { const p = K.profil(e.prof), Lm = boyOf(e), g = e.vguse; return `${ROL[e.rol] || 'Çelik ' + (e.kind === 'kolon' ? 'kolon' : e.kind === 'kiris' ? 'kiriş' : 'çubuk')} ${gs(e)}${Math.abs(M.p3(e.a)[2] - M.p3(e.b)[2]) > 1e-3 && e.kind !== 'kolon' ? ` · eğim %${M.fmt(Math.abs(M.p3(e.b)[2] - M.p3(e.a)[2]) / (Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) || 1) * 100, 1)}` : ''}${g ? ` · vinç gusesi ${g.tip === 'D' ? 'kademeli kolon' : 'konsol'} ${K.goster(g.prof || e.prof)}, üst +${M.fmt(+g.zt, 2)}, ray ekseni ${M.fmt(+g.e, 2)} m (${g.yon})` : ''} · ${e.malz || 'S275'} · L=${M.fmt(Lm, 2)} m · ${p ? M.fmt(p.G, 1) + ' kg/m · ' + M.fmt(p.G * Lm, 1) + ' kg' : 'profil bulunamadı'}${e.taban ? ` · taban levhası ${e.taban.a}×${e.taban.b}×${e.taban.t} mm, ${e.taban.n}×M${e.taban.d}` : ''}`; },
   };
 
   /* ---------------- 2B detay çizici (yerel mm; yazılar kâğıt mm × ölçek) ---------------- */
@@ -285,8 +302,8 @@
   C.addCommand(['CELIKPROFIL', 'PROFILKATALOG', 'CELIKKATALOG', 'STEELPROFILE'], 'Çelik profil kataloğu: HEA, HEB, HEM, IPE, IPN, UPN, UPE, köşebent, kutu, boru, T, lama — ölçüler ve kesit değerleri (A, kg/m, Ix, Iy, Wx, Wy). Seçilen profil kolon / kiriş / kesit çizimine aktarılır.', async () => {
     let aile = (secili() && K.aileOf(secili())) || 'HEA', sec = secili() || 'HEA200';
     const f = (v, d) => M.fmt(v, d);
-    const tablo = () => { const a = K.AILE[aile], tur = a.tur, bas = tur === 'L' ? ['Profil', 'h', 'b', 't', 'r'] : tur === 'RHS' ? ['Profil', 'h', 'b', 't'] : tur === 'CHS' ? ['Profil', 'D', 't'] : tur === 'FL' ? ['Profil', 'b', 't'] : ['Profil', 'h', 'b', 'tw', 'tf', 'r'];
-      const ol = p => tur === 'L' ? [p.h, p.b, p.t, p.r] : tur === 'RHS' ? [p.h, p.b, p.t] : tur === 'CHS' ? [p.D, p.t] : tur === 'FL' ? [p.b, p.t] : [p.h, p.b, p.tw, p.tf, p.r];
+    const tablo = () => { const a = K.AILE[aile], tur = a.tur, bas = tur === 'L' ? ['Profil', 'h', 'b', 't', 'r'] : tur === 'RHS' ? ['Profil', 'h', 'b', 't'] : tur === 'CHS' ? ['Profil', 'D', 't'] : tur === 'FL' ? ['Profil', 'b', 't'] : tur === 'RAY' ? ['Profil', 'k', 'h', 'b', 'tw'] : ['Profil', 'h', 'b', 'tw', 'tf', 'r'];
+      const ol = p => tur === 'L' ? [p.h, p.b, p.t, p.r] : tur === 'RHS' ? [p.h, p.b, p.t] : tur === 'CHS' ? [p.D, p.t] : tur === 'FL' ? [p.b, p.t] : tur === 'RAY' ? [p.k, p.h, p.b, p.tw] : [p.h, p.b, p.tw, p.tf, p.r];
       const th = [...bas, 'A cm²', 'G kg/m', 'Ix cm⁴', 'Wx cm³', 'ix cm', 'Iy cm⁴', 'Wy cm³', 'iy cm'];
       return `<p class="hint">${a.uzun} · ${a.std} · ölçüler mm. Değerler kesitin gerçek dış hattından hesaplanır (tablolarla fark %2'den az). Satıra tıklayın.</p><div style="max-height:52vh;overflow:auto;border:1px solid var(--line)"><table class="clktab" style="border-collapse:collapse;width:100%;font-size:12px"><thead><tr>${th.map(x => `<th style="position:sticky;top:0;background:var(--panel2);padding:3px 6px;text-align:right">${x}</th>`).join('')}</tr></thead><tbody>${a.liste.map(p0 => { const p = K.profil(p0.ad); return `<tr data-p="${p.ad}" style="cursor:pointer;${p.ad === sec ? 'background:#1f3550' : ''}">${[K.goster(p.ad), ...ol(p).map(v => String(v).replace('.', ',')), f(p.A, 2), f(p.G, 2), f(p.Ix, p.Ix > 100 ? 0 : 2), f(p.Wx, p.Wx > 100 ? 0 : 2), f(p.ix, 2), f(p.Iy, p.Iy > 100 ? 0 : 2), f(p.Wy, p.Wy > 100 ? 0 : 2), f(p.iy, 2)].map((x, i) => `<td style="padding:2px 6px;text-align:${i ? 'right' : 'left'};border-top:1px solid var(--line)">${x}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div>`; };
     const b = C.modal('Çelik profil kataloğu', `<div class="bar" style="gap:6px;flex-wrap:wrap">${AILELER.map(([k, t]) => `<button data-a="${k}" title="${t}" class="${k === aile ? 'pri' : ''}">${k === 'LU' ? 'L (eşit olm.)' : k === 'L' ? 'L (eşit)' : k}</button>`).join('')}</div><div id="clkT"></div><div class="bar" style="justify-content:flex-end;gap:6px"><span id="clkSec" style="margin-right:auto"></span><button data-c="CELIKKOLON">Kolon yerleştir</button><button data-c="CELIKKIRIS">Kiriş çiz</button><button data-c="CELIKCUBUK">Çubuk çiz</button><button data-c="CELIKKESIT">Kesitini çiz</button><button id="clkKapat">Kapat</button></div>`);
@@ -359,11 +376,100 @@
     const e = C.add(C.newEnt('celikdetay', Object.assign({ p: [p[0], p[1], 0], layer: lay('CELIK_DETAY') }, base))); delete e.sp; C.log(T.celikdetay.info(e));
   });
 
+  /* ---------------- DURDURUCU TAKOZ (vinç yolu ucu) ---------------- */
+  const takozKose = e => { const p = M.p3(e.p), t = e.t || [1, 0], n = [-t[1], t[0]], w = (+e.bw || 0.3) / 2, Lt = +e.L || 0.2;
+    return [[p[0] - n[0] * w, p[1] - n[1] * w], [p[0] + t[0] * Lt - n[0] * w, p[1] + t[1] * Lt - n[1] * w], [p[0] + t[0] * Lt + n[0] * w, p[1] + t[1] * Lt + n[1] * w], [p[0] + n[0] * w, p[1] + n[1] * w]]; };
+  const takozLevha = e => { const H = +e.H || 0.2, bw = +e.bw || 0.3, Lt = +e.L || 0.2; return [{ ad: 'Durdurucu takoz alın levhası', a: bw, b: H, t: 0.025 }, { ad: 'Durdurucu takoz yan levhası (üçgen)', a: Lt, b: H / 2, t: 0.015, adet: 2 }, { ad: 'Durdurucu takoz taban levhası', a: bw, b: Lt, t: 0.02 }]; };
+  T.celiktakoz = {
+    label: 'Vinç yolu durdurucu takozu',
+    prims: e => { const q = takozKose(e); return [P(q.map(v => [v[0], v[1], 0]), true, { lw: KL().orta }), L([q[0][0], q[0][1], 0], [q[2][0], q[2][1], 0], { lw: KL().yardimci }), L([q[1][0], q[1][1], 0], [q[3][0], q[3][1], 0], { lw: KL().yardimci })]; },
+    mesh: e => { const out = I_().newMesh(), z = M.p3(e.p)[2]; prizma(out, takozKose(e), z, z + (+e.H || 0.2), [0.75, 0.55, 0.15], true); return [out]; },
+    xf: (e, X) => { const p = X.p(M.p3(e.p)); e.p = [p[0], p[1], p[2] != null ? p[2] : M.p3(e.p)[2]]; if (X.v) { const v = X.v([e.t[0], e.t[1], 0]), l = Math.hypot(v[0], v[1]) || 1; e.t = [v[0] / l, v[1] / l]; } },
+    snaps: e => takozKose(e).map(q => ({ p: [q[0], q[1], M.p3(e.p)[2]], k: 'end' })),
+    info: e => `Durdurucu takoz ${M.fmt((+e.bw || 0.3) * 1000, 0)}×${M.fmt((+e.L || 0.2) * 1000, 0)}×${M.fmt((+e.H || 0.2) * 1000, 0)} mm (kaynaklı levha; tampon ayrıca) · ${M.fmt(takozLevha(e).reduce((s, l) => s + l.a * l.b * l.t * (l.adet || 1) * K.RO, 0), 1)} kg`,
+  };
+
+  const YR = () => C.celikYer;
+  const dusKolonlar = s => s.filter(e => e.type === 'celik' && e.kind === 'kolon' && frame(e).dus);
+  const ustYuz = e => { const F = frame(e), h = F.pr ? F.pr.h : 0; return { a: F.W(0, h / 2, 0), b: F.W(0, h / 2, F.len) }; }; // kiriş üst yüz ekseni (ref M ya da U)
+  /* ---------------- ÇATI KİRİŞİ (MAKAS) ---------------- */
+  C.addCommand(['CATIKIRISI', 'MAKAS', 'CELIKCATI', 'RAFTER'], 'Çelik çatı kirişi (makas / eğimli kiriş): beşik ya da tek eğimli. Seçilen çelik kolonlardan (her çerçevede en uçtaki iki kolon saçak aksı, kot kolon üstü) ya da iki aks + son çerçeve hizası ve aralıkla; eğim % ya da mahya kotu, saçak taşması.', async (I) => {
+    const r = await getP('Çatı kirişi (makas)', [...profAlan('catikirisi', 'IPE'), { k: 'tip', t: 'Çatı', opts: [['besik', 'Beşik (iki eğimli, mahya ortada)'], ['tek', 'Tek eğimli']], d: 'besik', al: ['TIP'] },
+      { k: 'egim', t: 'Eğim (%)', d: 10, al: ['EGIM'] }, { k: 'mahya', t: 'Mahya kotu (m; 0 = eğimden; tek eğimde yüksek aks)', d: 0, al: ['MAHYA'] }, { k: 'tasma', t: 'Saçak taşması (m, yatay)', d: 0.5, al: ['TASMA'] },
+      { k: 'kay', t: 'Yerleşim', opts: [['K', 'Seçilen çelik kolonlardan'], ['A', 'İki aks + tekrar']], d: 'K', al: ['YER'] }, { k: 'yon', t: 'Kiriş yönü (kolonlardan)', opts: [['oto', 'Otomatik (çok çerçeve veren yön)'], ['X', 'X yönü'], ['Y', 'Y yönü']], d: 'oto', al: ['YON'] },
+      { k: 'zs', t: 'Saçak kotu (iki aks; kiriş üst yüzü, m)', d: 6, al: ['ZS'] }, { k: 'aralik', t: 'Çerçeve aralığı en çok (m; iki aks)', d: 6, al: ['ARALIK'] }, { k: 'malz', t: 'Çelik sınıfı', opts: MALZ, d: 'S275', al: ['MALZ'] }], 'catikirisi'); if (!r) return;
+    const o = { tip: r.tip, egim: +r.egim, mahya: +r.mahya, tasma: +r.tasma }; let cer = [];
+    if (r.kay === 'K') {
+      const s = dusKolonlar(await I.sel('Çatı kirişlerinin oturacağı çelik kolonları seçin')); if (s.length < 2) { C.warn('En az iki düşey çelik kolon seçin (CELIKKOLON).'); return; }
+      cer = YR().cerceveleriBul(s.map(e => ({ p: M.p3(e.a), z: Math.max(M.p3(e.a)[2], M.p3(e.b)[2]) })), r.yon).map(c => ({ A: c.A, B: c.B, zs: c.zA, mahya: +r.mahya > 0 ? +r.mahya : (r.tip === 'tek' && c.zB > c.zA + 0.01 ? c.zB : 0) }));
+      if (!cer.length) { C.warn('Seçilen kolonlardan çerçeve bulunamadı: aynı hizada en az iki kolon olmalı (kiriş yönünü X / Y seçmeyi deneyin).'); return; }
+    } else {
+      const zs = +r.zs, ciz = (A, B) => (YR().catiKirisi(A, B, zs, o) || { parcalar: [] }).parcalar.flatMap(q => prims({ type: 'celik', kind: 'kiris', a: q.a, b: q.b, prof: r.prof, ref: 'U' }));
+      const A = await I.pt('Birinci saçak aksı (kolon ekseni)'); if (!Array.isArray(A)) return; E.base = A; E.preview = c => c ? ciz(A, c) : [];
+      const B = await I.pt('Karşı saçak aksı'); E.preview = null; E.base = null; if (!Array.isArray(B)) return;
+      E.preview = c => c ? YR().cerceveTekrar(A, B, c, r.aralik).cerceveler.flatMap(f => ciz(f.A, f.B)) : [];
+      const Cp = await I.pt('Son çerçevenin hizası (Enter = tek çerçeve)'); E.preview = null;
+      cer = (Array.isArray(Cp) ? YR().cerceveTekrar(A, B, Cp, r.aralik).cerceveler : [{ A, B }]).map(f => ({ A: f.A, B: f.B, zs, mahya: +r.mahya }));
+    }
+    const made = []; let son = null;
+    for (const c of cer) { const k = YR().catiKirisi(c.A, c.B, c.zs, Object.assign({}, o, { mahya: c.mahya })); if (!k) continue; son = k;
+      for (const q of k.parcalar) made.push(yeni({ kind: 'kiris', a: q.a, b: q.b, prof: r.prof, rot: 0, ref: 'U', malz: r.malz, rol: 'cati' })); }
+    if (!made.length) return; C.sel = made.slice(); C.emit('selection');
+    C.log(`${cer.length} çerçevede ${made.length} çatı kirişi ${K.goster(r.prof)} · açıklık ${M.fmt(son.acikl, 2)} m · eğim %${M.fmt(son.egim, 1)} (${M.fmt(son.aci, 1)}°) · mahya +${M.fmt(son.mahya, 2)} · saçak ucu +${M.fmt(son.zu, 2)} · toplam ${M.fmt(made.reduce((s, e) => s + boyOf(e), 0), 1)} m`);
+  });
+  /* ---------------- AŞIK ---------------- */
+  C.addCommand(['ASIKDIZ', 'ASIK', 'CELIKASIK', 'PURLIN'], 'Aşık: seçilen çatı kirişlerinin üstüne verilen en büyük aralıkla (eğim boyunca, eşit bölünür) aşıkları dizer; gövde çatıya dik döner, uçlarda taşma. Aynı çatı yüzündeki komşu kirişler arasında her açıklıkta bir parça (ya da sürekli).', async (I) => {
+    const s = (await I.sel('Çatı kirişlerini seçin (CATIKIRISI)')).filter(e => e.type === 'celik' && !frame(e).dus); if (s.length < 2) { C.warn('En az iki çatı kirişi seçin (aynı çatı yüzünde yan yana).'); return; }
+    const r = await getP('Aşık', [...profAlan('asik', 'UPN'), { k: 'aralik', t: 'Aşık aralığı en çok (m, eğim boyunca)', d: 1.5, al: ['ARALIK'] }, { k: 'bas', t: 'Saçak ucundan ilk aşık (m)', d: 0.15, al: ['BAS'] }, { k: 'son', t: 'Mahyadan son aşık (m)', d: 0.15, al: ['SON'] },
+      { k: 'tasma', t: 'Uçlarda taşma (m)', d: 0.3, al: ['TASMA'] }, { k: 'sur', t: 'Parça', opts: [['A', 'Her açıklıkta ayrı'], ['S', 'Sürekli (baştan sona)']], d: 'A', al: ['PARCA'] }, { k: 'malz', t: 'Çelik sınıfı', opts: MALZ, d: 'S275', al: ['MALZ'] }], 'asik'); if (!r) return;
+    const pr = K.profil(r.prof), as = YR().asikYerlesim(s.map(ustYuz), { aralik: +r.aralik, bas: +r.bas, son: +r.son, tasma: +r.tasma, h: pr.h, surekli: r.sur === 'S' });
+    if (!as.length) { C.warn('Aşık konulacak çatı yüzü bulunamadı: seçimde aynı eğim ve saçak hizasında en az iki kiriş olmalı.'); return; }
+    const made = as.map(q => yeni({ kind: 'kiris', a: q.a, b: q.b, prof: r.prof, rot: q.rot, ref: 'M', malz: r.malz, rol: 'asik' }));
+    C.sel = made.slice(); C.emit('selection'); const Lt = made.reduce((t, e) => t + boyOf(e), 0);
+    C.log(`${made.length} aşık ${K.goster(r.prof)} · eğim %${M.fmt(Math.abs(as[0].egim), 1)} · toplam ${M.fmt(Lt, 1)} m · ${M.fmt(Lt * pr.G, 0)} kg`);
+  });
+  /* ---------------- VİNÇ GUSESİ ---------------- */
+  C.addCommand(['VINCGUSESI', 'CELIKGUSE', 'CRANEBRACKET'], 'Çelik kolona vinç gusesi: kolon yüzünden çıkan kısa kiriş parçası (konsol) ya da kademeli kolon (ray ekseni altında ayrı vinç ayağı). Guse üst kotu ve ray ekseni uzaklığı verilir; 3B, plan ve metraja kolonla girer. Yük / kapasite hesabı yapmaz.', async (I) => {
+    const s = dusKolonlar(await I.sel('Vinç gusesi konacak çelik kolonları seçin')); if (!s.length) { C.warn('Seçimde düşey çelik kolon yok (CELIKKOLON).'); return; }
+    const g0 = s[0].vguse || {};
+    const r = await getP('Vinç gusesi', [{ k: 'tip', t: 'Guse', opts: [['K', 'Konsol (kısa kiriş parçası)'], ['D', 'Kademeli kolon (vinç ayağı)']], d: g0.tip || 'K', al: ['TIP'] },
+      ...profAlan('vincguse', 'HEB', 'Konsol / ayak profili'), { k: 'yon', t: 'Yön', opts: [['ICE', 'İçe doğru (başlık yüzü, seçilen kolonların ortasına)'], ['ICERL', 'İçe doğru (gövde yanı)'], ['F', 'Ön (+ profil derinliği, başlık yüzü)'], ['A', 'Arka (− profil derinliği)'], ['R', 'Sağ (+ başlık yönü)'], ['L', 'Sol (− başlık yönü)'], ['FA', 'Ön + arka'], ['RL', 'Sağ + sol']], d: 'ICE', al: ['YON'] },
+      { k: 'zt', t: 'Guse üst kotu (m; vinç kirişi altı)', d: g0.zt != null ? g0.zt : 5, al: ['ZT', 'KOT'] }, { k: 'e', t: 'Ray ekseni – kolon ekseni (m)', d: g0.e || 0.5, al: ['E'] },
+      { k: 'isl', t: 'İşlem', opts: [['E', 'Ekle / güncelle'], ['S', 'Guseyi kaldır']], d: 'E', al: ['ISLEM'] }], 'vincguse'); if (!r) return;
+    const orta = s.reduce((t, e) => [t[0] + M.p3(e.a)[0] / s.length, t[1] + M.p3(e.a)[1] / s.length], [0, 0]);
+    const yonOf = e => r.yon === 'ICE' ? YR().iceYon({ a: M.p3(e.a), rot: e.rot }, orta, 'FA') : r.yon === 'ICERL' ? YR().iceYon({ a: M.p3(e.a), rot: e.rot }, orta, 'RL') : r.yon;
+    for (const e of s) { if (r.isl === 'S') delete e.vguse; else e.vguse = { tip: r.tip, yon: yonOf(e), zt: +r.zt, e: +r.e, prof: r.prof }; delete e._c; }
+    C.changed(); if (r.isl === 'S') { C.log(`${s.length} kolonun vinç gusesi kaldırıldı.`); return; }
+    const ust = s.filter(e => +r.zt >= Math.max(M.p3(e.a)[2], M.p3(e.b)[2])); if (ust.length) C.warn(`${ust.length} kolonda guse üst kotu kolon üst kotunda ya da üstünde: kotu kontrol edin.`);
+    C.log(`${s.length} kolona vinç gusesi: ${T.celik.info(s[0])}. Sonra VINCYOLU ile kiriş ve rayı koyun.`);
+  });
+  /* ---------------- VİNÇ YOLU ---------------- */
+  C.addCommand(['VINCYOLU', 'VINCKIRISI', 'CRANERUNWAY'], 'Vinç yürüyüş yolu: gusesi olan çelik kolonları seçin; guselerin üstüne vinç kirişi (her açıklıkta bir parça), üstüne ray (A45 … A120 ya da lama) ve iki uca durdurucu takoz konur. Kiriş alt yüzü = guse üst kotu. Kapasite / tekerlek yükü hesabı yapmaz; profiller seçilir.', async (I) => {
+    const s = dusKolonlar(await I.sel('Gusesi olan çelik kolonları seçin (VINCGUSESI)')).filter(e => e.vguse); if (s.length < 2) { C.warn('Gusesi olan en az iki çelik kolon seçin (VINCGUSESI).'); return; }
+    const RAYLAR = [...K.adlar('RAY').map(n => [n, K.goster(n)]), ...['LAMA50x20', 'LAMA60x20', 'LAMA80x20', 'LAMA100x30'].filter(n => K.IDX[n]).map(n => [n, K.goster(n) + ' (lama ray)']), ['YOK', 'Ray yok']];
+    const r = await getP('Vinç yolu', [...profAlan('vincyolu', 'HEB', 'Vinç kirişi'), { k: 'ray', t: 'Ray', opts: RAYLAR, d: 'A45', al: ['RAY'] }, { k: 'uz', t: 'Kiriş uç taşması (m; son kolondan öte)', d: 0.3, al: ['UZ'] },
+      { k: 'takoz', t: 'Durdurucu takoz', opts: [['E', 'İki uçta var'], ['H', 'Yok']], d: 'E', al: ['TAKOZ'] }, { k: 'malz', t: 'Çelik sınıfı', opts: MALZ, d: 'S275', al: ['MALZ'] }], 'vincyolu'); if (!r) return;
+    const pk = K.profil(r.prof), ray = r.ray !== 'YOK' ? K.adCoz(r.ray) : null, pr = ray ? K.profil(ray) : null, hr = pr ? pr.h : 0, uz = Math.max(0, +r.uz || 0);
+    const yuk = s.flatMap(e => { const F = frame(e), p = K.profil(e.prof); return YR().guseParcalari({ a: F.a, b: F.b, rot: +e.rot || 0, hc: p.h, bc: p.b }, e.vguse).yuk; });
+    const hat = YR().vincYoluHatlari(yuk); if (!hat.length) { C.warn('Aynı hizada en az iki guse bulunamadı (guse yönü ve ray ekseni uzaklığı aynı olmalı).'); return; }
+    const made = [], Lt = 0.2, ly = lay('CELIK_ELEMAN');
+    for (const h of hat) { const t = h.t, N = h.noktalar, at = (p, d) => [p[0] + t[0] * d, p[1] + t[1] * d];
+      for (let i = 0; i + 1 < N.length; i++) { const zt = Math.max(N[i][2], N[i + 1][2]), k = YR().vincYoluKot(zt, pk.h, hr), a = at(N[i], i === 0 ? -uz : 0), b = at(N[i + 1], i + 2 === N.length ? uz : 0);
+        made.push(yeni({ kind: 'kiris', a: [a[0], a[1], k.kirisUst], b: [b[0], b[1], k.kirisUst], prof: r.prof, rot: 0, ref: 'U', malz: r.malz, rol: 'vinc' })); }
+      const z0 = Math.max(...N.map(p => p[2])), k = YR().vincYoluKot(z0, pk.h, hr), A = at(N[0], -uz), B = at(N[N.length - 1], uz), tk = r.takoz === 'E' ? Lt : 0;
+      if (ray) { const a = [A[0] + t[0] * tk, A[1] + t[1] * tk], b = [B[0] - t[0] * tk, B[1] - t[1] * tk]; made.push(yeni({ kind: 'kiris', a: [a[0], a[1], k.rayOrta], b: [b[0], b[1], k.rayOrta], prof: ray, rot: 0, ref: 'M', malz: r.malz, rol: 'ray' })); }
+      if (tk) for (const [p, d] of [[A, t], [B, [-t[0], -t[1]]]]) made.push(C.add(C.newEnt('celiktakoz', { p: [p[0], p[1], k.kirisUst], t: d, L: Lt, bw: pk.b / 1000, H: +(hr / 1000 + 0.15).toFixed(3), layer: ly })));
+      C.log(`Vinç yolu hattı: ${N.length} guse · ${K.goster(r.prof)} kiriş üstü +${M.fmt(k.kirisUst, 3)}${ray ? ` · ${K.goster(ray)} ray üstü +${M.fmt(k.rayUst, 3)}` : ''} · boy ${M.fmt(Math.hypot(B[0] - A[0], B[1] - A[1]), 2)} m`); }
+    C.sel = made.slice(); C.emit('selection'); C.log(`${hat.length} vinç yolu hattı. Vinç kapasitesi ve tekerlek yükleri girilmedi: kiriş / ray profili statik hesapla doğrulanmalıdır.`);
+  });
+
   /* ---------------- METRAJ ---------------- */
   const ankrajKg = t => { const d = t.d / 1000, Lt = (t.L + t.harc + t.t + 1.2 * t.d + 4 * t.d) / 1000; return Math.PI * d * d / 4 * Lt * K.RO + 0.15 * d * 1000 * d * 10; }; // çubuk + kanca + 2 somun/pul (yaklaşık)
   C.celikMetrajVeri = (ents) => {
     const liste = [], levha = [], bulon = [];
-    for (const e of ents || C.doc.ents) { if (e.type !== 'celik' || (C.lyLive && !C.lyLive(e.layer))) continue; liste.push({ prof: e.prof, L: boyOf(e) });
+    for (const e of ents || C.doc.ents) { if ((e.type !== 'celik' && e.type !== 'celiktakoz') || (C.lyLive && !C.lyLive(e.layer))) continue;
+      if (e.type === 'celiktakoz') { levha.push(...takozLevha(e)); continue; }
+      liste.push({ prof: e.prof, L: boyOf(e) }); for (const g of guseOf(e)) liste.push({ prof: g.prof, L: boyOf(g) });
       if (e.taban) { const t = e.taban; levha.push({ ad: 'Taban levhası', a: t.a / 1000, b: t.b / 1000, t: t.t / 1000 }); bulon.push({ ad: `M${t.d} ankraj L=${t.L}`, adet: t.n, kg: ankrajKg(t) }); } }
     return K.metraj(liste, levha, bulon);
   };
@@ -388,7 +494,7 @@
   });
 
   /* statik çözücü için (ileride): çelik elemanlar çubuk eleman olarak */
-  C.celikStatikCubuklar = () => (C.doc ? C.doc.ents : []).filter(e => e.type === 'celik').map(e => Object.assign({ id: e.id, a: M.p3(e.a), b: M.p3(e.b), rot: +e.rot || 0, malz: e.malz || 'S275', fy: { S235: 235e6, S275: 275e6, S355: 355e6 }[e.malz || 'S275'] }, K.cubuk(e.prof)));
+  C.celikStatikCubuklar = () => (C.doc ? C.doc.ents : []).filter(e => e.type === 'celik' && e.rol !== 'ray').map(e => Object.assign({ id: e.id, a: M.p3(e.a), b: M.p3(e.b), rot: +e.rot || 0, malz: e.malz || 'S275', fy: { S235: 235e6, S275: 275e6, S355: 355e6 }[e.malz || 'S275'] }, K.cubuk(e.prof)));
 
   /* ---------------- şerit: Çelik sekmesi (İnşaat'tan sonra) ---------------- */
   try {
@@ -398,6 +504,7 @@
         ['Katalog', [B('CELIKPROFIL', 'Profil kataloğu', 'table'), s('CELIKKESIT', 'Profil kesiti', 'rec')]],
         ['Elemanlar', [B('CELIKKOLON', 'Çelik kolon', 'col', [['CELIKKOLON AILE=HEA PROF=HEA200', 'HEA 200'], ['CELIKKOLON AILE=HEB PROF=HEB200', 'HEB 200'], ['CELIKKOLON AILE=SHS PROF=KUTU100x100x5', 'Kutu 100×100×5'], ['CELIKKOLON', 'Ayarlar…']]), B('CELIKKIRIS', 'Çelik kiriş', 'beam', [['CELIKKIRIS AILE=IPE PROF=IPE200', 'IPE 200'], ['CELIKKIRIS AILE=IPE PROF=IPE300', 'IPE 300'], ['CELIKKIRIS AILE=UPN PROF=UPN160', 'UPN 160 (aşık)'], ['CELIKKIRIS', 'Ayarlar…']]), B('CELIKCUBUK', 'Çapraz / çubuk', 'line')]],
         ['Birleşim', [B('TABANLEVHASI', 'Taban levhası', 'found'), B('CELIKDETAY', 'Birleşim detayı', 'print', [['CELIKDETAY TUR=TABAN', 'Taban levhası + ankraj'], ['CELIKDETAY TUR=ALIN', 'Kiriş–kolon alın levhası'], ['CELIKDETAY TUR=ASIK', 'Aşık bağlantısı']])]],
+        ['Çatı ve vinç', [B('CATIKIRISI', 'Çatı kirişi', 'beam', [['CATIKIRISI TIP=besik', 'Beşik çatı'], ['CATIKIRISI TIP=tek', 'Tek eğimli'], ['CATIKIRISI', 'Ayarlar…']]), B('ASIKDIZ', 'Aşık', 'grid', [['ASIKDIZ AILE=UPN PROF=UPN160', 'UPN 160'], ['ASIKDIZ AILE=IPE PROF=IPE160', 'IPE 160'], ['ASIKDIZ AILE=SHS PROF=KUTU100x100x4', 'Kutu 100×100×4'], ['ASIKDIZ', 'Ayarlar…']]), B('VINCGUSESI', 'Vinç gusesi', 'col', [['VINCGUSESI TIP=K', 'Konsol'], ['VINCGUSESI TIP=D', 'Kademeli kolon'], ['VINCGUSESI', 'Ayarlar…']]), B('VINCYOLU', 'Vinç yolu', 'rail')]],
         ['Metraj', [B('CELIKMETRAJ', 'Çelik metrajı', 'table')]],
       ]];
       const i = C.ribbon.tabs.findIndex(t => t[0] === 'İnşaat'); C.ribbon.tabs.splice(i >= 0 ? i + 1 : C.ribbon.tabs.length, 0, tab); C.ribbon.render();
@@ -415,6 +522,19 @@
     ['Kolon ayağı — taban levhası ve ankraj', 'Column base — base plate and anchors'], ['Kiriş – kolon alın levhalı birleşim', 'Beam–column end-plate connection'], ['Aşık – çatı kirişi bağlantısı', 'Purlin–rafter connection'],
     ['Çelik kolonları seçin', 'Select steel columns'], ['Kolon yeri', 'Column position'], ['Kesitin yeri (profil merkezi)', 'Section position (centre)'], ['Detayın yeri (kolon / kiriş ekseni)', 'Detail position (column / beam axis)'],
     ['Metraj tablosunun yeri (Enter = yerleştirme)', 'Take-off table position (Enter = do not place)'], ['ÇELİK MALZEME LİSTESİ', 'STEEL MATERIAL LIST'], ['Adet', 'Qty'], ['Boy (m)', 'Length (m)'], ['Ağırlık (kg)', 'Weight (kg)'], ['TOPLAM', 'TOTAL'],
+    ['Çatı ve vinç', 'Roof and crane'], ['Çatı kirişi', 'Rafter'], ['Aşık', 'Purlin'], ['Vinç gusesi', 'Crane bracket'], ['Vinç yolu', 'Crane runway'], ['Beşik çatı', 'Gable roof'], ['Tek eğimli', 'Mono-pitch'], ['Konsol', 'Cantilever'], ['Kademeli kolon', 'Stepped column'], ['Ayarlar…', 'Settings…'],
+    ['Çatı kirişi (makas)', 'Rafter'], ['Çatı', 'Roof'], ['Beşik (iki eğimli, mahya ortada)', 'Gable (ridge at mid-span)'], ['Eğim (%)', 'Slope (%)'], ['Mahya kotu (m; 0 = eğimden; tek eğimde yüksek aks)', 'Ridge level (m; 0 = from slope; high axis for mono-pitch)'],
+    ['Saçak taşması (m, yatay)', 'Eave overhang (m, horizontal)'], ['Yerleşim', 'Placement'], ['Seçilen çelik kolonlardan', 'From selected steel columns'], ['İki aks + tekrar', 'Two axes + repeat'], ['Kiriş yönü (kolonlardan)', 'Rafter direction (from columns)'],
+    ['Otomatik (çok çerçeve veren yön)', 'Automatic (direction giving more frames)'], ['X yönü', 'X direction'], ['Y yönü', 'Y direction'], ['Saçak kotu (iki aks; kiriş üst yüzü, m)', 'Eave level (two axes; top of rafter, m)'], ['Çerçeve aralığı en çok (m; iki aks)', 'Max frame spacing (m; two axes)'],
+    ['Çatı kirişlerinin oturacağı çelik kolonları seçin', 'Select the steel columns carrying the rafters'], ['Birinci saçak aksı (kolon ekseni)', 'First eave axis (column centre)'], ['Karşı saçak aksı', 'Opposite eave axis'], ['Son çerçevenin hizası (Enter = tek çerçeve)', 'Line of last frame (Enter = single frame)'],
+    ['Aşık aralığı en çok (m, eğim boyunca)', 'Max purlin spacing (m, along slope)'], ['Saçak ucundan ilk aşık (m)', 'First purlin from eave end (m)'], ['Mahyadan son aşık (m)', 'Last purlin from ridge (m)'], ['Uçlarda taşma (m)', 'End overhang (m)'], ['Parça', 'Pieces'],
+    ['Her açıklıkta ayrı', 'One per bay'], ['Sürekli (baştan sona)', 'Continuous'], ['Çatı kirişlerini seçin (CATIKIRISI)', 'Select rafters (CATIKIRISI)'],
+    ['Guse', 'Bracket'], ['Konsol (kısa kiriş parçası)', 'Cantilever (short beam stub)'], ['Kademeli kolon (vinç ayağı)', 'Stepped column (crane leg)'], ['Konsol / ayak profili', 'Bracket / leg section'], ['Yön', 'Direction'],
+    ['İçe doğru (başlık yüzü, seçilen kolonların ortasına)', 'Inward (flange face, towards the centre of selected columns)'], ['İçe doğru (gövde yanı)', 'Inward (web side)'], ['Ön (+ profil derinliği, başlık yüzü)', 'Front (+ section depth, flange face)'], ['Arka (− profil derinliği)', 'Back (− section depth)'], ['Sağ (+ başlık yönü)', 'Right (+ flange direction)'], ['Sol (− başlık yönü)', 'Left (− flange direction)'], ['Ön + arka', 'Front + back'], ['Sağ + sol', 'Right + left'],
+    ['Guse üst kotu (m; vinç kirişi altı)', 'Bracket top level (m; underside of crane beam)'], ['Ray ekseni – kolon ekseni (m)', 'Rail axis to column axis (m)'], ['Guseyi kaldır', 'Remove bracket'], ['Vinç gusesi konacak çelik kolonları seçin', 'Select steel columns for crane brackets'],
+    ['Vinç kirişi', 'Crane beam'], ['Ray', 'Rail'], ['Ray yok', 'No rail'], ['Kiriş uç taşması (m; son kolondan öte)', 'Beam end overhang (m; beyond last column)'], ['Durdurucu takoz', 'End stop'], ['İki uçta var', 'At both ends'], ['Yok', 'None'],
+    ['Gusesi olan çelik kolonları seçin (VINCGUSESI)', 'Select steel columns with crane brackets (VINCGUSESI)'], ['Vinç rayı (A tipi)', 'Crane rail (type A)'], ['Vinç yolu durdurucu takozu', 'Crane runway end stop'],
+    ['Vinç kirişi — aile', 'Crane beam — family'], ['Konsol / ayak profili — aile', 'Bracket / leg section — family'],
     ['TABAN LEVHASI DETAYI', 'BASE PLATE DETAIL'], ['KİRİŞ – KOLON ALIN LEVHALI BİRLEŞİM DETAYI', 'BEAM–COLUMN END PLATE CONNECTION DETAIL'], ['AŞIK BAĞLANTI DETAYI', 'PURLIN CONNECTION DETAIL'], ['GÖRÜNÜŞ', 'ELEVATION'], ['PLAN', 'PLAN'], ['ALIN LEVHASI GÖRÜNÜŞÜ', 'END PLATE VIEW'],
   ]);
   /* çizim (detay, kesit, metraj tablosu) ve istem metinleri: '#' sayı kalıpları ve metin içi terimler */
@@ -423,6 +543,11 @@
     ['KÖŞE KAYNAĞI a=# mm (çevre)', 'FILLET WELD a=# mm (all around)'], ['KÖŞE KAYNAĞI a=# mm (iki yandan)', 'FILLET WELD a=# mm (both sides)'], ['KÖŞE KAYNAĞI a=# mm', 'FILLET WELD a=# mm'],
     ['Ölçek 1/# — ölçüler mm — ön boyut, statik hesapla doğrulanmalıdır', 'Scale 1/# — dimensions in mm — preliminary sizes, to be verified by structural calculation'], ['Ölçek 1/# — ölçüler mm', 'Scale 1/# — dimensions in mm'],
     ['ÇELİK METRAJI — toplam # kg · boya alanı # m²', 'STEEL TAKE-OFF — total # kg · paint area # m²'], ['TAKVİYE LEVHASI t=#', 'STIFFENER PLATE t=#'],
+    ['Vinç rayı', 'Crane rail'], ['Vinç ayağı', 'Crane leg'], ['vinç gusesi', 'crane bracket'], ['kademeli kolon', 'stepped column'], ['konsol', 'cantilever'], ['ray ekseni', 'rail axis'], ['eğim', 'slope'],
+    ['Durdurucu takoz alın levhası', 'End stop front plate'], ['Durdurucu takoz yan levhası (üçgen)', 'End stop side plate (triangular)'], ['Durdurucu takoz taban levhası', 'End stop base plate'], ['guse +#', 'bracket +#'], ['(lama ray)', '(flat bar rail)'],
+    ['Ray #', 'Rail #'], ['Gusesi olan en az iki çelik kolon seçin (VINCGUSESI).', 'Select at least two steel columns with crane brackets (VINCGUSESI).'], ['Aynı hizada en az iki guse bulunamadı (guse yönü ve ray ekseni uzaklığı aynı olmalı).', 'No two brackets found on one line (bracket direction and rail axis distance must match).'],
+    ['En az iki çatı kirişi seçin (aynı çatı yüzünde yan yana).', 'Select at least two rafters (side by side on the same roof face).'], ['En az iki düşey çelik kolon seçin (CELIKKOLON).', 'Select at least two vertical steel columns (CELIKKOLON).'], ['Seçimde düşey çelik kolon yok (CELIKKOLON).', 'No vertical steel column in selection (CELIKKOLON).'],
+    ['Vinç kapasitesi ve tekerlek yükleri girilmedi: kiriş / ray profili statik hesapla doğrulanmalıdır.', 'Crane capacity and wheel loads were not entered: beam / rail sections must be verified by structural calculation.'], ['(kaynaklı levha; tampon ayrıca)', '(welded plates; buffer separate)'],
     ['köşe kaynağı', 'fillet weld'], ['çatı kirişi (makas)', 'rafter'], ['taban levhası', 'base plate'], ['alın levhası', 'end plate'], ['takviye levhası', 'stiffener plate'], ['kulak levhası', 'cleat plate'],
     ['dökme harcı', 'grout'], ['ankraj', 'anchor bolt'], ['bulon', 'bolt'], ['aşık', 'purlin'], ['kolon', 'column'], ['kiriş', 'beam'], ['eğik', 'inclined'], ['(zayıf asal eksen)', '(minor principal axis)'], ['boya alanı', 'paint area'], ['profil bulunamadı', 'section not found'],
     ['Sonraki kolon', 'Next column'], ['Enter bitir', 'Enter to finish'], ['Kolon yeri', 'Column position'], ['Kirişin sonraki noktası', 'Next beam point'], ['Kiriş başlangıcı', 'Beam start'], ['üst kot', 'top level'],
