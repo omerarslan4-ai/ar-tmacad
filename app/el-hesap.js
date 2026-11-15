@@ -144,14 +144,14 @@
     c.T(-6, 62, mm.baslik, `${o.pano || 'BBAT'} (Pi=${Math.round(Y.kurulu)}W) TABLO TEK HAT ŞEMASI`, 'L', 0, 2);
     /* besleme: soldan gelen düşey hat, ana şalter, kaçak akım */
     c.L(0, -40, 0, 46, 'k'); c.L(0, 46, 14, 46, 'k'); c.L(14, 46, 14, yb, 'k'); c.L(14, yb, xb1 + 6, yb, 'b');
-    c.B(10, 30, 8, 7, 'k'); c.L(10, 30, 18, 37, 'i'); c.T(20, 33.5, h, `${Y.In}A.`, 'L', 0, 2); c.T(20, 30, h * 0.8, '3 FAZ', 'L', 0, 2);
+    c.B(10, 30, 8, 7, 'k'); c.L(10, 30, 18, 37, 'i'); c.T(20, 33.5, h, `3x${Y.In}A.`, 'L', 0, 2); c.T(20, 30, h * 0.8, '3 FAZ', 'L', 0, 2);
     c.B(10, 14, 8, 7, 'k'); c.L(14, 14, 14, 21, 'i'); c.T(20, 18, h, `KCAK-3x${Y.kak.In}A`, 'L', 0, 2); c.T(20, 14.5, h, `(${Y.kak.mA}mA)`, 'L', 0, 2);
     c.T(-3, -38, h, `${Y.bes.adNokta}`, 'L', Math.PI / 2, 2); c.T(-7, -38, h, `${o.besleyen || 'İBAT-1'} PANOSUNDAN`, 'L', Math.PI / 2, 2);
     ['R', 'S', 'T'].forEach((f, i) => c.T(x0 - 8 + i * 4, yb + 2, h * 0.9, f, 'MC', 0, 2));
     L.forEach((x, i) => {
       const xx = x0 + adim * i, yk = yb - 22;
       c.L(xx, yb, xx, yb - 6, 'k'); c.B(xx - 2.5, yb - 13, 5, 7, 'k'); c.L(xx - 2.5, yb - 13, xx + 2.5, yb - 6, 'i'); c.L(xx, yb - 13, xx, yk, 'k');
-      c.T(xx + 4, yb - 12, h, x.faz === 3 ? `3x${x.In}A.` : `${x.In}A.`, 'L', Math.PI / 2, 2);
+      c.T(xx + 5.5, yb - 6.5, h, x.faz === 3 ? `3x${x.In}A.` : `${x.In}A.`, 'R', Math.PI / 2, 2);
       if (x.kablo) c.T(xx - 1, yk - 1, h, x.kablo, 'R', Math.PI / 2, 2);
       c.T(xx, yk - 24, h, x.no, 'MC', 0, 2);
       c.T(xx - 1, yk - 28, h, x.aciklama + '  ', 'R', Math.PI / 2, 2);
