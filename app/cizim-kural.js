@@ -261,6 +261,36 @@
       [/^STA_ZEMIN$/, 'TP'], [/^STA_BANT$/, 'ST'], [/^STA_KIRIS$/, 'KR'], [/^STA_DOSEME$/, 'DSM'], [/^STA_GORUNEN$/, 'ÖN'],
     ],
   };
+  /* ---------- ELEKTRİK (Çorlu AAT B-105 Bekçi Binası: E-BB 001/002/003; 15.11.2026'da ölçüldü — örnekler birbirini tutmadığı için
+     kullanıcı kararıyla "kendin ayarla": en dolu pafta BB-002 esas, tek düzen; belge docs/cizim-kurallari/elektrik.md) ---------- */
+  K.ELEKTRIK = {
+    ad: 'Elektrik', belge: 'docs/cizim-kurallari/elektrik.md', birim: 'cm',
+    olcekler: [50],
+    katmanlar: {
+      'EYAZI': { renk: 3, tip: 'Continuous', kal: 0.25, ne: 'Semboller, etiketler, linye no, tek hat şeması, yükleme cetveli, semboller listesi, notlar' },
+      'EHAT': { renk: 4, tip: 'Continuous', kal: 0.35, ne: 'Aydınlatma ve priz linye hatları' },
+      'TOPILET': { renk: 4, tip: 'HIDDEN', kal: 0.35, ne: 'Topraklama iletkeni (30x3,5 galvaniz şerit), temel topraklaması' },
+      'TLF': { renk: 4, tip: 'DOT', kal: 0.25, ne: 'Telefon hattı' },
+      'ETELYNG': { renk: 1, tip: 'DASHED', kal: 0.25, ne: 'Yangın alarm hattı' },
+      'ANTET': { renk: 7, tip: 'Continuous', kal: 0.25, ne: 'Antet', serbest: true },
+    },
+    esAd: { 'ELKYAZI': 'EYAZI', 'ELK YAZI': 'EYAZI', 'E-YAZI': 'EYAZI', 'TLFPRIZ': 'EYAZI', 'YNGTLFYAZI': 'EYAZI', 'Topraklama': 'TOPILET' },
+    kodluAile: /^$/,
+    sistem: /^(0|Defpoints)$/i,
+    baskaDisiplin: /^(INS_|Mim_|MT_|Mek_|MEK_)/,
+    katmandan: true,
+    yaziRenk: 2,                                           // örneklerde etiket ve tablo yazıları elle sarı
+    yaziStilleri: { 'AAAA': { font: 'arial.ttf', gen: 1 }, 'elk': { font: 'romanstw.shx', gen: 0.85 } },
+    /* yazı yükseklikleri (kâğıt mm) */
+    yaziMm: { etiket: 2, linye: 2, cetvel: 2.06, tekHat: 2.16, tabloBaslik: 2.4, lejant: 3, not: 3, baslik: 4 },
+    yazi: { 'EYAZI': { stil: ['AAAA', 'elk'], mm: [2, 2.06, 2.16, 2.4, 3, 4] } },
+    /* sembol ölçüleri (model cm, 1/50 — BB-002 semboller listesi) */
+    sembol: { armaturKisa: 52, armaturUzun: 104, armaturEn: 6.7, armaturUc: 12.5, tabloW: 52, tabloH: 16.2, anahtarR: 8, prizR: 8.3, dedektorR: 10, kutu: 16 },
+    /* çizgi kalınlıkları: linye hattı (EHAT) polyline genişliği ~2,5 cm = kâğıtta 0,5 mm */
+    hatGenislik: { EHAT: 2.5, TOPILET: 4.5 },
+    /* PROGRAM KATMANI → ÇİZİM KATMANI (elektrik modülü doğrudan bu adlarla çizer) */
+    esleme: [[/^EL_?YAZI$/i, 'EYAZI'], [/^EL_?HAT$/i, 'EHAT'], [/^EL_?TOP/i, 'TOPILET'], [/^EL_?TLF$/i, 'TLF'], [/^EL_?YNG$/i, 'ETELYNG']],
+  };
   /* ÇİZGİ TİPİ ÖLÇEĞİ (saf): pafta penceresinde (1/vpOlcek) desen birimi başına model metresi — desen kâğıtta mm olarak görünür.
      Ekranda / SVG'de çizgi = desen × ölçek × (model m → kâğıt mm: 1000 / vpOlcek) = desen mm. */
   K.vpCizgiOlcegi = vpOlcek => (+vpOlcek || 50) / 1000;

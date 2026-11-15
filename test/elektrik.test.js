@@ -1,0 +1,57 @@
+/* Elektrik tesisatı hesap çekirdeği (app/el-hesap.js) — gerçek proje: Çorlu AAT B-105 Bekçi Binası, E-BB 002 (ERGE Proje, 2012):
+     BBAT yükleme cetveli: 01 ışık 200 W · 02 ışık 200 W · 03 priz (2) 600 W · 04 priz (3) 900 W · 05 motorlu kapı 3x40A 5000 W · 06–07 yedek
+     kurulu 6900 W, diversite %70, işletme 4830 W; ana şalter 3x50A, KCAK 3x50A 30 mA; besleme İBAT-1'den 4x6 NYY.
+   Çalıştır: node test/elektrik.test.js */
+'use strict';
+const assert = require('assert');
+const EL = require('../app/el-hesap.js');
+let n = 0; const t = (ad, f) => { f(); n++; console.log('✓ ' + ad); };
+const yak = (a, b, tol, m) => assert(Math.abs(a - b) <= tol, `${m || ''} ${a} ≠ ${b} (±${tol})`);
+
+const corlu = () => {
+  const g = [{ tur: 'isik', n: 3, W: 200, mahal: ['Z01'] }, { tur: 'isik', n: 4, W: 200, mahal: ['Z02'] }, { tur: 'priz', n: 2, W: 600, mahal: [] }, { tur: 'priz', n: 3, W: 900, mahal: [] }];
+  return EL.linyeler(g, [{ ad: 'Motorlu otm kapı (gelecekte)', W: 5000, faz: 3, In: 40, kablo: '5x6 NYY' }], 2);
+};
+t('Çorlu BBAT: 7 linye, numaralar 01…07, ışık 10 A, priz 16 A', () => {
+  const L = corlu(); assert.strictEqual(L.length, 7); assert.deepStrictEqual(L.map(x => x.no), ['01', '02', '03', '04', '05', '06', '07']);
+  assert.deepStrictEqual(L.map(x => x.In), [10, 10, 16, 16, 40, 10, 10]); assert.strictEqual(L[2].kablo, '3x2.5 NYA');
+});
+t('Çorlu BBAT: kurulu 6900 W, diversite %70 → işletme 4830 W', () => {
+  const Y = EL.yuk(corlu(), { div: 70, L: 100 }); assert.strictEqual(Y.kurulu, 6900); assert.strictEqual(Math.round(Y.isletme), 4830);
+});
+t('Çorlu BBAT: ana şalter ve kaçak akım 3x50A (en büyük çıkış 40 A, bir kademe büyük), 30 mA', () => {
+  const Y = EL.yuk(corlu(), { div: 70, L: 100 }); assert.strictEqual(Y.In, 50); assert.strictEqual(Y.kak.mA, 30);
+});
+t('Çorlu BBAT: besleme 100 m → 4x6 NYY (4 mm²\'de gerilim düşümü %1,9 > %1,5)', () => {
+  const Y = EL.yuk(corlu(), { div: 70, L: 100 }); assert.strictEqual(Y.bes.S, 6); assert.strictEqual(Y.bes.ad, '4x6 NYY'); assert(Y.bes.e <= 1.5);
+  yak(100 * 100 * 6900 / (56 * 4 * 160000), 1.925, 0.01, 'e(4mm²)');
+});
+t('faz dağılımı: toplam korunur, 3 fazlı yük eşit bölünür, dengesizlik %25\'in altında', () => {
+  const L = corlu(), F = EL.fazDagit(L); yak(F.R + F.S + F.T, 6900, 1e-6); yak(L[4].dag.R, 5000 / 3, 1e-6); const mx = Math.max(F.R, F.S, F.T), mn = Math.min(F.R, F.S, F.T); assert((mx - mn) / mx < 0.25);
+});
+t('aydınlatma (lümen yöntemi): 5,0 × 3,5 m danışma, h 2,8 m, 300 lx, P-2x40W → 3 armatür (η 0,45), E ≥ 300 lx', () => {
+  const r = EL.aydinlatma({ a: 5.0, b: 3.5, h: 2.8, E: 300, arm: 'P-2x40W' });
+  yak(r.k, 5 * 3.5 / (1.95 * 8.5), 1e-9, 'k'); assert(r.N >= 1 && r.Eg >= 300, `N=${r.N} Eg=${r.Eg}`); assert.strictEqual(r.N, 3);
+});
+t('armatür ızgarası: N tane, oda içinde, eşit aralıklı', () => {
+  const p = EL.izgara(4, 6, 4); assert.strictEqual(p.length, 4); p.forEach(q => assert(q[0] > 0 && q[0] < 6 && q[1] > 0 && q[1] < 4));
+  assert.strictEqual(EL.izgara(3, 3, 3).length, 3);
+});
+t('linye gruplama: ışık en çok 9 sorti, priz en çok 7 sorti', () => {
+  const c = []; for (let i = 0; i < 12; i++) c.push({ tur: 'isik', W: 50, mahal: 'Z01' }); for (let i = 0; i < 8; i++) c.push({ tur: 'priz', W: 300, mahal: 'Z01' });
+  const g = EL.linyeGrupla(c); assert.deepStrictEqual(g.map(x => [x.tur, x.n]), [['isik', 9], ['isik', 3], ['priz', 7], ['priz', 1]]);
+});
+t('mahal tipi: WC etanş, mutfak ısı dedektörü, danışma telefon prizi', () => {
+  assert(EL.mahalTip('WC').etans); assert.strictEqual(EL.mahalTip('MUTFAK').ded, 'isi'); assert.strictEqual(EL.mahalTip('DANIŞMA').tlf, 1); assert.strictEqual(EL.armaturSec(3, true), 'U-2x20W');
+});
+t('topraklama: 5×5 m bina, ρ 100 Ωm → halka + 2 çubuk ≤ 10 Ω, dokunma gerilimi ≤ 50 V', () => {
+  const r = EL.topraklama({ cevre: 20, alan: 25, rho: 100 }); assert(r.R <= 10, 'R=' + r.R); assert(r.uygun); assert(r.serit >= 20); assert(r.cubuk >= 2);
+  yak(r.Rh, 2 * 100 / (3 * 1.13 * 5), 1e-9, 'halka');
+});
+t('dedektör sayısı: duman 60 m², ısı 30 m²', () => { assert.strictEqual(EL.dedektorSay(70, 'duman'), 2); assert.strictEqual(EL.dedektorSay(20, 'isi'), 1); assert.strictEqual(EL.dedektorSay(20, null), 0); });
+t('tek hat şeması ve yükleme cetveli çizilir (her linye için satır / çıkış)', () => {
+  const L = corlu(), Y = EL.yuk(L, { div: 70, L: 100 }), th = EL.tekHat(L, Y, { pano: 'BBAT', besleyen: 'İBAT-1' }), ct = EL.cetvel(L, Y, { pano: 'BBAT' });
+  assert(th.T.some(q => /BBAT \(Pi=6900W\) TABLO TEK HAT ŞEMASI/.test(q[3]))); assert(th.T.some(q => q[3] === '4x6mm2 NYY')); assert(th.T.some(q => q[3] === 'KCAK-3x50A'));
+  assert(ct.T.some(q => q[3] === '4830')); assert(ct.T.some(q => q[3] === 'İŞLETME GÜCÜ(W)')); assert.strictEqual(ct.T.filter(q => q[3] === 'OTOM.').length, 7);
+});
+console.log(`\n${n} test geçti.`);
