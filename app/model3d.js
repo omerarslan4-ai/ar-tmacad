@@ -215,7 +215,7 @@
       <div class="bar" id="mlChips">${CHIPS.map(([t]) => `<button class="chip" data-c="${esc(t)}">${esc(t)}</button>`).join('')}</div>
       <div class="bar"><label>Cins <select id="mlTur">${Object.keys(C.TUR_KATMAN).map(t => `<option ${t === st.tur ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
         <label title="Model bu yüksekliğe ölçeklenir; boş = modeldeki ölçü">Gerçek yükseklik (m) <input id="mlH" type="number" step="0.01" min="0" value="${esc(st.h)}" style="width:70px"></label>
-        <label>Model birimi <select id="mlUnit">${['m', 'cm', 'mm', 'in'].map(u => `<option ${u === st.unit ? 'selected' : ''}>${u}</option>`).join('')}</select></label></div>
+        <label>Model birimi <select id="mlUnit">${['m', 'cm', 'mm', 'in'].map(u => `<option ${u === st.unit ? 'selected' : ''}>${u}</option>`).join('')}</select></label> <label>Yukarı ekseni <select id="mlUp">${[['oto', 'Otomatik'], ['Z', 'Z yukarı'], ['Y', 'Y yukarı'], ['X', 'X yukarı']].map(([k, t]) => `<option value="${k}" ${k === (st.up || 'oto') ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
       <div class="bar" id="mlKey" style="display:none">Sketchfab API anahtarı <input id="sfTok" type="password" value="${esc(store.get('sketchfabToken', ''))}" style="flex:1;min-width:160px"> <a href="https://sketchfab.com/settings/password" target="_blank" rel="noopener">Anahtarımı göster (ücretsiz hesap)</a></div>
       <p class="hint" id="mlNote"></p>
       <div id="mlRes" class="blgrid"><p class="hint">Bir kategori seçin ya da arayın. Türkçe yazabilirsiniz (kapı → door).</p></div>
@@ -226,12 +226,12 @@
       <p class="hint">İndirilen modeller blok kütüphanenize (Kütüphane → Sizin bloklarınız) kaydedilir; planda üstten görünüş sınırı, 3B'de malzeme renkleriyle görünür ve malzeme listesinde (BOM) sayılır. Lisans ve yazar bilgisi bloğa yazılır.</p>`);
     const $ = s => body.querySelector(s);
     $('#mlSrc').value = st.src;
-    const save = () => { st.src = $('#mlSrc').value; st.q = $('#mlQ').value; st.tur = $('#mlTur').value; st.unit = $('#mlUnit').value; store.set('modelLib', st); };
+    const save = () => { st.src = $('#mlSrc').value; st.q = $('#mlQ').value; st.tur = $('#mlTur').value; st.unit = $('#mlUnit').value; st.up = $('#mlUp').value; store.set('modelLib', st); };
     const upd = () => { const s = SRC[$('#mlSrc').value]; $('#mlNote').textContent = s.note; $('#mlKey').style.display = $('#mlSrc').value === 'sf' ? '' : 'none'; };
     upd();
     $('#mlSrc').onchange = () => { upd(); save(); if ($('#mlQ').value) run(); };
     $('#sfTok').onchange = e => store.set('sketchfabToken', e.target.value.trim());
-    ['#mlTur', '#mlH', '#mlUnit'].forEach(s => $(s).onchange = save);
+    ['#mlTur', '#mlH', '#mlUnit', '#mlUp'].forEach(s => $(s).onchange = save);
     let items = [];
     const card = (it, i) => `<div class="blcard mlcard" data-i="${i}" title="${esc(it.name)}${it.faces ? ' · ' + it.faces.toLocaleString('tr-TR') + ' üçgen' : ''}">${it.thumb ? `<img src="${esc(it.thumb)}" loading="lazy" referrerpolicy="no-referrer" alt="">` : '<div class="noimg">3B</div>'}<div class="bln">${esc(it.name)}</div><div class="hint">${esc(it.author)}${it.license ? ' · ' + esc(it.license) : ''}</div><div class="mlbtns"><button data-a="add">Kütüphaneye ekle</button><button data-a="ins" class="pri">Yerleştir</button><a href="${esc(it.url)}" target="_blank" rel="noopener" title="Sayfasını aç">↗</a></div></div>`;
     const render = append => {
@@ -261,7 +261,7 @@
       finally { btns.forEach(b => b.disabled = false); }
     };
     const fromFile = async f => {
-      try { const mesh = await C.loadModelBuffer(f.name, await f.arrayBuffer()); const def = C.modelToDef(mesh, { name: f.name.replace(/\.[^.]+$/, ''), src: f.name, tur: $('#mlTur').value, targetH: parseFloat($('#mlH').value) || 0, unit: $('#mlUnit').value }); finish(def, confirm(`"${def.name}" kütüphaneye eklendi (${def.dims.join(' × ')} m). Şimdi çizime yerleştirilsin mi?`)); }
+      try { let mesh = await C.loadModelBuffer(f.name, await f.arrayBuffer()); if (C.ekipmanEksen) mesh = C.ekipmanEksen(f.name, mesh, $('#mlUp').value); /* üretici modeli Y yukarı olabilir (ör. Wilo STL) */ const def = C.modelToDef(mesh, { name: f.name.replace(/\.[^.]+$/, ''), src: f.name, tur: $('#mlTur').value, targetH: parseFloat($('#mlH').value) || 0, unit: $('#mlUnit').value }); finish(def, confirm(`"${def.name}" kütüphaneye eklendi (${def.dims.join(' × ')} m). Şimdi çizime yerleştirilsin mi?`)); }
       catch (e) { C.warn('Model okunamadı: ' + e.message); alert('Model okunamadı: ' + e.message); }
     };
     $('#mlFile').onclick = async () => { const f = await C.pickFile('.glb,.gltf,.zip,.dae,.kmz,.obj,.stl'); if (f) fromFile(f); };
