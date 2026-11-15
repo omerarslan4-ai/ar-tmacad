@@ -160,23 +160,69 @@
     C.log(`Elektrik tesisatı: ${r.n} nesne · ${r.Ls.filter(l => l.tur === 'isik').length} ışık + ${r.Ls.filter(l => l.tur === 'priz').length} priz linyesi · kurulu ${fi(r.Y.kurulu)} W, işletme ${fi(r.Y.isletme)} W · ana şalter 3x${r.Y.In} A · besleme ${r.Y.bes.ad}${r.topR ? ` · topraklama ${f(r.topR.R, 2)} Ω (${r.topR.cubuk} çubuk)` : ''}. Paftalar için ELEKTRIKPAFTA, rapor için ELEKTRIKRAPOR.`); });
   C.addCommand(['ELEKTRIKSIL', 'ELSIL'], 'Otomatik yerleştirilen elektrik nesnelerini (cihaz ve hatlar) siler; elle çizilenler ve paftalar kalır.', async () => { const n = C.doc.ents.filter(e => (e.type === 'elcihaz' || e.type === 'elhat') && e.oto).length; if (!n) return; C.undoStack.push(C.snapshot()); EL.temizle(); C.changed(); C.log(`${n} elektrik nesnesi silindi.`); });
   C.addCommand(['ELEKTRIKRAPOR', 'ELRAPOR'], 'Elektrik tesisatı proje raporu ve hesapları (aydınlatma, yükleme cetveli, gerilim düşümü, topraklama, zayıf akım, malzeme; yazdır / PDF / Word).', async () => { EL.raporAc(); }, { noUndo: true });
-  C.addCommand(['ELEKTRIKPAFTA', 'ELPAFTA'], 'Elektrik paftaları (Elektrik grubu, otomatik): aydınlatma ve priz tesisatı (tek hat şeması, yükleme cetveli), topraklama planı, telefon ve yangın alarm tesisatı; semboller, notlar ve 3B görünüş. Pafta no ELK-01 …; yeniden çalıştırınca yenilenir.', async () => {
-    let d = EL.durum(); if (!d) { const r = EL.yerlestir(); (r.uyari || []).forEach(u => C.warn(u)); if (!r.n) return; d = EL.durum(); }
-    C.undoStack.push(C.snapshot()); const os = MT.paftaOlcek ? MT.paftaOlcek() : { olcek: 50 }, SC = os.olcek, ad = []; let son = null;
-    C.doc.ents = C.doc.ents.filter(e => e.type !== 'elsema');
-    for (const t of ['ayd', 'top', 'zayif']) { try { const Ls = EL.pafta(t, SC, d); for (const L of Ls || []) { son = son || L; ad.push(L.name); } } catch (er) { console.error(er); C.warn(`${SIS[t].ad}: ${er && er.message || er}`); } }
-    if (!son) { C.warn('Elektrik paftası üretilemedi.'); return; } EL.paftaNumarala();
+  /* paftalar: T hepsi, A aydınlatma ve priz, P topraklama, Z telefon ve yangın alarm; elle düzeltilmiş (PAFTAELLE) paftalar korunur */
+  const TUR_KW = { A: ['ayd'], P: ['top'], Z: ['zayif'], T: ['ayd', 'top', 'zayif'] };
+  EL.paftaUret = async (k = 'T') => {
+    let d = EL.durum(); if (!d) { const r = EL.yerlestir(); (r.uyari || []).forEach(u => C.warn(u)); if (!r.n) return null; d = EL.durum(); }
+    C.undoStack.push(C.snapshot()); const os = MT.paftaOlcek ? MT.paftaOlcek() : { olcek: 50 }, SC = os.olcek, ad = [], korunan = []; let son = null;
+    const elle = t => (C.doc.layouts || []).some(L => L.elPafta === t && L.elle), SEMA = { ayd: ['tekhat', 'cetvel', 'lejant-ayd', 'not-ayd'], top: ['detay-top', 'lejant-top', 'not-top'], zayif: ['lejant-zayif', 'not-zayif'] };
+    for (const t of TUR_KW[k] || TUR_KW.T) { if (elle(t)) { korunan.push(SIS[t].ad); continue; } C.doc.ents = C.doc.ents.filter(e => !(e.type === 'elsema' && SEMA[t].includes(e.tur)));
+      try { const Ls = EL.pafta(t, SC, d); for (const L of Ls || []) { son = son || L; ad.push(L.name); } } catch (er) { console.error(er); C.warn(`${SIS[t].ad}: ${er && er.message || er}`); } }
+    if (korunan.length) C.log(`Elle düzeltilmiş olarak işaretli paftalar korundu: ${korunan.join(', ')} (işareti kaldırmak için paftayı açıp PAFTAELLE).`);
+    if (!son) { if (!korunan.length) C.warn('Elektrik paftası üretilemedi: bu sistemin elemanı yok.'); return null; } EL.paftaNumarala();
     { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Elektrik')) s.grups.push('Elektrik'); }
-    C.changed(); C.emit && C.emit('layouts'); C.emit && C.emit('layers'); try { C.g3Guncelle && C.g3Guncelle(true); } catch (er) { }
+    EL.set().paftaOlcek = SC; C.changed(); C.emit && C.emit('layouts'); C.emit && C.emit('layers'); try { C.g3Guncelle && C.g3Guncelle(true); } catch (er) { }
     try { C.layoutIdx = C.doc.layouts.indexOf(son); C.grpCur = 'Elektrik'; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60); } catch (er) { }
-    C.log(`${ad.length} Elektrik paftası, ölçek 1/${SC}: ${ad.join(' · ')}. Sol alttaki Elektrik grubundan açılır.`); });
+    C.log(`${ad.length} Elektrik paftası, ölçek 1/${SC}${os.neden ? ' (' + os.neden + ')' : ''}: ${ad.join(' · ')}. Sol alttaki Elektrik grubundan açılır; tesisat değişince yeniden çalıştırın.`); return son; };
+  C.addCommand(['ELEKTRIKPAFTA', 'ELPAFTA'], 'Elektrik paftaları (Elektrik grubu, otomatik): T = hepsi, A = aydınlatma ve priz tesisatı (tek hat şeması, yükleme cetveli), P = topraklama planı, Z = telefon ve yangın alarm; semboller, notlar ve 3B görünüş. Ölçek bina ebatına göre; pafta no ELK-01 …; yeniden çalıştırınca yenilenir (PAFTAELLE ile işaretli paftalar korunur).', async (I) => {
+    const k = await I.kw('Pafta', [['T', 'Hepsi'], ['A', 'Aydınlatma ve priz tesisatı'], ['P', 'Topraklama planı'], ['Z', 'Telefon ve yangın alarm']], 'T'); if (!k) return; await EL.paftaUret(k); });
   C.addCommand(['ELEKTRIKDXF', 'ELDXF'], 'Elektrik paftalarını AutoCAD için DXF olarak kaydeder (her pafta bir Layout; katmanlar EYAZI, EHAT, TOPILET, TLF, ETELYNG).', () => { if (!(C.doc.layouts || []).some(L => L.grp === 'Elektrik')) { C.warn('Elektrik paftası yok: önce ELEKTRIKPAFTA.'); return; } return C.exportGroups(['Elektrik']); }, { noUndo: true });
+  C.addCommand(['ELEKTRIKCIKTI', 'ELCIKTI', 'ELEKTRIKPDF'], 'Elektrik paftalarını tek yazdırma işinde çıkarır: yazıcı ya da "PDF olarak kaydet" (çok sayfalı).', async (I) => {
+    const ls = (C.doc.layouts || []).filter(L => L.grp === 'Elektrik').sort((a, b) => String((a.f || {}).no || a.name).localeCompare(String((b.f || {}).no || b.name))); if (!ls.length) { C.warn('Elektrik paftası yok: önce ELEKTRIKPAFTA.'); return; }
+    const mode = await I.kw('Renk', [['R', 'Renkli'], ['S', 'Siyah-beyaz']], 'R'); if (!mode) return; try { C.g3Guncelle && C.g3Guncelle(false); } catch (er) { }
+    const pages = ls.map(L => C.layoutSvg(L, { mono: mode === 'S' })), { w, h } = pages[0], win = window.open('', '_blank'); if (!win) { C.warn('Açılır pencere engellendi: tarayıcıda açılır pencerelere izin verin.'); return; }
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(C.doc.set.name)} - elektrik paftaları</title><style>@page{size:${w}mm ${h}mm;margin:0}html,body{margin:0;background:#888}svg{display:block;background:#fff;margin:0 auto 10px;page-break-after:always}@media print{body{background:#fff}svg{margin:0}}</style></head><body>${pages.map(q => q.svg).join('\n')}<script>setTimeout(()=>print(),700)<\/script></body></html>`); win.document.close();
+    C.log(`${pages.length} Elektrik paftası yazdırma penceresinde. Yazıcı olarak "PDF olarak kaydet" seçerseniz çok sayfalı PDF olur.`); }, { noUndo: true });
+  C.addCommand(['ELPAFTALISTESI', 'ELEKTRIKPAFTALISTESI'], 'Elektrik pafta listesi: Elektrik grubundaki paftalar — SIRA NO, PAFTA NO, PAFTA ADI, ÖLÇEK.', async (I) => { const def = C.cmds.PAFTALISTESI; if (!def) { C.warn('Pafta listesi modülü yüklenmemiş.'); return; } return def.fn(Object.assign({}, I, { str: async () => 'Elektrik' }), C); }, { noUndo: true });
 
-  /* ======================= ŞERİT ======================= */
-  const rib = () => { const R = C.ribbon; if (!R || !R.tabs || R.tabs.some(t => t[0] === 'Elektrik')) return !!(R && R.tabs); const B = (cmd, t, i) => ({ cmd, t, i, big: true }), s = (cmd, t, i) => ({ cmd, t, i });
-    const at = R.tabs.findIndex(t => t[0] === 'Mekanik'); R.tabs.splice(at < 0 ? R.tabs.length : at + 1, 0, ['Elektrik', [['Elektrik tesisatı', [B('ELEKTRIK', 'Elektrik paneli', 'menu'), B('ELEKTRIKYERLESTIR', 'Tesisatı yerleştir', 'dot'), s('ELEKTRIKSIL', 'Sil', 'prop')]], ['Pafta ve rapor', [B('ELEKTRIKPAFTA', 'Elektrik paftaları', 'print'), B('ELEKTRIKRAPOR', 'Rapor', 'calc'), s('ELEKTRIKDXF', 'Paftaları DXF kaydet', 'sheet'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]]]]);
-    try { R.render(); } catch (e) { } return true; };
-  { let n = 0; const t = setInterval(() => { try { if (rib() || ++n > 40) clearInterval(t); } catch (er) { clearInterval(t); } }, 300); }
+  /* ---- elle eleman ekleme: tıklanan noktaya; duvar cihazları en yakın mahal duvarına oturur ---- */
+  const ELEMAN = [['A', 'armatur', 'Armatür'], ['N', 'anahtar', 'Anahtar'], ['P', 'priz', 'Priz'], ['B', 'pano', 'Pano'], ['D', 'dedektor', 'Dedektör'], ['T', 'tlfpriz', 'Telefon prizi'], ['U', 'buton', 'Yangın butonu'], ['K', 'klakson', 'Klakson'], ['C', 'cubuk', 'Topraklama çubuğu']];
+  const DUVAR = new Set(['anahtar', 'priz', 'pano', 'tlfpriz', 'buton', 'klakson']), SYS = { armatur: 'ayd', anahtar: 'ayd', pano: 'ayd', priz: 'priz', dedektor: 'yng', buton: 'yng', klakson: 'yng', tlfpriz: 'tlf', cubuk: 'top' }, ZM = { anahtar: 1.1, priz: 0.4, pano: 1.5, tlfpriz: 0.4, buton: 1.4, klakson: 2.3 };
+  C.addCommand(['ELEKTRIKEKLE', 'ELEKLE', 'ELEMANEKLE'], 'Elektrik elemanı ekler (elle): armatür, anahtar, priz, pano, dedektör, telefon prizi, yangın butonu, klakson, topraklama çubuğu. Duvar elemanları tıkladığınız yere en yakın mahal duvarına oturur; linye numarası verirseniz yükleme cetveline girer.', async (I) => {
+    const k = await I.kw('Eleman', ELEMAN.map(q => [q[0], q[2]]), 'A'); if (!k) return; const kind = ELEMAN.find(q => q[0] === k)[1], AK = Object.keys(EL.ARMATUR);
+    let kod = null, tip = null; if (kind === 'armatur') { const v = await I.kw('Armatür', AK.map((a, i) => [String(i + 1), a]), '2'); kod = v ? AK[+v - 1] : null; if (!kod) return; }
+    if (kind === 'anahtar') tip = { N: 'normal', K: 'komutator', V: 'vaevien', E: 'etans' }[await I.kw('Anahtar', [['N', 'Normal'], ['K', 'Komütatör'], ['V', 'Vaevien'], ['E', 'Etanş']], 'N')] || 'normal';
+    if (kind === 'priz') tip = (await I.kw('Priz', [['T', 'Topraklı'], ['E', 'Etanş']], 'T')) === 'E' ? 'etans' : 'toprakli';
+    if (kind === 'dedektor') tip = (await I.kw('Dedektör', [['D', 'Duman'], ['I', 'Isı']], 'D')) === 'I' ? 'isi' : 'duman';
+    const linye = (kind === 'armatur' || kind === 'priz' || kind === 'anahtar') ? String(await I.str('Linye no (boş = cetvele girmez)', '') || '').trim() : '';
+    for (; ;) { const p = await I.pt(`${ELEMAN.find(q => q[0] === k)[2]} yeri (Enter = bitir)`); if (!p || typeof p === 'string') break;
+      const m = MT.mahaller().find(o => MT.inPoly([p[0], p[1]], o.pts)) || null, o = { layer: EL.lay('EYAZI'), dis: 'Elektrik', color: 256, kind, sys: SYS[kind], p: [p[0], p[1]], ang: 0, z0: m ? +m.z0 || 0 : 0, mid: m ? m.id : null };
+      if (kod) { o.kod = kod; o.W = EL.ARMATUR[kod].W; } if (tip) o.tip = tip; if (kind === 'priz') o.W = EL.PRIZ_W; if (ZM[kind] != null) o.zm = ZM[kind]; if (linye) o.linye = linye.padStart(2, '0'); if (kind === 'pano') o.kod = EL.set().pano;
+      if (DUVAR.has(kind) && m) { let bk = null, bd = Infinity; for (const y of m.yuz || []) { const d = M.segDist([p[0], p[1]], y.a, y.b); if (d < bd) { bd = d; bk = y; } }
+        if (bk) { const L2 = M.dist2(bk.a, bk.b) || 1, u = [(bk.b[0] - bk.a[0]) / L2, (bk.b[1] - bk.a[1]) / L2], s2 = Math.max(0, Math.min(L2, (p[0] - bk.a[0]) * u[0] + (p[1] - bk.a[1]) * u[1])), q = [bk.a[0] + u[0] * s2, bk.a[1] + u[1] * s2]; let n = [-u[1], u[0]]; if (!MT.inPoly([q[0] + n[0] * 0.05, q[1] + n[1] * 0.05], m.pts)) n = [-n[0], -n[1]]; o.p = q; o.ang = Math.atan2(u[1], u[0]); o.on = n; } }
+      C.undoStack.push(C.snapshot()); C.add(C.newEnt('elcihaz', o)); } });
+  C.addCommand(['ELHAT', 'ELEKTRIKHAT', 'LINYECIZ'], 'Elektrik hattı çizer (elle): L = aydınlatma linyesi, P = priz linyesi, T = topraklama iletkeni, F = telefon, Y = yangın alarm. Noktaları tıklayın, Enter = bitir.', async (I) => {
+    const k = await I.kw('Hat', [['L', 'Aydınlatma linyesi'], ['P', 'Priz linyesi'], ['T', 'Topraklama iletkeni'], ['F', 'Telefon hattı'], ['Y', 'Yangın alarm hattı']], 'L'); if (!k) return;
+    const sys = { L: 'ayd', P: 'priz', T: 'top', F: 'tlf', Y: 'yng' }[k], lay = { ayd: 'EHAT', priz: 'EHAT', top: 'TOPILET', tlf: 'TLF', yng: 'ETELYNG' }[sys], kablo = { ayd: '3x2.5 NYA', priz: '3x2.5 NYA', top: '30x3.5 Galvanizli Şerit', tlf: '1(1ç) PYCYM', yng: '2x1.5 JY(St)Y' }[sys];
+    const pts = []; for (; ;) { const p = await I.pt(pts.length ? `Sonraki nokta (${pts.length}, Enter = bitir)` : 'İlk nokta', {}); if (!p || typeof p === 'string') break; pts.push([p[0], p[1]]); } if (pts.length < 2) return;
+    const m = MT.mahaller().find(o => MT.inPoly(pts[0], o.pts)); C.undoStack.push(C.snapshot()); C.add(C.newEnt('elhat', { layer: EL.lay(lay), dis: 'Elektrik', color: 256, sys, pts, kablo, z0: m ? +m.z0 || 0 : 0, mid: m ? m.id : null })); });
+  C.addCommand(['ELEKTRIK3B', 'EL3B'], '3B görünümü Elektrik disiplinine geçirir: bina saydam, elektrik cihazları ve hatları tam görünür.', async () => { C.setView('3d'); if (C.dis3bSec) C.dis3bSec('ELEKTRIK'); }, { noUndo: true });
+
+  /* ======================= ŞERİT: "Elektrik" sekmesi (alt çubukta Elektrik grubuna tıklayınca da açılır) ======================= */
+  const PANEL = () => { const B = (cmd, t, i) => ({ cmd, t, i, big: true }), s = (cmd, t, i) => ({ cmd, t, i }), var_ = b => !!(C.cmds && C.cmds[b.cmd.split(' ')[0]]);
+    return [['Tesisat', [B('ELEKTRIK', 'Elektrik paneli', 'menu'), B('ELEKTRIKYERLESTIR', 'Tesisatı yerleştir', 'dot'), s('MAHALBUL', 'Mahal bul', 'dot'), s('MAHALCIZ', 'Elle mahal', 'prop'), s('ELEKTRIKSIL', 'Otomatik olanları sil', 'prop')]],
+      ['Eleman', [B('ELEKTRIKEKLE', 'Eleman ekle', 'dot'), s('ELEKTRIKEKLE A', 'Armatür', 'dot'), s('ELEKTRIKEKLE N', 'Anahtar', 'dot'), s('ELEKTRIKEKLE P', 'Priz', 'dot'), s('ELEKTRIKEKLE D', 'Dedektör', 'dot'), s('ELEKTRIKEKLE T', 'Telefon prizi', 'dot')]],
+      ['Hat', [B('ELHAT', 'Hat çiz', 'prop'), s('ELHAT L', 'Aydınlatma linyesi', 'prop'), s('ELHAT P', 'Priz linyesi', 'prop'), s('ELHAT T', 'Topraklama', 'prop'), s('ELHAT Y', 'Yangın alarm', 'prop')]],
+      ['Hesap ve rapor', [B('ELEKTRIKRAPOR', 'Rapor', 'calc'), s('ELEKTRIK', 'Aydınlatma hesabı', 'calc')]],
+      ['Pafta', [B('ELEKTRIKPAFTA T', 'Elektrik paftaları', 'print'), s('ELEKTRIKPAFTA A', 'Aydınlatma ve priz', 'prop'), s('ELEKTRIKPAFTA P', 'Topraklama', 'prop'), s('ELEKTRIKPAFTA Z', 'Telefon ve yangın', 'prop'), s('ELPAFTALISTESI', 'Pafta listesi', 'table'), s('PAFTAELLE', 'Elle düzeltildi (koru)', 'prop'), s('BOLGEDUZENLE', 'Bölgeleri düzenle', 'array')]],
+      ['Çıktı', [B('ELEKTRIKCIKTI', 'Çıktı al (PDF)', 'print'), B('ELEKTRIKDXF', 'Paftaları DXF kaydet', 'sheet'), s('DISIPLINDXF', 'Disiplin DXF dosyaları', 'sheet')]],
+      ['3B', [B('ELEKTRIK3B', '3B elektrik görünümü', 'iso'), s('PERSPEKTIFPAFTA', '3B görünüş paftaya', 'iso')]],
+      ['Antet ve stil', [s('ANTET YUKLE', 'Antet yükle', 'sheet'), s('PAFTASTIL', 'Pafta stili', 'prop')]]].map(([a, bs]) => [a, bs.filter(var_)]).filter(p => p[1].length); };
+  const rib = () => { const R = C.ribbon; if (!R || !Array.isArray(R.tabs) || !R.render) return false; let T2 = R.tabs.find(t => t[0] === 'Elektrik');
+    if (!T2) { const at = R.tabs.findIndex(t => t[0] === 'Mekanik'); T2 = ['Elektrik', []]; R.tabs.splice(at < 0 ? R.tabs.length : at + 1, 0, T2); }
+    T2[1] = PANEL(); try { R.render(); } catch (e) { } return true; };
+  /* geç yüklenen komutlar (ANTET, PAFTASTIL …) da düğme olsun diye birkaç kez kurulur */
+  { let n = 0, ok = 0; const t = setInterval(() => { try { if (rib()) ok++; if (ok >= 3 || ++n > 40) clearInterval(t); } catch (er) { clearInterval(t); } }, 700); }
 
   if (window.DIL) window.DIL.ekle('en', 'English', [
     ['AYDINLATMA VE PRİZ TESİSATI', 'LIGHTING AND SOCKET INSTALLATION'], ['TOPRAKLAMA PLANI', 'EARTHING PLAN'], ['TELEFON VE YANGIN ALARM TESİSATI', 'TELEPHONE AND FIRE ALARM INSTALLATION'], ['SEMBOLLER', 'SYMBOLS'], ['TOPRAKLAMA SEMBOLLERİ', 'EARTHING SYMBOLS'],
@@ -189,6 +235,6 @@
     ['Elektrik paneli', 'Electrical panel'], ['Tesisatı yerleştir', 'Place installation'], ['Elektrik paftaları', 'Electrical sheets'], ['Paftaları DXF kaydet', 'Save sheets as DXF'], ['Elektrik tesisatı', 'Electrical installation'], ['Pafta ve rapor', 'Sheets and report'], ['Rapor', 'Report'], ['Sil', 'Delete'],
     ['1 · Proje', '1 · Project'], ['2 · Mahaller ve aydınlatma', '2 · Rooms and lighting'], ['3 · Sonuç ve rapor', '3 · Results and report'], ['Pano adı', 'Panel name'], ['Besleyen pano', 'Feeding panel'], ['Besleyen bina', 'Feeding building'], ['Besleme kablo boyu (m)', 'Feeder cable length (m)'], ['Diversite (%)', 'Diversity (%)'], ['Yedek linye sayısı', 'Spare circuits'],
     ['Toprak özgül direnci ρ (Ωm)', 'Soil resistivity ρ (Ωm)'], ['Topraklama çubuğu (en az)', 'Earth rods (minimum)'], ['Bakım katsayısı MF', 'Maintenance factor MF'], ['Acil çıkış armatürü', 'Emergency exit luminaire'], ['Giriş kapısına dış aplik', 'Outdoor wall light at entrance'], ['Telefon + yangın alarm', 'Telephone + fire alarm'], ['Ek yükler (motorlu kapı, ısıtıcı, pompa …)', 'Additional loads (motorized gate, heater, pump …)'], ['+ Ek yük', '+ Load'],
-    ['Kurulu güç', 'Installed power'], ['Elektrik Tesisatı Raporu', 'Electrical Installation Report'],
+    ['Kurulu güç', 'Installed power'], ['Elektrik Tesisatı Raporu', 'Electrical Installation Report'], ['Tesisat', 'Installation'], ['Eleman', 'Element'], ['Hat', 'Line'], ['Hesap ve rapor', 'Calculation and report'], ['Pafta', 'Sheets'], ['Çıktı', 'Output'], ['Eleman ekle', 'Add element'], ['Armatür', 'Luminaire'], ['Anahtar', 'Switch'], ['Priz', 'Socket'], ['Dedektör', 'Detector'], ['Telefon prizi', 'Telephone outlet'], ['Hat çiz', 'Draw line'], ['Aydınlatma linyesi', 'Lighting circuit'], ['Priz linyesi', 'Socket circuit'], ['Topraklama', 'Earthing'], ['Yangın alarm', 'Fire alarm'], ['Aydınlatma hesabı', 'Lighting calculation'], ['Aydınlatma ve priz', 'Lighting and sockets'], ['Telefon ve yangın', 'Telephone and fire'], ['Pafta listesi', 'Sheet list'], ['Çıktı al (PDF)', 'Print (PDF)'], ['3B elektrik görünümü', '3D electrical view'], ['3B görünüş paftaya', '3D view on sheet'], ['Otomatik olanları sil', 'Delete automatic ones'], ['Mahal bul', 'Find rooms'], ['Elle mahal', 'Manual room'],
   ]);
 })(typeof window !== 'undefined' ? window.C : null);
