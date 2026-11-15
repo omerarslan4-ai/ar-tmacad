@@ -74,6 +74,15 @@
     return { p: c.q, lines: [c], label, axis: ax, two: false };
   }
 
+  /* izleme sonucu ile imlecin altındaki yüz (f: { p, n }) birlikte: izleme noktası yüzün düzlemindeyse tr; değilse izleme çizgilerinden birinin
+     yüzü deldiği nokta (ekranda imlece 12 pikselden yakınsa) yeni sonuç olarak; hiçbiri uymuyorsa null (yüzey noktası kalır). Saf: project dışarıdan verilir. */
+  C.izleme3bYuzey = (tr, f, project, cur) => {
+    const n = M.norm(f.n), uzak = q => Math.abs(M.dot(M.sub(q, f.p), n)); if (uzak(tr.p) < 0.002) return tr;
+    let en = null;
+    for (const L of tr.lines || []) { const den = M.dot(L.u, n); if (Math.abs(den) < 1e-6) continue; const t = M.dot(M.sub(f.p, L.o), n) / den; if (t <= 1e-9) continue;
+      const X = M.add(L.o, M.mul(L.u, t)), s = project(X); if (!s) continue; const dd = Math.hypot(s[0] - cur[0], s[1] - cur[1]); if (dd < 12 && (!en || dd < en.dd)) en = { dd, X, L }; }
+    return en ? { p: en.X, lines: [en.L], label: 'Yüzeyde · hizada ' + en.L.lbl, axis: null, two: false } : null;
+  };
   const pa0 = P3.pointAt;
   P3.pointAt = function (sx, sy) {
     const p = pa0.call(this, sx, sy); this.track = null; const E = C.cmd;
@@ -82,6 +91,13 @@
     let tr = null; try { tr = solve(this, sx, sy, p); } catch (er) { tr = null; }
     if (!tr) return p;
     if (!tr.two && this.axisHit != null) return p; // tek çizgi: mevcut eksen çıkarımı (kırmızı / yeşil / mavi) yeterli
+    /* imleç bir yüzün (perde, döşeme …) üstündeyse nokta o yüzde kalmalıdır: izleme noktası yüzün düzleminde değilse
+       izleme çizgisinin yüzü deldiği yer alınır (imlece yakınsa); o da yoksa yüzey noktası olduğu gibi kalır */
+    let yuz = this.faceHit || (E.plane3 && E.plane3.o && E.plane3.n ? { p: E.plane3.o, n: E.plane3.n } : null); /* komut bir düzlemde çiziyorsa (yüzeye dikdörtgen / daire) o düzlem */
+    if (!yuz && this.plane === 'OTO' && st.snapKinds.face !== false) yuz = this.pick(sx, sy); /* eksen çıkarımı yüzey noktasının yerini almış olabilir: imlecin altındaki yüz yine de geçerlidir */
+    if (yuz) { const yer = C.izleme3bYuzey(tr, yuz, q => this.project(q), [sx, sy]);
+      if (!yer) return p;
+      if (yer !== tr) { this.track = yer; this.axisHit = null; this.alignRef = null; this.inferTag = yer.label; return yer.p; } }
     this.track = tr; this.axisHit = tr.axis; this.faceHit = null; this.alignRef = null; this.inferTag = tr.label;
     return tr.p;
   };

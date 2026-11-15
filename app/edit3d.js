@@ -237,7 +237,8 @@
       let def = C.doc.blocks[e.ref]; const users = C.doc.ents.filter(x => x.type === 'blk' && x.ref === e.ref).length;
       if (users > 1 || !def._esnek) { const nd = JSON.parse(JSON.stringify(def)); nd.id = def.id + '_E' + Date.now().toString(36).slice(-4); nd.name = def.name + ' (esnetilmiş)'; nd._esnek = true; C.doc.blocks[nd.id] = nd; e.ref = nd.id; def = nd; }
       const R = blkMat(e), Ri = inv3(R), p = M.p3(e.p); if (!Ri) return false;
-      def.mesh3d.v = W.map(w => { const l = mv(Ri, M.sub(w, p)); return [Math.round(l[0] * 1e5) / 1e5, Math.round(l[1] * 1e5) / 1e5, Math.round(l[2] * 1e5) / 1e5]; });
+      /* gövde yerinde değiştirilmez, yenisi konur: geri alma kopyası eski gövdeyi nesne olarak saklar (app/blok-hafif.js) */
+      def.mesh3d = Object.assign({}, def.mesh3d); def.mesh3d.v = W.map(w => { const l = mv(Ri, M.sub(w, p)); return [Math.round(l[0] * 1e5) / 1e5, Math.round(l[1] * 1e5) / 1e5, Math.round(l[2] * 1e5) / 1e5]; });
       const z0 = Math.min(...def.mesh3d.v.map(q => q[2])); void z0;
       const h = hull2(def.mesh3d.v); if (h.length >= 3) def.ents = [{ type: 'pline', layer: '0', color: 0, lt: 'BYBLOCK', lw: -2, pts: h.map(q => [q[0], q[1], 0]), closed: true }];
       if (C.defBox) def.bb = C.defBox(def); let bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; for (const q of def.mesh3d.v) for (let i = 0; i < 3; i++) { bb[i] = Math.min(bb[i], q[i]); bb[i + 3] = Math.max(bb[i + 3], q[i]); } def.dims = [0, 1, 2].map(i => Math.round((bb[i + 3] - bb[i]) * 1e4) / 1e4);

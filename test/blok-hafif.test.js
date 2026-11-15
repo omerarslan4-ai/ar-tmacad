@@ -32,4 +32,11 @@ t('kullanılmayan blok: adı nesnede, ayarda, paftada ya da kullanılan başka b
   assert.deepStrictEqual(kullanilmayan({ ents: [], blocks: {} }), []);
   assert.deepStrictEqual(kullanilmayan({ ents: [{ type: 'insert', ref: 'POMPA_2' }], blocks: { POMPA: { id: 'POMPA', ents: [] } } }), ['POMPA']); // ad başka bir adın parçasıysa kullanım sayılmaz
 });
+t('gövdeyi değiştiren kod yenisini koymalıdır: eski kopya eski gövdeyi geri getirir (3B esnetme, edit3d.js)', () => {
+  const B = { POMPA: { id: 'POMPA', dims: [1, 1, 1], mesh3d: { v: [[0, 0, 0], [1, 0, 0]], f: [0, 1, 0] } } }, kayit = kayitYap(), once = JSON.stringify(hafiflet(B, kayit));
+  B.POMPA.mesh3d = Object.assign({}, B.POMPA.mesh3d); B.POMPA.mesh3d.v = [[0, 0, 0], [5, 0, 0]]; B.POMPA.dims = [5, 1, 1]; // esnetme
+  const geri = geriKoy(JSON.parse(once), kayit); assert.deepStrictEqual(geri.POMPA.mesh3d.v, [[0, 0, 0], [1, 0, 0]]); assert.deepStrictEqual(geri.POMPA.dims, [1, 1, 1]);
+  const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'app', 'edit3d.js'), 'utf8').split('def.mesh3d = Object.assign({}, def.mesh3d); def.mesh3d.v = ').join('');
+  assert.ok(!src.includes('mesh3d.v = ') && !src.includes('mesh3d.f = '), 'edit3d.js gövdeyi yerinde değiştiriyor');
+});
 console.log(`\n${n} test geçti.`);
