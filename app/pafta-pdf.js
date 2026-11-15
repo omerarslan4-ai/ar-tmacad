@@ -377,13 +377,18 @@
       rq.onsuccess = () => { try { const tx = rq.result.transaction('t', ne === 'yaz' ? 'readwrite' : 'readonly'), st = tx.objectStore('t'), r = ne === 'yaz' ? st.put(deger, 'klasor') : st.get('klasor'); r.onsuccess = () => res(ne === 'yaz' ? true : r.result || null); r.onerror = () => res(null); } catch (e) { res(null); } };
     } catch (e) { res(null); }
   });
-  const klasorSec = async () => { try { const d = await window.showDirectoryPicker({ id: 'aritmacad-pdf', mode: 'readwrite' }); await idb('yaz', d); return d; } catch (e) { return null; } };
+  const klasorSec = async () => { try { const d = await window.showDirectoryPicker({ id: 'aritmacad-pdf', mode: 'readwrite' }); await idb('yaz', d); return d; } catch (e) { if (!(e && e.name === 'AbortError')) C.warn(tr('Klasör seçilemedi') + ': ' + (e && e.message || e)); return null; } };
   /* izin: düğme tıklamasının içinde sorulur (tarayıcı kuralı) */
   const klasorIzin = async d => { try { if ((await d.queryPermission({ mode: 'readwrite' })) === 'granted') return true; return (await d.requestPermission({ mode: 'readwrite' })) === 'granted'; } catch (e) { return false; } };
 
   /* dosyaları kaydet: seçilen klasöre doğrudan; klasör yoksa tek dosya → kaydet penceresi, çok dosya → klasör seç; bu tarayıcıda hiçbiri yoksa indir */
   const kaydet = async (dosyalar, klasor) => {
-    if (klasor) { for (const d of dosyalar) { const fh = await klasor.getFileHandle(d.ad + '.pdf', { create: true }), w = await fh.createWritable(); await w.write(d.bayt); await w.close(); } return tr('klasör') + ': ' + klasor.name; }
+    if (klasor) { // yazılamayan dosya (klasör taşınmış, dosya başka programda açık) kaybolmasın: indirilir
+      const kalan = [];
+      for (const d of dosyalar) { try { const fh = await klasor.getFileHandle(d.ad + '.pdf', { create: true }), w = await fh.createWritable(); await w.write(d.bayt); await w.close(); } catch (e) { C.warn(`${d.ad}.pdf ${tr('klasöre yazılamadı, indiriliyor')} (${e && e.message || e})`); kalan.push(d); } }
+      for (const d of kalan) { C.download(new Blob([d.bayt], { type: 'application/pdf' }), d.ad + '.pdf'); await new Promise(r => setTimeout(r, 350)); }
+      return tr('klasör') + ': ' + klasor.name + (kalan.length ? ` (${kalan.length} ${tr('dosya')} → ${tr('İndirilenler')})` : '');
+    }
     if (dosyalar.length > 1 && window.showDirectoryPicker) {
       let dir = null; try { dir = await window.showDirectoryPicker({ id: 'aritmacad-pdf', mode: 'readwrite' }); } catch (e) { if (e && e.name === 'AbortError') return 'iptal'; dir = null; }
       if (dir) { for (const d of dosyalar) { const fh = await dir.getFileHandle(d.ad + '.pdf', { create: true }), w = await fh.createWritable(); await w.write(d.bayt); await w.close(); } return tr('klasör') + ': ' + dir.name; }
