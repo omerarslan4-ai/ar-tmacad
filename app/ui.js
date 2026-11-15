@@ -562,6 +562,7 @@
     $('#propSub').textContent = 'Düzen: ' + L.name;
     const f = L.f || (L.f = {});
     const tf = [['proje', 'Proje'], ['baslik', 'Pafta adı'], ['cizen', 'Çizen'], ['kontrol', 'Kontrol'], ['onay', 'Onay'], ['tarih', 'Tarih'], ['no', 'Pafta no'], ['rev', 'Revizyon'], ['firma', 'Firma / kurum'], ['olcekElle', 'Ölçek (elle; boş = otomatik)']];
+    tf.push(['unite', 'Ünite kodu (boş = başlıktan)'], ['yapi', 'Yapı adı (boş = başlıktan)'], ['sira', 'Sıra no (boş = otomatik)'], ['cizimNo', 'Çizim no (elle; boş = şablondan)']); // antet alanları (antet-alan.js, 15.11.2026)
     b.innerHTML = `<h4>Düzen (pafta)</h4>${fld('name', 'Ad', L.name)}
       <div class="fld"><label>Kağıt</label><select data-k="size">${Object.keys(C.PAPER).map(z => `<option ${z === L.size ? 'selected' : ''}>${z}</option>`).join('')}</select></div>
       <div class="fld"><label>Yön</label><select data-k="orient"><option value="L" ${L.orient !== 'P' ? 'selected' : ''}>Yatay</option><option value="P" ${L.orient === 'P' ? 'selected' : ''}>Dikey</option></select></div>

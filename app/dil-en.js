@@ -444,3 +444,27 @@
     ['Pafta yok. Önce bölümün paftalama komutunu çalıştırın (ör. MIMARIPAFTA, TESISATPAFTA, ELEKTRIKPAFTA).', 'No sheets. First run the section\'s sheet command (e.g. MIMARIPAFTA, TESISATPAFTA, ELEKTRIKPAFTA).'],
   ]);
 })();
+/* ANTET ALANLARI (antet-alan.js ANTET ALANLAR / ANTETBILGI, 15.11.2026): pencereler, şerit düğmeleri, alan adları ve iletiler */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['Antet alanları', 'Title block fields'], ['Antet alanları…', 'Title block fields…'], ['Antet bilgileri', 'Title block info'], ['Proje antet bilgileri', 'Project title block info'], ['Proje antet bilgileri…', 'Project title block info…'],
+    ['Antet alanları (otomatik dolan yazılar)…', 'Title block fields (auto-filled texts)…'],
+    ['Antetteki her yazı için ne yazılacağını seçin. "Sabit" yazı olduğu gibi kalır; bir alan seçilen yazı her paftada o paftanın değeriyle dolar. Önerilen alanlar seçili gelir — kontrol edip kaydedin.', 'Choose what each text of the title block shows. "Fixed" text stays as it is; a text linked to a field is filled on every sheet with that sheet\'s value. Suggested fields are preselected — check them and save.'],
+    ['Antetteki yazı', 'Title block text'], ['Boy (mm)', 'Height (mm)'], ['Alan', 'Field', 'satir'], ['Örnek', 'Example', 'satir'], ['Önerileri seç', 'Use suggestions'], ['Hepsini sabit yap', 'Make all fixed'],
+    ['Sabit (değişmez)', 'Fixed (unchanged)'], ['Ölçek', 'Scale', 'satir'], ['Tarih', 'Date', 'satir'], ['Ünite kodu', 'Unit code'], ['Ünite kodu (tiresiz)', 'Unit code (without hyphen)'], ['Yapı adı', 'Building name'],
+    ['Pafta adı', 'Sheet title'], ['Başlık (yapı — pafta adı)', 'Title (building — sheet title)'], ['Disiplin kodu', 'Discipline code'], ['Disiplin adı (proje dilinde)', 'Discipline name (project language)'],
+    ['Disiplin adı (Türkçe)', 'Discipline name (Turkish)'], ['Disiplin adı (İngilizce)', 'Discipline name (English)'], ['Çizim no', 'Drawing no.'], ['Pafta no', 'Sheet no.'], ['Sıra no (disiplin içinde)', 'Serial no. (within discipline)'],
+    ['Revizyon', 'Revision', 'satir'], ['Proje adı', 'Project name'], ['Proje kodu', 'Project code'], ['Firma', 'Company', 'satir'], ['Firma kodu', 'Company code'], ['İşveren', 'Employer', 'satir'], ['Yüklenici', 'Contractor', 'satir'],
+    ['Sözleşme no', 'Contract no.'], ['Çizen', 'Drawn', 'satir'], ['Kontrol', 'Checked', 'satir'], ['Onay', 'Approved', 'satir'], ['Kâğıt boyutu', 'Paper size'],
+    ['Ünite kodu (pafta başlığında yoksa)', 'Unit code (if not in the sheet title)'], ['Tarih (boş = bugün)', 'Date (empty = today)'], ['Çizim no şablonu', 'Drawing no. template'],
+    ['Bu bilgiler bütün paftaların antetine yazılır. Bir paftanın kendi değeri (pafta özelliklerinde) varsa o kullanılır.', 'This information is written into the title block of every sheet. A sheet\'s own value (in the sheet properties) takes precedence.'],
+    ['Şablonda sabit yazı ve alanlar birlikte yazılır, ör.', 'The template combines fixed text and fields, e.g.'], ['Alanlar', 'Fields', 'satir'], ['Disiplin kodları', 'Discipline codes'], ['Pafta grubu', 'Sheet group'], ['Kod', 'Code', 'satir'],
+    ['Türkçe ad', 'Turkish name'], ['İngilizce ad', 'English name'],
+    ['Önce ANTET YUKLE ile kendi antetinizi yükleyin.', 'First load your own title block with ANTET YUKLE.'], ['Antet alanları kaydedildi', 'Title block fields saved'], ['yazı alana bağlı', 'text(s) linked to fields'], ['değişti', 'changed', 'satir'],
+    ['Paftalarda kendiliğinden dolar; proje bilgileri için ANTETBILGI.', 'They are filled on the sheets automatically; for project information use ANTETBILGI.'],
+    ['Proje antet bilgileri kaydedildi; paftaların antetleri güncellendi.', 'Project title block info saved; the sheets\' title blocks were updated.'],
+    ['Ünite kodu (boş = başlıktan)', 'Unit code (empty = from title)'], ['Yapı adı (boş = başlıktan)', 'Building name (empty = from title)'], ['Sıra no (boş = otomatik)', 'Serial no. (empty = automatic)'], ['Çizim no (elle; boş = şablondan)', 'Drawing no. (manual; empty = from template)'],
+  ]);
+})();

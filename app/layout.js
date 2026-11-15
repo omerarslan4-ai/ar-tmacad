@@ -49,7 +49,8 @@
     const tb = C.doc.set.titleBlock || C.defaultTitleBlock;
     if (!tb || !tb.ents || !tb.ents.length) return def;
     const { w, h } = C.paperSize(L), fr = C.layoutFrame(L), f = L.f || {};
-    const vals = { PROJE: f.proje, BASLIK: f.baslik, PAFTAADI: f.baslik, CIZEN: f.cizen, KONTROL: f.kontrol, ONAY: f.onay, TARIH: f.tarih || new Date().toLocaleDateString('tr-TR'), OLCEK: scaleTxt(L), NO: f.no, PAFTANO: f.no, PAFTA_NO: f.no, REV: f.rev, REVIZYON: f.rev, FIRMA: f.firma, KAGIT: L.size, DOSYA: C.doc.set.name, DUZEN: L.name };
+    /* alan değerleri antet-alan.js'den (disiplin kodu, ünite, yapı, pafta adı, çizim no …; 15.11.2026); o yoksa eski liste */
+    const vals = C.antetDegerleri ? C.antetDegerleri(L, { olcek: scaleTxt(L) }) : { PROJE: f.proje, BASLIK: f.baslik, PAFTAADI: f.baslik, CIZEN: f.cizen, KONTROL: f.kontrol, ONAY: f.onay, TARIH: f.tarih || new Date().toLocaleDateString('tr-TR'), OLCEK: scaleTxt(L), NO: f.no, PAFTANO: f.no, PAFTA_NO: f.no, REV: f.rev, REVIZYON: f.rev, FIRMA: f.firma, KAGIT: L.size, DOSYA: C.doc.set.name, DUZEN: L.name };
     const sub = t => String(t).replace(/\{([^}]+)\}/g, (m, k) => { const v = vals[C.up(k).replace(/[^A-Z_]/g, '')]; return v == null ? '' : v; });
     let sc = 1, dx, dy; const bw = tb.bb[2] - tb.bb[0];
     if (tb.full) { sc = w / bw; dx = -tb.bb[0] * sc; dy = -tb.bb[1] * sc; } else { dx = fr.x1 - tb.bb[2]; dy = fr.y0 - tb.bb[1]; }
@@ -239,8 +240,10 @@
     win.document.close();
     C.log(`${L.name} (${L.size}) yazdırma penceresinde. "PDF olarak kaydet" seçip kağıt boyutunu ${L.size}, kenar boşluğunu "Yok" yapın.`);
   };
-  C.addCommand(['ANTET', 'TITLEBLOCK'], 'Kendi antetiniz: ANTET YUKLE (DXF/DWG, mm, 1:1) | VARSAYILAN | SABITLE (yeni çizimlerde de kullan) | KALDIR', async (I) => {
-    const op = await I.kw('Seçenek', [['YUKLE', 'Yükle', 'LOAD'], ['SABITLE', 'Tüm çizimlerde kullan'], ['VARSAYILAN', 'Varsayılan antete dön'], ['KALDIR', 'Sabit anteti kaldır']], 'YUKLE');
+  C.addCommand(['ANTET', 'TITLEBLOCK'], 'Kendi antetiniz: ANTET YUKLE (DXF/DWG, mm, 1:1) | ALANLAR (antetteki yazıları alanlara bağla: ölçek, tarih, ünite, pafta adı, disiplin, çizim no …) | BILGI (proje antet bilgileri) | VARSAYILAN | SABITLE (yeni çizimlerde de kullan) | KALDIR', async (I) => {
+    const op = await I.kw('Seçenek', [['YUKLE', 'Yükle', 'LOAD'], ['ALANLAR', 'Alanlar', 'FIELDS'], ['BILGI', 'Proje antet bilgileri', 'INFO'], ['SABITLE', 'Tüm çizimlerde kullan'], ['VARSAYILAN', 'Varsayılan antete dön'], ['KALDIR', 'Sabit anteti kaldır']], 'YUKLE');
+    if (op === 'ALANLAR') { if (C.antetAlanPenceresi) C.antetAlanPenceresi(); return; }
+    if (op === 'BILGI') { if (C.antetBilgiPenceresi) C.antetBilgiPenceresi(); return; }
     if (op === 'YUKLE') {
       const f = await C.pickFile('.dxf,.dwg'); if (!f) return;
       let text; const nm = f.name.toLowerCase();
@@ -254,7 +257,10 @@
       ents = ents.map(e => { const o = C.cleanEnt(e); o.layer = '0'; if (o.color === 256) o.color = 7; return o; });
       const full = (bb[2] - bb[0]) > 250;
       C.doc.set.titleBlock = { ents, bb, full, name: f.name };
-      C.log(`Antet yüklendi: ${f.name} (${M.fmt(bb[2] - bb[0], 0)}×${M.fmt(bb[3] - bb[1], 0)} mm, ${full ? 'tam pafta çerçevesi — kağıda sığdırılır' : 'sağ alt köşeye yerleşir'}). Yazılarda {PROJE} {BASLIK} {CIZEN} {KONTROL} {ONAY} {TARIH} {OLCEK} {NO} {REV} {FIRMA} alanları otomatik doldurulur.`);
+      const ole = (text.match(/\n\s*0\r?\n(OLE2FRAME|OLEFRAME|IMAGE)\r?\n/g) || []).length; // logolar: resim olarak gömülü, alınmaz
+      C.log(`Antet yüklendi: ${f.name} (${M.fmt(bb[2] - bb[0], 0)}×${M.fmt(bb[3] - bb[1], 0)} mm, ${full ? 'tam pafta çerçevesi — kağıda sığdırılır' : 'sağ alt köşeye yerleşir'}). Yazılarda {PROJE} {BASLIK} {CIZEN} {KONTROL} {ONAY} {TARIH} {OLCEK} {NO} {REV} {FIRMA} alanları otomatik doldurulur; antetteki yazıları alanlara bağlamak için açılan pencereyi kontrol edin (sonradan: ANTET ALANLAR).`);
+      if (ole) C.warn(`Antette ${ole} logo resim olarak gömülü (OLE / resim); bunlar alınmadı. Logoları çizgi olarak (ör. AutoCAD'de patlatıp ya da yeniden çizip) kaydederseniz antetle gelir.`);
+      C.changed(); C.emit('layouts'); if (C.antetAlanPenceresi) setTimeout(() => C.antetAlanPenceresi(), 0);
     } else if (op === 'SABITLE') { const tb = C.doc.set.titleBlock; if (!tb) { C.warn('Önce ANTET YUKLE ile antet yükleyin.'); return; } localStorage.setItem('aritmacad.titleblock', JSON.stringify(tb)); C.defaultTitleBlock = tb; C.log('Bu antet artık tüm yeni çizimlerde kullanılacak.'); }
     else if (op === 'VARSAYILAN') { C.doc.set.titleBlock = null; C.defaultTitleBlock = null; C.log('Bu çizimde varsayılan antet kullanılıyor.'); }
     else { localStorage.removeItem('aritmacad.titleblock'); C.defaultTitleBlock = null; C.log('Sabit antet kaldırıldı.'); }
