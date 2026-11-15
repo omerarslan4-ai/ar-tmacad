@@ -187,9 +187,11 @@
 
   /* ---------- Geri al / Yinele ---------- */
   const clean = e => { const o = {}; for (const k in e) if (k[0] !== '_') o[k] = k === 'parts' && Array.isArray(e[k]) ? e[k].map(clean) : e[k]; return o; };
-  C.snapshot = () => JSON.stringify({ ents: C.doc.ents.map(clean), layers: C.doc.layers, cur: C.doc.cur, set: C.doc.set, nextId: C.doc.nextId, layouts: C.doc.layouts || [], blocks: C.doc.blocks || {}, styles: C.doc.styles || null });
+  /* tam = true: kalıcı kayıt için eksiksiz kopya. Varsayılan (geri alma kopyası): blokların büyük 3B gövdesi yazılmaz, numarası yazılır (app/blok-hafif.js) */
+  C.snapshot = (tam) => JSON.stringify({ ents: C.doc.ents.map(clean), layers: C.doc.layers, cur: C.doc.cur, set: C.doc.set, nextId: C.doc.nextId, layouts: C.doc.layouts || [], blocks: !tam && C.blokKopyaHafif ? C.blokKopyaHafif(C.doc.blocks || {}) : (C.doc.blocks || {}), styles: C.doc.styles || null });
   C.restore = function (s) {
     const o = JSON.parse(s);
+    if (o.blocks && C.blokKopyaGeri) C.blokKopyaGeri(o.blocks); /* hafif kopyadaki 3B gövde numaraları gövdelere çevrilir */
     Object.assign(C.doc, o); if (!C.doc.layouts) C.doc.layouts = []; if (!C.doc.blocks) C.doc.blocks = {}; if (!C.doc.styles) delete C.doc.styles;
     C.sel = [];
     C.changed();

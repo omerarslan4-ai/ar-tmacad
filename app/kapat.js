@@ -14,7 +14,7 @@
   /* ---------- kurtarma kopyası (IndexedDB + localStorage) ---------- */
   const DB = 'aritmacad-kurtarma';
   const idb = (mode, fn) => new Promise((res, rej) => { const r = indexedDB.open(DB, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onerror = () => rej(r.error); r.onsuccess = () => { const db = r.result, tx = db.transaction('kv', mode), st = tx.objectStore('kv'); const q = fn(st); tx.oncomplete = () => { db.close(); res(q && q.result); }; tx.onerror = () => { db.close(); rej(tx.error); }; }; });
-  const pack = () => ({ name: C.doc.set.name, time: Date.now(), n: C.doc.ents.length, snap: C.snapshot() });
+  const pack = () => ({ name: C.doc.set.name, time: Date.now(), n: C.doc.ents.length, snap: C.snapshotTam ? C.snapshotTam() : C.snapshot(true) }); /* kalıcı kayıt: tam kopya, kullanılmayan kütüphane blokları olmadan */
   C.saveRecovery = (sync) => {
     if (!C.isDirty()) return;
     const rec = pack();

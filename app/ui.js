@@ -1047,7 +1047,7 @@
   $('#btnLoadPlugin').onclick = async () => { const f = await pickFile('.js,.txt'); if (f) proposePlugin(await f.text()); };
 
   /* ---------------- otomatik kayıt ---------------- */
-  C.on('changeIdle', () => { try { const s = C.snapshot(); if (s.length < 4.5e6) localStorage.setItem('aritmacad.autosave', s); } catch (e) { } });
+  C.on('changeIdle', () => { try { if (C.snapshot().length >= 4.5e6) return; /* önce hafif kopyayla boy denetimi: büyük çizimde tam kopya boşuna alınmaz */ const s = C.snapshotTam ? C.snapshotTam() : C.snapshot(true); if (s.length < 4.5e6) localStorage.setItem('aritmacad.autosave', s); } catch (e) { } });
 
   /* ---------------- yardım ---------------- */
   const HELP_HTML = `

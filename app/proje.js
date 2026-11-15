@@ -11,7 +11,7 @@
   const base = () => (C.doc.set.name || 'Adsiz').replace(/[\\/:*?"<>|]+/g, '_');
 
   /* =================== PROJE DOSYASI =================== */
-  const projText = () => JSON.stringify({ format: 'aritmacad-proje', v: 1, app: C.VERSION, kaydedildi: new Date().toISOString(), doc: JSON.parse(C.snapshot()) });
+  const projText = () => JSON.stringify({ format: 'aritmacad-proje', v: 1, app: C.VERSION, kaydedildi: new Date().toISOString(), doc: JSON.parse(C.snapshotTam ? C.snapshotTam() : C.snapshot(true)) }); /* tam kopya; çizimde kullanılmayan kütüphane blokları dosyaya yazılmaz */
   C.saveProject = async (as) => {
     let txt; try { txt = projText(); } catch (err) { C.warn('Proje kaydedilemedi: ' + err.message); return false; }
     const name = base() + '.aritma';
