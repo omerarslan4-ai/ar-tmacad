@@ -80,7 +80,8 @@ t('mekanik ekipman (firma kuralı 15.11.2026): ısıtıcı, split klima ve fan e
   assert.strictEqual(EL.kabloSec(25, false), '3x4 NYA');
   assert.strictEqual(EL.mekGuc({ type: 'mthv', kind: 'duvarfan', W: 40, no: 'AF1' }).ad, 'DUVAR TİPİ ASPİRATÖR AF1'); assert.strictEqual(EL.mekGuc({ type: 'mtarm', tip: 'termosifon', hacim: 80 }).W, 2000); assert.strictEqual(EL.mekGuc({ type: 'mtarm', tip: 'termosifon', hacim: 200 }).W, 3000);
   assert.strictEqual(EL.mekGuc({ type: 'mtarm', tip: 'camasir' }).W, 2200); assert.strictEqual(EL.mekGuc({ type: 'mtarm', tip: 'lavabo' }), null);
-  const mz = EL.mekMerkez({ kazan: { sistem: 'merkezi', adet: 1, QB: 40, pompaP: 120 }, chiller: { elek: 5, pompaP: 300 } }); assert.deepStrictEqual(mz.map(x => x.W), [100 + 120 + 50, 5300]); assert.strictEqual(EL.mekGuc(mz[1]).faz, 3);
+  const mz = EL.mekMerkez({ kazan: { sistem: 'merkezi', adet: 1, QB: 40, pompaP: 120 }, chiller: { elek: 5, pompaP: 300 } }); assert.deepStrictEqual(mz.map(x => x.W), [100 + 120 + 50, 5300]); assert.strictEqual(EL.mekMerkez({ kazan: { sistem: 'merkezi', adet: 2, QB: 206 } })[0].W, 2 * 309 + 50);
+  assert.strictEqual(EL.mekGuc({ type: 'mthv', kind: 'hucrefan', kW: 1.5, V: 5000 }).W, 1500); assert.strictEqual(EL.mekGuc({ type: 'mthv', kind: 'hucrefan', kW: 4, V: 9000 }).faz, 3); assert.strictEqual(EL.mekGuc({ type: 'mtrad', tip: 'E', Qn: 3650 }).faz, 3); assert.strictEqual(EL.mekGuc(mz[1]).faz, 3);
   assert.strictEqual(EL.mekMerkez({ kazan: { sistem: 'kombi', kombiAdet: 2 } })[0].W, 300);
   const r = EL.mekGuc({ type: 'mthv', kind: 'rooftop', Qs: 20, V: 4000 }); assert.strictEqual(r.W, Math.round(20000 / 3.2 + 160)); assert.strictEqual(r.faz, 3);
 });

@@ -155,11 +155,12 @@
      e: mekanik nesne (mtrad / mtfc / mthv) → { W (elektrik gücü), ad, faz, zm (besleme noktası yüksekliği, döşemeden m), tur } ya da null (elektriksiz)
      klima elektrik gücü = soğutma kapasitesi / EER (3,2) + 30 W fan; kaset fancoil 60 W (fan motoru); fan: katalog gücü (W) ya da 0,04 W/(m³/h), en az 30 W */
   EL.EER = 3.2;
+  EL.FAZ3 = 3600; // bu gücün üstü üç faz (mekanik modülle aynı eşik: mt-kalorifer.js "400 V 3~")
   EL.mekGuc = e => {
     if (!e) return null; let W = 0, ad = '', zm = 0.3;
     if (e.type === 'mtrad') { if (e.tip !== 'E') return null; W = +e.Qn || 0; ad = `ELEKTRİKLİ ISITICI ${e.no || ''} (${Math.round(W)} W)`; zm = 0.3; }
     else if (e.type === 'mtfc') { if (e.tip === 'split') { W = Math.round((+e.Qn || 0) / EL.EER) + 30; ad = `SPLIT KLİMA ${e.no || ''} (${((+e.Qn || 0) / 1000).toFixed(1).replace('.', ',')} kW SOĞUTMA)`; zm = (e.zm != null ? +e.zm : 2.2) + 0.1; } else { W = 60; ad = `FANCOIL ${e.no || ''}`; zm = 2.6; } }
-    else if (e.type === 'mthv') { if (!/fan$|rooftop/.test(e.kind || '')) return null; W = e.kind === 'rooftop' && +e.Qs > 0 ? Math.round(+e.Qs * 1000 / EL.EER + (+e.V || 0) * 0.04) /* rooftop: soğutma gücü / EER + fan */ : (+e.W || +e.P || Math.max(30, Math.round((+e.V || 0) * (e.kind === 'rooftop' ? 0.35 : 0.04)))); ad = `${({ duvarfan: 'DUVAR TİPİ ASPİRATÖR', kanalfan: 'KÜÇÜK ASPİRATÖR (KANAL / PENCERE TİPİ)', catifan: 'ÇATI TİPİ ASPİRATÖR', hucrefan: 'HÜCRELİ FAN (EGZOZ)', rooftop: 'ROOFTOP PAKET KLİMA' })[e.kind] || 'ASPİRATÖR'} ${e.no || ''}`; zm = 2.4; }
+    else if (e.type === 'mthv') { if (!/fan$|rooftop/.test(e.kind || '')) return null; W = e.kind === 'rooftop' && +e.Qs > 0 ? Math.round(+e.Qs * 1000 / EL.EER + (+e.V || 0) * 0.04) /* rooftop: soğutma gücü / EER + fan */ : (+e.kW > 0 ? Math.round(+e.kW * 1000) /* hücreli fan motoru (kW) */ : +e.W || +e.P || Math.max(30, Math.round((+e.V || 0) * (e.kind === 'rooftop' ? 0.35 : 0.04)))); ad = `${({ duvarfan: 'DUVAR TİPİ ASPİRATÖR', kanalfan: 'KÜÇÜK ASPİRATÖR (KANAL / PENCERE TİPİ)', catifan: 'ÇATI TİPİ ASPİRATÖR', hucrefan: 'HÜCRELİ FAN (EGZOZ)', rooftop: 'ROOFTOP PAKET KLİMA' })[e.kind] || 'ASPİRATÖR'} ${e.no || ''}`; zm = 2.4; }
     /* sıhhi tesisat: elektrikli termosifon (hacme göre), çamaşır ve bulaşık makinesi bağlantısı (özel priz) — mekanik envanter 15.11.2026 */
     else if (e.type === 'mtarm') { const hv = +e.hacim || 80;
       if (e.tip === 'termosifon') { W = hv <= 80 ? 2000 : hv <= 150 ? 2500 : 3000; ad = `ELEKTRİKLİ TERMOSİFON ${e.no || ''} (${hv} L)`; zm = 1.9; }
@@ -170,15 +171,15 @@
     else if (e.type === 'mtmerkez') { W = +e.W || 0; ad = e.ad || 'MEKANİK MERKEZ'; zm = 1.5; }
     else return null;
     if (!(W > 0)) return null;
-    return { W: Math.round(W), ad: ad.replace(/\s+/g, ' ').replace(' (', ' (').trim(), faz: W > 3680 ? 3 : 1, zm, tur: e.type };
+    return { W: Math.round(W), ad: ad.replace(/\s+/g, ' ').replace(' (', ' (').trim(), faz: W > EL.FAZ3 ? 3 : 1, zm, tur: e.type };
   };
 
   /* kazan dairesi / kombi ve chiller elektrik yükleri (mekanik hesaplardan; yerleri ilgili kolon noktası).
-     o: { kazan: { sistem 'merkezi'|'kombi', adet, QB (brülör kW toplam), pompaP (W), kombiAdet }, chiller: { elek (kW), pompaP (W) } } → [{ type:'mtmerkez', ad, W, sys }]
+     o: { kazan: { sistem 'merkezi'|'kombi', adet, QB (kazan başına brülör kW), pompaP (W), kombiAdet }, chiller: { elek (kW), pompaP (W) } } → [{ type:'mtmerkez', ad, W, sys }]
      brülör fan motoru ≈ 1,5 W/kW (en az 100 W, her kazan), pompa motoru hidrolik güç / verim (MT.pompaSec P), kumanda 50 W; kombi 150 W; chiller = soğutma kW / EER 3,0 + pompa */
   EL.mekMerkez = (o = {}) => { const out = [];
     if (o.kazan) { const k = o.kazan; if (k.sistem === 'kombi') { const n = Math.max(1, +k.kombiAdet || 1); out.push({ type: 'mtmerkez', sys: 'isi', ad: `KOMBİ (${n} AD.)`, W: 150 * n }); }
-      else { const n = Math.max(1, +k.adet || 1), br = n * Math.max(100, Math.round((+k.QB || 0) / n * 1.5)), pm = Math.round(+k.pompaP || 0); out.push({ type: 'mtmerkez', sys: 'isi', ad: `KAZAN DAİRESİ — ${n} BRÜLÖR, SİRKÜLASYON POMPASI, KUMANDA`, W: br + pm + 50, br, pm }); } }
+      else { const n = Math.max(1, +k.adet || 1), br = n * Math.max(100, Math.round((+k.QB || 0) * 1.5)) /* QB: kazan başına brülör gücü (kW) */, pm = Math.round(+k.pompaP || 0); out.push({ type: 'mtmerkez', sys: 'isi', ad: `KAZAN DAİRESİ — ${n} BRÜLÖR, SİRKÜLASYON POMPASI, KUMANDA`, W: br + pm + 50, br, pm }); } }
     if (o.chiller && +o.chiller.elek > 0) { const c = o.chiller, pm = Math.round(+c.pompaP || 0); out.push({ type: 'mtmerkez', sys: 'sog', ad: `CHILLER (${(+c.elek).toFixed(1).replace('.', ',')} kW ELEKTRİK) + SOĞUTMA POMPASI`, W: Math.round(+c.elek * 1000) + pm, pm }); }
     return out; };
 
