@@ -47,7 +47,7 @@
       if (ar.acil) { const w = sb('kutu') * 1.6, hh = sb('kutu') * 0.6; out.push(P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), S([F.P(-w / 2, 0), F.P(0, 0), F.P(0, hh), F.P(-w / 2, hh)]), yaziT(F.P(0, hh + C.annoH(mm('harfKucuk'))), C.annoH(mm('etiket')), 'ACİL', okunur(e.ang || 0), 'MC')); return out; }
       if (ar.dis) { const r = sb('anahtarR'); out.push(P(yay(F, 0, 0, r, 0, Math.PI), false), L(F.P(-r, 0), F.P(r, 0)), L(F.P(-r * 0.6, r * 0.2), F.P(r * 0.6, r * 0.8)), L(F.P(r * 0.6, r * 0.2), F.P(-r * 0.6, r * 0.8))); out.push(yaziT(F.P(0, -r * 1.6), C.annoH(mm('etiket')), e.kod, okunur(e.ang || 0), 'MC')); return out; }
       /* armatür gövdesi gerçek boyunda (1/50'de örnekteki 104 / 52 cm sembol = gövde boyu); ölçek değişince büyümez, duvara taşmaz */
-      const r50 = 50 / (+C.doc.set.anno || 50), Lb = ar.boy, w = sb('armaturEn') * r50 * (ar.etans ? 1.3 : 1), uc = sb('armaturUc') * r50;
+      const r50 = 50 / (+C.doc.set.anno || 50), Lb = ar.boy, w = sb('armaturEn') * r50 * (ar.etans ? (((K() && K().sembol) || {}).etansEnKat || 1) : 1), uc = sb('armaturUc') * r50;
       out.push(L(F.P(-Lb / 2, -w / 2), F.P(Lb / 2, -w / 2)), L(F.P(-Lb / 2, w / 2), F.P(Lb / 2, w / 2)), L(F.P(-Lb / 2, -uc / 2), F.P(-Lb / 2, uc / 2)), L(F.P(Lb / 2, -uc / 2), F.P(Lb / 2, uc / 2)), L(F.P(0, -w / 2), F.P(0, w / 2)), L(F.P(-w * 0.28, -w * 0.2), F.P(w * 0.28, -w * 0.2)));
       if (ar.etans) out.push(L(F.P(-w * 0.28, w * 0.2), F.P(w * 0.28, w * 0.2)));
       if (ar.led) { const d = Math.min(w * 0.35, Lb / 12); for (const s of [-Lb / 4, Lb / 4]) { out.push(L(F.P(s - d, -d), F.P(s + d, d)), L(F.P(s - d, d), F.P(s + d, -d))); } } /* LED işareti: gövdede iki çarpı */

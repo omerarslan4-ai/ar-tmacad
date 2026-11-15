@@ -26,7 +26,8 @@ Eski ad eşlemesi (tablo `esAd`): `ELKYAZI`, `ELK YAZI`, `E-YAZI`, `TLFPRIZ`, `Y
 Notlar:
 - BB-003'te yangın alarm hattı `ETELYNG` katmanında renk 7 idi; kâğıtta telefonla karışmasın diye kırmızı (1) ve kesikli yapıldı — bu bir kabuldür.
 - `SPDDOT` programda yok; yerine `DOT` kullanılır.
-- Nesneler rengini katmandan alır; **bütün yazılar sarı (2)** (linye numaraları, sembol içi harfler dahil) — örneklerde etiket ve tablo yazıları elle renk 2 verilmişti, sembol listesindeki açıklamalar da 2.
+- Nesneler rengini katmandan alır. **Bütün yazılar renk 7** (kâğıtta siyah; linye numaraları, sembol içi harfler, şema ve tablolar dahil). Örneklerde yazılar sarıydı (2); firma kuralı 15.11.2026: "paftalarda sarı renk kullanma, daha gözüken bir renk olsun". Şema / tablo / detay çizgileri de renk 7.
+- **Yazı maskesi** (15.11.2026, "yazılar kablo altında kalıyor"): her yazının arkası kâğıt renginde doldurulur (yazı çevresinde 0,6 mm boşluk, tablo `yaziMaske`); çizgiler yazının altından geçer. Hatlar cihazlardan, mimari altlık elektrikten önce çizilir. DXF'e maske yazılmaz.
 - Linye hattı örnekte 2,5 cm genişlikli çoklu çizgiydi; programda kalınlık katmandan (EHAT 0,35 mm) gelir.
 
 ## 3. Yazı
@@ -38,8 +39,8 @@ Notlar:
 ## 4. Semboller (cm, 1/50; kâğıtta ÷5 mm) — BB-002 semboller listesinden ölçüldü
 | Sembol | Biçim |
 | --- | --- |
-| Floresan armatür P-2×20W / U-2×20W | iki paralel çizgi 52 × 6,7, uçlarda 12,5 boyunda dik çizgi, ortada balast işareti |
-| Floresan armatür P-2×40W / U-2×40W | aynı, boy 104 |
+| LED armatür P-LED18W / P-LED36W (U-… etanş) | iki paralel çizgi, gövde gerçek boyunda (0,60 / 1,20 m; etanş 0,67 / 1,27 m), en 6,7 (etanşta 8,7), uçlarda 12,5 dik çizgi, ortada işaret; **gövdede iki çarpı = LED** |
+| (eski) floresan P-2×20W / P-2×40W | örnekteki biçim, boy 52 / 104 — eski dosyalarda kalır |
 | Aydınlatma tablosu (sıva altı) | 52 × 16,2 dikdörtgen, köşegen çizgili |
 | Normal / komütatör / vaevien anahtar | daire R 8, ortada nokta; 1, 2 ya da çapraz 2 kol |
 | Etanş anahtar | daire R 8, kol, içi dolu |
@@ -52,7 +53,7 @@ Notlar:
 
 Örnekteki "metesan priz panosu" sembolü bekçi binasında kullanılmadığı için programa alınmadı.
 
-Armatür sembolü gövdenin gerçek boyudur (1,04 / 0,52 m); her ölçekte gerçek boyda çizilir, duvara taşmaz. Öbür semboller açıklama ölçeğiyle büyür (1/50'de tablodaki boy).
+Armatür sembolü gövdenin gerçek boyudur (LED: 1,20 / 0,60 m; etanş 1,27 / 0,67 m); her ölçekte gerçek boyda çizilir, duvara taşmaz. Öbür semboller açıklama ölçeğiyle büyür (1/50'de tablodaki boy).
 
 Programda semboller blok değil, Çorlu paftalarında olduğu gibi çizgilerden oluşur.
 
@@ -78,3 +79,24 @@ altında KURULU GÜÇ (W) · DİVERSİTE % · İŞLETME GÜCÜ (W).
 - Gerilim düşümü hesabı (besleme ve linyeler), topraklama direnci hesabı, kaçak akım seçimi.
 - Kapı üstüne acil çıkış armatürü, giriş kapısı dışına etanş aplik.
 - Rapor (Çorlu raporunda bekçi binasına ait bölüm yok).
+
+## 9. LED armatürler (firma kuralı 15.11.2026: "aydınlatmalar LED olsun, bunu belirt")
+| Kod | Tanım | Güç | Işık akısı | Renk | IP | Gövde |
+| --- | --- | --- | --- | --- | --- | --- |
+| P-LED18W | LED lineer armatür | 18 W | 2.150 lm | 4000 K, Ra ≥ 80 | IP40 | sıva üstü alüminyum, opal difüzör 600×70×50 |
+| P-LED36W | LED lineer armatür | 36 W | 4.300 lm | 4000 K, Ra ≥ 80 | IP40 | sıva üstü alüminyum, opal difüzör 1200×70×50 |
+| U-LED18W | LED etanş armatür | 18 W | 2.000 lm | 4000 K | IP65 | polikarbonat 670×90×80 |
+| U-LED36W | LED etanş armatür | 36 W | 4.000 lm | 4000 K | IP65 | polikarbonat 1270×90×80 |
+| ACİL | LED acil çıkış armatürü | 3 W | 150 lm | 6500 K | IP42 | 3 saat akülü, "ÇIKIŞ" etiketli |
+| APLİK | LED etanş duvar apliği | 15 W | 1.500 lm | 4000 K | IP65 | alüminyum döküm, fotoselli |
+Seçim: alan > 12 m² → 36 W, değilse 18 W; ıslak hacim → U (etanş). Lejantta ve armatür listesinde kod, güç, ışık akısı, renk sıcaklığı, Ra, IP ve ömür (50.000 saat L70) yazılır.
+
+## 10. Paftalardaki detaylar (firma kuralı 15.11.2026: "bolca detay, perspektif detaylandırma, standart çizim kurallarına göre")
+Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince çizgi + yatay çizgi + yazı, ucunda dolu ok), ölçüler mm, başlık 4 mm altı çizili, altında "ÖLÇEKSİZ".
+- **Aydınlatma ve priz paftası:** aydınlatma hesap tablosu, LED armatür listesi, LED armatür montaj detayı (perspektif), montaj yükseklikleri (duvar görünüşü 1/25: priz +0,40, anahtar +1,10, pano alt kenarı +1,50, buton +1,40, TDK +1,80, acil +2,25), tek hat şeması, yükleme cetveli, semboller, notlar (LED notu dahil), 3B görünüş.
+- **Topraklama paftası:** topraklama hesap tablosu (ρ, D, Rh, Rç, çubuk sayısı, toplam R, dokunma gerilimi, şerit boyu), topraklama barası TB-1 perspektif detayı (400×40×5 Cu kalaylı, epoksi mesnet izolatörleri, M10 paslanmaz civatalar, bağlanan iletkenler: pano PE 16 mm², kablo tavası 16 mm², eş potansiyel 6 mm², santral 6 mm², temelden 30×3,5 filiz), temel topraklaması perspektif detayı (beton içinde kenarı üzerinde halka şerit, ≥ 5 cm örtü, mesafe tutucu her 2 m, 1,5 m filiz, Ø20 L = 3 m çubuk, 300×300 muayene kutusu), şerit ek detayı (≥ 10 cm bindirme, 60×60 çapraz klemens 4×M10), semboller, notlar, 3B görünüş.
+- **Telefon ve yangın alarm paftası:** dedektör montaj detayı (perspektif; duvar ve armatürden ≥ 0,5 m, kapsama 60 / 30 m²), semboller, notlar, 3B görünüş.
+
+## 11. Yerleşim kuralları (kullanıcı uyarılarından)
+- Armatür ve dedektör oda içinde, merkezi duvardan ≥ 0,5 m, armatür uçları ≥ 0,25 m (15.11.2026: "lamba duvarın içine girmiş").
+- Topraklama barası panonun hemen altında, bitmiş döşemeden +0,30 m; kapı / pencere önüne konmaz (15.11.2026: "topraklama barası kapının önünde"). Pano, TDK, FJB, buton: kapı ve pencere boşluğundan ve birbirinden uzak, en yakın boş duvar (aynı duvarda yer yoksa mahalin öbür duvarları).
