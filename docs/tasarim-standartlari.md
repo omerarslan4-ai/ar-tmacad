@@ -50,6 +50,7 @@ Program her yapının türünü modelden önerir (zeminin altında betonarme per
 - Disiplin paftalarında 3B perspektif görünüş bulunur; beton içindeki donatı 3B'de yalnız Statik disiplininde görünür.
 - Antet: çizimin değil, kullanıcının programa yüklediği kendi anteti kullanılır.
 - Antet sabit kısım + alanlardır; disiplin kodu paftanın disiplininden, ünite ve pafta adı paftadan, ölçek pencerelerden, çizim no proje şablonundan otomatik dolar; elle yazılmaz (15.11.2026). Antetteki yazılar ANTET ALANLAR ile alanlara bağlanır; proje bilgileri ve çizim no şablonu ANTETBILGI ile girilir.
+- Antetteki disiplin kodları (15.11.2026, kullanıcı onayladı): Mimari **AR** (Architectural), Statik **ST** (Structural), Mekanik **ME** (Mechanical), Elektrik **EL** (Electrical), Proses **PR** (Process), Genel **GN** (General). Proje gerektirirse ANTETBILGI'deki tablodan değiştirilir.
 - Pafta ölçeği bina ebatına göre seçilir (14.11.2026): plan ve kesitler önce 1/50 ile A0 ya da A1 paftaya yerleştirilir; sığıyorsa 1/50 kalır. Çizim paftada çok küçük kalıyorsa (1/50'de kullanılabilir alanın eninin ve boyunun %40'ından küçük; kullanıcı onayı 14.11.2026) 1/25, A0'a sığmayacak kadar büyükse 1/100 verilir. (Eski kural: terfi istasyonu mimari/mekanik plan ve kesitlerinde 1/25 — artık bu seçimin "çok küçük kalıyor" durumu.) Pafta sayısı kendiliğinden ayarlanır.
 - Boru etiketlerinde genel malzeme adı yerine malzeme kalitesi yazılır (ör. SS304, SS304L, SS316, SS316L; "PASLANMAZ" değil). Tüm boru tipleri için geçerli.
 - Ünite numaraları ünite eklenip çıkarıldıkça yeniden numaralanır.

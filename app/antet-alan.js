@@ -21,7 +21,7 @@
   const UP = s => asc(s).toUpperCase();
   const anahtar = k => UP(k).replace(/[^A-Z_]/g, ''); // {Ünite} → UNITE (layout.js titlePrims ile aynı)
 
-  /* disiplin tablosu: pafta grubu → { kod, tr, en }. Kodlar henüz kullanıcı onayında değil: proje ayarından değiştirilebilir. */
+  /* disiplin tablosu: pafta grubu → { kod, tr, en }. Kodlar kullanıcı onaylı (15.11.2026, tasarim-standartlari.md); proje ayarından değiştirilebilir. */
   const DISIPLIN_VARS = {
     Mimari: { kod: 'AR', tr: 'Mimari', en: 'Architectural' },
     Statik: { kod: 'ST', tr: 'Statik', en: 'Structural' },
