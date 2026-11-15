@@ -50,6 +50,7 @@ Notlar:
 | Yangın butonu, klakson (K), bağlantı kutusu (FJB) | kare 16 / daire R 8 içinde harf |
 | Telefon prizi, dağıtım kutusu (TDK 10ç) | üçgen / dikdörtgen içinde yazı |
 | Topraklama çubuğu, bara (TB) | daire R 10 + çarpı, dolu dikdörtgen 40 × 9,6 |
+| Mekanik cihaz beslemesi (ısıtıcı / klima / fan) | kare 16, içinde `M`, köşegen yarısı dolu; üstünde cihaz adı ve gücü, yanında linye no (15.11.2026) |
 
 Örnekteki "metesan priz panosu" sembolü bekçi binasında kullanılmadığı için programa alınmadı.
 
@@ -100,3 +101,9 @@ Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince �
 ## 11. Yerleşim kuralları (kullanıcı uyarılarından)
 - Armatür ve dedektör oda içinde, merkezi duvardan ≥ 0,5 m, armatür uçları ≥ 0,25 m (15.11.2026: "lamba duvarın içine girmiş").
 - Topraklama barası panonun hemen altında, bitmiş döşemeden +0,30 m; kapı / pencere önüne konmaz (15.11.2026: "topraklama barası kapının önünde"). Pano, TDK, FJB, buton: kapı ve pencere boşluğundan ve birbirinden uzak, en yakın boş duvar (aynı duvarda yer yoksa mahalin öbür duvarları).
+
+## 12. Mekanik ekipman beslemesi (firma kuralı 15.11.2026: "mekanik ekipmanları göz ardı etmeden projeye eklenmesi gerekiyor")
+- Mekanik tesisattaki her elektrikli cihaz (elektrikli ısıtıcı, split klima iç ünitesi, fancoil, fan, rooftop) için cihazın yanındaki en yakın boş duvara sigortalı bağlantı kutusu (`mekbes`) konur. Isıtıcıda +0,30 m, klimada iç ünite kotu, fanda +2,40 m.
+- Her cihaz panodan **kendi linyesiyle** beslenir: sigorta ≥ 16 A (1,25 × çalışma akımı), kablo sigortadan büyük akım taşıyan en küçük NYA (en az 2,5 mm²), 3,68 kW üstü üç faz.
+- Güç: ısıtıcı = cihaz gücü; split klima = soğutma kapasitesi / EER 3,2 + 30 W; fancoil 60 W; fan = katalog gücü (yoksa 0,04 W/(m³/h), en az 30 W).
+- Tek hat şemasında, yükleme cetvelinde (açıklama: cihaz adı ve mahal), semboller listesinde ve raporda (§8a) görünür.
