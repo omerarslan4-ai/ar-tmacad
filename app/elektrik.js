@@ -158,7 +158,7 @@
         /* N ve PE baraları */
         bx(out, F, -W / 2 + 0.07, -W / 2 + 0.17, t + 0.004, t + 0.016, zb + 0.022, zb + 0.034, MAVI); bx(out, F, -W / 2 + 0.185, -W / 2 + 0.285, t + 0.004, t + 0.016, zb + 0.022, zb + 0.034, SY);
         /* giriş kablosu (alttan, 4 damar: kahve, siyah, gri, mavi) ve çıkış demeti (üstten) */
-        const xq = x0r + 0.025; [[0.45, 0.25, 0.1], [0.1, 0.1, 0.1], [0.55, 0.55, 0.55], MAVI].forEach((col, k) => G().sil(out, F.P(xq + k * 0.007, t + 0.03, zb - 0.25), [0, 0, 1], 0.0035, 0.25 + H - 0.085 - 0.045 - (PD.raylar.length > 0 ? 0 : 0), col, 8));
+        const xq = x0r + 0.025; [[0.45, 0.25, 0.1], [0.1, 0.1, 0.1], [0.55, 0.55, 0.55], MAVI].forEach((col, k) => G().sil(out, F.P(xq + k * 0.007, t + 0.03, zb - 0.25), [0, 0, 1], 0.0035, 0.25 + H - 0.085 - 0.045, col, 8));
         G().sil(out, F.P(-W / 2 + 0.031, t + 0.025, zb + H - 0.02), [0, 0, 1], 0.012, 0.3, [0.85, 0.85, 0.85], 12);
         break; }
       case 'tdk': case 'fjb': bx(out, F, -0.15, 0.15, -0.05, 0.02, zm, zm + 0.2, GRI); break;

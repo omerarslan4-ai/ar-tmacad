@@ -162,7 +162,7 @@
   /* ======================= PANO (kapak açık, perspektif) — kullanıcı 15.11.2026: "perspektif şekilde kablo bağlantılarını, sigortalarını, kaçak akımını" =======================
      P: EL.panoDuzen sonucu; o: { pano (ad), besleme (kablo adı), besleyen }. Mm cinsinden: x genişlik, y derinlik (0 ön, D arka), z yükseklik. */
   EL.detayPano = (P, o = {}) => {
-    if (!P) return null; const c = cizer(), I = iso(c, 70, 60, 0.36), { W, H, D, R, raylar } = P, M_ = EL.MODUL, x0r = (W - R * M_) / 2, hy = mm('olcu');
+    if (!P) return null; const c = cizer(), I = iso(c, 70, 60, P.raylar.length > 3 ? 0.27 : P.raylar.length > 2 ? 0.31 : 0.36), { W, H, D, R, raylar } = P, /* çok rayda küçültülür */ M_ = EL.MODUL, x0r = (W - R * M_) / 2, hy = mm('olcu');
     const rz = j => H - 85 - j * 135, yOn = D - 80, yArka = D - 15;
     /* gövde, montaj plakası, açık kapak (sol menteşe, 110°) */
     I.kutu(0, 0, 0, W, D, H, 'k'); I.yol([[12, D - 8, 12], [W - 12, D - 8, 12], [W - 12, D - 8, H - 12], [12, D - 8, H - 12]], 'i', true);
@@ -188,9 +188,9 @@
     if (p0 && f0) I.yol([[p0.x, yOn + 10, p0.z + 45], [p0.x, yOn + 10, p0.z + 52], [f0.x + 6, yOn + 10, p0.z + 52]], 'i');
     /* çıkışlar: her sigortanın alt klemensinden yatay kanala, oradan sol düşey kanaldan yukarı, üstten çıkış */
     const mcb = Object.values(merkez).filter(q => q.m.tur === 'mcb' && q.m.kablo); for (const q of mcb) I.yol([[q.x, yOn + 12, q.z - 45], [q.x, yOn + 12, q.z - 60]], 'i');
-    mcb.slice(0, 8).forEach((q, i) => I.yol([[24 + i * 2.5, yArka - 30, rz(raylar.length - 1) - 80], [24 + i * 2.5, yArka - 30, H + 90]], 'i'));
+    mcb.forEach((q, i) => I.yol([[18 + (i % 12) * 2.3, yArka - 30, rz(raylar.length - 1) - 80], [24 + i * 2.5, yArka - 30, H + 90]], 'i'));
     /* N ve PE baraları (altta) */
-    const zb = 22; I.kutu(70, yArka - 25, zb, 100, 18, 12, 'k'); I.kutu(185, yArka - 25, zb, 100, 18, 12, 'k'); for (let i = 0; i < 6; i++) { I.daireXZ(80 + i * 16, yArka - 25, zb + 6, 3, 'i'); I.daireXZ(195 + i * 16, yArka - 25, zb + 6, 3, 'i'); }
+    const zb = 22; I.kutu(70, yArka - 25, zb, 100, 18, 12, 'k'); I.kutu(185, yArka - 25, zb, 100, 18, 12, 'k'); { const nd = Math.max(4, Math.min(12, P.mod.filter(m => m.tur === 'mcb').length + 4)), ad = 92 / nd; for (let i = 0; i < nd; i++) { I.daireXZ(74 + ad / 2 + i * ad, yArka - 25, zb + 6, Math.min(3, ad * 0.3), 'i'); I.daireXZ(189 + ad / 2 + i * ad, yArka - 25, zb + 6, Math.min(3, ad * 0.3), 'i'); } } /* delik sayısı şalt listesindeki gibi (en çok 12 çizilir) */
     I.yol([[(q0 ? q0.x : 60) + 30, yOn + 25, -90], [(q0 ? q0.x : 60) + 30, yOn + 25, zb + 6], [235, yArka - 25, zb + 6]], 'i');
     /* açıklamalar */
     const sol = (p, dx, dy, s) => I.not(p, -Math.abs(dx), dy, s, mm('olcu'), false), sag = (p, dx, dy, s) => I.not(p, Math.abs(dx), dy, s, mm('olcu'), true);
@@ -200,7 +200,7 @@
     if (q0) ekle([q0.x, yOn, q0.z + 45], `Q0 ${q0.m.ad}\n${q0.m.oz}`); if (f0) ekle([f0.x, yOn, f0.z + 45], `F0 ${f0.m.ad}\n${f0.m.oz}`); if (p0) ekle([p0.x, yOn, p0.z + 45], `P0 ${p0.m.ad}\n${p0.m.oz}`);
     if (merkez.H1) ekle([merkez.H1.x, yOn, merkez.H1.z + 22], `H1 ${merkez.H1.m.ad}\n${merkez.H1.m.oz}`); ekle([27, yArka - 30, H + 70], 'ÇIKIŞLAR: 3x2,5 NYA, Ø18 PVC — ÜSTTEN');
     if (raylar.length > 1) ekle([x0r + 10, yOn + 11, rz(1) + 51], 'TARAK BARA (3 FAZ + N)'); ekle([14, yArka - 45, H * 0.45], 'KABLO KANALI 40x40 (DELİKLİ PVC)');
-    ekle([(q0 ? q0.x : 60) + 3, yOn + 25, -60], `GİRİŞ: ${o.besleme || '4x6 NYY'} — ALTTAN\n(${o.besleyen || 'İBAT-1'} PANOSUNDAN)`);
+    ekle([(q0 ? q0.x : 60) + 3, yOn + 25, -60], `GİRİŞ: ${o.besleme || '4x6 NYY'} — ALTTAN\nBESLEYEN: ${o.besleyen || 'İBAT-1'}`);
     yuva.forEach((q, i) => { const p = I.P(...q.pt), hx = xs - 6, hy2 = ys - 4 - i * ara; I.not(q.pt, hx - p[0], hy2 - p[1], q.s, mm('olcu'), false); });
     if (mcb[0]) sag([mcb[mcb.length - 1].x, yOn, mcb[mcb.length - 1].z], 30, -10, `F1–F${mcb.length + Object.values(merkez).filter(q => q.m.tur === 'mcb' && !q.m.kablo).length} OTOMATİK SİGORTALAR\n(üstte linye no, altta akım; ışık B, priz / cihaz C eğrisi)`);
     sag([120, yArka - 25, zb + 12], 70, -24, 'N BARASI (mavi)'); sag([235, yArka - 25, zb + 12], 50, -30, 'PE BARASI (sarı-yeşil) — TB-1 TOPRAKLAMA BARASINA 16 mm²');
