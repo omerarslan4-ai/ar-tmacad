@@ -160,7 +160,7 @@
     ['ISITMA TESİSATI KOLON ŞEMASI (ELEKTRİKLİ ISITMA)', 'HEATING RISER DIAGRAM (ELECTRIC HEATING)'], ['SOĞUTMA TESİSATI KOLON ŞEMASI (SPLİT KLİMA)', 'COOLING RISER DIAGRAM (SPLIT AIR CONDITIONING)'],
     ['termostatik vana', 'thermostatic valve'], ['dönüş vanası', 'lockshield valve'], ['gidiş', 'flow'], ['dönüş', 'return'],
     ['gaz hattı', 'gas line'], ['sıvı hattı', 'liquid line'], ['yoğuşma drenajı', 'condensate drain'], ['yoğuşma Ø20 → süzgeç', 'condensate Ø20 → drain'],
-    ['Ø# gaz', 'Ø# gas'], ['Ø# sıvı', 'Ø# liquid'], ['DIŞ ÜNİTE · # kW elk.', 'OUTDOOR UNIT · # kW elec.'], ['bakır boru, kauçuk izoleli', 'copper pipe, rubber insulated'],
+    ['Ø1/4" sıvı', 'Ø1/4" liquid'], ['Ø3/8" sıvı', 'Ø3/8" liquid'], ['Ø3/8" gaz', 'Ø3/8" gas'], ['Ø1/2" gaz', 'Ø1/2" gas'], ['Ø5/8" gaz', 'Ø5/8" gas'], ['Ø3/4" gaz', 'Ø3/4" gas'], ['DIŞ ÜNİTE · # kW elk.', 'OUTDOOR UNIT · # kW elec.'], ['bakır boru, kauçuk izoleli', 'copper pipe, rubber insulated'],
     ['duvar tipi iç ünite +2,20', 'wall-mounted indoor unit +2.20'], ['ELEKTRİK', 'ELECTRICAL'], ['PANOSU', 'PANEL'], ['3 faz + N', '3 phase + N'], ['ana # A', 'main # A'],
     ['besleme linyesi (230 V / 400 V)', 'supply circuit (230 V / 400 V)'], ['Elektrikli fanlı ısıtıcı', 'Electric fan heater'], ['Infrared / ışınımlı panel ısıtıcı', 'Infrared radiant panel heater'],
     ['Pisuvar', 'Urinal'], ['Duş', 'Shower'], ['Evye', 'Kitchen sink'], ['Laboratuvar evyesi', 'Laboratory sink'], ['Alaturka hela', 'Squat toilet'],
