@@ -82,7 +82,7 @@
   /* mekanik cihaz besleme noktası (ısıtıcı / klima / fan): kare buat, içinde M, köşegen yarısı dolu; yanında cihaz adı ve linye */
   SEMBOL.mekbes = e => { const F = cerceve(e), w = sb('kutu'), h = C.annoH(mm('etiket')), rot = okunur(e.ang || 0), out = [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w), F.P(-w / 2, w)], true), S([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w)]), TX(F.P(-w * 0.22, w * 0.62), C.annoH(mm('kutuYazi')), 'M', 0, 'MC', { color: YR(), st: 'elk' })];
     if (e.linye) out.push(TX(F.P(w * 0.95, w * 0.5), C.annoH(mm('linye')), String(+e.linye), 0, 'MC', { color: YR(), st: 'elk' }));
-    if (e.ad) out.push(yaziT(F.P(0, w + h * 1.1), h * 0.9, String(e.ad).replace(/\s*\(.*\)$/, '') + ` ${Math.round(e.W || 0)} W`, rot, 'BC'));
+    if (e.ad) { const no = (String(e.ad).match(/(Eİ|SK|FC|AF|ÇF|HF|RT|ET|ÇM|BM)\d+/) || [])[0]; out.push(yaziT(F.P(0, w + h * 1.1), h * 0.9, (no || String(e.ad).split(/\s[—(]/)[0]) + ` ${Math.round(e.W || 0)} W`, rot, 'BC')); } /* kısa etiket: cihaz no + güç (tam ad lejant ve cetvelde) */
     return out; };
   const AD = { mekbes: 'Mekanik cihaz beslemesi', armatur: 'Armatür', anahtar: 'Anahtar', priz: 'Priz', pano: 'Aydınlatma tablosu', tlfpriz: 'Telefon prizi', tdk: 'Telefon dağıtım kutusu', dedektor: 'Dedektör', buton: 'Yangın butonu (camı kır)', klakson: 'Flaşörlü klakson', fjb: 'Yangın alarm bağlantı kutusu', cubuk: 'Topraklama çubuğu', bara: 'Topraklama barası' };
   EL.AD = AD;
@@ -241,7 +241,13 @@
     const pano = add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'pano', sys: 'ayd', kod: st.pano, p: nokta(kP, sP), ang: Math.atan2(kP.u[1], kP.u[0]), on: kP.n, zm: 1.5 }, base0)));
     /* mekanik ekipman beslemesi (firma kuralı 15.11.2026): elektrikli ısıtıcı, klima, fan — her biri besleme noktası + kendi linyesi */
     const mekEk = [];
-    for (const m of C.doc.ents) { const g = EL.mekGuc(m); if (!g) continue; const ma = m.p ? (oda(m.mid) || MT.mahaller().find(o => MT.inPoly([m.p[0], m.p[1]], o.pts))) : null; if (!ma) { uyari.push(`${g.ad}: mahali bulunamadı, besleme noktası konamadı — Elektrik ▸ Eleman ekle ile elle koyun ve linye verin (mekanik ekipman göz ardı edilmez).`); continue; }
+    /* mekanik envanter (15.11.2026, "mekanik disiplini teker teker analiz edip elektriğe eksiksiz geçir"): ısıtıcı, klima, fancoil, aspiratör / fan, rooftop,
+       termosifon, çamaşır / bulaşık makinesi + kazan dairesi / kombi ve chiller (yerleri kolon noktası; kolon yoksa ana mahalin ortası) */
+    const merkez = []; try { const kal = MT.kal ? MT.kal() : {}, ism = MT.isiMerkeziHesap && C.doc.ents.some(x => x.type === 'mtrad' && x.tip !== 'E') && kal.sistem !== 'elektrik' ? MT.isiMerkeziHesap() : null, sgh = MT.sogutmaHesap && C.doc.ents.some(x => x.type === 'mtfc' && x.tip !== 'split') ? MT.sogutmaHesap() : null;
+      const im = MT.im ? MT.im() : {}, kolP = sys => { const k = C.doc.ents.find(x => x.type === 'mtkolon' && (sys ? x.sys === sys : !x.sys)); return k ? k.p : (am.lp || MT.icNokta(am.pts)); };
+      for (const x of EL.mekMerkez({ kazan: ism ? { sistem: im.sistem, adet: ism.adet, QB: ism.QB, pompaP: ism.pompa && ism.pompa.P, kombiAdet: (ism.kombi || []).length } : null, chiller: sgh && !sgh.split && !sgh.yok ? { elek: sgh.elek, pompaP: sgh.pompa && sgh.pompa.P } : null })) merkez.push(Object.assign(x, { p: kolP(x.sys === 'sog' ? 'sog' : null), id: 'merkez-' + x.sys }));
+    } catch (er) { console.error(er); uyari.push('Kazan / chiller elektrik yükü hesaplanamadı: ' + (er && er.message || er)); }
+    for (const m of C.doc.ents.concat(merkez)) { const g = EL.mekGuc(m); if (!g) continue; const ma = m.p ? (oda(m.mid) || MT.mahaller().find(o => MT.inPoly([m.p[0], m.p[1]], o.pts))) : null; if (!ma) { uyari.push(`${g.ad}: mahali bulunamadı, besleme noktası konamadı — Elektrik ▸ Eleman ekle ile elle koyun ve linye verin (mekanik ekipman göz ardı edilmez).`); continue; }
       const ks = (kat.find(q => q.x.e === ma) || { K: kenarlar(ma) }).K; let bk = null, bd = Infinity; for (const k of ks) { const d = M.segDist([m.p[0], m.p[1]], k.a, k.b); if (d < bd) { bd = d; bk = k; } }
       if (!bk) continue; const s0 = (m.p[0] - bk.a[0]) * bk.u[0] + (m.p[1] - bk.a[1]) * bk.u[1], yarim = (m.type === 'mtrad' ? (+m.L || 0.6) : m.type === 'mtfc' ? 0.45 : 0.2) / 2 + 0.2;
       const bosMu = q => { const r = nokta(bk, q); return !yeni.some(c => c.type === 'elcihaz' && c.kind !== 'armatur' && c.kind !== 'dedektor' && Math.hypot(c.p[0] - r[0], c.p[1] - r[1]) < 0.35); };
