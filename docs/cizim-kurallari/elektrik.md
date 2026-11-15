@@ -52,6 +52,8 @@ Notlar:
 
 Örnekteki "metesan priz panosu" sembolü bekçi binasında kullanılmadığı için programa alınmadı.
 
+Armatür sembolü gövdenin gerçek boyudur (1,04 / 0,52 m); her ölçekte gerçek boyda çizilir, duvara taşmaz. Öbür semboller açıklama ölçeğiyle büyür (1/50'de tablodaki boy).
+
 Programda semboller blok değil, Çorlu paftalarında olduğu gibi çizgilerden oluşur.
 
 ## 5. Etiket biçimi (örnekten)

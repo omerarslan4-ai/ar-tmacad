@@ -72,7 +72,7 @@
      pts: oda iç yüz çokgeni, ideal: [[x,y]…], ang: gövde doğrultusu (rad), boy: gövde boyu (m) */
   const icinde = (p, pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
   const kenarUzak = (p, pts) => { let d = Infinity; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length], vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1e-12, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / l2)); d = Math.min(d, Math.hypot(p[0] - a[0] - vx * t, p[1] - a[1] - vy * t)); } return d; };
-  EL.kenarUzak = kenarUzak;
+  EL.kenarUzak = kenarUzak; EL.icinde = icinde;
   EL.armaturYeri = (pts, ideal, ang, boy, o = {}) => {
     const u = [Math.cos(ang || 0), Math.sin(ang || 0)], h = (+boy || 1.2) / 2 + 0.05, dm = o.duvar == null ? 0.5 : o.duvar, du = o.uc == null ? 0.25 : o.uc, ara = o.ara == null ? 0.9 : o.ara;
     const uygun = (p, dm2 = dm, du2 = du) => { if (!icinde(p, pts) || kenarUzak(p, pts) < dm2) return false; for (const s of [-1, 1]) { const q = [p[0] + u[0] * h * s, p[1] + u[1] * h * s]; if (!icinde(q, pts) || kenarUzak(q, pts) < du2) return false; } return true; };

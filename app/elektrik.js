@@ -118,7 +118,7 @@
       case 'armatur': { const ar = EL.ARMATUR[e.kod] || EL.ARMATUR['P-2x20W'];
         if (ar.acil) { bx(out, F, -0.17, 0.17, 0, 0.06, zm, zm + 0.12, BEY); bx(out, F, -0.13, 0.13, 0.06, 0.062, zm + 0.02, zm + 0.1, YES); break; }
         if (ar.dis) { bx(out, F, -0.12, 0.12, -0.08, 0.0, zm, zm + 0.2, GRI); bx(out, F, -0.1, 0.1, -0.085, -0.08, zm + 0.02, zm + 0.18, ISIK); break; }
-        const Lb = ar.boy >= 1 ? 1.27 : 0.67, w = 0.16; bx(out, F, -Lb / 2, Lb / 2, -w / 2, w / 2, zt - 0.075, zt, ar.etans ? GRI : BEY); bx(out, F, -Lb / 2 + 0.02, Lb / 2 - 0.02, -w / 2 + 0.015, w / 2 - 0.015, zt - 0.078, zt - 0.075, ISIK); break; }
+        const Lb = ar.boy, w = 0.16; /* plandaki gerçek boy ve armaturYeri ile aynı (1,04 / 0,52 m) */ bx(out, F, -Lb / 2, Lb / 2, -w / 2, w / 2, zt - 0.075, zt, ar.etans ? GRI : BEY); bx(out, F, -Lb / 2 + 0.02, Lb / 2 - 0.02, -w / 2 + 0.015, w / 2 - 0.015, zt - 0.078, zt - 0.075, ISIK); break; }
       case 'anahtar': case 'priz': case 'tlfpriz': case 'buton': { const col = e.kind === 'buton' ? KIR : e.tip === 'etans' ? GRI : BEY; bx(out, F, -0.04, 0.04, 0, 0.012, zm - 0.04, zm + 0.04, col); if (e.kind === 'priz') sil(out, F.P(0, 0.012, zm), [F.n[0], F.n[1], 0], 0.022, 0.004, KOYU, 12); else if (e.kind === 'anahtar') bx(out, F, -0.015, 0.015, 0.012, 0.018, zm - 0.025, zm + 0.025, BEY); break; }
       case 'pano': bx(out, F, -0.25, 0.25, -0.1, 0.02, zm, zm + 0.5, GRI); bx(out, F, -0.23, 0.23, 0.02, 0.025, zm + 0.02, zm + 0.48, [0.85, 0.86, 0.88]); bx(out, F, 0.16, 0.2, 0.025, 0.035, zm + 0.22, zm + 0.28, KOYU); break;
       case 'tdk': case 'fjb': bx(out, F, -0.15, 0.15, -0.05, 0.02, zm, zm + 0.2, GRI); break;

@@ -58,7 +58,7 @@ t('armatür yeri: L biçimli odada (kullanıcı 15.11.2026 "lamba duvarın için
   /* ara bölmeli bekçi binası: sol odada üstte 2,45 m, altta 4,5 m genişlik — L oda; ara duvar x = 2,45 */
   const Lp = [[0, 0], [4.5, 0], [4.5, 2.4], [2.45, 2.4], [2.45, 4.6], [0, 4.6]], p = EL.armaturYeri(Lp, EL.izgara(3, 4.5, 4.6), 0, 1.04);
   assert.strictEqual(p.length, 3);
-  for (const q of p) { assert(EL.kenarUzak(q, Lp) >= 0.5 - 1e-9, 'merkez duvara yakın ' + q); for (const s of [-1, 1]) { const u = [q[0] + s * 0.57, q[1]]; assert(EL.kenarUzak(u, Lp) >= 0.25 - 1e-9, 'uç duvara yakın ' + u); } }
+  for (const q of p) { assert(EL.icinde(q, Lp), 'oda dışında ' + q); assert(EL.kenarUzak(q, Lp) >= 0.5 - 1e-9, 'merkez duvara yakın ' + q); for (const s of [-1, 1]) { const u = [q[0] + s * 0.57, q[1]]; assert(EL.icinde(u, Lp) && EL.kenarUzak(u, Lp) >= 0.25 - 1e-9, 'uç duvara yakın ' + u); } }
   for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) assert(Math.hypot(p[i][0] - p[j][0], p[i][1] - p[j][1]) >= 0.9);
 });
 t('armatür yeri: dikdörtgen odada ızgara noktası uygunsa yerinde kalır', () => {

@@ -16,6 +16,8 @@
   const K = () => (C.cizimKural && C.cizimKural.ELEKTRIK) || {}, mm = k => (K().yaziMm || {})[k] || 2;
   const uzun = e => e.pts.reduce((s, p, i) => i ? s + M.dist2(e.pts[i - 1], p) : 0, 0);
 
+  /* tek kelimelik Türkçe karşılıklar yalnız satırın tamamına uygulanır: programın başka yerlerindeki metinlere sızmasın (denetim 15.11.2026) */
+  const IC_IFADE = new Set(["PANOSUNDAN","PANOSUNA","ACİL","APLİK","ELEKTRİK","TOPRAKLAMA","PROJESİ","NOTLAR:"]), satirla = L => L.map(e => (e.length === 2 && !/\s/.test(e[0]) && !IC_IFADE.has(e[0])) ? [e[0], e[1], 'satir'] : e);
   /* ======================= LEJANT, NOTLAR, DETAY (kâğıt mm) ======================= */
   /* sembolün kendi 2B çizimi (C.prims) kâğıt mm'ye çevrilir: model m × 1000 / açıklama ölçeği */
   const sembolG = (c, o, x, y) => { const k = 1000 / (+C.doc.set.anno || 50), e = Object.assign({ id: -1, type: 'elcihaz', z0: 0, p: [0, 0], ang: 0, on: [0, 1] }, o); let pr = []; try { pr = C.T.elcihaz.prims(e); } catch (er) { }
@@ -224,7 +226,7 @@
   /* geç yüklenen komutlar (ANTET, PAFTASTIL …) da düğme olsun diye birkaç kez kurulur */
   { let n = 0, ok = 0; const t = setInterval(() => { try { if (rib()) ok++; if (ok >= 3 || ++n > 40) clearInterval(t); } catch (er) { clearInterval(t); } }, 700); }
 
-  if (window.DIL) window.DIL.ekle('en', 'English', [
+  if (window.DIL) window.DIL.ekle('en', 'English', satirla([
     ['AYDINLATMA VE PRİZ TESİSATI', 'LIGHTING AND SOCKET INSTALLATION'], ['TOPRAKLAMA PLANI', 'EARTHING PLAN'], ['TELEFON VE YANGIN ALARM TESİSATI', 'TELEPHONE AND FIRE ALARM INSTALLATION'], ['SEMBOLLER', 'SYMBOLS'], ['TOPRAKLAMA SEMBOLLERİ', 'EARTHING SYMBOLS'],
     ['TABLO TEK HAT ŞEMASI', 'PANEL SINGLE-LINE DIAGRAM'], ['TABLO YÜKLEME CETVELİ', 'PANEL LOAD SCHEDULE'], ['LİNYE', 'CIRCUIT'], ['SORTİ', 'POINTS'], ['SİGORTA', 'BREAKER'], ['CİNSİ', 'TYPE'], ['TOPLAM', 'TOTAL'], ['GÜÇ(W)', 'POWER(W)'], ['GÜÇ DAĞITIM (W)', 'PHASE LOAD (W)'],
     ['AÇIKLAMALAR / ODA NO', 'REMARKS / ROOM NO'], ['KURULU GÜÇ(W)', 'INSTALLED POWER(W)'], ['DİVERSİTE%', 'DIVERSITY%'], ['İŞLETME GÜCÜ(W)', 'DEMAND POWER(W)'], ['TOPLAM(W)', 'TOTAL(W)'], ['IŞIK LİNYESİ', 'LIGHTING CIRCUIT'], ['1Ø PRİZ LİNYESİ', '1Ø SOCKET CIRCUIT'], ['YEDEK', 'SPARE'], ['OTOM.', 'MCB'],
@@ -235,10 +237,10 @@
     ['Elektrik paneli', 'Electrical panel'], ['Tesisatı yerleştir', 'Place installation'], ['Elektrik paftaları', 'Electrical sheets'], ['Paftaları DXF kaydet', 'Save sheets as DXF'], ['Elektrik tesisatı', 'Electrical installation'], ['Pafta ve rapor', 'Sheets and report'], ['Rapor', 'Report'], ['Sil', 'Delete'],
     ['1 · Proje', '1 · Project'], ['2 · Mahaller ve aydınlatma', '2 · Rooms and lighting'], ['3 · Sonuç ve rapor', '3 · Results and report'], ['Pano adı', 'Panel name'], ['Besleyen pano', 'Feeding panel'], ['Besleyen bina', 'Feeding building'], ['Besleme kablo boyu (m)', 'Feeder cable length (m)'], ['Diversite (%)', 'Diversity (%)'], ['Yedek linye sayısı', 'Spare circuits'],
     ['Toprak özgül direnci ρ (Ωm)', 'Soil resistivity ρ (Ωm)'], ['Topraklama çubuğu (en az)', 'Earth rods (minimum)'], ['Bakım katsayısı MF', 'Maintenance factor MF'], ['Acil çıkış armatürü', 'Emergency exit luminaire'], ['Giriş kapısına dış aplik', 'Outdoor wall light at entrance'], ['Telefon + yangın alarm', 'Telephone + fire alarm'], ['Ek yükler (motorlu kapı, ısıtıcı, pompa …)', 'Additional loads (motorized gate, heater, pump …)'], ['+ Ek yük', '+ Load'],
-    ['Kurulu güç', 'Installed power'], ['Elektrik Tesisatı Raporu', 'Electrical Installation Report'], ['Tesisat', 'Installation'], ['Eleman', 'Element'], ['Hat', 'Line'], ['Hesap ve rapor', 'Calculation and report'], ['Pafta', 'Sheets'], ['Çıktı', 'Output'], ['Eleman ekle', 'Add element'], ['Armatür', 'Luminaire'], ['Anahtar', 'Switch'], ['Priz', 'Socket'], ['Dedektör', 'Detector'], ['Telefon prizi', 'Telephone outlet'], ['Hat çiz', 'Draw line'], ['Aydınlatma linyesi', 'Lighting circuit'], ['Priz linyesi', 'Socket circuit'], ['Topraklama', 'Earthing'], ['Yangın alarm', 'Fire alarm'], ['Aydınlatma hesabı', 'Lighting calculation'], ['Aydınlatma ve priz', 'Lighting and sockets'], ['Telefon ve yangın', 'Telephone and fire'], ['Pafta listesi', 'Sheet list'], ['Çıktı al (PDF)', 'Print (PDF)'], ['3B elektrik görünümü', '3D electrical view'], ['3B görünüş paftaya', '3D view on sheet'], ['Otomatik olanları sil', 'Delete automatic ones'], ['Mahal bul', 'Find rooms'], ['Elle mahal', 'Manual room'],
-  ]);
+    ['Kurulu güç · işletme # W', 'Installed power · demand # W'], ['Kurulu güç', 'Installed power'], ['Elektrik Tesisatı Raporu', 'Electrical Installation Report'], ['Tesisat', 'Installation'], ['Eleman', 'Element'], ['Hat', 'Line'], ['Hesap ve rapor', 'Calculation and report'], ['Pafta', 'Sheets'], ['Çıktı', 'Output'], ['Eleman ekle', 'Add element'], ['Armatür', 'Luminaire'], ['Anahtar', 'Switch'], ['Priz', 'Socket'], ['Dedektör', 'Detector'], ['Telefon prizi', 'Telephone outlet'], ['Hat çiz', 'Draw line'], ['Aydınlatma linyesi', 'Lighting circuit'], ['Priz linyesi', 'Socket circuit'], ['Topraklama', 'Earthing'], ['Yangın alarm', 'Fire alarm'], ['Aydınlatma hesabı', 'Lighting calculation'], ['Aydınlatma ve priz', 'Lighting and sockets'], ['Telefon ve yangın', 'Telephone and fire'], ['Pafta listesi', 'Sheet list'], ['Çıktı al (PDF)', 'Print (PDF)'], ['3B elektrik görünümü', '3D electrical view'], ['3B görünüş paftaya', '3D view on sheet'], ['Otomatik olanları sil', 'Delete automatic ones'], ['Mahal bul', 'Find rooms'], ['Elle mahal', 'Manual room'],
+  ]));
   /* çeviri — paftalar (tam satır ve metin içi ifadeler: pano adı, mahal no gibi değişen parçalar olduğu yerde kalır) */
-  if (window.DIL) window.DIL.ekle('en', 'English', [
+  if (window.DIL) window.DIL.ekle('en', 'English', satirla([
     ['ELEKTRİK', 'ELECTRICAL'], ['Elektrik', 'Electrical'], ['3B GÖRÜNÜŞ', '3D VIEW'], ['AYDINLATMA VE PRİZ', 'LIGHTING AND SOCKETS'], ['TELEFON VE YANGIN ALARM', 'TELEPHONE AND FIRE ALARM'], ['TOPRAKLAMA', 'EARTHING'],
     ['AYDINLATMA VE PRİZ TESİSATI PLANI', 'LIGHTING AND SOCKET INSTALLATION PLAN'], ['TELEFON VE YANGIN ALARM TESİSATI PLANI', 'TELEPHONE AND FIRE ALARM INSTALLATION PLAN'], ['PROJESİ', 'PROJECT'],
     ['IŞIK', 'LIGHT'], ['PRİZ', 'SOCKET'], ['NO', 'NO'], ['AKIM(A)', 'CURRENT(A)'], ['3 FAZ', '3 PHASE'], ['PANOSUNDAN', 'FROM PANEL'], ['PANOSUNA', 'PANEL:'], ['NOTLAR:', 'NOTES:'], ['ACİL', 'EMERG.'], ['APLİK', 'WALL LIGHT'],
@@ -270,5 +272,5 @@
     ['Paftalar için ELEKTRIKPAFTA, rapor için ELEKTRIKRAPOR.', 'ELEKTRIKPAFTA for sheets, ELEKTRIKRAPOR for the report.'], ['elektrik nesnesi silindi.', 'electrical objects deleted.'], ['Hepsi', 'All'], ['Aydınlatma ve priz tesisatı', 'Lighting and socket installation'], ['Topraklama planı', 'Earthing plan'], ['Telefon ve yangın alarm', 'Telephone and fire alarm'],
     ['Eleman', 'Element'], ['Linye no (boş = cetvele girmez)', 'Circuit no (empty = not in schedule)'], ['Topraklı', 'Earthed'], ['Etanş', 'Waterproof'], ['Normal', 'Normal'], ['Komütatör', 'Two-gang'], ['Vaevien', 'Two-way'], ['Telefon hattı', 'Telephone line'], ['Yangın alarm hattı', 'Fire alarm line'], ['Topraklama iletkeni', 'Earthing conductor'],
     ['İlk nokta', 'First point'], ['Renkli', 'Colour'], ['Siyah-beyaz', 'Black and white'], ['Renk', 'Colour'],
-  ]);
+  ]));
 })(typeof window !== 'undefined' ? window.C : null);
