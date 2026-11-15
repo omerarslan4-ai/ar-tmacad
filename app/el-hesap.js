@@ -66,6 +66,29 @@
     for (let j = 0; j < ny; j++) { const n = j < ny - 1 ? nx : N - nx * (ny - 1); for (let i = 0; i < n; i++) out.push([a * (i + 0.5) / n, b * (j + 0.5) / ny]); }
     return out;
   };
+  /* armatür yerleri: ızgara noktaları oda kutusundan gelir; L biçimli / girintili odada nokta duvara ya da öbür odaya düşebilir
+     (kullanıcı 15.11.2026: "lamba duvarın içine girmiş"). Her armatür gövdesiyle birlikte odanın içinde, merkezi duvarlardan en az
+     0,5 m, uçları en az 0,25 m içeride olmalı; olmayan nokta en yakın uygun noktaya kaydırılır, armatürler birbirine 0,9 m'den yaklaşmaz.
+     pts: oda iç yüz çokgeni, ideal: [[x,y]…], ang: gövde doğrultusu (rad), boy: gövde boyu (m) */
+  const icinde = (p, pts) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  const kenarUzak = (p, pts) => { let d = Infinity; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length], vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1e-12, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / l2)); d = Math.min(d, Math.hypot(p[0] - a[0] - vx * t, p[1] - a[1] - vy * t)); } return d; };
+  EL.kenarUzak = kenarUzak;
+  EL.armaturYeri = (pts, ideal, ang, boy, o = {}) => {
+    const u = [Math.cos(ang || 0), Math.sin(ang || 0)], h = (+boy || 1.2) / 2 + 0.05, dm = o.duvar == null ? 0.5 : o.duvar, du = o.uc == null ? 0.25 : o.uc, ara = o.ara == null ? 0.9 : o.ara;
+    const uygun = (p, dm2 = dm, du2 = du) => { if (!icinde(p, pts) || kenarUzak(p, pts) < dm2) return false; for (const s of [-1, 1]) { const q = [p[0] + u[0] * h * s, p[1] + u[1] * h * s]; if (!icinde(q, pts) || kenarUzak(q, pts) < du2) return false; } return true; };
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const p of pts) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+    const g = Math.max(0.05, Math.min(0.1, (x1 - x0) / 60, (y1 - y0) / 60)), aday = [];
+    for (let x = x0 + g / 2; x < x1; x += g) for (let y = y0 + g / 2; y < y1; y += g) if (uygun([x, y])) aday.push([x, y]);
+    if (!aday.length) { /* çok küçük oda: gövde sığmıyorsa en ortadaki iç nokta */ let best = null, bd = -1; for (let x = x0 + g / 2; x < x1; x += g) for (let y = y0 + g / 2; y < y1; y += g) { const p = [x, y]; if (!icinde(p, pts)) continue; const d = kenarUzak(p, pts); if (d > bd) { bd = d; best = p; } } return best ? [best] : []; }
+    const out = [], uzak = p => out.every(q => Math.hypot(q[0] - p[0], q[1] - p[1]) >= ara);
+    for (const p of ideal) {
+      if (uygun(p) && uzak(p)) { out.push([p[0], p[1]]); continue; }
+      let best = null, bd = Infinity; for (const q of aday) { if (!uzak(q)) continue; const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < bd) { bd = d; best = q; } }
+      if (!best) for (const q of aday) { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < bd) { bd = d; best = q; } }
+      if (best) out.push([+best[0].toFixed(3), +best[1].toFixed(3)]);
+    }
+    return out;
+  };
 
   /* ======================= LİNYELER, FAZ, YÜK ======================= */
   /* cihazlar: [{ tur:'isik'|'priz', W, mahal }] (sırasıyla, mahal mahal) → linyeler */

@@ -282,12 +282,13 @@
     yaziRenk: 2,                                           // örneklerde etiket ve tablo yazıları elle sarı
     yaziStilleri: { 'AAAA': { font: 'arial.ttf', gen: 1 }, 'elk': { font: 'romanstw.shx', gen: 0.85 } },
     /* yazı yükseklikleri (kâğıt mm) */
-    yaziMm: { etiket: 2, linye: 2, cetvel: 2.06, tekHat: 2.16, tabloBaslik: 2.4, lejant: 3, not: 3, baslik: 4 },
+    yaziMm: { etiket: 2, linye: 2, cetvel: 2.06, tekHat: 2.16, tabloBaslik: 2.4, detay: 2.4, lejant: 3, not: 3, baslik: 4, kutuYazi: 1.44, harf: 2.5, harfKucuk: 1.6 }, // kutuYazi: TDK / FJB içi (BB-003 7,2 birim); harf: dedektör D 12,5 birim, O 8 birim
     yazi: { 'EYAZI': { stil: ['AAAA', 'elk'], mm: [2, 2.06, 2.16, 2.4, 3, 4] } },
     /* sembol ölçüleri (model cm, 1/50 — BB-002 semboller listesi) */
     sembol: { armaturKisa: 52, armaturUzun: 104, armaturEn: 6.7, armaturUc: 12.5, tabloW: 52, tabloH: 16.2, anahtarR: 8, prizR: 8.3, dedektorR: 10, kutu: 16 },
-    /* çizgi kalınlıkları: linye hattı (EHAT) polyline genişliği ~2,5 cm = kâğıtta 0,5 mm */
-    hatGenislik: { EHAT: 2.5, TOPILET: 4.5 },
+    /* linye hattının kalınlığı katmandan (EHAT 0,35): örnekte 2,5 cm genişlikli çoklu çizgi */
+    /* şema / tablo çizgi kalınlıkları (1/100 mm): k çerçeve, i iç çizgi, b bara, t topraklama, h zemin çizgisi */
+    semaKal: { k: 35, i: 18, b: 70, t: 35, h: 13 },
     /* PROGRAM KATMANI → ÇİZİM KATMANI (elektrik modülü doğrudan bu adlarla çizer) */
     esleme: [[/^EL_?YAZI$/i, 'EYAZI'], [/^EL_?HAT$/i, 'EHAT'], [/^EL_?TOP/i, 'TOPILET'], [/^EL_?TLF$/i, 'TLF'], [/^EL_?YNG$/i, 'ETELYNG']],
   };

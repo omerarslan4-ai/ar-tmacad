@@ -36,35 +36,36 @@
   const okunur = a => { let r = a; while (r > Math.PI / 2 + 1e-6) r -= Math.PI; while (r < -Math.PI / 2 - 1e-6) r += Math.PI; return r; };
   const SEMBOL = {
     armatur: e => { const F = cerceve(e), ar = EL.ARMATUR[e.kod] || EL.ARMATUR['P-2x20W'], out = [];
-      if (ar.acil) { const w = sb('kutu') * 1.6, hh = sb('kutu') * 0.6; out.push(P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), S([F.P(-w / 2, 0), F.P(0, 0), F.P(0, hh), F.P(-w / 2, hh)]), yaziT(F.P(0, hh + C.annoH(1.6)), C.annoH(mm('etiket')), 'ACİL', okunur(e.ang || 0), 'MC')); return out; }
+      if (ar.acil) { const w = sb('kutu') * 1.6, hh = sb('kutu') * 0.6; out.push(P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), S([F.P(-w / 2, 0), F.P(0, 0), F.P(0, hh), F.P(-w / 2, hh)]), yaziT(F.P(0, hh + C.annoH(mm('harfKucuk'))), C.annoH(mm('etiket')), 'ACİL', okunur(e.ang || 0), 'MC')); return out; }
       if (ar.dis) { const r = sb('anahtarR'); out.push(P(yay(F, 0, 0, r, 0, Math.PI), false), L(F.P(-r, 0), F.P(r, 0)), L(F.P(-r * 0.6, r * 0.2), F.P(r * 0.6, r * 0.8)), L(F.P(r * 0.6, r * 0.2), F.P(-r * 0.6, r * 0.8))); out.push(yaziT(F.P(0, -r * 1.6), C.annoH(mm('etiket')), e.kod, okunur(e.ang || 0), 'MC')); return out; }
-      const Lb = ar.boy >= 1 ? sb('armaturUzun') : sb('armaturKisa'), w = sb('armaturEn'), uc = sb('armaturUc');
+      /* armatür gövdesi gerçek boyunda (1/50'de örnekteki 104 / 52 cm sembol = gövde boyu); ölçek değişince büyümez, duvara taşmaz */
+      const r50 = 50 / (+C.doc.set.anno || 50), Lb = (ar.boy >= 1 ? sb('armaturUzun') : sb('armaturKisa')) * r50, w = sb('armaturEn') * r50, uc = sb('armaturUc') * r50;
       out.push(L(F.P(-Lb / 2, -w / 2), F.P(Lb / 2, -w / 2)), L(F.P(-Lb / 2, w / 2), F.P(Lb / 2, w / 2)), L(F.P(-Lb / 2, -uc / 2), F.P(-Lb / 2, uc / 2)), L(F.P(Lb / 2, -uc / 2), F.P(Lb / 2, uc / 2)), L(F.P(0, -w / 2), F.P(0, w / 2)), L(F.P(-w * 0.28, -w * 0.2), F.P(w * 0.28, -w * 0.2)));
       if (ar.etans) out.push(L(F.P(-w * 0.28, w * 0.2), F.P(w * 0.28, w * 0.2)));
       const rot = okunur(e.ang || 0), h = C.annoH(mm('etiket'));
-      out.push(yaziT(F.P(0, w / 2 + h * 0.9), h, e.kod, rot, 'MC'));
-      if (e.linye) out.push(TX(F.P(Lb / 2 + h * 0.8, 0), h, String(+e.linye), rot, 'MC', { color: 7, st: 'elk' }));
+      out.push(yaziT(F.P(Lb / 2 + h * 0.6, 0), h, e.kod, rot, 'ML'));   /* kod armatürün yanında (BB-002) */
+      if (e.linye) out.push(TX(F.P(0, w / 2 + h * 0.9), h, String(+e.linye), rot, 'MC', { color: YR(), st: 'elk' }));   /* linye no üstünde */
       return out; },
     anahtar: e => { const F = cerceve(e), r = sb('anahtarR'), o = r * 1.15, out = [P(daire(F, 0, o, r), true)], k = r * 2.1;
       if (e.tip === 'etans') out.push(S(daire(F, 0, o, r * 0.75, 12))); else out.push(CI(F.P(0, o), r * 0.18));
       const kol = (sgn, d = 0) => { const a = sgn * Math.PI / 4 + Math.PI / 2, ux = Math.cos(a), uy = Math.sin(a), p0 = [r * ux + d * uy, o + r * uy - d * ux], p1 = [k * ux + d * uy, o + k * uy - d * ux]; out.push(L(F.P(p0[0], p0[1]), F.P(p1[0], p1[1])), L(F.P(p1[0], p1[1]), F.P(p1[0] + r * 0.45 * Math.cos(a - Math.PI / 2), p1[1] + r * 0.45 * Math.sin(a - Math.PI / 2)))); };
       if (e.tip === 'komutator') { kol(1, -r * 0.25); kol(1, r * 0.25); } else if (e.tip === 'vaevien') { kol(1); kol(-1); } else kol(1);
-      if (e.linye) out.push(TX(F.P(-r * 1.9, o), C.annoH(mm('linye')), String(+e.linye), 0, 'MC', { color: 7, st: 'elk' }));
+      if (e.linye) out.push(TX(F.P(-r * 1.9, o), C.annoH(mm('linye')), String(+e.linye), 0, 'MC', { color: YR(), st: 'elk' }));
       return out; },
     priz: e => { const F = cerceve(e), r = sb('prizR'), o = r * 0.9, out = [P(yay(F, 0, o, r, 0, Math.PI), false), L(F.P(-r, o), F.P(r, o)), L(F.P(0, 0), F.P(0, o - 0.0001)), L(F.P(-r * 0.75, o + r * 1.25), F.P(r * 0.75, o + r * 1.25)), L(F.P(0, o + r), F.P(0, o + r * 1.25))];
       if (e.tip === 'etans') out.push(S(yay(F, 0, o, r * 0.82, 0, Math.PI, 8)));
-      if (e.linye) out.push(TX(F.P(r * 1.7, o), C.annoH(mm('linye')), String(+e.linye), 0, 'MC', { color: 7, st: 'elk' }));
+      if (e.linye) out.push(TX(F.P(r * 1.7, o), C.annoH(mm('linye')), String(+e.linye), 0, 'MC', { color: YR(), st: 'elk' }));
       return out; },
     pano: e => { const F = cerceve(e), w = sb('tabloW'), hh = sb('tabloH'), out = [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), L(F.P(-w / 2, 0), F.P(w / 2, hh)), S([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh)])];
-      out.push(yaziT(F.P(0, hh + C.annoH(2)), C.annoH(mm('lejant')), e.kod || EL.set().pano, okunur(e.ang || 0), 'MC')); return out; },
+      out.push(yaziT(F.P(0, hh + C.annoH(mm('etiket'))), C.annoH(mm('lejant')), e.kod || EL.set().pano, okunur(e.ang || 0), 'MC')); return out; },
     tlfpriz: e => { const F = cerceve(e), r = sb('anahtarR'), out = [P([F.P(-r, 0), F.P(r, 0), F.P(0, r * 1.7)], true), L(F.P(-r * 0.4, r * 0.55), F.P(r * 0.4, r * 0.55))]; return out; },
-    tdk: e => { const F = cerceve(e), w = sb('kutu') * 2, hh = sb('kutu'), h = C.annoH(1.44); return [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), TX(F.P(0, hh * 0.68), h, 'TDK', okunur(e.ang || 0), 'MC', { color: YR(), st: 'elk' }), TX(F.P(0, hh * 0.25), h, '10ç', okunur(e.ang || 0), 'MC', { color: YR(), st: 'elk' })]; },
-    dedektor: e => { const F = cerceve(Object.assign({}, e, { ang: 0, on: null })), r = sb('dedektorR'), h = C.annoH(2.5), out = [P(daire(F, 0, 0, r), true), TX(F.P(0, -h * 0.45), h, 'D', 0, 'MC', { color: 3, st: 'AAAA' })];
-      if (e.tip === 'isi') out.push(L(F.P(-r * 0.7, -r * 0.7), F.P(r * 0.7, r * 0.7))); else out.push(TX(F.P(0, r * 0.35), C.annoH(1.6), 'O', 0, 'MC', { color: 3, st: 'elk' }));
-      if (e.no) out.push(TX(F.P(r * 1.2, r * 0.6), C.annoH(mm('etiket')), e.no, 0, 'L', { color: 3, st: 'AAAA' })); return out; },
+    tdk: e => { const F = cerceve(e), w = sb('kutu') * 2, hh = sb('kutu'), h = C.annoH(mm('kutuYazi')); return [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), TX(F.P(0, hh * 0.68), h, 'TDK', okunur(e.ang || 0), 'MC', { color: YR(), st: 'elk' }), TX(F.P(0, hh * 0.25), h, '10ç', okunur(e.ang || 0), 'MC', { color: YR(), st: 'elk' })]; },
+    dedektor: e => { const F = cerceve(Object.assign({}, e, { ang: 0, on: null })), r = sb('dedektorR'), h = C.annoH(mm('harf')), out = [P(daire(F, 0, 0, r), true), TX(F.P(0, -h * 0.45), h, 'D', 0, 'MC', { color: YR(), st: 'AAAA' })];
+      if (e.tip === 'isi') out.push(L(F.P(-r * 0.7, -r * 0.7), F.P(r * 0.7, r * 0.7))); else out.push(TX(F.P(0, r * 0.35), C.annoH(mm('harfKucuk')), 'O', 0, 'MC', { color: YR(), st: 'elk' }));
+      if (e.no) out.push(TX(F.P(r * 1.2, r * 0.6), C.annoH(mm('etiket')), e.no, 0, 'L', { color: YR(), st: 'AAAA' })); return out; },
     buton: e => { const F = cerceve(e), w = sb('kutu'), out = [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w), F.P(-w / 2, w)], true), S(daire(F, 0, w / 2, w * 0.22, 10))]; return out; },
-    klakson: e => { const F = cerceve(e), r = sb('anahtarR'), h = C.annoH(2); return [P(daire(F, 0, r * 1.1, r), true), TX(F.P(0, r * 1.1 - h * 0.45), h, 'K', okunur(e.ang || 0), 'MC', { color: 3, st: 'AAAA' }), P([F.P(-r * 0.7, r * 2.3), F.P(0, r * 2.8), F.P(r * 0.7, r * 2.3)], false)]; },
-    fjb: e => { const F = cerceve(e), w = sb('kutu'), h = C.annoH(1.44); return [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w), F.P(-w / 2, w)], true), L(F.P(-w / 2, 0), F.P(w / 2, w)), L(F.P(w / 2, 0), F.P(-w / 2, w)), TX(F.P(0, w + h), h, 'FJB', okunur(e.ang || 0), 'MC', { color: YR(), st: 'elk' })]; },
+    klakson: e => { const F = cerceve(e), r = sb('anahtarR'), h = C.annoH(mm('etiket')); return [P(daire(F, 0, r * 1.1, r), true), TX(F.P(0, r * 1.1 - h * 0.45), h, 'K', okunur(e.ang || 0), 'MC', { color: YR(), st: 'AAAA' }), P([F.P(-r * 0.7, r * 2.3), F.P(0, r * 2.8), F.P(r * 0.7, r * 2.3)], false)]; },
+    fjb: e => { const F = cerceve(e), w = sb('kutu'), h = C.annoH(mm('kutuYazi')); return [P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, w), F.P(-w / 2, w)], true), L(F.P(-w / 2, 0), F.P(w / 2, w)), L(F.P(w / 2, 0), F.P(-w / 2, w)), TX(F.P(0, w + h), h, 'FJB', okunur(e.ang || 0), 'MC', { color: YR(), st: 'elk' })]; },
     cubuk: e => { const F = cerceve(Object.assign({}, e, { ang: 0, on: null })), r = sb('dedektorR'), h = C.annoH(mm('etiket')); return [P(daire(F, 0, 0, r), true), L(F.P(-r, -r), F.P(r, r)), L(F.P(-r, r), F.P(r, -r)), yaziT(F.P(r * 1.3, r * 0.4), h, e.no || 'TE', 0, 'L')]; },
     bara: e => { const F = cerceve(e), w = sb('kutu') * 2.5, hh = sb('kutu') * 0.6, h = C.annoH(mm('etiket')); return [S([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)]), P([F.P(-w / 2, 0), F.P(w / 2, 0), F.P(w / 2, hh), F.P(-w / 2, hh)], true), yaziT(F.P(0, hh + h * 1.2), h, e.no || 'TB-1', okunur(e.ang || 0), 'MC')]; },
   };
@@ -90,7 +91,7 @@
   };
   T.elsema = {
     label: 'Elektrik şeması',
-    prims: e => { const k = C.doc.set.anno / 1000, o = M.p3(e.p), out = [], g = e.g || { L: [], T: [] }, ST = { k: { lw: 35 }, i: { lw: 18 }, b: { lw: 70 }, t: { lw: 35, lt: 'HIDDEN' }, h: { lw: 13 } };
+    prims: e => { const k = C.doc.set.anno / 1000, o = M.p3(e.p), out = [], g = e.g || { L: [], T: [] }, SK = (K() && K().semaKal) || { k: 35, i: 18, b: 70, t: 35, h: 13 }, ST = { k: { lw: SK.k }, i: { lw: SK.i }, b: { lw: SK.b }, t: { lw: SK.t, lt: 'HIDDEN' }, h: { lw: SK.h } };
       for (const l of g.L) out.push(L([o[0] + l[0] * k, o[1] + l[1] * k, 0], [o[0] + l[2] * k, o[1] + l[3] * k, 0], ST[l[4]] || ST.i));
       for (const t of g.T) out.push(TX([o[0] + t[0] * k, o[1] + t[1] * k, 0], t[2] * k, t[3], t[5] || 0, t[4] || 'L', { color: t[6] == null ? YR() : t[6], st: 'AAAA' }));
       for (const s2 of g.S || []) out.push(S(s2.map(q => [o[0] + q[0] * k, o[1] + q[1] * k, 0]))); return out; },
@@ -184,8 +185,7 @@
     for (const { x, K: ks } of kat) {
       const e = x.e, z0 = +e.z0 || 0, base = { z0, mid: e.id }; if (e.sv != null) base.sv2 = e.sv;
       /* armatürler: oda kutusunda ızgara, uzun kenar doğrultusunda */
-      const N = x.r.N, a = x.a, b = x.b, pos = EL.izgara(N, a, b).map(q => [x.bb[0] + q[0], x.bb[1] + q[1]]).filter(q => inPoly(q, e.pts)), ang = a >= b ? 0 : Math.PI / 2;
-      const ar = EL.ARMATUR[x.arm]; const arm = (pos.length ? pos : [e.lp || MT.icNokta(e.pts)]).map(q => add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'armatur', sys: 'ayd', p: q, ang, kod: x.arm, W: ar.W }, base))));
+      const N = x.r.N, a = x.a, b = x.b, ang = a >= b ? 0 : Math.PI / 2, ar = EL.ARMATUR[x.arm], pos = EL.armaturYeri(e.pts, EL.izgara(N, a, b).map(q => [x.bb[0] + q[0], x.bb[1] + q[1]]), ang, ar.boy); const arm = (pos.length ? pos : [e.lp || MT.icNokta(e.pts)]).map(q => add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'armatur', sys: 'ayd', p: q, ang, kod: x.arm, W: ar.W }, base))));
       isikCihaz.set(e.id, arm); arm.forEach(c => cihazlar.push({ tur: 'isik', W: c.W, mahal: e.no || e.ad, ref: c }));
       /* anahtar: odanın kapısının yanında, kapı kenarından 15 cm, 1,10 m */
       let kk = null, ka = null; for (const k of ks) for (const ac of k.ac) if (ac.kind === 'kapi' && (!ka || (giris && ac.id === giris.a.id))) { kk = k; ka = ac; }
@@ -198,7 +198,8 @@
       /* zayıf akım */
       if (st.zayif) {
         if (x.tlf > 0) { const k = (prz[0] && ks.find(q => M.segDist(prz[0].p, q.a, q.b) < 0.05)) || ks[0], s0 = prz[0] ? ((prz[0].p[0] - k.a[0]) * k.u[0] + (prz[0].p[1] - k.a[1]) * k.u[1]) + 0.3 : k.L / 2; add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'tlfpriz', sys: 'tlf', p: nokta(k, Math.min(k.L - 0.3, s0)), ang: Math.atan2(k.u[1], k.u[0]), on: k.n, zm: 0.4 }, base))); }
-        const nd = EL.dedektorSay(x.A, x.ded); if (nd) { const dp = EL.izgara(nd, a, b).map(q => [x.bb[0] + q[0], x.bb[1] + q[1] + (N % 2 ? b / (2 * Math.ceil(N / Math.max(1, Math.round(Math.sqrt(N * a / b))))) * 0.5 : 0)]).map(q => inPoly(q, e.pts) ? q : (e.lp || MT.icNokta(e.pts)));
+        const nd = EL.dedektorSay(x.A, x.ded); if (nd) { /* dedektör: oda içinde, duvardan en az 0,5 m, armatürlerden 0,5 m uzak (TS EN 54 uygulama kuralı) */
+          const dp0 = EL.izgara(nd, a, b).map(q => [x.bb[0] + q[0], x.bb[1] + q[1]]), arP = arm.map(c => c.p), cand = EL.armaturYeri(e.pts, dp0.map(q => { let r = q; for (const c of arP) if (Math.hypot(r[0] - c[0], r[1] - c[1]) < 0.5) r = [r[0] + (ang ? 0.6 : 0), r[1] + (ang ? 0 : 0.6)]; return r; }), 0, 0, { ara: 1.5 }), dp = cand.length ? cand : [e.lp || MT.icNokta(e.pts)];
           dp.forEach((q, i) => add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'dedektor', sys: 'yng', tip: x.ded, p: q, no: `${e.no || ''}.${String(i + 1).padStart(2, '0')}`.replace(/^\./, '') }, base)))); }
       }
     }
@@ -239,9 +240,11 @@
         const bara = add(yeniC(Object.assign({ layer: ly('EYAZI'), kind: 'bara', sys: 'top', p: nokta(kP, Math.min(kP.L - 0.3, sP + 1.65), 0), ang: Math.atan2(kP.u[1], kP.u[0]), on: kP.n, zm: 0.3, no: 'TB-1' }, base0)));
         let bi = 0, bd = Infinity; hal.forEach((q, i) => { const d = M.dist2(q, bara.p); if (d < bd) { bd = d; bi = i; } }); add(yeniH(Object.assign({ layer: ly('TOPILET'), sys: 'top', pts: [bara.p, hal[bi]], kablo: '' }, base0))); } } catch (er) { console.error(er); uyari.push('Topraklama halkası çizilemedi: ' + (er && er.message || er)); }
     const chg = C.changed; C.changed = () => { }; try { yeni.forEach(x => C.add(x)); } finally { C.changed = chg; }
-    st.son = { kurulu: Y.kurulu, isletme: Y.isletme, In: Y.In, bes: Y.bes.ad, nLinye: Ls.length, R: topR ? topR.R : null, t: Date.now() };
     C.changed(); C.emit && C.emit('layers');
-    return { n: yeni.length, Ls, Y, topR, H, uyari };
+    /* acil armatür ve aplik linyeye bağlandıktan sonra yük yeniden (rapor ve paftayla aynı sonuç) */
+    const D = EL.durum(), Ls2 = D ? D.Ls : Ls, Y2 = D ? D.Y : Y;
+    st.son = { kurulu: Y2.kurulu, isletme: Y2.isletme, In: Y2.In, bes: Y2.bes.ad, nLinye: Ls2.length, R: topR ? topR.R : null, t: Date.now() };
+    return { n: yeni.length, Ls: Ls2, Y: Y2, topR, H, uyari };
   };
 
   /* hesap özetini modelden (yerleşmiş cihazlardan) yeniden kur: rapor, pafta, panel */

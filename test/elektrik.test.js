@@ -54,4 +54,14 @@ t('tek hat şeması ve yükleme cetveli çizilir (her linye için satır / çık
   assert(th.T.some(q => /BBAT \(Pi=6900W\) TABLO TEK HAT ŞEMASI/.test(q[3]))); assert(th.T.some(q => q[3] === '4x6mm2 NYY')); assert(th.T.some(q => q[3] === 'KCAK-3x50A'));
   assert(ct.T.some(q => q[3] === '4830')); assert(ct.T.some(q => q[3] === 'İŞLETME GÜCÜ(W)')); assert.strictEqual(ct.T.filter(q => q[3] === 'OTOM.').length, 7);
 });
+t('armatür yeri: L biçimli odada (kullanıcı 15.11.2026 "lamba duvarın içine girmiş") gövde duvara ve öbür odaya taşmaz, duvardan ≥ 0,5 m', () => {
+  /* ara bölmeli bekçi binası: sol odada üstte 2,45 m, altta 4,5 m genişlik — L oda; ara duvar x = 2,45 */
+  const Lp = [[0, 0], [4.5, 0], [4.5, 2.4], [2.45, 2.4], [2.45, 4.6], [0, 4.6]], p = EL.armaturYeri(Lp, EL.izgara(3, 4.5, 4.6), 0, 1.04);
+  assert.strictEqual(p.length, 3);
+  for (const q of p) { assert(EL.kenarUzak(q, Lp) >= 0.5 - 1e-9, 'merkez duvara yakın ' + q); for (const s of [-1, 1]) { const u = [q[0] + s * 0.57, q[1]]; assert(EL.kenarUzak(u, Lp) >= 0.25 - 1e-9, 'uç duvara yakın ' + u); } }
+  for (let i = 0; i < p.length; i++) for (let j = i + 1; j < p.length; j++) assert(Math.hypot(p[i][0] - p[j][0], p[i][1] - p[j][1]) >= 0.9);
+});
+t('armatür yeri: dikdörtgen odada ızgara noktası uygunsa yerinde kalır', () => {
+  const R = [[0, 0], [5, 0], [5, 3.5], [0, 3.5]], id = EL.izgara(2, 5, 3.5), p = EL.armaturYeri(R, id, 0, 1.04); assert.deepStrictEqual(p, id);
+});
 console.log(`\n${n} test geçti.`);

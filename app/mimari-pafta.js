@@ -643,7 +643,7 @@
      disiplin kesitinin türü (MIMARI → Mimari, GIZLI → Mekanik, DUZ → Statik); paftasının grubu; STATIK_ / MT öneki; yoksa Genel.
      Modelin üstüne çizilen katmanlar (tesisat planı sembolleri, plan kesit işaretleri) yerinde kalır. Taşınan birimin pafta pencereleri (gvOnly ya da
      pencere ortası birimin içinde), disiplin kesitinin yeri (v.yer / v.yerD — yeniden üretimde aynı yere) ve canlı görünüm kaydı birlikte kayar. */
-  const TUR_DIS = { MIMARI: 'Mimari', GIZLI: 'Mekanik', DUZ: 'Statik' }, GEVSEK = /^(mtsema)$/;
+  const TUR_DIS = { MIMARI: 'Mimari', GIZLI: 'Mekanik', DUZ: 'Statik' }, GEVSEK = /^(mtsema|elsema)$/; // elsema: elektrik şema / tablo / lejant (el-pafta.js)
   C.bolgeDuzenle = (o = {}) => {
     const set = C.doc.set, ents = C.doc.ents, lays = C.doc.layouts || [], GA = C.gorunumApi, VLs = GA ? GA.liste() : (set.gorunumler || []);
     const is3d = e => !e.gv && C.T[e.type] && (C.T[e.type].mesh || C.T[e.type].meshes);
@@ -692,7 +692,7 @@
     const r = C.bolgeDuzenle(); C.log(`Bölge düzeni: ${r.tasinan} / ${r.birim} çizim taşındı · bölgeler: ${Object.entries(r.bolgeler).map(([d, b]) => `${d} (${Math.round(b.w)}×${Math.round(b.h)} m)`).join(', ') || '—'}.`); setTimeout(() => C.emit('zoomExtents'), 50); });
   /* pafta üreten öbür komutlardan sonra bölge düzeni kendiliğinden (statik DSİ paftaları, tesisat paftaları, ısı yalıtım detayı, disiplin kesiti):
      yeni çizimler kendi disiplin bölgesine geçer, öbür bölgelere binmez */
-  const bolgeSar = () => { for (const ad of ['STATIKCIZ', 'TESISATPAFTA', 'ISIYALITIMDETAY', 'KESITPAFTA', 'GORUNUMPAFTA', 'MEKTABLO', 'ACILIMTABLO', 'ISTASYONPAFTA']) { const d = C.cmds && C.cmds[ad]; if (!d || d._bolge) continue; const f0 = d.fn; d._bolge = true;
+  const bolgeSar = () => { for (const ad of ['STATIKCIZ', 'TESISATPAFTA', 'ISIYALITIMDETAY', 'KESITPAFTA', 'GORUNUMPAFTA', 'MEKTABLO', 'ACILIMTABLO', 'ISTASYONPAFTA', 'ELEKTRIKPAFTA']) { const d = C.cmds && C.cmds[ad]; if (!d || d._bolge) continue; const f0 = d.fn; d._bolge = true;
     d.fn = async function () { const r = await f0.apply(this, arguments); try { C.bolgeDuzenle({ sessiz: true }); C.emit('layouts'); } catch (er) { console.error('bölge düzeni', er); } return r; }; } };
   setTimeout(bolgeSar, 0); if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', bolgeSar); // sonra yüklenen modüllerin komutları (mt-ek.js TESISATPAFTA): betikler ayrı ayrı yüklenirken setTimeout onlardan önce çalışabiliyor
   C.mimariPaftalari = MIMARIPAFTA;

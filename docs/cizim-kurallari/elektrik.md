@@ -19,15 +19,21 @@ Kullanıcı kararı (15.11.2026): "kendin ayarlayabilirsin" — örneklerdeki ad
 | `TOPILET` | 4 | HIDDEN | 0,35 | Topraklama iletkeni (30×3,5 galvaniz şerit), temel topraklaması | BB-001 |
 | `TLF` | 4 | DOT | 0,25 | Telefon hattı (PYCYM / A-2YF(L)Y) | BB-003 (`SPDDOT`) |
 | `ETELYNG` | 1 | DASHED | 0,25 | Yangın alarm hattı (JY(St)Y 2×1,5) | BB-003 (renk 7) |
+| `ANTET` | 7 | Continuous | 0,25 | Antet (denetimde serbest) | — |
+
+Eski ad eşlemesi (tablo `esAd`): `ELKYAZI`, `ELK YAZI`, `E-YAZI`, `TLFPRIZ`, `YNGTLFYAZI` → `EYAZI`; `Topraklama` → `TOPILET`.
 
 Notlar:
 - BB-003'te yangın alarm hattı `ETELYNG` katmanında renk 7 idi; kâğıtta telefonla karışmasın diye kırmızı (1) ve kesikli yapıldı — bu bir kabuldür.
 - `SPDDOT` programda yok; yerine `DOT` kullanılır.
-- Nesneler rengini katmandan alır; **yazılar sarı (2)** — örneklerde etiket ve tablo yazıları elle renk 2 verilmişti, sembol listesindeki açıklamalar da 2.
+- Nesneler rengini katmandan alır; **bütün yazılar sarı (2)** (linye numaraları, sembol içi harfler dahil) — örneklerde etiket ve tablo yazıları elle renk 2 verilmişti, sembol listesindeki açıklamalar da 2.
+- Linye hattı örnekte 2,5 cm genişlikli çoklu çizgiydi; programda kalınlık katmandan (EHAT 0,35 mm) gelir.
 
 ## 3. Yazı
 - Yazı stili `AAAA` (Arial, genişlik 1). Linye numarası ve sembol içi küçük yazılar `elk` (romanstw.shx, genişlik 0,85).
-- Yükseklikler (kâğıt mm): armatür kodu / linye no **2**; yükleme cetveli **2,06**; tek hat şeması yazıları **2,16**; tablo başlığı **2,4**; semboller listesi ve notlar **3**; başlıklar ("SEMBOLLER", "TABLO TEK HAT ŞEMASI", "YÜKLEME CETVELİ") **4**.
+- Yükseklikler (kâğıt mm): armatür kodu / linye no **2**; yükleme cetveli **2,06**; tek hat şeması yazıları **2,16**; tablo başlığı **2,4**; topraklama detayı yazıları **2,4**; semboller listesi ve notlar **3**; başlıklar ("SEMBOLLER", "TABLO TEK HAT ŞEMASI", "YÜKLEME CETVELİ") **4**.
+- Sembol içi yazılar: TDK / FJB kutu yazısı **1,44** (BB-003'te 7,2 birim); dedektör harfi D **2,5**, duman işareti O **1,6** (BB-003: 12,5 ve 8 birim).
+- Şema ve tablo çizgi kalınlıkları (mm): çerçeve 0,35 · iç çizgi 0,18 · bara 0,70 · topraklama 0,35 (HIDDEN) · zemin çizgisi 0,13.
 
 ## 4. Semboller (cm, 1/50; kâğıtta ÷5 mm) — BB-002 semboller listesinden ölçüldü
 | Sembol | Biçim |
@@ -39,11 +45,12 @@ Notlar:
 | Etanş anahtar | daire R 8, kol, içi dolu |
 | Topraklı priz | yarım daire R 8,3, üstte düz çizgi, toprak çizgisi |
 | Etanş priz | aynı, içi dolu |
-| Priz panosu | iki yarım daire + dikdörtgen gövde |
-| Duman / ısı dedektörü | daire, içinde D (duman: üstte O) |
-| Yangın butonu, klakson (K), bağlantı kutusu (FJB) | kare / daire içinde harf |
+| Duman / ısı dedektörü | daire R 10, içinde D (duman: üstte O; ısı: çapraz çizgi) |
+| Yangın butonu, klakson (K), bağlantı kutusu (FJB) | kare 16 / daire R 8 içinde harf |
 | Telefon prizi, dağıtım kutusu (TDK 10ç) | üçgen / dikdörtgen içinde yazı |
-| Topraklama çubuğu, bara (TB) | daire + çarpı, dolu dikdörtgen |
+| Topraklama çubuğu, bara (TB) | daire R 10 + çarpı, dolu dikdörtgen 40 × 9,6 |
+
+Örnekteki "metesan priz panosu" sembolü bekçi binasında kullanılmadığı için programa alınmadı.
 
 Programda semboller blok değil, Çorlu paftalarında olduğu gibi çizgilerden oluşur.
 
