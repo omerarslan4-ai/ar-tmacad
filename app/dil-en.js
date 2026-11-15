@@ -468,3 +468,34 @@
     ['Ünite kodu (boş = başlıktan)', 'Unit code (empty = from title)'], ['Yapı adı (boş = başlıktan)', 'Building name (empty = from title)'], ['Sıra no (boş = otomatik)', 'Serial no. (empty = automatic)'], ['Çizim no (elle; boş = şablondan)', 'Drawing no. (manual; empty = from template)'],
   ]);
 })();
+/* KREYN AİLESİ (aile-kreyn.js, 15.11.2026): tek kirişli gezer köprü vinci — aile penceresi, liste, bilgi satırı ve KREYNYUK iletileri */
+(function () {
+  'use strict';
+  if (!window.DIL) return;
+  window.DIL.ekle('en', 'English', [
+    ['Gezer köprü vinci — tek kirişli (1 … 10 t)', 'Overhead travelling crane — single girder (1 … 10 t)'], ['KREYN', 'CRANE'], ['Vinç / kaldırma', 'Crane / lifting'],
+    ['Ray üstünde yürüyen tek kirişli köprü vinci ve halatlı ceraskal. Kapasite seçilince teker, baş kiriş ve ceraskal GH kataloğundan gelir; köprü kirişi kesiti, ağırlıklar ve kanca mesafeleri kabuldür (0 = otomatik), üretici teklifine göre düzeltin. Yerleşim kotu zemin döşemesidir.', 'Top-running single girder bridge crane with wire rope hoist. When the capacity is selected, the wheels, end carriages and hoist come from the GH catalogue; the girder section, weights and hook distances are assumptions (0 = automatic) — correct them from the manufacturer\'s offer. The placement level is the floor slab.'],
+    ['Vinç', 'Crane', 'satir'], ['Vinç yolu', 'Crane runway', 'satir'], ['Konum', 'Position', 'satir'], ['Kabuller — katalogda yok', 'Assumptions — not in the catalogue'], ['Hesaplanan', 'Calculated', 'satir'],
+    ['Kapasite', 'Capacity', 'satir'], ['Açıklık (ray ekseni – ray ekseni)', 'Span (rail centre to rail centre)'], ['Gerekli kaldırma yüksekliği', 'Required height of lift'], ['Köprü yürüme hızı', 'Long travel speed'],
+    ['Ray üstü — yerleşim kotundan', 'Top of rail — above placement level'], ['Yürüme yolu boyu', 'Runway length'], ['Ray', 'Rail', 'satir'], ['Vinç yolu kirişi yüksekliği (0 = çizme)', 'Runway beam depth (0 = do not draw)'],
+    ['Köprünün yeri (yol başından)', 'Bridge position (from runway start)'], ['Arabanın yeri (sol raydan)', 'Trolley position (from left rail)'], ['Kanca — üst konumdan aşağı', 'Hook — below upper position'],
+    ['Köprü kirişi yüksekliği (0 = otomatik)', 'Girder depth (0 = automatic)'], ['Köprü kirişi genişliği (0 = otomatik)', 'Girder width (0 = automatic)'], ['Köprü kirişi ağırlığı (0 = otomatik)', 'Girder weight (0 = automatic)'],
+    ['Araba + ceraskal ağırlığı (0 = otomatik)', 'Trolley + hoist weight (0 = automatic)'], ['Kanca — kiriş altından en az (0 = otomatik)', 'Hook — minimum below girder (0 = automatic)'], ['Kancanın raya en yakın mesafesi (0 = otomatik)', 'Minimum hook approach to rail (0 = automatic)'],
+    ['Teker çapı', 'Wheel diameter'], ['Teker aralığı', 'Wheel base'], ['Baş kiriş boyu', 'End carriage length'], ['Seçilen kanca yolu', 'Selected height of lift'], ['Kaldırma hızı (tam yükte)', 'Hoisting speed (full load)'],
+    ['En büyük teker yükü', 'Maximum wheel load'], ['En küçük teker yükü (yüksüz)', 'Minimum wheel load (no load)'], ['İzin verilen teker yükü', 'Admissible wheel load'],
+    ['GH çizelgesi', 'GH chart'], ['GH tablosu', 'GH table'], ['GH föyü', 'GH data sheet'], ['statik denge', 'static equilibrium'], ['m/dk', 'm/min'],
+    ['Kare 40×40', 'Square 40×40'], ['Kare 50×50', 'Square 50×50'], ['Kare 60×60', 'Square 60×60'],
+    ['Tek kirişli gezer köprü vinci', 'Single girder overhead travelling crane'], ['açıklık # m', 'span # m'], ['ray açıklığı # mm', 'rail span # mm'], ['kanca yolu # m', 'height of lift # m'], ['· ceraskal', '· hoist'], ['; ceraskal', '; hoist'],
+    ['yürüme # m/dk', 'travel # m/min'], ['# m/dk', '# m/min'], ['teker Ø#, aralık # mm', 'wheel Ø#, base # mm'], ['· ray', '· rail'], ['· yol # m', '· runway # m'], ['teker yükü en çok # kN', 'max. wheel load # kN'],
+    ['teker Ø#, teker aralığı #, baş kiriş boyu # mm', 'wheel Ø#, wheel base #, end carriage length # mm'], ['#/# halat', '#/# rope'], ['(boşta #)', '(no load #)'], ['köprü kirişi #×# mm (kabul)', 'girder #×# mm (assumed)'],
+    ['teker yükü en çok # / en az # kN', 'wheel load max. # / min. # kN'], ['izin verilen # kN', 'admissible # kN'], ['teker aralığı # m', 'wheel base # m'], ['teker aralığı # mm', 'wheel base # mm'], ['yüksüz en az # kN', 'no load min. # kN'],
+    ['İSTENEN YÜKSEKLİĞE YETMİYOR', 'DOES NOT REACH THE REQUIRED HEIGHT'], ['statik, kabul ağırlıklarla', 'static, with assumed weights'],
+    ['AŞILIYOR, rayı genişletin ya da hızı düşürün', 'EXCEEDED — use a wider rail or lower the speed'], ['bu ray için izin verilen yük tabloda yok', 'no admissible load in the table for this rail'],
+    ['kanca en üstte ray üstünden # mm aşağıda', 'hook at upper limit # mm below top of rail'], ['kreyn üstü ray üstünden # mm yukarıda', 'top of crane # mm above top of rail'], ['ray ekseni – duvar en az # mm', 'rail centre to wall at least # mm'],
+    ['ray üstü #', 'top of rail #'], ['ray üstü kotu', 'top of rail level'],
+    ['Seçili gezer köprü vincinin teker yüklerini, teker aralığını ve ray üstü kotunu yazar (statik hesap için).', 'Prints the wheel loads, wheel base and top-of-rail level of the selected overhead crane (for structural design).'],
+    ['Önce bir gezer köprü vinci (kreyn) seçin.', 'First select an overhead travelling crane.'], ['her rayda 2 teker', '2 wheels on each rail'], ['aynı anda karşı rayda', 'at the same time on the opposite rail'],
+    ['Statik dengeden; dinamik katsayı ve yatay kuvvet uygulanmamıştır. Ağırlıklar kabuldür.', 'From static equilibrium; no dynamic factor or horizontal force applied. Weights are assumptions.'],
+    ['Kreyn açıklığı # mm', 'Crane span # mm'], ['Raylar tıklanan yüzlerden # mm içeri alındı; yerleşim kotunu (zemin döşemesi) denetleyin.', 'Rails were set # mm in from the picked faces; check the placement level (floor slab).'], ['en büyük teker yükü # kN', 'maximum wheel load # kN'],
+  ]);
+})();
