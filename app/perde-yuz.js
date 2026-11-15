@@ -88,7 +88,8 @@
     let Yf = yuzHat(e, st.taraf), Y = Yf, PR = parcalar(Yf); st.parca = -1;
     if (nokta && PR.length > 1) { try { const sp = Yf.proj(nokta); const k = PR.findIndex(q => { let v = sp - q.s0; if (Yf.kap) v = ((v % Yf.L) + Yf.L) % Yf.L; return v >= -1e-6 && v <= q.L + 1e-6; }); if (k >= 0) st.parca = k; } catch (er) { } }
     const md = v => (Yf.kap ? ((v % Yf.L) + Yf.L) % Yf.L : v);
-    const yukle = () => { Yf = yuzHat(e, st.taraf); Yf.taraf = st.taraf; PR = parcalar(Yf); if (st.parca >= PR.length) st.parca = -1; const pc = st.parca >= 0 ? PR[st.parca] : null; Y = parcaGorunum(Yf, pc); Y.taraf = st.taraf;
+    let T = null, AR = null; const V = { k: 1, dx: 0, dy: 0 }; // çizim dönüşümü, çizim araçları, yakınlaştırma / kaydırma — yukle() bunları kullandığı için ondan ÖNCE tanımlanır (yoksa pencere boş açılır)
+    const yukle =() => { Yf = yuzHat(e, st.taraf); Yf.taraf = st.taraf; PR = parcalar(Yf); if (st.parca >= PR.length) st.parca = -1; const pc = st.parca >= 0 ? PR[st.parca] : null; Y = parcaGorunum(Yf, pc); Y.taraf = st.taraf;
       st.liste = bosOku(e, Yf).map(o => { const q = Object.assign({}, o, { degisti: false }); if (pc && !q.pahIcin) { const c = q.sekil === 'D' ? q.s : q.s + q.w / 2, v = md(c - pc.s0); q.s = q.sekil === 'D' ? v : v - q.w / 2; if (v < -1e-6 || v > pc.L + 1e-6) q.gizli = true; } return q; }); if (AR) AR.yardimYenile(); };
     yukle();
     const parcaDoldur = () => { const sl = $('#pyParca'); sl.innerHTML = `<option value="-1">Tüm perde${PR.length > 1 ? ' (' + PR.length + ' parça)' : ''}</option>` + PR.map((q, i) => `<option value="${i}">${q.ad}</option>`).join(''); sl.value = String(st.parca); sl.style.display = PR.length > 1 ? '' : 'none'; };
@@ -105,8 +106,7 @@
     const listele = () => { $('#pyListe').innerHTML = st.liste.map((o, i) => o.sil || o.gizli ? '' : `<div data-i="${i}" style="padding:4px 6px;margin:2px 0;border-radius:4px;cursor:pointer;background:${i === st.sec ? '#d8eef5' : '#f1f4f5'}">${i + 1}. ${o.sekil === 'D' ? `Ø${cm(o.w)}` : `${cm(o.w)}×${cm(o.h)}`} — sol ${cm(o.s)}, alt ${cm(o.z)}${o.kendi === false ? ' (dış)' : ''}${o.yeni ? ' • yeni' : o.degisti ? ' • değişti' : ''}</div>`).join('') || '<span style="color:#5a6b71">Boşluk yok.</span>';
       $('#pyListe').querySelectorAll('[data-i]').forEach(d => d.onclick = () => { st.sec = +d.dataset.i; alanlar(); listele(); ciz(); }); };
     // çizim
-    let T = null, AR = null; const V = { k: 1, dx: 0, dy: 0 }; // yakınlaştırma / kaydırma
-    const ciz = () => {
+    const ciz =() => {
       if (!div.isConnected || cv.clientWidth < 100 || cv.clientHeight < 100) return;
       const W = cv.clientWidth, H = cv.clientHeight; cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio; const x = cv.getContext('2d'); x.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); x.fillStyle = '#fff'; x.fillRect(0, 0, W, H);
       const Hh = Y.z1 - Y.z0, pad = 80, sc0 = Math.min((W - 2 * pad) / Y.L, (H - 2 * pad) / Hh), sc = sc0 * V.k, ox = (W - Y.L * sc0) / 2 * 1 + V.dx - (V.k - 1) * Y.L * sc0 / 2, oy = (H + Hh * sc0) / 2 + V.dy + (V.k - 1) * Hh * sc0 / 2;
