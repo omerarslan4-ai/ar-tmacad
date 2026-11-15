@@ -135,7 +135,7 @@
   const UNITK = { m: 1, cm: 0.01, mm: 0.001, in: 0.0254 };
   C.TUR_KATMAN = { 'Kapı': ['MIMARI_KAPI', 32], 'Pencere': ['MIMARI_PENCERE', 140], 'Merdiven': ['MIMARI', 8], 'Korkuluk': ['MIMARI', 8], 'Mobilya': ['DONATI', 42], 'Pompa': ['POMPA', 5], 'Ekipman': ['EKIPMAN', 4], 'Vana': ['VANA', 1], 'İnsan': ['CEVRE', 8], 'Ağaç': ['CEVRE', 82], 'Araç': ['CEVRE', 8], 'Elektrik': ['ELEKTRIK', 6] };
   C.modelToDef = function (mesh, meta) {
-    let v = mesh.v.map(p => [p[0], p[1], p[2]]); const k = mesh.birimli ? 1 : (UNITK[meta.unit || 'm'] || 1); // DAE / KMZ kendi birimini taşır, metreye çevrilmiş gelir if (k !== 1) v = v.map(p => p.map(x => x * k));
+    let v = mesh.v.map(p => [p[0], p[1], p[2]]); const k = mesh.birimli ? 1 : (UNITK[meta.unit || 'm'] || 1); /* DAE / KMZ kendi birimini taşır, metreye çevrilmiş gelir */ if (k !== 1) v = v.map(p => p.map(x => x * k));
     let bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]; for (const p of v) for (let i = 0; i < 3; i++) { bb[i] = Math.min(bb[i], p[i]); bb[i + 3] = Math.max(bb[i + 3], p[i]); }
     let s = 1; if (meta.targetH > 0 && bb[5] - bb[2] > 1e-9) s = meta.targetH / (bb[5] - bb[2]);
     const cx = (bb[0] + bb[3]) / 2, cy = (bb[1] + bb[4]) / 2, z0 = bb[2], r = x => Math.round(x * 1e4) / 1e4;

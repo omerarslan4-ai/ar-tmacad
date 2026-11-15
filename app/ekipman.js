@@ -62,8 +62,9 @@
   const UPMAP = { Z: p => p, Y: p => [p[0], -p[2], p[1]], X: p => [p[1], p[2], p[0]] };
   const okuyucuYukari = name => /\.stl$/i.test(name) ? 'Z' : 'Y';
   C.ekipmanEksen = (name, mesh, up) => {
-    if (!up || up === 'oto' || up === okuyucuYukari(name)) return mesh;
-    const geri = okuyucuYukari(name) === 'Y' ? (p => [p[0], p[2], -p[1]]) : (p => p); // okuyucunun çevirmesini geri al → dosyadaki ham eksenler
+    const oy = mesh && mesh.birimli ? 'Z' : okuyucuYukari(name); // DAE / KMZ okuyucusu dosyanın kendi up_axis'ini uygular → Z yukarı gelir
+    if (!up || up === 'oto' || up === oy) return mesh;
+    const geri = oy === 'Y' ? (p => [p[0], p[2], -p[1]]) : (p => p); // okuyucunun çevirmesini geri al → dosyadaki ham eksenler
     return Object.assign({}, mesh, { v: mesh.v.map(p => UPMAP[up](geri(p))) });
   };
   /* ---------- ekleme (taban) noktası ----------
@@ -191,7 +192,7 @@
         const mesh = C.ekipmanEksen(f.name, await C.loadModelBuffer(f.name, await f.arrayBuffer()), opt.up);
         const def = C.modelToDef(mesh, { name: f.name.replace(/\.[^.]+$/, ''), src: f.name, tur: opt.tur, targetH: +opt.h || 0, unit: opt.unit || 'm' });
         def.mek = true; if (opt.marka) def.marka = opt.marka;
-        { const k = ({ m: 1, cm: 0.01, mm: 0.001, in: 0.0254 })[opt.unit || 'm'] || 1, b = kutu(mesh.v.map(p => p.map(x => x * k))), sc = (+opt.h > 0 && b[5] - b[2] > 1e-9) ? +opt.h / (b[5] - b[2]) : 1;
+        { const k = mesh.birimli ? 1 : (({ m: 1, cm: 0.01, mm: 0.001, in: 0.0254 })[opt.unit || 'm'] || 1), b = kutu(mesh.v.map(p => p.map(x => x * k))), sc = (+opt.h > 0 && b[5] - b[2] > 1e-9) ? +opt.h / (b[5] - b[2]) : 1;
           def.orj = [-(b[0] + b[3]) / 2 * sc, -(b[1] + b[4]) / 2 * sc, -b[2] * sc].map(x => Math.round(x * 1e4) / 1e4); def.baz = 'taban';
           const ic = def.orj.every((x, i) => { const bb = kutu(def.mesh3d.v), L = bb[i + 3] - bb[i]; return x >= bb[i] - 0.1 * L && x <= bb[i + 3] + 0.1 * L; });
           const boruElemani = /vana|valf|valve|klape|check|gate|butterfly|kelebek|s[uü]rg|fitting|flan[sş]|dirsek|demontaj|debimetre|control|kontrol|(?:^|[^a-z])DN\s*\d{2,4}|(?:^|[^a-z])PN\s*\d{1,2}(?!\d)/i.test(def.tur + ' ' + def.name + ' ' + (f.name || ''));
