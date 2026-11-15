@@ -135,7 +135,32 @@
         if (ar.dis) { bx(out, F, -0.12, 0.12, -0.08, 0.0, zm, zm + 0.2, GRI); bx(out, F, -0.1, 0.1, -0.085, -0.08, zm + 0.02, zm + 0.18, ISIK); break; }
         const Lb = ar.boy, w = ar.etans ? 0.09 : 0.07; /* plandaki gerçek boy ve armaturYeri ile aynı (1,04 / 0,52 m) */ bx(out, F, -Lb / 2, Lb / 2, -w / 2, w / 2, zt - 0.075, zt, ar.etans ? GRI : BEY); bx(out, F, -Lb / 2 + 0.02, Lb / 2 - 0.02, -w / 2 + 0.015, w / 2 - 0.015, zt - 0.078, zt - 0.075, ISIK); break; }
       case 'anahtar': case 'priz': case 'tlfpriz': case 'buton': { const col = e.kind === 'buton' ? KIR : e.tip === 'etans' ? GRI : BEY; bx(out, F, -0.04, 0.04, 0, 0.012, zm - 0.04, zm + 0.04, col); if (e.kind === 'priz') sil(out, F.P(0, 0.012, zm), [F.n[0], F.n[1], 0], 0.022, 0.004, KOYU, 12); else if (e.kind === 'anahtar') bx(out, F, -0.015, 0.015, 0.012, 0.018, zm - 0.025, zm + 0.025, BEY); break; }
-      case 'pano': bx(out, F, -0.25, 0.25, -0.1, 0.02, zm, zm + 0.5, GRI); bx(out, F, -0.23, 0.23, 0.02, 0.025, zm + 0.02, zm + 0.48, [0.85, 0.86, 0.88]); bx(out, F, 0.16, 0.2, 0.025, 0.035, zm + 0.22, zm + 0.28, KOYU); break;
+      case 'pano': { /* gerçekçi pano (kullanıcı 15.11.2026): kapak açık; ray üstünde şalt modülleri (EL.panoDuzen), tarak bara, N / PE baraları, giriş ve çıkış kabloları.
+          3B'de gövde duvar yüzüne oturur (duvar nesnesi oyulmadığı için içi görünsün diye); plan ve detayda sıva altıdır. */
+        let PD = null; try { const d = EL.durum(); if (d) PD = EL.panoDuzen(d.Ls, d.Y); } catch (er) { } if (!PD) PD = EL.panoDuzen([], { In: 25 });
+        const W = PD.W / 1000, H = PD.H / 1000, D = PD.D / 1000, Mm = EL.MODUL / 1000, x0r = -W / 2 + (PD.W - PD.R * EL.MODUL) / 2000, zb = zm, t = 0.0015;
+        const GOV = [0.86, 0.87, 0.88], PL = [0.93, 0.83, 0.55], RAY = [0.75, 0.76, 0.78], MOD = [0.97, 0.97, 0.96], CU = [0.85, 0.5, 0.25], MAVI = [0.2, 0.4, 0.85], SY = [0.55, 0.75, 0.2];
+        bx(out, F, -W / 2, W / 2, 0, t, zb, zb + H, GOV); bx(out, F, -W / 2, -W / 2 + t, 0, D, zb, zb + H, GOV); bx(out, F, W / 2 - t, W / 2, 0, D, zb, zb + H, GOV); bx(out, F, -W / 2, W / 2, 0, D, zb, zb + t, GOV); bx(out, F, -W / 2, W / 2, 0, D, zb + H - t, zb + H, GOV);
+        bx(out, F, -W / 2 + 0.012, W / 2 - 0.012, t, t + 0.002, zb + 0.012, zb + H - 0.012, PL); /* montaj plakası */
+        /* açık kapak: sol menteşe, 110° */
+        { const a = Math.atan2(F.u[1], F.u[0]) + Math.PI - 70 * Math.PI / 180, hp = F.P(-W / 2, D, 0), Fk = G().eksen([hp[0], hp[1]], a, null); bx(out, Fk, 0, W, -0.002, 0.002, zb, zb + H, GOV); bx(out, Fk, W * 0.85, W * 0.9, 0.002, 0.012, zb + H * 0.47, zb + H * 0.53, KOYU); }
+        /* kablo kanalları */
+        bx(out, F, -W / 2 + 0.014, -W / 2 + 0.048, t + 0.002, 0.045, zb + 0.02, zb + H - 0.02, [0.6, 0.62, 0.64]);
+        PD.raylar.forEach((ray, j) => { const rz = zb + H - 0.085 - j * 0.135;
+          bx(out, F, x0r - 0.008, x0r + PD.R * Mm + 0.008, t + 0.002, t + 0.009, rz - 0.0175, rz + 0.0175, RAY);
+          bx(out, F, -W / 2 + 0.052, W / 2 - 0.018, t + 0.002, 0.045, rz - 0.045 - 0.052, rz - 0.045 - 0.012, [0.6, 0.62, 0.64]);
+          for (const m of ray) { const s0 = x0r + m.x * Mm + 0.0005, s1 = s0 + m.modul * Mm - 0.001, oF = t + 0.009 + 0.068; bx(out, F, s0, s1, t + 0.009, oF, rz - 0.045, rz + 0.045, MOD);
+            const tc = m.tur === 'ana' ? [0.8, 0.12, 0.1] : m.tur === 'kak' ? [0.15, 0.35, 0.8] : m.tur === 'par' ? [0.9, 0.55, 0.1] : KOYU;
+            if (m.tur === 'sin') { for (let q = 0; q < 3; q++) G().sil(out, F.P((s0 + s1) / 2, oF, rz + 0.022 - q * 0.018), [F.n[0], F.n[1], 0], 0.0045, 0.004, [[0.9, 0.2, 0.1], [0.95, 0.8, 0.1], [0.2, 0.6, 0.9]][q], 10); }
+            else bx(out, F, (s0 + s1) / 2 - 0.006 * Math.min(m.modul, 3), (s0 + s1) / 2 + 0.006 * Math.min(m.modul, 3), oF, oF + 0.009, rz - 0.006, rz + 0.008, tc);
+            if (m.tur === 'mcb' && m.kablo) G().sil(out, F.P((s0 + s1) / 2, t + 0.04, rz - 0.045), [0, 0, -1], 0.003, 0.03, [0.15, 0.15, 0.15], 6); }
+          if (j > 0) { const a0 = x0r + ray[0].x * Mm, a1 = x0r + (ray[ray.length - 1].x + ray[ray.length - 1].modul) * Mm; bx(out, F, a0, a1, t + 0.06, t + 0.066, rz + 0.045, rz + 0.051, CU); } });
+        /* N ve PE baraları */
+        bx(out, F, -W / 2 + 0.07, -W / 2 + 0.17, t + 0.004, t + 0.016, zb + 0.022, zb + 0.034, MAVI); bx(out, F, -W / 2 + 0.185, -W / 2 + 0.285, t + 0.004, t + 0.016, zb + 0.022, zb + 0.034, SY);
+        /* giriş kablosu (alttan, 4 damar: kahve, siyah, gri, mavi) ve çıkış demeti (üstten) */
+        const xq = x0r + 0.025; [[0.45, 0.25, 0.1], [0.1, 0.1, 0.1], [0.55, 0.55, 0.55], MAVI].forEach((col, k) => G().sil(out, F.P(xq + k * 0.007, t + 0.03, zb - 0.25), [0, 0, 1], 0.0035, 0.25 + H - 0.085 - 0.045 - (PD.raylar.length > 0 ? 0 : 0), col, 8));
+        G().sil(out, F.P(-W / 2 + 0.031, t + 0.025, zb + H - 0.02), [0, 0, 1], 0.012, 0.3, [0.85, 0.85, 0.85], 12);
+        break; }
       case 'tdk': case 'fjb': bx(out, F, -0.15, 0.15, -0.05, 0.02, zm, zm + 0.2, GRI); break;
       case 'mekbes': bx(out, F, -0.05, 0.05, 0, 0.03, zm - 0.05, zm + 0.05, BEY); bx(out, F, -0.03, 0.03, 0.03, 0.034, zm - 0.03, zm + 0.03, [0.85, 0.15, 0.12]); break; /* cihaz bağlantı kutusu (sigortalı / anahtarlı) */
       case 'klakson': bx(out, F, -0.07, 0.07, 0, 0.08, zm, zm + 0.12, KIR); sil(out, F.P(0, 0.08, zm + 0.06), [F.n[0], F.n[1], 0], 0.035, 0.03, SAR, 12); break;

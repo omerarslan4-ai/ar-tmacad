@@ -85,4 +85,10 @@ t('mekanik ekipman (firma kuralı 15.11.2026): ısıtıcı, split klima ve fan e
   assert.strictEqual(EL.mekMerkez({ kazan: { sistem: 'kombi', kombiAdet: 2 } })[0].W, 300);
   const r = EL.mekGuc({ type: 'mthv', kind: 'rooftop', Qs: 20, V: 4000 }); assert.strictEqual(r.W, Math.round(20000 / 3.2 + 160)); assert.strictEqual(r.faz, 3);
 });
+t('pano şalt dizilimi (kullanıcı 15.11.2026, Çorlu BBAT): ana şalter 3x50A + kaçak akım 30 mA + parafudr + sinyal ilk rayda, 7 linye sigortası ikinci rayda; pano 310x370x95; perspektif detay', () => {
+  const L = corlu(), Y = EL.yuk(L, { div: 70, L: 100 }), P = EL.panoDuzen(L, Y);
+  assert.deepStrictEqual(P.raylar.map(r => r.map(m => m.kod)), [['Q0', 'F0', 'P0', 'H1'], ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7']]); assert.strictEqual(P.mod[0].oz, '3x50A, C eğrisi, 10 kA'); assert(/30 mA/.test(P.mod[1].oz)); assert.strictEqual(P.mod.find(m => m.kod === 'F5').modul, 3);
+  assert.deepStrictEqual([P.W, P.H, P.D], [310, 370, 95]); assert(P.raylar.every(r => r.reduce((s, m) => s + m.modul, 0) <= 12));
+  const D = require('../app/el-detay.js'), g = D.detayPano(P, {}); assert(g.L.length > 100 && !g.L.some(l => l.slice(0, 4).some(v => !isFinite(v)))); assert(g.T.some(q => /KAÇAK AKIM/.test(q[3]))); assert(D.tabloSalt(P).T.some(q => q[3] === 'TARAK BARA'));
+});
 console.log(`\n${n} test geçti.`);

@@ -159,6 +159,58 @@
     return c.g;
   };
 
+  /* ======================= PANO (kapak açık, perspektif) — kullanıcı 15.11.2026: "perspektif şekilde kablo bağlantılarını, sigortalarını, kaçak akımını" =======================
+     P: EL.panoDuzen sonucu; o: { pano (ad), besleme (kablo adı), besleyen }. Mm cinsinden: x genişlik, y derinlik (0 ön, D arka), z yükseklik. */
+  EL.detayPano = (P, o = {}) => {
+    if (!P) return null; const c = cizer(), I = iso(c, 70, 60, 0.36), { W, H, D, R, raylar } = P, M_ = EL.MODUL, x0r = (W - R * M_) / 2, hy = mm('olcu');
+    const rz = j => H - 85 - j * 135, yOn = D - 80, yArka = D - 15;
+    /* gövde, montaj plakası, açık kapak (sol menteşe, 110°) */
+    I.kutu(0, 0, 0, W, D, H, 'k'); I.yol([[12, D - 8, 12], [W - 12, D - 8, 12], [W - 12, D - 8, H - 12], [12, D - 8, H - 12]], 'i', true);
+    const ca = Math.cos(20 * Math.PI / 180), sa = Math.sin(20 * Math.PI / 180), kx = W + W * ca, ky = -W * sa; I.yol([[W, 0, 0], [kx, ky, 0], [kx, ky, H], [W, 0, H]], 'k', true); I.yol([[W + (kx - W) * 0.9, ky * 0.9, H * 0.45], [W + (kx - W) * 0.9, ky * 0.9, H * 0.55]], 'k'); for (let q = 1; q < 4; q++) I.cizgi([W + (kx - W) * 0.1, ky * 0.1, H * q / 4], [W + (kx - W) * 0.3, ky * 0.3, H * q / 4], 'h');
+    /* kablo kanalları: solda düşey, her rayın altında yatay */
+    I.kutu(14, yArka - 45, 20, 34, 45, H - 40, 'i'); raylar.forEach((_, j) => I.kutu(52, yArka - 45, rz(j) - 45 - 52, W - 70, 45, 40, 'i'));
+    /* raylar ve şalt modülleri */
+    const merkez = {}; raylar.forEach((ray, j) => { const z = rz(j); I.kutu(x0r - 8, yArka - 7, z - 17.5, R * M_ + 16, 7, 35, 'i');
+      for (const m of ray) { const xa = x0r + m.x * M_, w = m.modul * M_; I.kutu(xa + 0.5, yOn, z - 45, w - 1, yArka - 7 - yOn, 90, 'k');
+        if (m.tur === 'sin') { for (let q = 0; q < 3; q++) I.daireXZ(xa + w / 2, yOn, z + 22 - q * 18, 4.5, 'i'); }
+        else if (m.tur === 'par') { I.kutu(xa + 3, yOn - 2, z - 10, w - 6, 2, 25, 'i'); }
+        else { I.kutu(xa + w / 2 - 4, yOn - 8, z - 6, 8, 8, 14, 'k'); if (m.tur === 'kak') I.daireXZ(xa + w - 9, yOn, z + 28, 4, 'k'); }
+        merkez[m.kod] = { x: xa + w / 2, z, w, m };
+        if (m.tur === 'mcb') { const p = I.P(xa + w / 2, yOn, z + 50), q = I.P(xa + w / 2, yOn, z - 55); c.T(p[0], p[1], hy, m.linye || '', 'BC', 0); c.T(q[0], q[1] - hy, hy * 0.9, (m.kutup === 3 ? '3x' : '') + m.In + 'A', 'TC', 0); } } });
+    /* tarak bara: sigorta raylarının üst bağlantıları */
+    for (let j = 1; j < raylar.length; j++) { const r0 = raylar[j], xa = x0r + r0[0].x * M_, xb = x0r + (r0[r0.length - 1].x + r0[r0.length - 1].modul) * M_; I.kutu(xa, yOn + 8, rz(j) + 45, xb - xa, 6, 6, 'k'); }
+    /* besleme: alttan 4 damar → Q0 alt klemensleri; PE → PE barası */
+    const q0 = merkez.Q0, f0 = merkez.F0, p0 = merkez.P0;
+    for (let k = 0; k < 4; k++) { const xk = (q0 ? q0.x - 12 : 60) + k * 7; I.yol([[xk, yOn + 25, -90], [xk, yOn + 25, rz(0) - 70], [xk, yOn + 10, rz(0) - 45]], k === 3 ? 'i' : 'k'); }
+    /* bağlantılar: Q0 üst → F0 üst (köprü), F0 alt → tarak baralar (sağ kanal üzerinden), P0 → F0 çıkışı */
+    if (q0 && f0) { for (let k = 0; k < 3; k++) I.yol([[q0.x - 6 + k * 6, yOn + 10, q0.z + 45], [q0.x - 6 + k * 6, yOn + 10, q0.z + 58 + k * 3], [f0.x - 9 + k * 6, yOn + 10, q0.z + 58 + k * 3], [f0.x - 9 + k * 6, yOn + 10, f0.z + 45]], 'k');
+      for (let j = 1; j < raylar.length; j++) I.yol([[f0.x, yOn + 10, f0.z - 45], [f0.x, yOn + 10, f0.z - 60], [W - 22, yOn + 10, f0.z - 60], [W - 22, yOn + 10, rz(j) + 48], [x0r + (raylar[j][raylar[j].length - 1].x + raylar[j][raylar[j].length - 1].modul) * M_, yOn + 10, rz(j) + 48]], 'k'); }
+    if (p0 && f0) I.yol([[p0.x, yOn + 10, p0.z + 45], [p0.x, yOn + 10, p0.z + 52], [f0.x + 6, yOn + 10, p0.z + 52]], 'i');
+    /* çıkışlar: her sigortanın alt klemensinden yatay kanala, oradan sol düşey kanaldan yukarı, üstten çıkış */
+    const mcb = Object.values(merkez).filter(q => q.m.tur === 'mcb' && q.m.kablo); for (const q of mcb) I.yol([[q.x, yOn + 12, q.z - 45], [q.x, yOn + 12, q.z - 60]], 'i');
+    mcb.slice(0, 8).forEach((q, i) => I.yol([[24 + i * 2.5, yArka - 30, rz(raylar.length - 1) - 80], [24 + i * 2.5, yArka - 30, H + 90]], 'i'));
+    /* N ve PE baraları (altta) */
+    const zb = 22; I.kutu(70, yArka - 25, zb, 100, 18, 12, 'k'); I.kutu(185, yArka - 25, zb, 100, 18, 12, 'k'); for (let i = 0; i < 6; i++) { I.daireXZ(80 + i * 16, yArka - 25, zb + 6, 3, 'i'); I.daireXZ(195 + i * 16, yArka - 25, zb + 6, 3, 'i'); }
+    I.yol([[(q0 ? q0.x : 60) + 30, yOn + 25, -90], [(q0 ? q0.x : 60) + 30, yOn + 25, zb + 6], [235, yArka - 25, zb + 6]], 'i');
+    /* açıklamalar */
+    const sol = (p, dx, dy, s) => I.not(p, -Math.abs(dx), dy, s, mm('olcu'), false), sag = (p, dx, dy, s) => I.not(p, Math.abs(dx), dy, s, mm('olcu'), true);
+    /* sol sütun: açıklamalar sabit x'te, eşit aralıklı yuvalarda (üst üste binmez) — yukarıdan aşağı, çizimdeki sırayla */
+    let xs = Infinity, ys = -Infinity; for (const l of c.g.L) { xs = Math.min(xs, l[0], l[2]); ys = Math.max(ys, l[1], l[3]); }
+    const yuva = [], ekle = (pt, s) => yuva.push({ pt, s }), ara = hy * 1.35 * 2 + 3.5;
+    if (q0) ekle([q0.x, yOn, q0.z + 45], `Q0 ${q0.m.ad}\n${q0.m.oz}`); if (f0) ekle([f0.x, yOn, f0.z + 45], `F0 ${f0.m.ad}\n${f0.m.oz}`); if (p0) ekle([p0.x, yOn, p0.z + 45], `P0 ${p0.m.ad}\n${p0.m.oz}`);
+    if (merkez.H1) ekle([merkez.H1.x, yOn, merkez.H1.z + 22], `H1 ${merkez.H1.m.ad}\n${merkez.H1.m.oz}`); ekle([27, yArka - 30, H + 70], 'ÇIKIŞLAR: 3x2,5 NYA, Ø18 PVC — ÜSTTEN');
+    if (raylar.length > 1) ekle([x0r + 10, yOn + 11, rz(1) + 51], 'TARAK BARA (3 FAZ + N)'); ekle([14, yArka - 45, H * 0.45], 'KABLO KANALI 40x40 (DELİKLİ PVC)');
+    ekle([(q0 ? q0.x : 60) + 3, yOn + 25, -60], `GİRİŞ: ${o.besleme || '4x6 NYY'} — ALTTAN\n(${o.besleyen || 'İBAT-1'} PANOSUNDAN)`);
+    yuva.forEach((q, i) => { const p = I.P(...q.pt), hx = xs - 6, hy2 = ys - 4 - i * ara; I.not(q.pt, hx - p[0], hy2 - p[1], q.s, mm('olcu'), false); });
+    if (mcb[0]) sag([mcb[mcb.length - 1].x, yOn, mcb[mcb.length - 1].z], 30, -10, `F1–F${mcb.length + Object.values(merkez).filter(q => q.m.tur === 'mcb' && !q.m.kablo).length} OTOMATİK SİGORTALAR\n(üstte linye no, altta akım; ışık B, priz / cihaz C eğrisi)`);
+    sag([120, yArka - 25, zb + 12], 70, -24, 'N BARASI (mavi)'); sag([235, yArka - 25, zb + 12], 50, -30, 'PE BARASI (sarı-yeşil) — TB-1 TOPRAKLAMA BARASINA 16 mm²');
+    sag([kx, ky, H * 0.75], 12, 10, 'KAPAK (AÇIK) — IP42, KİLİTLİ');
+    I.olcu([0, 0, H], [W, 0, H], 10, String(W)); I.olcu([W, 0, 0], [W, 0, H], -10, String(H));
+    baslik(c, 0, 0, `${o.pano || 'BBAT'} PANOSU PERSPEKTİF DETAYI (KAPAK AÇIK)`, `ÖLÇEKSİZ · ölçüler mm · ${W}x${H}x${D} sıva altı, ${raylar.length} ray × ${R} modül`);
+    return c.g;
+  };
+  EL.tabloSalt = (P, ad) => P ? tablo(`${ad || 'BBAT'} PANOSU ŞALT MALZEME LİSTESİ`, ['NO', 'MALZEME', 'ÖZELLİK', 'ADET'], P.liste.map((q, i) => [i + 1, q.ad, q.oz, q.adet]), [10, 92, 66, 14], ['Şalt malzemeleri TS EN 60898 (otomatik sigorta), TS EN 61008 (kaçak akım), TS EN 61643 (parafudr) uygun olacaktır.']) : null;
+
   /* ======================= TABLOLAR ======================= */
   const tablo = (baslikYazi, bas, satirlar, gen, alt) => {
     const c = cizer(), rh = 6, n = satirlar.length, col = [0]; gen.forEach(w => col.push(col[col.length - 1] + w)); const W = col[col.length - 1], top = 0;

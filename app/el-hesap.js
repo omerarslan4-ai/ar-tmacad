@@ -183,6 +183,26 @@
     if (o.chiller && +o.chiller.elek > 0) { const c = o.chiller, pm = Math.round(+c.pompaP || 0); out.push({ type: 'mtmerkez', sys: 'sog', ad: `CHILLER (${(+c.elek).toFixed(1).replace('.', ',')} kW ELEKTRİK) + SOĞUTMA POMPASI`, W: Math.round(+c.elek * 1000) + pm, pm }); }
     return out; };
 
+  /* ======================= PANO ŞALT DİZİLİMİ (kullanıcı 15.11.2026: "panoyu daha gerçekçi, şalt malzemelerini göster") =======================
+     Yükleme cetvelinden: ilk ray Q0 anahtarlı otomatik sigorta (ana şalter, 3 modül) + F0 kaçak akım rölesi (4 kutup, 30 mA, 4 modül) + P0 parafudr (T2, 4 modül)
+     + H1 faz sinyal lambası (1 modül) = 12 modül; sonraki raylarda linye sigortaları (1 kutup 1 modül, 3 kutup 3 modül; ışık B, priz / cihaz C eğrisi), yedekler dahil.
+     Ray başına 12 modül (17,5 mm); pano: 310 mm genişlik, yükseklik = 100 + ray × 135 mm (2 ray 370, 3 ray 505 …), derinlik 95 mm; altta N ve PE baraları. */
+  EL.MODUL = 17.5;
+  EL.panoDuzen = (L, Y, o = {}) => {
+    const In = (Y && Y.In) || 25, mod = [
+      { kod: 'Q0', ad: 'ANAHTARLI OTOMATİK SİGORTA (ANA ŞALTER)', oz: `3x${In}A, C eğrisi, 10 kA`, kutup: 3, modul: 3, tur: 'ana', In },
+      { kod: 'F0', ad: 'KAÇAK AKIM KORUMA RÖLESİ', oz: `4x${In}A, 30 mA, A tipi`, kutup: 4, modul: 4, tur: 'kak', In },
+      { kod: 'P0', ad: 'PARAFUDR (AŞIRI GERİLİM KORUMA)', oz: 'T2, 4 kutup, 40 kA', kutup: 4, modul: 4, tur: 'par' },
+      { kod: 'H1', ad: 'FAZ SİNYAL LAMBASI', oz: 'L1-L2-L3, LED, 230 V', kutup: 3, modul: 1, tur: 'sin' }];
+    let n = 0; for (const x of L || []) { n++; const f3 = x.faz === 3; mod.push({ kod: 'F' + n, ad: x.tur === 'yedek' ? 'OTOMATİK SİGORTA (YEDEK)' : 'OTOMATİK SİGORTA', oz: `${f3 ? '3x' : '1x'}${x.In}A, ${x.tur === 'isik' ? 'B' : 'C'} eğrisi, 6 kA`, kutup: f3 ? 3 : 1, modul: f3 ? 3 : 1, tur: 'mcb', In: x.In, linye: x.no, kablo: x.kablo, aciklama: x.aciklama, faz: x.fazAd || '' }); }
+    const R = o.ray || 12, raylar = [[]]; let dolu = 0;
+    for (const m of mod) { if (dolu + m.modul > R || (m.tur === 'mcb' && raylar.length === 1 && dolu > 0)) { raylar.push([]); dolu = 0; } m.x = dolu; raylar[raylar.length - 1].push(m); dolu += m.modul; }
+    const W = 310, H = 100 + raylar.length * 135, D = 95;
+    const liste = []; for (const m of mod) { const k = m.ad.replace(' (YEDEK)', '') + '|' + m.oz; const v = liste.find(q => q.k === k); if (v) v.adet++; else liste.push({ k, ad: m.ad.replace(' (YEDEK)', ''), oz: m.oz, adet: 1 }); }
+    liste.push({ ad: 'NÖTR (N) BARASI', oz: `${n + 4} delikli, mavi`, adet: 1 }, { ad: 'TOPRAK (PE) BARASI', oz: `${n + 4} delikli, sarı-yeşil`, adet: 1 }, { ad: 'TARAK BARA', oz: '3 faz + N, 12 modül', adet: raylar.length - 1 || 1 }, { ad: 'DIN RAYI', oz: '35 mm, 12 modül', adet: raylar.length }, { ad: 'KABLO KANALI', oz: '40x40 mm, delikli PVC', adet: raylar.length + 1 }, { ad: 'SIVA ALTI PANO GÖVDESİ', oz: `${W}x${H}x${D} mm, kapaklı, IP42, ${raylar.length * R} modül`, adet: 1 });
+    return { mod, raylar, R, W, H, D, liste: liste.map(({ k, ...q }) => q) };
+  };
+
   /* ======================= TOPRAKLAMA ======================= */
   /* o: { cevre (bina dış çevresi m), alan (m²), rho (Ωm), cubuk (adet), Lc (çubuk boyu m), d (çubuk çapı m), IdN (A) } */
   EL.topraklama = o => {
