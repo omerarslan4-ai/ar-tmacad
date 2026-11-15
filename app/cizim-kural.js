@@ -293,19 +293,31 @@
     /* PROGRAM KATMANI → ÇİZİM KATMANI (elektrik modülü doğrudan bu adlarla çizer) */
     esleme: [[/^EL_?YAZI$/i, 'EYAZI'], [/^EL_?HAT$/i, 'EHAT'], [/^EL_?TOP/i, 'TOPILET'], [/^EL_?TLF$/i, 'TLF'], [/^EL_?YNG$/i, 'ETELYNG']],
   };
-  /* ---------- ÇELİK (TASLAK, 15.11.2026): kullanıcıdan örnek çelik paftası henüz gelmedi; katmanlar program içi düzen için konuldu,
-     örnek gelince ölçülüp değiştirilecek (docs/cizim-kurallari/celik.md). Çelik modülü (app/celik.js) katmanı buradan alır. ---------- */
+  /* ---------- ÇELİK (Kor. AAT çelik genel yerleşim paftaları GENEL.dwg / GENEL1.dwg, Tekla çıktısı; 15.11.2026'da ölçüldü — belge docs/cizim-kurallari/celik.md).
+     Katman adları kullanıcı kararıyla Türkçe (örnekte Tekla'nın İngilizce adları); renk, çizgi tipi ve yazı boyları örnekten. Örnekte kalınlık yok (renge göre basılıyor):
+     kalınlıklar renge göre kullanıcının onayladığı öneri (sarı 0,35 · kırmızı 0,18 · beyaz 0,18 · mor 0,25 · yeşil 0,35 · camgöbeği 0,25). İki örnek poz ve aks yazısında
+     birbirini tutmuyordu: kullanıcı GENEL.dwg'yi seçti (poz no 3,0 / profil adı 2,5 / aks 4,0). Çelik modülü (app/celik.js) katmanı buradan alır. ---------- */
   K.CELIK = {
     ad: 'Çelik', belge: 'docs/cizim-kurallari/celik.md', birim: 'm', taslak: true,
     olcekler: [50, 20, 10, 5],
     katmanlar: {
-      'CELIK_ELEMAN': { renk: 4, tip: 'Continuous', kal: 0.35, ne: 'Çelik kolon, kiriş, çubuk (planda kesit / kenar çizgileri, 3B gövde)' },
-      'CELIK_AKS': { renk: 1, tip: 'CENTER2', kal: 0.13, ne: 'Çelik eleman ekseni (eleman nesnesinin içinde çizgi tipiyle)' },
-      'CELIK_DETAY': { renk: 7, tip: 'Continuous', kal: 0.35, ne: 'Kesit ve birleşim detayları (taban levhası, alın levhası, aşık)' },
-      'CELIK_METRAJ': { renk: 8, tip: 'Continuous', kal: 0.13, ne: 'Çelik metraj tablosu çizgileri ve yazıları' },
+      'CELIK_PROFIL': { renk: 2, tip: 'Continuous', kal: 0.35, ne: 'Profil dış hattı (planda kesit / kenar çizgileri, detayda levha ve profil) — örnekte "Symbol text" sarı' },
+      'CELIK_EKSEN': { renk: 1, tip: 'CELIK_EKSEN', kal: 0.18, ne: 'Eleman ekseni, delik ekseni — örnekte kırmızı kesik-nokta (XKITLINE03)' },
+      'CELIK_GIZLI': { renk: 1, tip: 'CELIK_GIZLI', kal: 0.18, ne: 'Görünmeyen kenar — örnekte kırmızı kesikli (XKITLINE02)' },
+      'CELIK_BULON': { renk: 2, tip: 'Continuous', kal: 0.35, ne: 'Bulon, ankraj, somun (betondaki kısmı CELIK_GIZLI çizgi tipiyle) — örnekte "Bolt" sarı' },
+      'CELIK_POZ': { renk: 6, tip: 'Continuous', kal: 0.25, ne: 'Poz işareti: poz no (KL1, KR3, AS5 …) mor; profil adı (IPE300) aynı katmanda sarı — örnekte "Part mark"' },
+      'CELIK_OLCU': { renk: 7, tip: 'Continuous', kal: 0.18, ne: 'Ölçü çizgileri beyaz, ölçü yazısı sarı — örnekte "Dimension"' },
+      'CELIK_NOT': { renk: 7, tip: 'Continuous', kal: 0.18, ne: 'Açıklama / bulon işareti oku beyaz, yazısı sarı ("4 M 24 ANKRAJ") — örnekte "Bolt mark"' },
+      'CELIK_BASLIK': { renk: 3, tip: 'Continuous', kal: 0.35, ne: 'Görünüş / detay başlığı, altı çizili — örnekte "Other object type" yeşil' },
+      'CELIK_DIGER': { renk: 4, tip: 'Continuous', kal: 0.25, ne: 'Çelik olmayan nesne (beton, harç) — örnekte camgöbeği' },
+      'CELIK_METRAJ': { renk: 7, tip: 'Continuous', kal: 0.18, ne: 'Çelik metraj tablosu (örnekte tablo yok: kabul)' },
     },
-    yaziMm: { etiket: 2.5, detay: 2.5, baslik: 4, tablo: 2.5, olcu: 2 },
-    cizgi: { kalin: 50, orta: 35, ince: 25, cokInce: 18, yardimci: 13, eksenRenk: 1 }, // detay / kesit çizgi kalınlıkları (1/100 mm): kesilen dış hat, görünen kenar, yardımcı; eksen rengi
+    /* kâğıt mm: pozNo / profilAd / olcu / not / baslik örnekten (ARIAL_NARROW; başlık ARIAL); aks 4,0 (Grid, harf yeşil — aks programın AKS komutuyla çizilir); detay ve tablo kabul */
+    yaziMm: { pozNo: 3.0, profilAd: 2.5, olcu: 2.5, not: 2.5, baslik: 2.5, aks: 4.0, detay: 2.5, tablo: 2.5 },
+    yaziRenk: 2,
+    cizgiTipi: { CELIK_EKSEN: [3, -1, 1, -1], CELIK_GIZLI: [2, -2] },
+    /* paftadaki profil adı ve poz kısaltmaları (örnek: IPE300, UNP100, L100*10, D12; antetteki KISALTMALAR) */
+    pozOnek: { kolon: 'KL', kiris: 'KR', asik: 'AS', gergi: 'GR', yatayCapraz: 'YC', duseyCapraz: 'DC', monoray: 'M-KR' },
   };
   /* ÇİZGİ TİPİ ÖLÇEĞİ (saf): pafta penceresinde (1/vpOlcek) desen birimi başına model metresi — desen kâğıtta mm olarak görünür.
      Ekranda / SVG'de çizgi = desen × ölçek × (model m → kâğıt mm: 1000 / vpOlcek) = desen mm. */

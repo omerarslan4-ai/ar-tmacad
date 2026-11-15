@@ -21,7 +21,18 @@
   const KR = () => (C.cizimKural && C.cizimKural.CELIK) || { katmanlar: {}, yaziMm: { etiket: 2.5, detay: 2.5, baslik: 4, tablo: 2.5 } };
   const lay = ad => { const t = KR().katmanlar[ad] || { renk: 7, tip: 'Continuous', kal: 0.25 }; C.ensureLayer(ad, t.renk, String(t.tip).toUpperCase(), Math.round(t.kal * 100)); return ad; };
   const yMm = k => (KR().yaziMm || {})[k] || 2.5;
-  const KL = () => KR().cizgi || { kalin: 50, orta: 35, ince: 25, cokInce: 18, yardimci: 13, eksenRenk: 1 }; // çizgi kalınlığı (1/100 mm) ve eksen rengi: K.CELIK.cizgi
+  /* ROL → katman (renk, çizgi tipi, kalınlık K.CELIK'ten; örnek GENEL.dwg / GENEL1.dwg'den ölçüldü): her ilkel kendi katmanını taşır (ly; DXF'te ayrı katman) */
+  const ROLK = { profil: 'CELIK_PROFIL', eksen: 'CELIK_EKSEN', gizli: 'CELIK_GIZLI', bulon: 'CELIK_BULON', poz: 'CELIK_POZ', olcu: 'CELIK_OLCU', not: 'CELIK_NOT', baslik: 'CELIK_BASLIK', diger: 'CELIK_DIGER' };
+  const R = (rol, ek) => { const ad = ROLK[rol], t = KR().katmanlar[ad]; if (!t) return Object.assign({}, ek); lay(ad); return Object.assign({ ly: ad, color: t.renk, lt: String(t.tip).toUpperCase(), lw: Math.round(t.kal * 100) }, ek); };
+  const YRK = () => KR().yaziRenk || 2; // poz no dışındaki yazılar (profil adı, ölçü, bulon işareti) örnekte sarı
+  const KL = () => { const k = KR().katmanlar, w = n => Math.round(((k[n] || {}).kal || 0.25) * 100), p = w('CELIK_PROFIL'); return { kalin: p, orta: p, ince: p, cokInce: p, yardimci: w('CELIK_OLCU'), eksenRenk: (k.CELIK_EKSEN || {}).renk || 1 }; }; // kalınlık renge bağlı (örnekte CTB)
+  /* örnekteki çizgi tipleri (kâğıt mm): eksen kesik-nokta 3 −1 1 −1, gizli kesikli 2 −2 */
+  for (const [n, d] of Object.entries(KR().cizgiTipi || {})) if (C.LT && !C.LT[n]) C.LT[n] = { d: n + ' (çelik)', p: d.slice() };
+  /* paftadaki profil adı (örnekteki yazım): IPE300, HEA200, UNP100, L100*10, L100*50*8, KUTU100*100*5, BORU114.3*6.3, LAMA50*5 */
+  const pozAdi = ad => { const k = K.adCoz(ad); if (!k) return String(ad || ''); const p = K.IDX[k];
+    if (p.tur === 'L') return p.h === p.b ? `L${p.h}*${p.t}` : `L${p.h}*${p.b}*${p.t}`; if (p.tur === 'RHS') return `KUTU${p.h}*${p.b}*${p.t}`; if (p.tur === 'CHS') return `BORU${p.D}*${p.t}`; if (p.tur === 'FL') return `LAMA${p.b}*${p.t}`;
+    return k.replace(/^UPN/, 'UNP'); };
+  C.celikPozAdi = pozAdi;
   const RENK = [0.42, 0.50, 0.58]; // boyalı çelik (3B)
   const gs = e => K.goster(e.prof);
 
@@ -88,30 +99,34 @@
   };
 
   /* ---------------- plan (2B) ---------------- */
-  const th0 = () => (C.annoH ? C.annoH(yMm('etiket')) : 0.12);
+  const th0 = () => (C.annoH ? C.annoH(yMm('profilAd')) : 0.12);
+  /* poz işareti (örnekteki gibi): poz no (KL1, KR3, AS5 …; mor, 3,0 mm) üstte, profil adı (IPE300; sarı, 2,5 mm) altta. Poz yoksa yalnız profil adı. */
+  const etiket = (out, e, p, rot, al, ek) => { const th = th0(), hp = C.annoH ? C.annoH(yMm('pozNo')) : th * 1.2, a = rot * RAD, nx = -Math.sin(a), ny = Math.cos(a);
+    if (e.poz) out.push(TX([p[0] + nx * th * 1.4, p[1] + ny * th * 1.4, 0], hp, e.poz, rot, al, R('poz')));
+    out.push(TX(p, th, pozAdi(e.prof) + (ek || ''), rot, al, R('poz', { color: YRK() }))); };
   const okunur = a => { let r = a; while (r > 90) r -= 180; while (r <= -90) r += 180; return r; };
   const prims = e => {
     const F = frame(e), ks = K.kesit(e.prof), out = [], th = th0(); if (!ks) return [L(F.a, F.b, {})];
     const plan = Math.hypot(F.b[0] - F.a[0], F.b[1] - F.a[1]);
     const flat = q => [q[0], q[1], 0];
     if (F.dus || plan < 1e-4) {
-      for (const ring of [ks.dis, ks.ic]) if (ring) out.push(P(ring.map(p => flat(F.W(p[0], p[1], 0))), true, { lw: KL().orta }));
+      for (const ring of [ks.dis, ks.ic]) if (ring) out.push(P(ring.map(p => flat(F.W(p[0], p[1], 0))), true, R('profil')));
       const pr = F.pr, r = Math.max(pr.h, pr.b) / 1000 * 0.75, c = flat(F.W(0, 0, 0));
-      out.push(L([c[0] - F.vx[0] * r, c[1] - F.vx[1] * r, 0], [c[0] + F.vx[0] * r, c[1] + F.vx[1] * r, 0], { lt: 'CENTER', lw: KL().yardimci, color: KL().eksenRenk }), L([c[0] - F.vy[0] * r, c[1] - F.vy[1] * r, 0], [c[0] + F.vy[0] * r, c[1] + F.vy[1] * r, 0], { lt: 'CENTER', lw: KL().yardimci, color: KL().eksenRenk }));
-      if (e.taban) { const Y = tabanYer(e); out.push(P(Y.kose.map(q => [q[0], q[1], 0]), true, { lw: KL().ince })); for (const p of Y.ank) out.push(CI([p[0], p[1], 0], e.taban.d / 2000, { lw: KL().cokInce })); }
-      out.push(TX([c[0] + r * 0.75, c[1] + r * 0.75, 0], th, gs(e), 0, 'L', { color: 7 }));
-      for (const g of guseOf(e)) for (const q of prims(g)) if (q.k !== 'T') out.push(Object.assign(q, q.lt === 'CENTER' ? {} : { lt: 'HIDDEN' })); // guse kiriş altında: kesikli
-      if (e.vguse) out.push(TX([c[0] - r * 0.75, c[1] - r * 0.75 - th, 0], th * 0.8, `guse +${M.fmt(+e.vguse.zt, 2)}`, 0, 'R', { color: 7 }));
+      out.push(L([c[0] - F.vx[0] * r, c[1] - F.vx[1] * r, 0], [c[0] + F.vx[0] * r, c[1] + F.vx[1] * r, 0], R('eksen')), L([c[0] - F.vy[0] * r, c[1] - F.vy[1] * r, 0], [c[0] + F.vy[0] * r, c[1] + F.vy[1] * r, 0], R('eksen')));
+      if (e.taban) { const Y = tabanYer(e); out.push(P(Y.kose.map(q => [q[0], q[1], 0]), true, R('profil'))); for (const p of Y.ank) out.push(CI([p[0], p[1], 0], e.taban.d / 2000, R('bulon'))); }
+      etiket(out, e, [c[0] + r * 0.75, c[1] + r * 0.75, 0], 0, 'L');
+      for (const g of guseOf(e)) for (const q of prims(g)) if (q.k !== 'T') out.push(Object.assign(q, q.ly === 'CELIK_EKSEN' ? {} : R('gizli'))); // guse kiriş altında: kesikli
+      if (e.vguse) out.push(TX([c[0] - r * 0.75, c[1] - r * 0.75 - th, 0], th * 0.8, `guse +${M.fmt(+e.vguse.zt, 2)}`, 0, 'R', R('not', { color: YRK() })));
       return out;
     }
     const d2 = [(F.b[0] - F.a[0]) / plan, (F.b[1] - F.a[1]) / plan], n2 = [-d2[1], d2[0]];
     let omn = Infinity, omx = -Infinity; for (const p of ks.dis) { const w = F.W(p[0], p[1], 0), o = (w[0] - F.a[0]) * n2[0] + (w[1] - F.a[1]) * n2[1]; omn = Math.min(omn, o); omx = Math.max(omx, o); }
     const A0 = [F.a[0], F.a[1]], B0 = [F.b[0], F.b[1]], off = (p, o) => [p[0] + n2[0] * o, p[1] + n2[1] * o, 0];
-    out.push(L(off(A0, omn), off(B0, omn), { lw: KL().orta }), L(off(A0, omx), off(B0, omx), { lw: KL().orta }), L(off(A0, omn), off(A0, omx), { lw: KL().ince }), L(off(B0, omn), off(B0, omx), { lw: KL().ince }));
-    out.push(L([A0[0], A0[1], 0], [B0[0], B0[1], 0], { lt: 'CENTER', lw: KL().yardimci, color: KL().eksenRenk }));
+    out.push(L(off(A0, omn), off(B0, omn), R('profil')), L(off(A0, omx), off(B0, omx), R('profil')), L(off(A0, omn), off(A0, omx), R('profil')), L(off(B0, omn), off(B0, omx), R('profil')));
+    out.push(L([A0[0], A0[1], 0], [B0[0], B0[1], 0], R('eksen')));
     const ang = Math.atan2(d2[1], d2[0]) / RAD, rr = okunur(ang), m = [(A0[0] + B0[0]) / 2, (A0[1] + B0[1]) / 2], ny = rr === ang ? 1 : -1;
     const tp = [m[0] + n2[0] * ny * (Math.max(Math.abs(omn), Math.abs(omx)) + th * 0.5) * 1, m[1] + n2[1] * ny * (Math.max(Math.abs(omn), Math.abs(omx)) + th * 0.5), 0];
-    out.push(TX(tp, th, gs(e) + (e.kind === 'cubuk' && Math.abs(F.u[2]) > 0.02 ? ` (eğik, L=${M.fmt(F.len, 2)} m)` : ''), rr, 'C', { color: 7 }));
+    etiket(out, e, tp, rr, 'C', e.kind === 'cubuk' && Math.abs(F.u[2]) > 0.02 ? ` (eğik, L=${M.fmt(F.len, 2)} m)` : '');
     return out;
   };
 
@@ -132,20 +147,22 @@
     const out = [], k = 1 / 1000, X = (x, y) => [p0[0] + x * k, p0[1] + y * k, 0], tm = mm => mm * olcek; // tm: kâğıt mm → model mm
     const g = {
       out, tm,
-      cizgi: (x1, y1, x2, y2, o) => out.push(L(X(x1, y1), X(x2, y2), Object.assign({ lw: KL().ince }, o))),
-      cok: (pts, kapali, o) => out.push(P(pts.map(q => X(q[0], q[1])), kapali, Object.assign({ lw: KL().orta }, o))),
+      cizgi: (x1, y1, x2, y2, o) => out.push(L(X(x1, y1), X(x2, y2), Object.assign(R('profil'), o))),
+      cok: (pts, kapali, o) => out.push(P(pts.map(q => X(q[0], q[1])), kapali, Object.assign(R('profil'), o))),
       dik: (x1, y1, x2, y2, o) => g.cok([[x1, y1], [x2, y1], [x2, y2], [x1, y2]], true, o),
-      daire: (x, y, r, o) => out.push(CI(X(x, y), r * k, Object.assign({ lw: KL().cokInce }, o))),
-      dolu: pts => out.push(S(pts.map(q => X(q[0], q[1])))),
-      yazi: (x, y, s, mm, al, rot) => out.push(TX(X(x, y), tm(mm || yMm('detay')) * k, s, rot || 0, al || 'L')),
+      daire: (x, y, r, o) => out.push(CI(X(x, y), r * k, Object.assign(R('bulon'), o))),
+      dolu: pts => out.push(S(pts.map(q => X(q[0], q[1])), R('profil'))),
+      yazi: (x, y, s, mm, al, rot, o) => out.push(TX(X(x, y), tm(mm || yMm('detay')) * k, s, rot || 0, al || 'L', o || R('not', { color: YRK() }))),
+      // görünüş / detay başlığı: yeşil, 2,5 mm, altı çizili (örnekte "%%U1 AKSI GÖRÜNÜŞÜ")
+      baslik: (x, y, s) => { const h = tm(yMm('baslik')); g.yazi(x, y, s, yMm('baslik'), 'L', 0, R('baslik')); g.cizgi(x, y - h * 0.25, x + h * 0.62 * String(s).length, y - h * 0.25, R('baslik')); },
       // ölçü: (x1,y1)-(x2,y2) arası, d kadar dışarıda (yatay ya da düşey), yazı otomatik
       olcu: (x1, y1, x2, y2, d, s) => { const yat = Math.abs(y2 - y1) < Math.abs(x2 - x1), t = tm(1.2), h = tm(2);
-        if (yat) { const y = y1 + d; g.cizgi(x1, y1, x1, y + Math.sign(d) * t, { lw: KL().yardimci }); g.cizgi(x2, y2, x2, y + Math.sign(d) * t, { lw: KL().yardimci }); g.cizgi(x1, y, x2, y, { lw: KL().yardimci }); for (const x of [x1, x2]) g.cizgi(x - t, y - t, x + t, y + t, { lw: KL().ince }); g.yazi((x1 + x2) / 2, y + h * 0.3, s != null ? s : M.fmt(Math.abs(x2 - x1), 0), yMm('olcu'), 'C'); }
-        else { const x = x1 + d; g.cizgi(x1, y1, x + Math.sign(d) * t, y1, { lw: KL().yardimci }); g.cizgi(x2, y2, x + Math.sign(d) * t, y2, { lw: KL().yardimci }); g.cizgi(x, y1, x, y2, { lw: KL().yardimci }); for (const y of [y1, y2]) g.cizgi(x - t, y - t, x + t, y + t, { lw: KL().ince }); g.yazi(x - h * 0.3, (y1 + y2) / 2, s != null ? s : M.fmt(Math.abs(y2 - y1), 0), yMm('olcu'), 'C', 90); } },
+        if (yat) { const y = y1 + d; g.cizgi(x1, y1, x1, y + Math.sign(d) * t, R('olcu')); g.cizgi(x2, y2, x2, y + Math.sign(d) * t, R('olcu')); g.cizgi(x1, y, x2, y, R('olcu')); for (const x of [x1, x2]) g.cizgi(x - t, y - t, x + t, y + t, R('olcu', { color: YRK() })); g.yazi((x1 + x2) / 2, y + h * 0.3, s != null ? s : M.fmt(Math.abs(x2 - x1), 0), yMm('olcu'), 'C', 0, R('olcu', { color: YRK() })); }
+        else { const x = x1 + d; g.cizgi(x1, y1, x + Math.sign(d) * t, y1, R('olcu')); g.cizgi(x2, y2, x + Math.sign(d) * t, y2, R('olcu')); g.cizgi(x, y1, x, y2, R('olcu')); for (const y of [y1, y2]) g.cizgi(x - t, y - t, x + t, y + t, R('olcu', { color: YRK() })); g.yazi(x - h * 0.3, (y1 + y2) / 2, s != null ? s : M.fmt(Math.abs(y2 - y1), 0), yMm('olcu'), 'C', 90, R('olcu', { color: YRK() })); } },
       // oklu açıklama: (x,y) noktasından kırık çizgiyle yazıya
-      not: (x, y, tx, ty, s) => { g.cizgi(x, y, tx, ty, { lw: KL().yardimci }); const sag = tx >= x, L2 = tm(3); g.cizgi(tx, ty, tx + (sag ? L2 : -L2), ty, { lw: KL().yardimci }); g.daire(x, y, tm(0.5), { lw: KL().ince }); g.yazi(tx + (sag ? L2 + tm(1) : -L2 - tm(1)), ty - tm(1), s, yMm('detay'), sag ? 'L' : 'R'); },
-      eksen: (x1, y1, x2, y2) => g.cizgi(x1, y1, x2, y2, { lt: 'CENTER', lw: KL().yardimci, color: KL().eksenRenk }),
-      kirik: (x1, y, x2) => { const w = x2 - x1, a = tm(2); g.cizgi(x1, y, x1 + w * 0.42, y, { lw: KL().yardimci }); g.cizgi(x1 + w * 0.42, y, x1 + w * 0.47, y + a, { lw: KL().yardimci }); g.cizgi(x1 + w * 0.47, y + a, x1 + w * 0.53, y - a, { lw: KL().yardimci }); g.cizgi(x1 + w * 0.53, y - a, x1 + w * 0.58, y, { lw: KL().yardimci }); g.cizgi(x1 + w * 0.58, y, x2, y, { lw: KL().yardimci }); },
+      not: (x, y, tx, ty, s) => { g.cizgi(x, y, tx, ty, R('not')); const sag = tx >= x, L2 = tm(3); g.cizgi(tx, ty, tx + (sag ? L2 : -L2), ty, R('not')); g.daire(x, y, tm(0.5), R('not')); g.yazi(tx + (sag ? L2 + tm(1) : -L2 - tm(1)), ty - tm(1), s, yMm('detay'), sag ? 'L' : 'R'); },
+      eksen: (x1, y1, x2, y2) => g.cizgi(x1, y1, x2, y2, R('eksen')),
+      kirik: (x1, y, x2) => { const w = x2 - x1, a = tm(2); g.cizgi(x1, y, x1 + w * 0.42, y, R('not')); g.cizgi(x1 + w * 0.42, y, x1 + w * 0.47, y + a, R('not')); g.cizgi(x1 + w * 0.47, y + a, x1 + w * 0.53, y - a, R('not')); g.cizgi(x1 + w * 0.53, y - a, x1 + w * 0.58, y, R('not')); g.cizgi(x1 + w * 0.58, y, x2, y, R('not')); },
       kaynak: (x, y, s, yx, yy) => g.dolu([[x, y], [x + s * yx, y], [x, y + s * yy]]),
       halka: (ring, dx, dy, sw, o) => g.cok(ring.map(q => sw ? [q[1] + dx, q[0] + dy] : [q[0] + dx, q[1] + dy]), true, o),
     };
@@ -168,7 +185,7 @@
       else if (p.tur === 'L') { g.olcu(-b / 2, -h / 2, b / 2, -h / 2, -tm(7), `b=${tr(b)}`); g.not(-b / 2 + p.t / 2, 0, b / 2 + tm(6), 0, `t=${tr(p.t)}`); }
       else if (p.tur === 'RHS' || p.tur === 'CHS') g.not(b / 2 - p.t / 2, 0, b / 2 + tm(6), -h / 4, `t=${tr(p.t)}`);
       const y0 = -h / 2 - tm(12), sat = tm(4.5), x0 = -b / 2 - tm(9);
-      g.yazi(x0, y0, `${gs(e)}  (${p.std})`, yMm('baslik'));
+      g.baslik(x0, y0, `${gs(e)}  (${p.std})`);
       const f = (v, d) => M.fmt(v, d);
       const satir = [`A = ${f(p.A, 2)} cm²    G = ${f(p.G, 2)} kg/m    U = ${f(p.U, 3)} m²/m`, `Ix = ${f(p.Ix, p.Ix > 100 ? 0 : 2)} cm⁴    Wx = ${f(p.Wx, p.Wx > 100 ? 0 : 2)} cm³    ix = ${f(p.ix, 2)} cm`, `Iy = ${f(p.Iy, p.Iy > 100 ? 0 : 2)} cm⁴    Wy = ${f(p.Wy, p.Wy > 100 ? 0 : 2)} cm³    iy = ${f(p.iy, 2)} cm`];
       if (p.tur === 'L') satir.push(`Iv = ${f(p.Iv, 2)} cm⁴ (zayıf asal eksen)    iv = ${f(p.iv, 2)} cm`);
@@ -186,15 +203,15 @@
     taban: (g, e) => { // kolon ayağı: görünüş + plan
       const p = K.profil(e.prof) || K.profil('HEA200'), t = Object.assign({}, K.tabanOneri(p.ad), e.ayar || {}), tm = g.tm, A = t.a, B = t.b, h = p.h, tp = t.t, d = t.d, k = t.kenar, H = Math.max(2 * h, 350);
       // görünüş (kolon gövdesine dik bakış: derinlik h yatayda)
-      const bet = A / 2 + 150; g.cizgi(-bet, -t.harc, bet, -t.harc, { lw: KL().kalin }); g.cizgi(-bet, -t.harc - t.L - 120, -bet, -t.harc, { lw: KL().yardimci, lt: 'HIDDEN' }); g.cizgi(bet, -t.harc - t.L - 120, bet, -t.harc, { lw: KL().yardimci, lt: 'HIDDEN' });
-      g.dik(-A / 2 - 25, -t.harc, A / 2 + 25, 0, { lw: KL().yardimci, lt: 'HIDDEN' });
+      const bet = A / 2 + 150; g.cizgi(-bet, -t.harc, bet, -t.harc, R('diger')); g.cizgi(-bet, -t.harc - t.L - 120, -bet, -t.harc, R('diger', { lt: R('gizli').lt })); g.cizgi(bet, -t.harc - t.L - 120, bet, -t.harc, R('diger', { lt: R('gizli').lt }));
+      g.dik(-A / 2 - 25, -t.harc, A / 2 + 25, 0, R('diger', { lt: R('gizli').lt }));
       g.dik(-A / 2, 0, A / 2, tp, { lw: KL().kalin });
       g.cizgi(-h / 2, tp, -h / 2, tp + H, { lw: KL().kalin }); g.cizgi(h / 2, tp, h / 2, tp + H, { lw: KL().kalin });
       if (p.tf) { g.cizgi(-h / 2 + p.tf, tp, -h / 2 + p.tf, tp + H, { lw: KL().cokInce }); g.cizgi(h / 2 - p.tf, tp, h / 2 - p.tf, tp + H, { lw: KL().cokInce }); }
       g.kirik(-h / 2 - 30, tp + H, h / 2 + 30); g.eksen(0, -t.harc - t.L - 60, 0, tp + H + 40);
       const kw = Math.max(5, Math.round((p.tf || p.t || 8) * 0.6)); g.kaynak(h / 2, tp, kw * 1.4, 1, 1); g.kaynak(-h / 2, tp, kw * 1.4, -1, 1);
-      for (const sx of [-1, 1]) { const x = sx * (A / 2 - k), zN = tp + 4; g.cizgi(x, zN + 0.8 * d + 12, x, -t.harc, { lw: KL().ince }); g.cizgi(x, -t.harc, x, -t.harc - t.L, { lw: KL().ince, lt: 'HIDDEN' }); g.cizgi(x, -t.harc - t.L, x - sx * 4 * d, -t.harc - t.L, { lw: KL().ince, lt: 'HIDDEN' });
-        g.dik(x - 1.1 * d, tp, x + 1.1 * d, zN, { lw: KL().cokInce }); g.dik(x - 0.85 * d, zN, x + 0.85 * d, zN + 0.8 * d, { lw: KL().ince }); }
+      for (const sx of [-1, 1]) { const x = sx * (A / 2 - k), zN = tp + 4; g.cizgi(x, zN + 0.8 * d + 12, x, -t.harc, R('bulon')); g.cizgi(x, -t.harc, x, -t.harc - t.L, R('bulon', { lt: R('gizli').lt })); g.cizgi(x, -t.harc - t.L, x - sx * 4 * d, -t.harc - t.L, R('bulon', { lt: R('gizli').lt }));
+        g.dik(x - 1.1 * d, tp, x + 1.1 * d, zN, R('bulon')); g.dik(x - 0.85 * d, zN, x + 0.85 * d, zN + 0.8 * d, R('bulon')); }
       g.olcu(-A / 2, -t.harc, A / 2, -t.harc, -tm(8) - 30, String(A)); g.olcu(A / 2, 0, A / 2, tp, tm(6), String(tp));
       g.olcu(-A / 2 + k, -t.harc - t.L, -A / 2 + k, -t.harc, -tm(16) - 60, `L=${t.L}`);
       g.not(-A / 4, tp / 2, -A / 2 - tm(14), tp + tm(10), `TABAN LEVHASI ${A}×${B}×${tp} (${e.malz || 'S275'})`);
@@ -202,16 +219,16 @@
       g.not(A / 2 - 10, -t.harc / 2, A / 2 + tm(12), -t.harc + tm(3), `${t.harc} mm DÖKME HARCI (GROUT)`);
       g.not(h / 2, tp + H * 0.6, h / 2 + tm(12), tp + H * 0.7, `KOLON ${K.goster(p.ad)}`);
       g.not(h / 2 + kw * 0.5, tp + kw * 0.5, h / 2 + tm(12), tp + H * 0.25, `KÖŞE KAYNAĞI a=${kw} mm (çevre)`);
-      g.yazi(-A / 2, -t.harc - t.L - tm(16), 'GÖRÜNÜŞ', yMm('baslik'));
+      g.baslik(-A / 2, -t.harc - t.L - tm(16), 'GÖRÜNÜŞ');
       // plan
       const ox = A / 2 + bet + tm(40) + B / 2; g.dik(ox - B / 2, -A / 2 + 200, ox + B / 2, A / 2 + 200, { lw: KL().kalin });
       const ks = K.kesit(p.ad); for (const r of [ks.dis, ks.ic]) if (r) g.cok(r.map(q => [ox + q[0], 200 + q[1]]), true, { lw: KL().orta });
       const ay = []; for (const sy of [-1, 1]) { ay.push([ox - B / 2 + k, 200 + sy * (A / 2 - k)], [ox + B / 2 - k, 200 + sy * (A / 2 - k)]); if (t.n >= 6) ay.push([ox, 200 + sy * (A / 2 - k)]); }
-      for (const [x, y] of ay) { g.daire(x, y, d / 2 + 3, { lw: KL().ince }); g.cizgi(x - d, y, x + d, y, { lw: KL().yardimci, lt: 'CENTER', color: KL().eksenRenk }); g.cizgi(x, y - d, x, y + d, { lw: KL().yardimci, lt: 'CENTER', color: KL().eksenRenk }); }
+      for (const [x, y] of ay) { g.daire(x, y, d / 2 + 3, R('bulon')); g.cizgi(x - d, y, x + d, y, R('eksen')); g.cizgi(x, y - d, x, y + d, R('eksen')); }
       g.eksen(ox - B / 2 - 40, 200, ox + B / 2 + 40, 200); g.eksen(ox, 200 - A / 2 - 40, ox, 200 + A / 2 + 40);
       g.olcu(ox - B / 2, 200 - A / 2, ox + B / 2, 200 - A / 2, -tm(7), String(B)); g.olcu(ox + B / 2, 200 - A / 2, ox + B / 2, 200 + A / 2, tm(7), String(A));
       g.olcu(ox - B / 2, 200 + A / 2, ox - B / 2 + k, 200 + A / 2, tm(5), String(k));
-      g.yazi(ox - B / 2, 200 - A / 2 - tm(16), 'PLAN', yMm('baslik'));
+      g.baslik(ox - B / 2, 200 - A / 2 - tm(16), 'PLAN');
       return { baslik: 'TABAN LEVHASI DETAYI', x0: -A / 2, y0: -t.harc - t.L - tm(26) };
     },
     alin: (g, e) => { // kiriş – kolon alın levhalı bulonlu birleşim (kolon başlığına)
@@ -225,25 +242,25 @@
       g.dik(0, -a.a / 2, tp, a.a / 2, { lw: KL().kalin });
       // kiriş
       g.cizgi(tp, hb / 2, tp + Lb, hb / 2, { lw: KL().kalin }); g.cizgi(tp, -hb / 2, tp + Lb, -hb / 2, { lw: KL().kalin }); g.cizgi(tp, hb / 2 - pb.tf, tp + Lb, hb / 2 - pb.tf, { lw: KL().cokInce }); g.cizgi(tp, -hb / 2 + pb.tf, tp + Lb, -hb / 2 + pb.tf, { lw: KL().cokInce });
-      { const x = tp + Lb, w = tm(2); g.cizgi(x, hb / 2 + 20, x, hb * 0.1, { lw: KL().yardimci }); g.cizgi(x, hb * 0.1, x + w, 0, { lw: KL().yardimci }); g.cizgi(x + w, 0, x - w, -hb * 0.05, { lw: KL().yardimci }); g.cizgi(x - w, -hb * 0.05, x, -hb * 0.1, { lw: KL().yardimci }); g.cizgi(x, -hb * 0.1, x, -hb / 2 - 20, { lw: KL().yardimci }); }
+      { const x = tp + Lb, w = tm(2); g.cizgi(x, hb / 2 + 20, x, hb * 0.1, R('not')); g.cizgi(x, hb * 0.1, x + w, 0, R('not')); g.cizgi(x + w, 0, x - w, -hb * 0.05, R('not')); g.cizgi(x - w, -hb * 0.05, x, -hb * 0.1, R('not')); g.cizgi(x, -hb * 0.1, x, -hb / 2 - 20, R('not')); }
       g.eksen(-40, 0, tp + Lb + 40, 0);
       const kw = Math.max(5, Math.round(pb.tf * 0.6)); for (const sy of [-1, 1]) { g.kaynak(tp, sy * hb / 2, kw * 1.4, 1, sy); g.kaynak(tp, sy * (hb / 2 - pb.tf), kw * 1.4, 1, -sy); }
       // bulon sıraları: taşma bölgesinde 1, başlık altında 1 (üst ve alt), 8 bulonda ortada ek sıra
       const ys = [hb / 2 + a.tas / 2, hb / 2 - pb.tf - 1.5 * d - 10]; if (a.n >= 8) ys.push(hb / 2 - pb.tf - 4.5 * d - 20); const sira = []; for (const y of ys) sira.push(y, -y);
-      for (const y of sira) { const x0 = -pc.tf - 0.8 * d - 4, x1 = tp + 0.8 * d + 4; g.cizgi(x0, y, x1, y, { lw: KL().ince }); g.dik(-pc.tf - 0.8 * d - 4, y - 0.85 * d, -pc.tf - 4, y + 0.85 * d, { lw: KL().ince }); g.dik(tp + 4, y - 0.85 * d, tp + 4 + 0.8 * d, y + 0.85 * d, { lw: KL().ince }); g.cizgi(-pc.tf - 4, y - d, -pc.tf, y - d, { lw: KL().yardimci }); }
+      for (const y of sira) { const x0 = -pc.tf - 0.8 * d - 4, x1 = tp + 0.8 * d + 4; g.cizgi(x0, y, x1, y, R('bulon')); g.dik(-pc.tf - 0.8 * d - 4, y - 0.85 * d, -pc.tf - 4, y + 0.85 * d, R('bulon')); g.dik(tp + 4, y - 0.85 * d, tp + 4 + 0.8 * d, y + 0.85 * d, R('bulon')); g.cizgi(-pc.tf - 4, y - d, -pc.tf, y - d, R('not')); }
       g.olcu(0, -a.a / 2, tp, -a.a / 2, -tm(6), String(tp)); g.olcu(tp + Lb * 0.35, -a.a / 2, tp + Lb * 0.35, a.a / 2, 0, String(a.a));
       g.not(tp / 2, a.a / 2 - 10, tp + tm(12), a.a / 2 + tm(10), `ALIN LEVHASI ${a.a}×${a.b}×${tp}`);
       g.not(tp + 4 + 0.4 * d, sira[0], tp + tm(30), a.a / 2 + tm(4), `${a.n} AD. M${d} BULON (10.9)`);
       g.not(-hc / 2, Hc * 0.8, -hc - tm(10), Hc * 0.9, `KOLON ${K.goster(pc.ad)}`); g.not(tp + Lb * 0.7, hb / 2, tp + Lb * 0.75, hb / 2 + tm(12), `KİRİŞ ${K.goster(pb.ad)}`);
       g.not(-hc / 2, -(hb / 2 - pb.tf / 2), -hc - tm(10), -Hc * 0.6, `TAKVİYE LEVHASI t=${Math.ceil(pb.tf)}`);
       g.not(tp + kw * 0.4, -hb / 2 + kw * 0.4, tp + tm(14), -Hc * 0.85, `KÖŞE KAYNAĞI a=${kw} mm`);
-      g.yazi(-hc, -Hc - tm(14), 'GÖRÜNÜŞ', yMm('baslik'));
+      g.baslik(-hc, -Hc - tm(14), 'GÖRÜNÜŞ');
       // alın levhası önden (bulon düzeni)
       const ox = tp + Lb + tm(30) + a.b / 2; g.dik(ox - a.b / 2, -a.a / 2, ox + a.b / 2, a.a / 2, { lw: KL().kalin });
-      const ks = K.kesit(pb.ad); g.cok(ks.dis.map(q => [ox + q[0], q[1]]), true, { lw: KL().cokInce, lt: 'HIDDEN' });
-      for (const y of sira) for (const sx of [-1, 1]) { const x = ox + sx * a.g / 2; g.daire(x, y, d / 2 + 2, { lw: KL().ince }); g.cizgi(x - d, y, x + d, y, { lw: KL().yardimci, lt: 'CENTER', color: KL().eksenRenk }); }
+      const ks = K.kesit(pb.ad); g.cok(ks.dis.map(q => [ox + q[0], q[1]]), true, R('gizli'));
+      for (const y of sira) for (const sx of [-1, 1]) { const x = ox + sx * a.g / 2; g.daire(x, y, d / 2 + 2, R('bulon')); g.cizgi(x - d, y, x + d, y, R('eksen')); }
       g.olcu(ox - a.g / 2, -a.a / 2, ox + a.g / 2, -a.a / 2, -tm(6), String(a.g)); g.olcu(ox - a.b / 2, a.a / 2, ox + a.b / 2, a.a / 2, tm(6), String(a.b));
-      g.yazi(ox - a.b / 2, -a.a / 2 - tm(16), 'ALIN LEVHASI GÖRÜNÜŞÜ', yMm('baslik'));
+      g.baslik(ox - a.b / 2, -a.a / 2 - tm(16), 'ALIN LEVHASI GÖRÜNÜŞÜ');
       return { baslik: 'KİRİŞ – KOLON ALIN LEVHALI BİRLEŞİM DETAYI', x0: -hc, y0: -Hc - tm(24) };
     },
     asik: (g, e) => { // aşık – çatı kirişi (makas) bağlantısı: kulak levhası + 2 bulon
@@ -251,14 +268,14 @@
       const hr = pr.h, ha = pa.h, ba = pa.b, tk = ha <= 160 ? 8 : 10, d = ha <= 160 ? 12 : 16, Lr = Math.max(700, 4 * ba + 300), hk = Math.round(ha * 0.75 / 5) * 5;
       // çatı kirişi görünüş (üst yüz y = 0)
       g.cizgi(-Lr / 2, 0, Lr / 2, 0, { lw: KL().kalin }); g.cizgi(-Lr / 2, -hr, Lr / 2, -hr, { lw: KL().kalin }); g.cizgi(-Lr / 2, -pr.tf, Lr / 2, -pr.tf, { lw: KL().cokInce }); g.cizgi(-Lr / 2, -hr + pr.tf, Lr / 2, -hr + pr.tf, { lw: KL().cokInce });
-      for (const x of [-Lr / 2, Lr / 2]) { const w = tm(2); g.cizgi(x, 20, x, -hr * 0.45, { lw: KL().yardimci }); g.cizgi(x, -hr * 0.45, x + w, -hr * 0.5, { lw: KL().yardimci }); g.cizgi(x + w, -hr * 0.5, x - w, -hr * 0.55, { lw: KL().yardimci }); g.cizgi(x - w, -hr * 0.55, x, -hr * 0.6, { lw: KL().yardimci }); g.cizgi(x, -hr * 0.6, x, -hr - 20, { lw: KL().yardimci }); }
+      for (const x of [-Lr / 2, Lr / 2]) { const w = tm(2); g.cizgi(x, 20, x, -hr * 0.45, R('not')); g.cizgi(x, -hr * 0.45, x + w, -hr * 0.5, R('not')); g.cizgi(x + w, -hr * 0.5, x - w, -hr * 0.55, R('not')); g.cizgi(x - w, -hr * 0.55, x, -hr * 0.6, R('not')); g.cizgi(x, -hr * 0.6, x, -hr - 20, R('not')); }
       g.eksen(-Lr / 2 - 40, -hr / 2, Lr / 2 + 40, -hr / 2);
       // aşık kesiti (kirişin üstünde; U'nun sırtı kulak levhasına)
       const ks = K.kesit(pa.ad), dx = tk / 2 + ba / 2; g.cok(ks.dis.map(q => [dx + q[0], ha / 2 + q[1]]), true, { lw: KL().kalin }); if (ks.ic) g.cok(ks.ic.map(q => [dx + q[0], ha / 2 + q[1]]), true, { lw: KL().kalin });
       // kulak levhası (kirişe kaynaklı)
       g.dik(-tk / 2, 0, tk / 2, hk, { lw: KL().kalin }); const kw = Math.max(4, Math.round(tk * 0.5)); g.kaynak(-tk / 2, 0, kw * 1.4, -1, 1); g.kaynak(tk / 2 + 0.01, 0, 0.01, 1, 1);
       const yb = [Math.round(hk * 0.35), Math.round(hk * 0.75)].filter(y => y < hk - d); const tw = pa.tw || pa.t || 6;
-      for (const y of yb) { g.cizgi(-tk / 2 - 0.8 * d - 4, y, tk / 2 + tw + 0.8 * d + 4, y, { lw: KL().ince }); g.dik(-tk / 2 - 0.8 * d - 4, y - 0.85 * d, -tk / 2 - 4, y + 0.85 * d, { lw: KL().ince }); g.dik(tk / 2 + tw + 4, y - 0.85 * d, tk / 2 + tw + 4 + 0.8 * d, y + 0.85 * d, { lw: KL().ince }); }
+      for (const y of yb) { g.cizgi(-tk / 2 - 0.8 * d - 4, y, tk / 2 + tw + 0.8 * d + 4, y, R('bulon')); g.dik(-tk / 2 - 0.8 * d - 4, y - 0.85 * d, -tk / 2 - 4, y + 0.85 * d, R('bulon')); g.dik(tk / 2 + tw + 4, y - 0.85 * d, tk / 2 + tw + 4 + 0.8 * d, y + 0.85 * d, R('bulon')); }
       g.olcu(-tk / 2, hk, -tk / 2, 0, -tm(14), String(hk)); g.olcu(-tk / 2, 0, -tk / 2, yb[0], -tm(7), String(yb[0]));
       g.not(dx + ba * 0.3, ha - 2, dx + ba + tm(10), ha + tm(8), `AŞIK ${K.goster(pa.ad)}`);
       g.not(-tk / 2, hk * 0.9, -Lr / 4, ha + tm(8), `KULAK LEVHASI ${Math.round(ba + 40)}×${hk}×${tk}`);
@@ -271,12 +288,12 @@
   const DETAY_AD = [['taban', 'Kolon ayağı — taban levhası ve ankraj'], ['alin', 'Kiriş – kolon alın levhalı birleşim'], ['asik', 'Aşık – çatı kirişi bağlantısı']];
   T.celikdetay = {
     label: 'Çelik birleşim detayı',
-    prims: e => { const ol = +e.olcek || 10, g = cizici(M.p3(e.p), ol), f = DETAY[e.tur] || DETAY.taban; let r; try { r = f(g, e); } catch (er) { console.error('celikdetay', er); return g.out; } if (r) { g.yazi(r.x0, r.y0, r.baslik, yMm('baslik')); g.yazi(r.x0, r.y0 - g.tm(6), `Ölçek 1/${ol} — ölçüler mm — ön boyut, statik hesapla doğrulanmalıdır`, yMm('olcu')); } return g.out; },
+    prims: e => { const ol = +e.olcek || 10, g = cizici(M.p3(e.p), ol), f = DETAY[e.tur] || DETAY.taban; let r; try { r = f(g, e); } catch (er) { console.error('celikdetay', er); return g.out; } if (r) { g.baslik(r.x0, r.y0, r.baslik); g.yazi(r.x0, r.y0 - g.tm(6), `Ölçek 1/${ol} — ölçüler mm — ön boyut, statik hesapla doğrulanmalıdır`, yMm('olcu')); } return g.out; },
     xf: (e, X) => { e.p = X.p(M.p3(e.p)); },
     snaps: e => [{ p: M.p3(e.p), k: 'cen' }],
     info: e => `${(DETAY_AD.find(x => x[0] === e.tur) || DETAY_AD[0])[1]} · ${K.goster(e.prof)}${e.prof2 ? ' / ' + K.goster(e.prof2) : ''} · 1/${+e.olcek || 10}`,
   };
-  (C.PROPFIELDS = C.PROPFIELDS || {}).celik = [['prof', 'Profil (ör. HEA200, IPE300, UPN160, L80x80x8, KUTU100x100x5, BORU114.3x6.3)', 's'], ['rot', 'Dönme (°)'], ['malz', 'Malzeme (S235 / S275 / S355)', 's'], ['ref', 'Eksen (M orta / U üst yüz)', 's']];
+  (C.PROPFIELDS = C.PROPFIELDS || {}).celik = [['poz', 'Poz no (KL1, KR3 …)', 's'], ['prof', 'Profil (ör. HEA200, IPE300, UPN160, L80x80x8, KUTU100x100x5, BORU114.3x6.3)', 's'], ['rot', 'Dönme (°)'], ['malz', 'Malzeme (S235 / S275 / S355)', 's'], ['ref', 'Eksen (M orta / U üst yüz)', 's']];
   C.PROPFIELDS.celikkesit = [['prof', 'Profil', 's'], ['olcek', 'Ölçek (1/…)']];
   C.PROPFIELDS.celikdetay = [['tur', 'Tür (taban / alin / asik)', 's'], ['prof', 'Ana profil', 's'], ['prof2', 'İkinci profil (kiriş / aşık)', 's'], ['olcek', 'Ölçek (1/…)']];
 
@@ -296,7 +313,7 @@
   const zSv = () => { const a = C.svAktif && C.svAktif(); return a ? +a.z || 0 : 0; };
   const zOf = p => (C.currentView === '3d' && p && p[2] != null ? +p[2] : zSv());
   const MALZ = C.celik.MALZEME;
-  const yeni = (props) => C.add(C.newEnt('celik', Object.assign({ layer: lay('CELIK_ELEMAN') }, props)));
+  const yeni = (props) => C.add(C.newEnt('celik', Object.assign({ layer: lay('CELIK_PROFIL') }, props)));
 
   /* ---------------- KATALOG ---------------- */
   C.addCommand(['CELIKPROFIL', 'PROFILKATALOG', 'CELIKKATALOG', 'STEELPROFILE'], 'Çelik profil kataloğu: HEA, HEB, HEM, IPE, IPN, UPN, UPE, köşebent, kutu, boru, T, lama — ölçüler ve kesit değerleri (A, kg/m, Ix, Iy, Wx, Wy). Seçilen profil kolon / kiriş / kesit çizimine aktarılır.', async () => {
@@ -357,7 +374,7 @@
     const r = await getP('Profil kesiti', [...profAlan('celikkesit', 'HEA'), { k: 'olcek', t: 'Detay ölçeği 1/…', d: 10, al: ['OLCEK'] }], 'celikkesit'); if (!r) return;
     const ol = Math.max(1, +r.olcek || 10); E.preview = c => c ? T.celikkesit.prims({ p: c, prof: r.prof, olcek: ol }) : [];
     const p = await I.pt('Kesitin yeri (profil merkezi)'); E.preview = null; if (!Array.isArray(p)) return;
-    const e = C.add(C.newEnt('celikkesit', { p: [p[0], p[1], 0], prof: r.prof, olcek: ol, layer: lay('CELIK_DETAY') })); delete e.sp; C.log(`Profil kesiti: ${K.goster(r.prof)} (1/${ol}).`);
+    const e = C.add(C.newEnt('celikkesit', { p: [p[0], p[1], 0], prof: r.prof, olcek: ol, layer: lay('CELIK_PROFIL') })); delete e.sp; C.log(`Profil kesiti: ${K.goster(r.prof)} (1/${ol}).`);
   });
   /* ---------------- BİRLEŞİM DETAYI ---------------- */
   C.addCommand(['CELIKDETAY', 'BIRLESIMDETAY', 'STEELDETAIL'], 'Çelik birleşim detayı (2B): kolon ayağı taban levhası + ankraj, kiriş–kolon alın levhalı bulonlu birleşim, aşık–çatı kirişi bağlantısı. Ölçüler kesit boyuna göre ön boyuttur.', async (I) => {
@@ -373,7 +390,7 @@
     const p2 = r.prof2 ? K.adCoz(r.prof2) : null; const ol = Math.max(1, +r.olcek || 10), base = { tur: r.tur, prof: r.prof, prof2: p2, olcek: ol, malz: r.malz };
     E.preview = c => c ? T.celikdetay.prims(Object.assign({ p: c }, base)) : [];
     const p = await I.pt('Detayın yeri (kolon / kiriş ekseni)'); E.preview = null; if (!Array.isArray(p)) return;
-    const e = C.add(C.newEnt('celikdetay', Object.assign({ p: [p[0], p[1], 0], layer: lay('CELIK_DETAY') }, base))); delete e.sp; C.log(T.celikdetay.info(e));
+    const e = C.add(C.newEnt('celikdetay', Object.assign({ p: [p[0], p[1], 0], layer: lay('CELIK_PROFIL') }, base))); delete e.sp; C.log(T.celikdetay.info(e));
   });
 
   /* ---------------- DURDURUCU TAKOZ (vinç yolu ucu) ---------------- */
@@ -382,7 +399,7 @@
   const takozLevha = e => { const H = +e.H || 0.2, bw = +e.bw || 0.3, Lt = +e.L || 0.2; return [{ ad: 'Durdurucu takoz alın levhası', a: bw, b: H, t: 0.025 }, { ad: 'Durdurucu takoz yan levhası (üçgen)', a: Lt, b: H / 2, t: 0.015, adet: 2 }, { ad: 'Durdurucu takoz taban levhası', a: bw, b: Lt, t: 0.02 }]; };
   T.celiktakoz = {
     label: 'Vinç yolu durdurucu takozu',
-    prims: e => { const q = takozKose(e); return [P(q.map(v => [v[0], v[1], 0]), true, { lw: KL().orta }), L([q[0][0], q[0][1], 0], [q[2][0], q[2][1], 0], { lw: KL().yardimci }), L([q[1][0], q[1][1], 0], [q[3][0], q[3][1], 0], { lw: KL().yardimci })]; },
+    prims: e => { const q = takozKose(e); return [P(q.map(v => [v[0], v[1], 0]), true, { lw: KL().orta }), L([q[0][0], q[0][1], 0], [q[2][0], q[2][1], 0], R('not')), L([q[1][0], q[1][1], 0], [q[3][0], q[3][1], 0], R('not'))]; },
     mesh: e => { const out = I_().newMesh(), z = M.p3(e.p)[2]; prizma(out, takozKose(e), z, z + (+e.H || 0.2), [0.75, 0.55, 0.15], true); return [out]; },
     xf: (e, X) => { const p = X.p(M.p3(e.p)); e.p = [p[0], p[1], p[2] != null ? p[2] : M.p3(e.p)[2]]; if (X.v) { const v = X.v([e.t[0], e.t[1], 0]), l = Math.hypot(v[0], v[1]) || 1; e.t = [v[0] / l, v[1] / l]; } },
     snaps: e => takozKose(e).map(q => ({ p: [q[0], q[1], M.p3(e.p)[2]], k: 'end' })),
@@ -452,7 +469,7 @@
     const pk = K.profil(r.prof), ray = r.ray !== 'YOK' ? K.adCoz(r.ray) : null, pr = ray ? K.profil(ray) : null, hr = pr ? pr.h : 0, uz = Math.max(0, +r.uz || 0);
     const yuk = s.flatMap(e => { const F = frame(e), p = K.profil(e.prof); return YR().guseParcalari({ a: F.a, b: F.b, rot: +e.rot || 0, hc: p.h, bc: p.b }, e.vguse).yuk; });
     const hat = YR().vincYoluHatlari(yuk); if (!hat.length) { C.warn('Aynı hizada en az iki guse bulunamadı (guse yönü ve ray ekseni uzaklığı aynı olmalı).'); return; }
-    const made = [], Lt = 0.2, ly = lay('CELIK_ELEMAN');
+    const made = [], Lt = 0.2, ly = lay('CELIK_PROFIL');
     for (const h of hat) { const t = h.t, N = h.noktalar, at = (p, d) => [p[0] + t[0] * d, p[1] + t[1] * d];
       for (let i = 0; i + 1 < N.length; i++) { const zt = Math.max(N[i][2], N[i + 1][2]), k = YR().vincYoluKot(zt, pk.h, hr), a = at(N[i], i === 0 ? -uz : 0), b = at(N[i + 1], i + 2 === N.length ? uz : 0);
         made.push(yeni({ kind: 'kiris', a: [a[0], a[1], k.kirisUst], b: [b[0], b[1], k.kirisUst], prof: r.prof, rot: 0, ref: 'U', malz: r.malz, rol: 'vinc' })); }
@@ -493,6 +510,25 @@
     } finally { C._gvCur = null; }
   });
 
+  /* ---------------- POZ NUMARASI (örnekteki gibi: KL1, KR3, AS5, YC1, DC2, M-KR1) ----------------
+     aynı önek + aynı profil + aynı boy (cm'e yuvarlı) → aynı poz; numara önek içinde boya ve profile göre sıralı. Saf: C.celikPozDagit(liste) */
+  const pozOnekOf = e => { const O = Object.assign({ kolon: 'KL', kiris: 'KR', asik: 'AS', gergi: 'GR', yatayCapraz: 'YC', duseyCapraz: 'DC', monoray: 'M-KR' }, KR().pozOnek || {});
+    if (e.rol === 'ray') return null; if (e.kind === 'kolon' || e.rol === 'vincayak') return O.kolon; if (e.rol === 'asik') return O.asik; if (e.rol === 'vinc') return O.monoray;
+    if (e.kind === 'cubuk') { const a = M.p3(e.a), b = M.p3(e.b), l = Math.hypot(b[0] - a[0], b[1] - a[1]); return Math.abs(b[2] - a[2]) > 0.25 * Math.max(l, 1e-6) ? O.duseyCapraz : O.yatayCapraz; }
+    return O.kiris; };
+  C.celikPozDagit = list => {
+    const grup = {}; for (const e of list) { const o = pozOnekOf(e); if (!o) continue; const L = Math.round(boyOf(e) * 100), k = `${o}|${K.adCoz(e.prof) || e.prof}|${L}`; (grup[o] = grup[o] || {})[k] = (grup[o][k] || []).concat([e]); }
+    const out = new Map(); for (const [o, g] of Object.entries(grup)) { const keys = Object.keys(g).sort((x, y) => { const [, px, lx] = x.split('|'), [, py, ly] = y.split('|'); return (+ly) - (+lx) || px.localeCompare(py); });
+      keys.forEach((k, i) => { for (const e of g[k]) out.set(e, o + (i + 1)); }); }
+    return out; };
+  C.addCommand(['CELIKPOZ', 'POZNO', 'STEELMARK'], 'Çelik elemanlara poz numarası verir (örnek paftalardaki gibi KL kolon, KR kiriş, AS aşık, YC yatay çapraz, DC düşey çapraz, M-KR vinç / monoray kirişi): aynı profil ve boydaki elemanlar aynı pozu alır. Planda poz no (mor) profil adının (sarı) üstüne yazılır. CELIKPOZ S = pozları siler.', async (I) => {
+    const sil = E.queue.some(t => /^(S|SIL|SİL)$/i.test(t)); E.queue = E.queue.filter(t => !/^(S|SIL|SİL)$/i.test(t));
+    const list = C.doc.ents.filter(e => e.type === 'celik' && (!C.lyLive || C.lyLive(e.layer))); if (!list.length) { C.warn('Çizimde çelik eleman yok.'); return; }
+    if (sil) { for (const e of list) { delete e.poz; delete e._c; } C.changed(); C.log(`${list.length} çelik elemanın poz numarası silindi.`); return; }
+    const m = C.celikPozDagit(list); let n = 0; for (const e of list) { const v = m.get(e); if (v) { e.poz = v; n++; } else delete e.poz; delete e._c; }
+    C.changed(); const say = {}; for (const v of m.values()) say[v.replace(/\d+$/, '')] = Math.max(say[v.replace(/\d+$/, '')] || 0, +v.match(/\d+$/)[0]);
+    C.log(`${n} çelik elemana poz verildi: ${Object.entries(say).map(([o, k]) => `${o}1–${o}${k}`).join(' · ')}`);
+  });
   /* statik çözücü için (ileride): çelik elemanlar çubuk eleman olarak */
   C.celikStatikCubuklar = () => (C.doc ? C.doc.ents : []).filter(e => e.type === 'celik' && e.rol !== 'ray').map(e => Object.assign({ id: e.id, a: M.p3(e.a), b: M.p3(e.b), rot: +e.rot || 0, malz: e.malz || 'S275', fy: { S235: 235e6, S275: 275e6, S355: 355e6 }[e.malz || 'S275'] }, K.cubuk(e.prof)));
 
@@ -505,7 +541,7 @@
         ['Elemanlar', [B('CELIKKOLON', 'Çelik kolon', 'col', [['CELIKKOLON AILE=HEA PROF=HEA200', 'HEA 200'], ['CELIKKOLON AILE=HEB PROF=HEB200', 'HEB 200'], ['CELIKKOLON AILE=SHS PROF=KUTU100x100x5', 'Kutu 100×100×5'], ['CELIKKOLON', 'Ayarlar…']]), B('CELIKKIRIS', 'Çelik kiriş', 'beam', [['CELIKKIRIS AILE=IPE PROF=IPE200', 'IPE 200'], ['CELIKKIRIS AILE=IPE PROF=IPE300', 'IPE 300'], ['CELIKKIRIS AILE=UPN PROF=UPN160', 'UPN 160 (aşık)'], ['CELIKKIRIS', 'Ayarlar…']]), B('CELIKCUBUK', 'Çapraz / çubuk', 'line')]],
         ['Birleşim', [B('TABANLEVHASI', 'Taban levhası', 'found'), B('CELIKDETAY', 'Birleşim detayı', 'print', [['CELIKDETAY TUR=TABAN', 'Taban levhası + ankraj'], ['CELIKDETAY TUR=ALIN', 'Kiriş–kolon alın levhası'], ['CELIKDETAY TUR=ASIK', 'Aşık bağlantısı']])]],
         ['Çatı ve vinç', [B('CATIKIRISI', 'Çatı kirişi', 'beam', [['CATIKIRISI TIP=besik', 'Beşik çatı'], ['CATIKIRISI TIP=tek', 'Tek eğimli'], ['CATIKIRISI', 'Ayarlar…']]), B('ASIKDIZ', 'Aşık', 'grid', [['ASIKDIZ AILE=UPN PROF=UPN160', 'UPN 160'], ['ASIKDIZ AILE=IPE PROF=IPE160', 'IPE 160'], ['ASIKDIZ AILE=SHS PROF=KUTU100x100x4', 'Kutu 100×100×4'], ['ASIKDIZ', 'Ayarlar…']]), B('VINCGUSESI', 'Vinç gusesi', 'col', [['VINCGUSESI TIP=K', 'Konsol'], ['VINCGUSESI TIP=D', 'Kademeli kolon'], ['VINCGUSESI', 'Ayarlar…']]), B('VINCYOLU', 'Vinç yolu', 'rail')]],
-        ['Metraj', [B('CELIKMETRAJ', 'Çelik metrajı', 'table')]],
+        ['Metraj', [B('CELIKMETRAJ', 'Çelik metrajı', 'table'), B('CELIKPOZ', 'Poz numarası', 'table', [['CELIKPOZ', 'Poz ver / yenile'], ['CELIKPOZ S', 'Pozları sil']])]],
       ]];
       const i = C.ribbon.tabs.findIndex(t => t[0] === 'İnşaat'); C.ribbon.tabs.splice(i >= 0 ? i + 1 : C.ribbon.tabs.length, 0, tab); C.ribbon.render();
     }
@@ -560,6 +596,6 @@
     ['Açı (°; 0 = başlıklar X yönünde)', 'Angle (°; 0 = flanges along X)'], ['Kot', 'Level'], ['Çizim', 'Drawing'], ['İşlem', 'Action'], ['— aile', '— family'], ['Otomatik', 'Automatic'],
     ['Levha boyu a (mm; profil derinliği yönü, 0 = otomatik)', 'Plate length a (mm; along section depth, 0 = automatic)'], ['Levha eni b (mm; 0 = otomatik)', 'Plate width b (mm; 0 = automatic)'], ['Kalınlık (mm; 0 = otomatik)', 'Thickness (mm; 0 = automatic)'],
     ['Ankraj çapı M (mm; 0 = otomatik)', 'Anchor diameter M (mm; 0 = automatic)'], ['Ankraj adedi', 'Number of anchors'], ['Ekle / güncelle', 'Add / update'], ['Taban levhasını kaldır', 'Remove base plate'],
-    ['Eksen (M orta / U üst yüz)', 'Axis (M centre / U top face)'], ['Dönme (°)', 'Rotation (°)'], ['Malzeme (S235 / S275 / S355)', 'Material (S235 / S275 / S355)'], ['Ana profil', 'Main section'], ['İkinci profil (kiriş / aşık)', 'Second section (beam / purlin)'], ['Ölçek (1/…)', 'Scale (1/…)'], ['Tür (taban / alin / asik)', 'Type (taban / alin / asik)'],
+    ['Eksen (M orta / U üst yüz)', 'Axis (M centre / U top face)'], ['Poz numarası', 'Part marks'], ['Poz ver / yenile', 'Assign / renew marks'], ['Pozları sil', 'Delete marks'], ['Poz no (KL1, KR3 …)', 'Part mark (KL1, KR3 …)'], ['Dönme (°)', 'Rotation (°)'], ['Malzeme (S235 / S275 / S355)', 'Material (S235 / S275 / S355)'], ['Ana profil', 'Main section'], ['İkinci profil (kiriş / aşık)', 'Second section (beam / purlin)'], ['Ölçek (1/…)', 'Scale (1/…)'], ['Tür (taban / alin / asik)', 'Type (taban / alin / asik)'],
   ]);
 })(window.C);

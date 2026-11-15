@@ -105,9 +105,10 @@
     const primRecs = (e, layer) => {
       const comp = COMPOSITE.has(e.type), recs = [], ltK = ltOlcek(e), vsc = VPW.length ? annoSc(e) : null; // vsc: nesneyi gösteren pafta penceresinin ölçeği (çizim kuralı yazı boyu için)
       for (const pr of primsAt(e)) {
+        const ly = pr.ly && doc.layers[pr.ly] ? pr.ly : layer; // ilkelin kendi katmanı (çelik: eksen, poz, ölçü ayrı katmanda — cizim-kural.js CELIK)
         const st = comp
-          ? { layer, color: pr.color != null ? pr.color : (e.color === 256 ? 256 : 0), lt: pr.lt || 'BYLAYER', lw: pr.lw != null ? pr.lw : -1 }
-          : { layer, color: pr.color != null ? pr.color : e.color, lt: pr.lt || e.lt, lw: pr.lw != null ? pr.lw : e.lw };
+          ? { layer: ly, color: pr.color != null ? pr.color : (e.color === 256 ? 256 : 0), lt: pr.lt || 'BYLAYER', lw: pr.lw != null ? pr.lw : -1 }
+          : { layer: ly, color: pr.color != null ? pr.color : e.color, lt: pr.lt || e.lt, lw: pr.lw != null ? pr.lw : e.lw };
         if (ltK) st.lts = ltK; if (vsc) st.vsc = vsc;
         recs.push({ pr, st });
       }
