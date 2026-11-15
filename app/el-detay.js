@@ -182,7 +182,8 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = EL;
 
   /* çeviri: detay, tablo ve LED açıklamaları (satırın tamamı ya da metin içi ifade; '#' sayı) */
-  if (typeof window !== 'undefined' && window.DIL) window.DIL.ekle('en', 'English', [
+  const satirla = L => L.map(e => (e.length === 2 && !/s/.test(e[0])) ? [e[0], e[1], 'satir'] : e); /* tek kelimeler yalnız tam satırda */
+  if (typeof window !== 'undefined' && window.DIL) window.DIL.ekle('en', 'English', satirla([
     ['TOPRAKLAMA BARASI TB-1', 'EARTHING BAR TB-1'], ['40x5 mm ELEKTROLİTİK BAKIR, 400 mm, KALAYLI', '40x5 mm ELECTROLYTIC COPPER, 400 mm, TINNED'], ['MESNET İZOLATÖRÜ', 'STANDOFF INSULATOR'], ['(EPOKSİ, M8, 40 mm)', '(EPOXY, M8, 40 mm)'],
     ['M10 PASLANMAZ CİVATA, PUL, YAYLI PUL, SOMUN', 'M10 STAINLESS BOLT, WASHER, SPRING WASHER, NUT'], ['PANO PE İLETKENİ — 16 mm² NYAF (sarı-yeşil)', 'PANEL PE CONDUCTOR — 16 mm² NYAF (green-yellow)'],
     ['KABLO TAVASI / METAL AKSAM — 16 mm² NYAF', 'CABLE TRAY / METAL PARTS — 16 mm² NYAF'], ['SU VE BORU TESİSATI EŞ POTANSİYEL — 6 mm² NYAF', 'WATER AND PIPING EQUIPOTENTIAL BONDING — 6 mm² NYAF'], ['TELEFON / YANGIN SANTRALİ — 6 mm² NYAF', 'TELEPHONE / FIRE ALARM PANEL — 6 mm² NYAF'], ['YEDEK', 'SPARE'],
@@ -210,5 +211,5 @@
     ['FLORESANT ARMATÜR (IP42)', 'FLUORESCENT LUMINAIRE (IP42)'], ['ETANŞ FLORESANT ARMATÜR (IP54)', 'WATERPROOF FLUORESCENT LUMINAIRE (IP54)'],
     ['BÜTÜN AYDINLATMA ARMATÜRLERİ LED OLACAKTIR (4000 K, Ra ≥ 80, ÖMÜR 50.000 SAAT L70,', 'ALL LUMINAIRES SHALL BE LED (4000 K, Ra ≥ 80, LIFE 50.000 h L70,'], ['GÜÇ FAKTÖRÜ ≥ 0,9, SÜRÜCÜ DAHİL). ISLAK HACİMLERDE IP65 ETANŞ ARMATÜR KULLANILACAKTIR.', 'POWER FACTOR ≥ 0,9, DRIVER INCLUDED). IP65 WATERPROOF LUMINAIRES IN WET ROOMS.'],
     ['ACİL ÇIKIŞ ARMATÜRÜ 3 SAAT AKÜLÜ, KESİNTİDE KENDİLİĞİNDEN YANAR.', 'EMERGENCY EXIT LUMINAIRE WITH 3 h BATTERY, LIGHTS AUTOMATICALLY ON POWER FAILURE.'],
-  ]);
+  ]));
 })(typeof window !== 'undefined' ? (window.C = window.C || {}) : null);
