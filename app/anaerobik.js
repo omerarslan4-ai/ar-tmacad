@@ -213,7 +213,7 @@
     // kapak işletme sahanlığı: perde yüzündeki pencere kapağını içine alır (kapak tarafında 0,45, öbür yanda 0,30 taşar), ortak duvarın iki yanına taşar (kapak, korkuluk ve yürüme yolu kesişmez)
     // döşemede kapak yarıkları: kapak çerçevesi (açıklık + 2 × 85 mm yuva gömmesi) + her yanda 5 cm; akış yönünde 0,30 m (çerçeve, kapak ve kaburgalar geçer)
     const yarik = (xm, B, ym) => { const w = B + 2 * q.yE + 2 * q.yP; return rect(xm - w / 2, ym - q.yD / 2, xm + w / 2, ym + q.yD / 2); };
-    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = y0 - q.kY; G.sahanlik.push({ x0: xw0 - q.sahX, x1: xk0, y0: y0 - q.sahG, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((xw0 + xw1) / 2, q.ow, ym)] }); }
+    for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = y0 - q.kY; const P = G.penO[i]; G.sahanlik.push({ x0: xw0 - q.sahX, x1: xk0, y0: y0 - q.sahG, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((P.x0 + P.x1) / 2, P.w, ym)] }); } // döşeme yarığı pencerenin kendi kapağına göre (kapak büyüyüp küçülünce kendiliğinden; kullanıcı 20.11.2026)
     // tretuvar (zemin kotunda, havuz çevresinde): kanallar boyunca dar, halkalar boyunca geniş, aralarda pahlı
     const t = q.tre, xa = Math.max(0, xc1 - R2 - t), xb = Math.min(Lo, xc2 + R2 + t * 0.6);
     G.tretuvar = { dis: [[-t, yb - t], [xa, yb - t], [xc1, -t], [xc2, -t], [xb, yb - t], [Lo + t, yb - t], [Lo + t, yt + t], [xb, yt + t], [xc2, Wo + t], [xc1, Wo + t], [xa, yt + t], [-t, yt + t]], kal: q.treT };
@@ -364,7 +364,7 @@
     const agC = acik(Qx + QRS, 0.60, wA, 1.0); // çıkış ağzı (son halkadan çıkış kanalına)
     const agR = R ? acik(QRS, 0.60, wA, 1.0) : agC; // RAS halkasına giriş ağzı
     const pe = acik(Qx + QRS, 1.50, wP, 1.0); // ham su halkaları arası pencere
-    const peR = R ? acik(QRS, 1.50, wP, 1.0) : pe; // RAS → 1. halka penceresi
+    const peR = pe; // RAS → 1. halka penceresi ham su penceresiyle aynı ölçüde — ara kapaklar tek tip (kullanıcı 20.11.2026: "ara kapaklardan ikisinin ebadı farklı; aynı olmalı")
     /* ara duvar orifisi (RAS): su yüzüne yakın — üstü su yüzünün 0,10 m altında, eşiği en çok dMax derinde; yükseklik yetmezse en büyür */
     const oUst = 0.10, oHMax = Math.floor((Math.min(dMax, h - 0.5) - oUst) / 0.05 + 1e-9) * 0.05;
     let bOw = agR.w, bO = Math.max(0.60, Math.min(oHMax, yukari(QRS / 3600 / vh / bOw, 0.05))); if (bOw * bO < QRS / 3600 / vh - 1e-9) bOw = yukari(QRS / 3600 / vh / bO, 0.05);
@@ -604,10 +604,10 @@
     const mxS = mixKaynak(e, geo(e)), k2 = mxS && mxS.n >= 2 ? 1 : 0; if ((e.k2 || 0) !== k2) { e.k2 = k2; delete e._c; delete e._ag; } // halka başına 2+ mikser → ikinci yürüyüş yolu
     const G = geo(e), yer = ekipmanYer(G, mxS, zemin(e, G)), once = new Set(e.ekAnahtar || []), yeniK = new Set(yer.map(y => y.anahtar));
     const mevcut = new Map(C.doc.ents.filter(x => x.bag === e.id && x.anahtar).map(x => [x.anahtar, x]));
-    let n = 0, g = 0, el = 0, s = 0;
+    let n = 0, g = 0, el = 0, s = 0; const silinmis = []; // kullanıcının sildiği (yeniden konmayan) ekipmanın adları — iletide söylenir (kullanıcı 20.11.2026: "1 adet mikser gözükmüyor")
     for (const y of yer) {
       const x = mevcut.get(y.anahtar), o = nesne(e, y); if (!o) continue;
-      if (!x) { if (once.has(y.anahtar)) continue; const z = C.add(C.newEnt(o.type, Object.assign({}, o.props, { bag: e.id, anahtar: y.anahtar }))); delete z.sp; z.oto = imza(z); n++; continue; }
+      if (!x) { if (once.has(y.anahtar)) { silinmis.push(o.props.ad || y.anahtar); continue; } const z = C.add(C.newEnt(o.type, Object.assign({}, o.props, { bag: e.id, anahtar: y.anahtar }))); delete z.sp; z.oto = imza(z); n++; continue; }
       if (x.oto !== imza(x)) { // elle taşınmış / değiştirilmiş: yeri korunur
         /* mikserde tip (üretici modeli, pervane, güç, devir) yine güncellenir — yalnız yeri elle (kullanıcı 20.11.2026: "bir mikser eskisi gibi kaldı") */
         if (y.tur === 'mikser' && x.type === 'aile' && x.par) { const yp = o.props.par, ks = ['model', 'D', 'P', 'rpm', 'hm', 'Hd', 'vinc']; if (ks.some(k => x.par[k] !== yp[k])) { for (const k of ks) x.par[k] = yp[k]; delete x._c; delete x._g; delete x._q; if (C.touch) C.touch(x); g++; } }
@@ -620,6 +620,7 @@
     e.ekipman = true; e.ekAnahtar = [...yeniK]; e._ekK = JSON.stringify([G.q, e.o, e.rot, e.code]); delete e._c;
     if (n || g || s) C.changed && C.changed();
     if (!sessiz || n || s) C.log(`✓ ${e.code || ''} ekipman (mikser: ${mxS ? mxS.n + ' / halka, ' + mxS.kaynak : 'yok'}): ${n} yeni, ${g} güncellendi${el ? `, ${el} elle taşınmış (korundu)` : ''}${s ? `, ${s} kaldırıldı` : ''}.`);
+    if (silinmis.length && !sessiz) C.warn(`${e.code || ''} ekipmanından ${silinmis.length} parça daha önce silindiği için konmadı: ${silinmis.join(', ')} — geri getirmek için: ANAEKIPMAN GERIGETIR`);
   };
   // havuz değişince (ölçü, konum, dönüş) ekipman kendiliğinden güncellenir
   C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]); if (e._ekK !== k) { if (e._ekK == null) { e._ekK = k; continue; } C.anaerobikEkipman(e, true); } } });
@@ -695,8 +696,10 @@
     if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
     if (kv.OLCU !== 'H' && C.anaerobikOlcu) C.anaerobikOlcu(e);
   });
-  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli) [TRETUVAR=beton|parke|karo|tas|granit] [KORKULUK=galvaniz|paslanmaz|paslanmaz316|ctp_sari|…]', async (I) => {
+  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli) [TRETUVAR=beton|parke|karo|tas|granit] [KORKULUK=galvaniz|paslanmaz|paslanmaz316|ctp_sari|…] [GERIGETIR] (silinen ekipmanı yeniden koyar)', async (I) => {
     const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');
+    const geriGetir = kv.GERIGETIR != null || C.cmd.queue.some(t => /^GER[İI]GET[İI]R$/i.test(t)); C.cmd.queue = C.cmd.queue.filter(t => !/^GER[İI]GET[İI]R$/i.test(t)); // silinen ekipmanı yeniden koy
+    if (geriGetir) for (const e of s) delete e.ekAnahtar;
     if (!s.length) return C.warn('Çizimde anaerobik havuz yok (önce ANAEROBIK).');
     for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^(KSB|55|5[.,]5)/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; }
       if (kv.TRETUVAR) { const k = String(kv.TRETUVAR).toLowerCase().replace('kilit', 'parke'); if (C.TRETUVAR_KAP && C.TRETUVAR_KAP[k]) e.tretKap = k; else if (/^(yok|oto|-)$/.test(k)) delete e.tretKap; else C.warn('Tretuvar kaplaması: ' + Object.keys(C.TRETUVAR_KAP || {}).join(' / ')); delete e._c; }

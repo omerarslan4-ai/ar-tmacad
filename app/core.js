@@ -182,6 +182,9 @@
      C.toplu(fn) süresince yalnız C.rev artar; duvar önbelleği, 'change' ve 'changeIdle' sonunda bir kez çalışır. İç içe çağrılabilir. */
   let topluDerin = 0, topluVar = false;
   C.toplu = async fn => { topluDerin++; try { return await fn(); } finally { if (--topluDerin === 0 && topluVar) { topluVar = false; C.changed(); } } };
+  /* toplu çalışmaya ara: kullanıcıdan girdi beklenirken (nokta, seçim, seçenek) ekran normal yenilensin — bekleyen değişiklik hemen yansır.
+     Döner: devam fonksiyonu (toplu düzeyini geri kurar). Toplu yoksa boş işlev. */
+  C.topluAra = () => { if (!topluDerin) return () => { }; const d = topluDerin; topluDerin = 0; if (topluVar) { topluVar = false; C.changed(); } return () => { topluDerin += d; }; };
   C.changed = function () {
     C.rev++;
     if (topluDerin > 0) { topluVar = true; return; }

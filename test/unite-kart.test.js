@@ -218,11 +218,11 @@ t('Çokal AAT T-105: anaerobik karusel halkaları, ayak izi, temas süresi ve ko
    Kart varsayılanlarıyla aynı havuz çıkmalı (kullanıcı kararı 20.11.2026). Debiler: Q ort. 2083,33, Q maks. 3958,33 m³/h, RAS %75. */
 /* açıklıklar 20.11.2026'dan beri her biri kendi debisiyle hidrolik (kapak başına 5 cm kayıp; kullanıcı kararı "kapaklar çok büyük"):
    elle: giriş ağzı Q maks. 1,0995 m³/s → A ≥ 1,0995 / 0,6044 = 1,82 m² → 2,00 × (0,91 + 0,11 → 1,05); çıkış ağzı Q maks. + RAS 1,924 → 3,18 m² → eşik en çok 1,25 m (kullanıcı 20.11.2026: "savakların derinliği çok fazla"): yükseklik 1,35 (eşik 1,24), en 3,18 / 1,24 → 2,60;
-   RAS ağzı ve RAS penceresi 0,8247 → 1,36 m² → 1,55 × 1,00; ham su penceresi 1,924 → 3,00 × 1,20; orifis 1,36 / 1,55 → 0,90, su yüzüne yakın (eşik 0,90 + 0,10 = 1,00);
+   RAS ağzı 0,8247 → 1,36 m² → 1,55 × 1,00; ham su penceresi 1,924 → 3,00 × 1,20, RAS penceresi de aynı (ara kapaklar tek tip, kullanıcı 20.11.2026); orifis 1,36 / 1,55 → 0,90, su yüzüne yakın (eşik 0,90 + 0,10 = 1,00);
    çıkış kanalı = çıkış ağzı + 0,40 = 3,00. Eski çizim: ağız 2,00 × 2,05, pencere 3,00 × 2,25, orifis 1,40 (tabanda). */
 t('50 bin m³/gün: kart, kullanıcının çizdiği havuzun ölçülerini verir (açıklıklar kendi debisiyle)', () => {
   const k = K.anaerobikKart('an', { N: 3, L: 1, W: 1, h: 4.5 }, { Qd: 50000, Qww: 3958.3333 }, {}, {}, KAR, ANA);
-  const cizim = { n: 3, Ls: 29.4, Ro: 4.1, tw: 0.35, two: 0.7, rg: 1.95, tg: 0.3, bG: 2.2, bC: 3.0, tK: 0.65, ag: 2, ah: 1.05, dAg: 0.94, agC: 2.6, ahC: 1.35, agR: 1.55, ahR: 1.0, ow: 3, oh: 1.2, dPe: 1.09, owR: 1.55, ohR: 1.0, bO: 0.9, bOw: 1.55, dO: 1.0, dG: 1.4, dR: 1.2, dC: 1.6, h: 4.5, tb: 0.8, kb: 1.5 };
+  const cizim = { n: 3, Ls: 29.4, Ro: 4.1, tw: 0.35, two: 0.7, rg: 1.95, tg: 0.3, bG: 2.2, bC: 3.0, tK: 0.65, ag: 2, ah: 1.05, dAg: 0.94, agC: 2.6, ahC: 1.35, agR: 1.55, ahR: 1.0, ow: 3, oh: 1.2, dPe: 1.09, owR: 3, ohR: 1.2, bO: 0.9, bOw: 1.55, dO: 1.0, dG: 1.4, dR: 1.2, dC: 1.6, h: 4.5, tb: 0.8, kb: 1.5 };
   for (const [a, v] of Object.entries(cizim)) yakin(k.cizim[a], v, a);
   assert.ok(Math.abs(p(k, 't').v - 0.75) < 0.01, 'temas süresi ≈ 0,75 sa'); assert.ok(p(k, 'Vk').v > 3770);
   yakin(k.ayakIzi.boy, 0.65 + 2.2 + 2 * 0.7 + 2 * 4.1 + 29.4 + 3.0 + 0.65, 'boy (çıkış kanalı 3,00)'); yakin(k.ayakIzi.en, 3 * 8.2 + 4 * 0.7, 'en');
