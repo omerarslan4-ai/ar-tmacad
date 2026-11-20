@@ -276,6 +276,11 @@
       'TOPILET': { renk: 4, tip: 'HIDDEN', kal: 0.35, ne: 'Topraklama iletkeni (30x3,5 galvaniz şerit), temel topraklaması' },
       'TLF': { renk: 4, tip: 'DOT', kal: 0.25, ne: 'Telefon hattı' },
       'ETELYNG': { renk: 1, tip: 'DASHED', kal: 0.25, ne: 'Yangın alarm hattı' },
+      'ELK_GUC': { renk: 5, tip: 'Continuous', kal: 0.25, ne: 'Proses ünitesi güç kabloları (E-BP 001 KAB1)' },
+      'ELK_KUMANDA': { renk: 3, tip: 'Continuous', kal: 0.25, ne: 'Kumanda, lokal kumanda ve enstrüman kabloları (E-BP 001 KAB2)' },
+      'ELK_GUC2': { renk: 5, tip: 'HIDDEN', kal: 0.25, ne: 'Güç kabloları 2. kademe (lokal pano → motor)' },
+      'ELK_KUMANDA2': { renk: 3, tip: 'HIDDEN', kal: 0.25, ne: 'Kumanda kabloları 2. kademe' },
+      'ELK_TAVA': { renk: 7, tip: 'Continuous', kal: 0.35, ne: 'Kablo tavası (örnekte sarı; firma: sarı yok)' },
       'ANTET': { renk: 7, tip: 'Continuous', kal: 0.25, ne: 'Antet', serbest: true },
     },
     esAd: { 'ELKYAZI': 'EYAZI', 'ELK YAZI': 'EYAZI', 'E-YAZI': 'EYAZI', 'TLFPRIZ': 'EYAZI', 'YNGTLFYAZI': 'EYAZI', 'Topraklama': 'TOPILET' },
@@ -294,6 +299,16 @@
     /* linye hattının kalınlığı katmandan (EHAT 0,35): örnekte 2,5 cm genişlikli çoklu çizgi */
     /* şema / tablo çizgi kalınlıkları (1/100 mm): k çerçeve, i iç çizgi, b bara, t topraklama, h zemin çizgisi */
     semaKal: { k: 35, i: 18, b: 70, t: 35, h: 13 },
+    /* PROSES ÜNİTESİ (havuz) — E-BP düzeni (Çorlu (31)(32)(33) ÇRL E-BP 001/002/003, 21.11.2026; elektrik.md §15). Yazı kâğıt mm, sembol model cm (1/50) */
+    unite: {
+      yaziMm: { kablo: 2, kod: 2, kutu: 1.5, tava: 2, lejant: 3, not: 3, mcc: 4, tablo: 2.5, baslik: 4 },
+      sembol: { motorR: 15.6, lcu: 11.9, jb: 8, armaturBoy: 67, armaturEn: 9, bhak: 16, prizPano: 20, cubukR: 10, bara: 40 },
+      armaturAralik: 4.80,   // m, korkuluğa monte etanş armatür aralığı (003'te ölçüldü)
+      direkH: 3.50,          // m, 3" galvaniz boru direğin korkuluk tabanından yüksekliği (montaj detayı 3500)
+      tavaAlt: 0.82,         // m, kablo tavasının perde üst kotundan aşağısı (örnek: perde üstü +37,32, tava EL +36,50)
+      tavaAra: 0.20,         // m, iki tavalı güzergâhta tavalar arası (örnek EL +36,70 / +36,50)
+      armaturKod: 'U-LED36W', // örnekte U-2x40W floresan; firma: LED
+    },
     /* PROGRAM KATMANI → ÇİZİM KATMANI (elektrik modülü doğrudan bu adlarla çizer) */
     esleme: [[/^EL_?YAZI$/i, 'EYAZI'], [/^EL_?HAT$/i, 'EHAT'], [/^EL_?TOP/i, 'TOPILET'], [/^EL_?TLF$/i, 'TLF'], [/^EL_?YNG$/i, 'ETELYNG']],
   };

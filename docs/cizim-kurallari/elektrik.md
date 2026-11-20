@@ -121,3 +121,45 @@ Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince �
 - Pano gövdesi 310 mm × (100 + ray × 135) mm × 95 mm, sıva altı, IP42; altta N (mavi) ve PE (sarı-yeşil) baraları; raylar arasında 40×40 delikli kablo kanalları; sigorta raylarında tarak bara (3 faz + N).
 - Paftada: "PANOSU PERSPEKTİF DETAYI (KAPAK AÇIK)" — gövde, montaj plakası, yana açılmış kapak, raylar ve şalt modülleri, Q0 → F0 köprüsü, F0 → tarak bara, besleme alttan (4 damar), çıkışlar üstten, PE barası → TB-1; açıklamalar sol sütunda eşit aralıklı; ölçüler; ve "PANOSU ŞALT MALZEME LİSTESİ" tablosu. Raporda §8b.
 - 3B: kapağı açık pano; şalt modülleri (ana şalter kırmızı kol, kaçak akım mavi kol, parafudr turuncu, sinyal lambaları), tarak bara, N / PE baraları, giriş ve çıkış kabloları. Duvar oyulmadığı için 3B'de gövde duvar yüzüne oturur.
+
+## 15. Proses üniteleri (havuzlar) — E-BP düzeni (kullanıcı kararları 20–21.11.2026)
+Kaynak: Çorlu AAT T-200 A/B/C BİO-P ANAEROBİK HAVUZU, `(31) ÇRL E-BP 001` güç, kumanda, enstrüman kablo ve tava planı · `(32) … 002` topraklama planı ·
+`(33) … 003` aydınlatma ve priz tesisatı planı — 21.11.2026'da ölçüldü (birim cm, ölçek 1/50; 10 birim yazı = 2 mm). Program: `app/el-unite.js` (ELUNITEPAFTA).
+Bina (yaşam alanı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler bu düzende üç pafta alır.
+
+### Örnekteki düzen (birebir alınanlar)
+- **Kablo kodu** `<tür>-<pano>/<ekipman kodu>`: `GK` güç, `KK` kumanda, `KK-LK` lokal kumanda; pano no 1 = MCC-1, 2 = 2. kademe (lokal panodan motora). Etiket iki satır: kod, altında `4x2.5 mm² NYY <boy> mt`; ekipmandan eğik çizgi + yazının altını çizen yatay çizgiyle çıkar.
+- **Kapak motoru** (örnekte MK-200/n, 0,37 kW): `GK-1/<kod>` 4x2.5 mm² NYY + `KK-1/<kod>` 10x1.5 mm² NYY, ikisi de MCC-1'den.
+- **Mikser** (örnekte K-200A…F, 3,1 kW): `KK-LK-1/<kod>` 10x1.5 mm² NYY (MCC-1 → saha lokal kumanda panosu LCU-<kod>), `GK-2/<kod>` 4x2.5 mm² NYY ve `KK-2/<kod>` 3x1.5 mm² NYY (2. kademe; LCU → JB-<kod> → motor). Yürüme yolunda motorun yanında JB (junction box), korkulukta LCU.
+- **Enstrüman** (örnekte ORP, FIT): `PLC-1/<kod>-1` 3x1.5 mm² NYY (besleme) + `PLC-1/<kod>-2` 3x1.5 mm² LIYCY (sinyal). Anaerobik havuzda enstrüman yok; veri yapısında yeri var.
+- **Kablo tavası**: yürüme yolu boyunca, perde üst kotunun 0,82 m altında (örnek perde üstü +37,32, tava EL +36,50; ikinci tava 0,20 m üstte), `100mm KABLO TAVASI` / `2x100mm KABLO TAVASI`, altında `EL +<kot>` (iki tava: `EL +36.70 EL +36.50`).
+- **Semboller** (örnek lejant): ana dağıtım ve motor besleme panosu, PLC panosu, ekipman güç ve kumanda panosu, saha lokal kumanda panosu (kare 11,9 cm, köşegenli), junction box (küçük kare), elektrik motoru (daire R 15,6 cm, içinde `M` / `3~`), güç kabloları (sürekli, mavi), kumanda kabloları (sürekli, yeşil), 2. kademe güç / kumanda (kesikli), kablo etiketi açıklaması (KABLO NOSU · ÇIKTIĞI PANO ADI · GÜÇ / KUMANDA KABLOLARI · LOKAL KUMANDA).
+- **Notlar** (001): 1- kuvvet kabloları kanal ile yapı arasında PVC borulara; 2- yürüme yolu kenarındaki kuvvet kabloları galvanizli delikli kablo tavası üzerine; 3- açıktan geçen kablolar galvanizli boru içinden. **"GALV. BORULARDAN GEÇEN KABLOLAR"** tablosu (BORU · KABLO): 3/4" 2*1,5 3*1,5 4*1,5 · 1" 4*2,5 3*4 4*4 3*6 · 1 1/4" 4*6 4*10 4*16 · 1 1/2" 3*25+16 3*35+16 · 2" 3*50+25 · 2 1/2" 3*70+35 3*95+50 · 3" 3*120+70 3*150+70.
+- **Topraklama** (002): havuz çevresinde 30x3.5 galvanizli şerit halka, temel topraklama iletkeni (30x3.5), köşelerde bakır kılıflı çelik çubuk (Ø20, L = 3 m; örnekte 4 adet, TE no'lu), topraklama barası TB (40x5 Cu) — bağlananlar: lokal pano, elektrikli ekipmanlar, kablo tavası, korkuluk (≥ 16 mm² Cu), "(TB-..) TOPRAKLAMA BUSBAR DETAYI"; TOPRAKLAMA SEMBOLLERİ tablosu (SEMBOL · AÇIKLAMA: topraklama iletkeni, temel topraklama iletkeni, çubuk, bus-bar, terminal bağlantısı).
+- **Aydınlatma ve priz** (003): korkuluğa monte etanş armatür yürüme yolu boyunca **4,80 m** aralıkla (örnekten ölçüldü), 3" galvaniz boru direk (korkuluk üstünden 3500 mm), Ø10 U-bolt, L 50x50x6 150 mm kaynak; korkuluğa monte etanş anahtar kutusu (BHAK); ışık linyesi 3x2.5 NYY; 3 fazlı priz panosu (1x16A + 3x32A, 3000 W, 4x4 NYY, 3x40A); "BHAK ANAHTAR KUTUSU TEK HAT ŞEMASI": besleme `GK-1/BHAK` 4x6mm2 NYY MCC-1 panosundan, ana şalter 3x50A, ışık linyeleri 10A, priz panosu beslemeleri 3x40A, yedekler; "METAL KORKULUĞA MONTELİ ETANŞ ANAHTAR KUTUSU" ve "… ETANŞ ARMATÜR MONTAJI" detayları; SEMBOLLER.
+
+### Firma kurallarıyla değişenler
+- Armatür **LED etanş** (`U-LED36W`, IP65; örnekte U-2x40W floresan).
+- Yazılar renk 7 (örnekte sarı 2). Örnekte kablo tavası çizgileri sarı (`Elektrik` katmanı, renk 2) idi; sarı kullanılmaz → tava renk 7 (kabul).
+- Kablo **boyu yazılmaz** (MCC yeri genel yerleşimde): etiket ikinci satırı `4x2.5 mm² NYY` + boy yerine boşluk; kablo listesinde BOY sütunu "genel kablolamada". Veri: her kablo `{ kod, tur, cins, nereden, nereye, boy: null }`.
+- Kablo kesiti motor gücünden (akım taşıma): In = P / (√3 · 400 · cosφ · η), cosφ 0,85, η 0,87 (kabul); NYY havada / tavada (VDE 0298-4, 30 °C) × tava gruplama 0,80 (kabul) ≥ 1,25 · In; en küçük 2,5 mm². Gerilim düşümü boy gelince.
+- 10x1.5 kumanda kablosu örnekteki galvaniz boru tablosunda yok: dış çapı (≈ 17 mm) 4x2,5'e yakın olduğu için **1"** boruya konur (kabul).
+- Pergel vinç (elektrikli palanga) örnekte yok: `GK-1/<kod>` güç kablosu; kumanda palanganın kendi sarkıt butonundan (KK yok) — kabul.
+
+### Katmanlar (tek düzen; §2'ye ek)
+| Katman | Renk | Çizgi tipi | Kalınlık | Ne için | Örnekteki |
+| --- | --- | --- | --- | --- | --- |
+| `ELK_GUC` | 5 | Continuous | 0,25 | Güç kabloları | `KAB1` (5) |
+| `ELK_KUMANDA` | 3 | Continuous | 0,25 | Kumanda / lokal kumanda / enstrüman kabloları | `KAB2` (3) |
+| `ELK_GUC2` | 5 | HIDDEN | 0,25 | 2. kademe güç kabloları | lejant (kesikli) |
+| `ELK_KUMANDA2` | 3 | HIDDEN | 0,25 | 2. kademe kumanda kabloları | lejant (kesikli) |
+| `ELK_TAVA` | 7 | Continuous | 0,35 | Kablo tavası | `Elektrik` (2 → 7) |
+Semboller ve yazılar `EYAZI`, topraklama `TOPILET`, ışık / priz linyeleri `EHAT` (§2).
+
+### Yazı (kâğıt mm, örnekten)
+Kablo etiketi ve ekipman kodu / gücü **2** (KABYAZI 10) · JB / LCU etiketi **1,5** (7,5) · tava etiketi **2** · lejant ve notlar **3** · paftadaki MCC yönü yazısı **4** · tablo (galv. boru) **2,5** (12,38).
+
+### Örnekte birbirini tutmayanlar (kullanıcıya soruldu / sorulacak)
+- Mikserlerde MCC-1'den lokal panoya **güç kablosu yok** (yalnız KK-LK-1, GK-2, KK-2). Program örnekteki gibi çizer; sorulacak: MCC → LCU güç kablosu (GK-1/<kod>) eklensin mi?
+- BHAK tek hat şemasında toplam **7400 W** yazıyor, çıkışların toplamı 2 × 600 + 2 × 3000 = **7200 W**. Program çıkışları toplar.
+- Örnek paftada LCU etiketlerinden ikisi `LCU-K-200A`, JB etiketleri çoğunlukla `JB-K-200/A` (kopyala-yapıştır); program her ekipmana kendi kodunu yazar (LCU-<kod>, JB-<kod>).
