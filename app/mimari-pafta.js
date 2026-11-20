@@ -387,8 +387,21 @@
     for (const q of tarif.kodlar || []) { if (h != null && q.z0 != null && q.z0 >= h - 1e-6) continue; const a = W(q.a), duvar = q.tur === 'duvar', p = duvar ? [a[0] + (q.t || 0) / 2 + Ek.duvarTasma * k, a[1], 0] : [a[0] + Ek.dosemeYatay * k, a[1] + Ek.dosemeDik * k, 0];
       const e = C.add(C.newEnt('acilim', { a: [a[0], a[1], 0], p, lines: q.lines.slice(), tur: q.tur, side: 1, dis: 'Mimari', planKod: true, layer: kuralKatman('MALZEME_ACILIM'), gv })); if (e) delete e.sp; }
     /* ekipman numaraları (Z-…, PV-…): Mek_Yazi, 2,5 mm; kesme kotunun üstündeki ekipmanınki yazılmaz (kesit planda pergel vinç) */
-    for (const q of tarif.ekipman || []) { if (h != null && q.z0 >= h - 1e-6) continue; const p = W(q.p), R = C.cizimKural && C.cizimKural.MIMARI, y = (R && R.yazi && R.yazi['Mek_Yazi']) || { stil: ['YZ'], mm: [2.5] }, t = C.add(C.newEnt('text', { p: [p[0], p[1], 0], h: C.annoH(y.mm[0]), s: q.ad, al: 'ML', st: y.stil[0], ann: false, layer: kuralKatman('Mek_Yazi'), gv })); /* yazı kuralı tablodan */ if (t) delete t.sp; }
+    for (const q of tarif.ekipman || []) { if (h != null && q.z0 >= h - 1e-6) continue; const p = W(q.p), R = C.cizimKural && C.cizimKural.MIMARI, y = R && R.yazi && R.yazi['Mek_Yazi']; if (!y) continue; const t = C.add(C.newEnt('text', { p: [p[0], p[1], 0], h: C.annoH(y.mm[0]), hp: y.mm[0], s: q.ad, al: 'ML', st: y.stil[0], ann: true, /* ölçekli yazı: pafta ölçeğiyle büyür / küçülür (kullanıcı 20.11.2026: "yazılar ölçekle değişmiyor") */ layer: kuralKatman('Mek_Yazi'), gv })); /* yazı kuralı tablodan */ if (t) delete t.sp; }
     for (const d of tarif.planOlcu || []) { const c = JSON.parse(JSON.stringify(d)); for (const key of ['id', '_c', 'sp', 'oto', 'bag']) delete c[key]; for (const key of ['a', 'b', 'p', 'c']) if (Array.isArray(c[key])) c[key] = W(c[key]); c.gv = gv; const e = C.add(C.newEnt(c.type, c)); if (e) delete e.sp; }
+  };
+  /* kesitte ekipman numarası: hat a → b, bakış sp yönünde 0 … derinlik içindeki ekipman; yazı Mek_Yazi (tablodaki yazı kuralı), ekipmanın üstünde ortalı.
+     Aynı yere düşen yazılar (aynı kesit konumundaki iki kapak) üst üste binmesin diye 1 satır yukarı kaydırılır. Döner: yazı sayısı */
+  const uniteKesitEkipman = (v, liste) => {
+    const dx = v.b[0] - v.a[0], dy = v.b[1] - v.a[1], L = Math.hypot(dx, dy); if (L < 1e-6) return 0; const ux = dx / L, uy = dy / L; let nx = -uy, ny = ux;
+    if (v.sp && (v.sp[0] - v.a[0]) * nx + (v.sp[1] - v.a[1]) * ny < 0) { nx = -nx; ny = -ny; }
+    const R = C.cizimKural && C.cizimKural.MIMARI, y = R && R.yazi && R.yazi['Mek_Yazi']; if (!y) return 0; const h = C.annoH(y.mm[0]), dep = +v.depth || 30, konan = []; let n = 0;
+    for (const q of liste) {
+      const P = q.o || q.p, d = (P[0] - v.a[0]) * nx + (P[1] - v.a[1]) * ny, s = (P[0] - v.a[0]) * ux + (P[1] - v.a[1]) * uy; if (d < -0.1 || d > dep || s < -0.5 || s > L + 0.5) continue;
+      let z = q.zEt != null ? q.zEt : q.z0; while (konan.some(k => Math.abs(k[0] - s) < h * q.ad.length * 0.45 && Math.abs(k[1] - z) < h * 1.4)) z += h * 1.5; konan.push([s, z]);
+      const t = C.add(C.newEnt('text', { p: [v.yer[0] + s, v.yer[1] + z, 0], h, hp: y.mm[0], s: q.ad, al: 'BC', st: y.stil[0], ann: true, /* ölçekli yazı */ layer: kuralKatman('Mek_Yazi'), gv: v.gv })); if (t) { delete t.sp; n++; }
+    }
+    return n;
   };
   /* ünite kesit planında kesilen betonun taraması (kullanıcı kararı 20.11.2026): dolu (SOLID), kural tablosunun `Solid` katmanında (açık gri 254),
      siyah-beyaz çıktıda da kendi rengiyle basılır (monoRenk); kesilen kalın çizgiler görünsün diye taramalar çizim sırasının en altına alınır. Döner: tarama sayısı */
@@ -503,6 +516,9 @@
     try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
     /* ünite paftasında kesitlerin beton taraması da dolu açık gri (kullanıcı kararı 20.11.2026: "kesitlerin taramalarını da aynı solid ile devam et") */
     if (tarif) for (const v of kes) { if (v.elle || !v.gv) continue; try { uniteKesitTarama(v.gv, true); } catch (er) { console.error('kesit taraması', er); } }
+    /* ünite kesitlerinde ekipman numaraları (kullanıcı 20.11.2026: "plan ve kesitlerde kapak isimlerini, ebatlarını, numaralarını yaz"): kesitin bakış derinliğindeki
+       kapak (ad + en × yükseklik), mikser ve pergel vinç; yer kesitin çizim kuralıyla (kesit.js: çizim = yerleşim noktası + [hat boyunca uzaklık, kot]) */
+    if (tarif && tarif.ekipman) for (const v of kes) { if (v.elle || !v.gv || !v.yer || !v.a || !v.b) continue; try { uniteKesitEkipman(v, tarif.ekipman); } catch (er) { console.error('kesit ekipman numarası', er); } }
     /* kesit işaretleri planlarda (her planda bütün kesitler; Çokal R2) */
     for (const p of planlar) { try { for (const v of kes) kesitIsaretiPlana(p.gv, p.W, v); baslikAlta(p.gv); } catch (er) { console.error('plan kesit işareti', er); } }
     // --- açılım tablosu (kodlu: DÖŞEMELER / DUVARLAR)

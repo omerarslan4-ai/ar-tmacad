@@ -68,7 +68,7 @@
       'Mim_Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi20': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3, 3.5, 4] }, /* 3,5: açılım kodu, 4: DÖŞEMELER / DUVARLAR başlığı */ 'YZ': { stil: ['YZ'], mm: [2, 2.5, 3] },
       'ZMN': { stil: ['YZ'], mm: [2.5] }, 'Kot': { stil: ['YZ'], mm: [2, 2.5, 3] }, /* 10-İdari Bina_R2: ZMN 12,5 birim (2,5 mm); KOT 10 (2 mm, en sık), 12,5 (2,5 mm), 1/20 detayda 6 (3 mm) */
       'Aks': { stil: ['ARIAL'], mm: [5] }, 'Kesit_Cizgisi': { stil: ['ARIAL'], mm: [5] },
-      'Mek_Yazi': { stil: ['YZ'], mm: [2.5] }, /* ekipman numaraları (Z-…, PV-…) — KABUL 20.11.2026, örnekte ölçülmedi */
+      'Mek_Yazi': { stil: ['YZ'], mm: [2.5] }, /* ekipman numaraları (SK-… kapak ad + ölçü, Z-…, PV-…) — KABUL 20.11.2026, örnekte ölçülmedi */
       'MAHAL İSİM': { stil: ['ARIAL', 'TÜRKÇE'], mm: [3, 4] }, 'Yazi30': { stil: ['YZ'], mm: [4, 5] }, /* mahal adı 15 – 20 birim; başlık 20 (görünüş) – 25 (kesit, Blower) birim; başlık stili YZ (kullanıcı kararı 14.11.2026) */
     },
     olcu: {
@@ -89,7 +89,7 @@
     /* ilkSira: ilk ölçü sırası çizimin en dış çizgisinden (tretuvar dahil; tretuvarın dışında) 14 mm uzakta — kullanıcı kararı 13.11.2026, "çizime göre revize ederiz" */
     olcuYeri: {
       /* siraModel: ölçü sıraları arası MODELDE 0,25 m, her ölçekte aynı (firma kuralı 14.11.2026): kâğıtta 250 / ölçek mm (1/50 5, 1/25 10, 1/100 2,5, 1/20 12,5 mm); siraAraligi: eski kâğıt mm (yedek) */
-      genel: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaIc: 4.1, uzatmaDis: 1, uzatmaBosluk: 0, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20 },   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
+      genel: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaIc: 4.1, uzatmaDis: 1, uzatmaBosluk: 0, cizgiTasma: 0.5, toplam: 'dis', enCokSira: 3, icYatay: 25, icDusey: 20, icYatayHazne: 12 }, /* icYatayHazne: tek parça hazne kesitinde yatay zincir radye üstünden (mm) — KABUL 20.11.2026, duvar kod yazılarının altında */   // icYatay / icDusey: yapının içindeki zincirlerin döşemeden / sol duvardan uzaklığı (KABUL)
       detay: { ilkSira: 14, siraAraligi: 5, siraModel: 0.25, uzatmaSabit: 0, uzatmaBosluk: 2, uzatmaTasma: 1.25, cizgiTasma: 1, toplam: 'dis', enCokSira: 3 },
     },
     /* ÇAKIŞMA GİDERME kayma sınırları (kâğıt mm; MIMARIPAFTA → mimari-oto.js cakismaCoz, denetim 14.11.2026): ölçü sırası çizgisine dik en çok 16 mm
@@ -356,10 +356,45 @@
      Doğramalı duvarın yanında ikinci düşey sıra (net yükseklik) 25 cm (siraAraligi) içeride. yer.engelX: arkada görünen düşey çizgiler (kolon, kiriş kenarı);
      zincir bunların üstüne binmez. Dışarıda yalnız toplam boy ve toplam yükseklik kalır. mm: kâğıtta 1 mm'nin modeldeki boyu; yer: { icYatay, icDusey, siraAraligi, engelX }.
      Döner: [{ k: 'h' | 'v', a, b, p }] (kesit koordinatı [x, z]). */
+  /* HAZNE / HAVUZ KESİTİ (tek parça beton ünite yapısı: duvar ve döşeme ayrı eleman değil; kullanıcı 20.11.2026): ölçüler kesitin şeklinden.
+     Yatay: radye üstünden icYatayHazne mm (12; en çok yüksekliğin yarısı) yukarıdaki yatay çizginin betonla kesiştiği aralıklar → duvar kalınlığı · net açıklık …
+     Düşey: ilk (soldaki) bölmede, sol duvardan icDusey mm içeride: radye altı · radye üstü · duvar üstü. Zincir kot / yazı kutularına (engelK) binmez.
+     halkalar: [{ lk, pts }] kesit koordinatı [x, z]. Döner: [{ k, a, b, p }] (kesitIcOlculer ile aynı biçim) */
+  K.kesitIcOlculerHazne = (halkalar, mm, yer) => {
+    const P = (halkalar || []).filter(h => h.pts && h.pts.length > 2).map(h => h.pts), out = [], e = mm || 0.05; if (!P.length) return out;
+    const Y = Object.assign({ icYatay: 25, icDusey: 20 }, yer || {});
+    const birles = v => { v.sort((a, b) => a[0] - b[0]); const o = []; for (const q of v) { const l = o[o.length - 1]; if (l && q[0] <= l[1] + 0.02) l[1] = Math.max(l[1], q[1]); else o.push(q.slice()); } return o; };
+    /* çizginin (eksen 0: x = c düşey → z aralıkları, eksen 1: z = c yatay → x aralıkları) betonla kesiştiği aralıklar */
+    const kes = (c, yatay) => { const v = []; for (const pts of P) { const xs = []; for (let i = 0; i < pts.length; i++) { const A = pts[i], B = pts[(i + 1) % pts.length], a = yatay ? A[1] : A[0], b = yatay ? B[1] : B[0];
+        if ((a > c) !== (b > c)) { const t = (c - a) / (b - a); xs.push(yatay ? A[0] + t * (B[0] - A[0]) : A[1] + t * (B[1] - A[1])); } }
+      xs.sort((p, q) => p - q); for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > 1e-4) v.push([xs[i], xs[i + 1]]); } return birles(v); };
+    let z0 = Infinity, z1 = -Infinity; for (const pts of P) for (const q of pts) { z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); }
+    /* duvarlar: yüksekliğin ortasında yatay tarama; bölmeler arası boşluklar */
+    let W = kes((z0 + z1) / 2 + 1e-6, true); if (W.length < 2) return out;
+    const bosluk = []; for (let j = 1; j < W.length; j++) if (W[j][0] - W[j - 1][1] >= 0.8) bosluk.push([W[j - 1][1], W[j][0]]); if (!bosluk.length) return out;
+    const gb = bosluk.reduce((a, b) => (b[1] - b[0] > a[1] - a[0] ? b : a)), Rz = kes((gb[0] + gb[1]) / 2, false); if (!Rz.length) return out;
+    const zr0 = Rz[0][0], zr1 = Rz[0][1]; // radye (en alttaki beton)
+    /* yatay zincir: radye üstünden icYatay mm yukarıda; o kotta duvarlar yeniden taranır (alçak kanal duvarları da sayılır) */
+    const yerUygun = yH => !(Y.engelK || []).some(b => b[3] > yH - e - 0.5 * e && b[1] < yH + 3 * e);
+    let yH = zr1 + Math.min((z1 - zr1) * 0.5, (Y.icYatayHazne != null ? Y.icYatayHazne : Y.icYatay) * e); /* 12 mm: duvar ortasındaki kod yazılarının (DU01 …) altında kalsın */ for (let g = 0; g < 40 && !yerUygun(yH) && yH < zr1 + (z1 - zr1) * 0.7; g++) yH += e;
+    const Wh = kes(yH, true); if (Wh.length >= 2) W = Wh;
+    const X = []; for (const w of W) X.push(w[0], w[1]); X.sort((a, b) => a - b);
+    for (let j = 1; j < X.length; j++) if (X[j] - X[j - 1] > 0.005) out.push({ k: 'h', a: [X[j - 1], yH - e], b: [X[j], yH - e], p: [X[j - 1], yH] });
+    /* düşey zincir: ilk bölmede, sol duvardan icDusey mm içeride; kot / yazı kutusuna binmeyen ilk yer */
+    const b0 = bosluk[0], L = b0[1] - b0[0]; let xV = b0[0] + Math.min(L * 0.4, Y.icDusey * e);
+    const bos = x => !(Y.engelK || []).some(b => b[2] > x - 2.5 * e - e && b[0] < x + 1.5 * e && b[1] < z1 && b[3] > zr0);
+    for (let g = 0; g < 60 && !bos(xV) && xV < b0[1] - L * 0.2; g++) xV += e;
+    const Zw = kes(b0[0] - 0.01, false), duvar = Zw.find(r => r[0] <= zr1 + 0.05 && r[1] > zr1 + 0.1); // sol duvarın radyeden yükselen parçası
+    const Z = [zr0, zr1]; if (duvar) Z.push(duvar[1]);
+    for (let q = 1; q < Z.length; q++) if (Z[q] - Z[q - 1] > 0.005) out.push({ k: 'v', a: [xV + e, Z[q - 1]], b: [xV + e, Z[q]], p: [xV, Z[q - 1]] });
+    return out;
+  };
   K.kesitIcOlculer = (halkalar, mm, yer) => {
     const B = []; for (const h of halkalar || []) { if (!h.pts || !h.pts.length) continue; let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
       for (const q of h.pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); } B.push({ lk: String(h.lk || ''), x0, x1, z0, z1 }); }
     const dos = B.filter(b => DOSEME.test(b.lk) && b.x1 - b.x0 >= 1.5), duv = B.filter(b => DUVAR.test(b.lk) && !DOSEME.test(b.lk));
+    /* duvar / döşeme ayrı eleman yoksa (tek parça beton ünite yapısı: havuz, hazne) ölçüler kesitin şeklinden (kesitIcOlculerHazne) */
+    if (!dos.length && !duv.length) return K.kesitIcOlculerHazne(halkalar, mm, yer);
     const birles = (v, tol) => { v.sort((a, b) => a[0] - b[0]); const o = []; for (const q of v) { const l = o[o.length - 1]; if (l && q[0] <= l[1] + tol) l[1] = Math.max(l[1], q[1]); else o.push(q.slice()); } return o; };
     const tek = v => { v.sort((a, b) => a - b); const o = []; for (const x of v) if (!o.length || x - o[o.length - 1] > 0.045) o.push(x); return o; };
     const Y = Object.assign({ icYatay: 25, icDusey: 20, sira: (yer && yer.siraAraligi) || 5 }, yer || {}), K2 = birles(dos.map(b => [b.z0, b.z1]), 0.02), out = [], e = mm || 0.05;

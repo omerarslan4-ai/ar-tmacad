@@ -149,10 +149,13 @@
   const ekipmanNo = e => {
     const out = [];
     for (const x of C.doc.ents) {
-      if (x.bag !== e.id || x.type !== 'aile' || !x.ad || (x.fam !== 'dalgic_mikser' && x.fam !== 'pergel_vinc')) continue;
-      const r = (+x.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), p = x.p || [0, 0, 0], q = x.par || {};
-      const ox = x.fam === 'dalgic_mikser' ? (+q.D || 600) / 2000 + 0.25 : 0.25, oy = x.fam === 'dalgic_mikser' ? 0.9 : 0; // yerel: x enine, y itki
-      out.push({ ad: x.ad, p: [r3(p[0] + oy * c - ox * s), r3(p[1] + oy * s + ox * c)], z0: +x.z || 0, fam: x.fam });
+      if (x.bag !== e.id || x.type !== 'aile' || !x.ad || (x.fam !== 'dalgic_mikser' && x.fam !== 'pergel_vinc' && x.fam !== 'penstock_kanal')) continue;
+      const r = (+x.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), p = x.p || [0, 0, 0], q = x.par || {}, kap = x.fam === 'penstock_kanal';
+      /* kapak (kullanıcı 20.11.2026: "plan ve kesitlerde kapak isimlerini, ebatlarını, numaralarını yaz"): ad + en × yükseklik, ailenin etiket yerinde (kapağın arkasında) */
+      const ox = x.fam === 'dalgic_mikser' ? (+q.D || 600) / 2000 + 0.25 : kap ? 0 : 0.25, oy = x.fam === 'dalgic_mikser' ? 0.9 : kap ? -((+q.yd || 0) / 2000 + 0.45) : 0; // yerel: x enine, y itki / kapakta akış
+      /* o: ekipmanın kendi yeri (kesitte bakış derinliği ve kesit boyunca yer bundan), zEt: kesitte yazının alt kotu (kapak üstü / pervane üstü / vinç tepesi) */
+      const z0 = +x.z || 0, zEt = kap ? z0 + (+q.H || 0) / 1000 + 0.15 : x.fam === 'dalgic_mikser' ? z0 + (+q.hm || 600) / 1000 + (+q.D || 600) / 2000 + 0.2 : z0 + 3.3;
+      out.push({ ad: kap ? `${x.ad} ${Math.round(+q.B)}×${Math.round(+q.H)}` : x.ad, p: [r3(p[0] + oy * c - ox * s), r3(p[1] + oy * s + ox * c)], o: [r3(p[0]), r3(p[1])], z0, zEt: r3(zEt), fam: x.fam });
     }
     return out;
   };
