@@ -276,14 +276,16 @@
       const b = C.bbox(e); if (b[2] < area[0] || b[0] > area[2] || b[3] < area[1] || b[1] > area[3]) continue;
       if (e.type === 'sheet' && e !== sh) continue;
       for (const pr of C.prims(e)) {
-        const aci = C.entColor(e, pr.color), col = mono ? '#000' : (aci === 7 ? '#000' : C.aciCss(aci));
+        const aci = C.entColor(e, pr.color), col = mono && !e.monoRenk ? '#000' : (aci === 7 ? '#000' : C.aciCss(aci)); // monoRenk: siyah-beyazda da kendi rengi (ünite kesit planının gri taraması)
         const lw = Math.max(0.09, C.entLw(e, pr.lw) / 100), lt = C.entLt(e, pr.lt);
         const pat = C.LT[lt] && C.LT[lt].p.length ? C.LT[lt].p.map(v => Math.max(Math.abs(v) * C.doc.set.ltscale * k, v === 0 ? 0.01 : 0.1).toFixed(3)).join(' ') : null;
         const st = `stroke="${col}" stroke-width="${lw}"${pat ? ` stroke-dasharray="${pat}"` : ''}`;
         switch (pr.k) {
           case 'L': out.push(`<line x1="${X(pr.a)}" y1="${Y(pr.a)}" x2="${X(pr.b)}" y2="${Y(pr.b)}" ${st}/>`); break;
           case 'P': out.push(`<${pr.c ? 'polygon' : 'polyline'} points="${pr.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" ${st}/>`); break;
-          case 'S': out.push(`<polygon points="${pr.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="${pr.maske ? '#fff' : col}" stroke="none"/>`); break; // maske: yazı arkası
+          case 'S': { const fc = pr.maske ? '#fff' : col, q = p => X(p) + ',' + Y(p); // maske: yazı arkası
+            if (pr.tris && pr.tris.length && pr.pts.length > 4) { out.push(`<path d="${pr.tris.map(t => `M${q(pr.pts[t[0]])}L${q(pr.pts[t[1]])}L${q(pr.pts[t[2]])}Z`).join('')}" fill="${fc}" stroke="${fc}" stroke-width="0.05"/>`); break; } // delikli dolu tarama: üçgenlerle
+            out.push(`<polygon points="${pr.pts.map(q).join(' ')}" fill="${fc}" stroke="none"/>`); break; }
           case 'C': out.push(`<circle cx="${X(pr.c)}" cy="${Y(pr.c)}" r="${(pr.r * k).toFixed(3)}" ${st}/>`); break;
           case 'A': { const p0 = M.polar(pr.c, pr.a0, pr.r), p1 = M.polar(pr.c, pr.a1, pr.r), sw = M.normAng(pr.a1 - pr.a0); out.push(`<path d="M${X(p0)} ${Y(p0)} A${(pr.r * k).toFixed(3)} ${(pr.r * k).toFixed(3)} 0 ${sw > Math.PI ? 1 : 0} 0 ${X(p1)} ${Y(p1)}" ${st}/>`); break; }
           case 'X': out.push(`<circle cx="${X(pr.p)}" cy="${Y(pr.p)}" r="0.2" fill="${col}"/>`); break;

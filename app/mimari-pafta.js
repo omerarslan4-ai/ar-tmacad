@@ -388,6 +388,14 @@
       const e = C.add(C.newEnt('acilim', { a: [a[0], a[1], 0], p, lines: q.lines.slice(), tur: q.tur, side: 1, dis: 'Mimari', planKod: true, layer: kuralKatman('MALZEME_ACILIM'), gv })); if (e) delete e.sp; }
     for (const d of tarif.planOlcu || []) { const c = JSON.parse(JSON.stringify(d)); for (const key of ['id', '_c', 'sp', 'oto', 'bag']) delete c[key]; for (const key of ['a', 'b', 'p', 'c']) if (Array.isArray(c[key])) c[key] = W(c[key]); c.gv = gv; const e = C.add(C.newEnt(c.type, c)); if (e) delete e.sp; }
   };
+  /* ünite kesit planında kesilen betonun taraması (kullanıcı kararı 20.11.2026): dolu (SOLID), kural tablosunun `Solid` katmanında (açık gri 254),
+     siyah-beyaz çıktıda da kendi rengiyle basılır (monoRenk); kesilen kalın çizgiler görünsün diye taramalar çizim sırasının en altına alınır. Döner: tarama sayısı */
+  const uniteKesitTarama = (gv, kesit) => { /* kesit: düşey kesit (A-A …) — yalnız beton malzemeli tarama (smat B); planda MEK dışındakiler */
+    const H = C.doc.ents.filter(e => e.gv === gv && e.type === 'hatch' && (kesit ? e.smat === 'B' : !/_TARAMA_MEK/.test(e.layer || ''))); if (!H.length) return 0; // yalnız beton; kesilen kapak / mikser / korkuluk kendi katmanında kalır
+    const ly = kuralKatman('Solid');
+    for (const e of H) { e.pat = 'SOLID'; e.sc = 1; e.ang = 0; e.layer = ly; e.monoRenk = true; delete e._c; }
+    const S = new Set(H); C.doc.ents = H.concat(C.doc.ents.filter(e => !S.has(e)));
+    return H.length; };
   /* planda ünite gövdesinin görünen çizgileri (tarif.planSinif): Çokal ünite planlarında havuz duvarları ve köprü Beton katmanında (kalın, taramasız), tretuvar Tretuvar
      katmanında, radyenin toprak altında kalan kenarı çizilmez. Düz çizgi sınıf değiştirdiği yerde bölünür. Döner: katmanı değişen / bölünen nesne sayısı */
   const uniteGovdeCizgi = (gv, W, tarif, kesitPlan) => { /* kesitPlan: duvarları kesen plan — kesilenler zaten kalın; kesimin altında görünen gövde kenarları ince (görünen) kalır */
@@ -454,8 +462,8 @@
     const merd = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e); return { z0: +Gm.z0, sahanliklar: (Gm.pieces || []).filter(p => p.kind === 'sah').map(p => +p.z) }; } catch (er) { return null; } }).filter(Boolean);
     katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
     if (tarif && tarif.planlar && tarif.planlar.length) katlar = tarif.planlar.map(p => ({ z: p.h, h: p.h, baslik: up(p.baslik), depth: p.depth, gizle: p.gizle, kesit: !!p.kesit, unite: true })); // ünitenin planları (kesme kotu ve başlık üniteden)
-    const planlar = katlar.map(k => { const gv = gorunus(Object.assign({ kind: 'plan', h: k.h, depth: k.depth || Math.max(1, k.h - zmin + 0.5), hatch: k.unite ? 'YOK' : 'ANSI31', /* ünite planı Çokal gibi taramasız: kesilen beton yalnız kalın çizgi */ title: k.baslik, mek: false, poz: false, dograma: true }, k.gizle ? { ids: ents.filter(e => !k.gizle(e)).map(e => e.id) } : {})); if (!gv) return null;
-      if (k.unite) { const W = sonW; try { uniteGovdeCizgi(gv, W, tarif, k.kesit); unitePlanEtiket(gv, W, tarif, k.h); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, k.depth); baslikAlta(gv); asagi(gv); } catch (er) { console.error('ünite planı', er); } return { ad: k.baslik, gv, W }; }
+    const planlar = katlar.map(k => { const gv = gorunus(Object.assign({ kind: 'plan', h: k.h, depth: k.depth || Math.max(1, k.h - zmin + 0.5), hatch: k.unite && !k.kesit ? 'YOK' : 'ANSI31', /* ünite üst planı taramasız; kesit planda kesilen beton sonra dolu açık gri yapılır (uniteKesitTarama) */ title: k.baslik, mek: false, poz: false, dograma: true }, k.gizle ? { ids: ents.filter(e => !k.gizle(e)).map(e => e.id) } : {})); if (!gv) return null;
+      if (k.unite) { const W = sonW; try { uniteGovdeCizgi(gv, W, tarif, k.kesit); if (k.kesit) uniteKesitTarama(gv); unitePlanEtiket(gv, W, tarif, k.h); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, k.depth); baslikAlta(gv); asagi(gv); } catch (er) { console.error('ünite planı', er); } return { ad: k.baslik, gv, W }; }
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
       const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); if (C.yagmurOkPlan) C.yagmurOkPlan(gv, W, k.h, ents); if (C.lentoOkPlan) C.lentoOkPlan(gv, W, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
@@ -491,6 +499,8 @@
       }
     }
     try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
+    /* ünite paftasında kesitlerin beton taraması da dolu açık gri (kullanıcı kararı 20.11.2026: "kesitlerin taramalarını da aynı solid ile devam et") */
+    if (tarif) for (const v of kes) { if (v.elle || !v.gv) continue; try { uniteKesitTarama(v.gv, true); } catch (er) { console.error('kesit taraması', er); } }
     /* kesit işaretleri planlarda (her planda bütün kesitler; Çokal R2) */
     for (const p of planlar) { try { for (const v of kes) kesitIsaretiPlana(p.gv, p.W, v); baslikAlta(p.gv); } catch (er) { console.error('plan kesit işareti', er); } }
     // --- açılım tablosu (kodlu: DÖŞEMELER / DUVARLAR)

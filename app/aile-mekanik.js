@@ -441,11 +441,14 @@
      Kılavuz direk yürüme yolu tabliyesinin ön yüzüne bağlanır (tabandan tabliye üstüne); pergel vinç mikser ekseninde,
      yürüme yolu tabliyesinin üstünde (direğin arkasında), kolu direğin üstüne uzanır. */
   const MCOL = { body: [0.20, 0.38, 0.62], prop: [0.85, 0.62, 0.15], mast: [0.70, 0.72, 0.74], davit: [0.95, 0.75, 0.10] };
+  /* üretici modeli (app/mikser-ksb.js: KSB AmaProp 2603): par.model seçiliyse gövde, ray ve pervane modelden; pergel vinç parametrik kalır */
+  const MDL = q => { const k = q && q.model, d = k && k !== 'GENEL' && C.mikserModel && C.mikserModel[k]; return d && d.var() ? d : null; };
   const mik = q => { const L = m(q.lm), ym = -L / 2 - 0.12; return { L, rb: m(q.rb), r: m(q.D) / 2, z: m(q.hm), ym, H: m(q.Hd), yv: ym - 0.06 - m(q.vg) }; }; // yv: pergel vinç direği (tabliyede)
   C.aileKaydet({
     id: 'dalgic_mikser', ad: 'Dalgıç mikser — kılavuz direkli', kisaAd: 'MİKSER', kat: 'Mikser', katman: 'MEK_MIKSER', renk: 1, ifc: 'IfcFlowMovingDevice',
     aciklama: 'Kılavuz direğe takılı dalgıç mikser. Pervane çapı, güç ve devir mikser hesabından gelir; direk yürüme yolu tabliyesinin ön yüzüne bağlanır, pergel vinç mikser ekseninde tabliyenin üstündedir.',
     params: [
+      { k: 'model', ad: 'Üretici modeli', d: 'GENEL', opts: [['GENEL', 'Genel (parametrik gövde)'], ['ksb_amaprop_2603', 'KSB AmaProp 2603 — Ø2603, 5,5 kW, 45 d/dk']], grup: 'Mikser' },
       { k: 'D', ad: 'Pervane çapı', d: 370, min: 150, max: 3000, grup: 'Mikser' },
       { k: 'P', ad: 'Motor gücü', birim: 'kW', d: 2.5, grup: 'Mikser' },
       { k: 'rpm', ad: 'Devir', birim: 'd/dk', d: 1400, grup: 'Mikser' },
@@ -456,21 +459,34 @@
       { k: 'vh', ad: 'Pergel vinç yüksekliği (tabliyeden)', d: 1800, grup: 'Pergel vinç' },
       { k: 'rb', ad: 'Gövde yarıçapı', f: 'max(120, D*0.32)', grup: 'Hesaplanan' },
     ],
-    tipler: [{ ad: 'MIK-K-370', p: { D: 370, P: 2.5, rpm: 1400, lm: 700, hm: 600, Hd: 3950, vg: 300, vh: 1800 } }],
-    etiket: q => `Ø${q.D} · ${q.P} kW`,
-    etiketYer: q => [0, m(q.lm) / 2 + 0.55, 0],
-    liste: q => `Pervane Ø${q.D} mm · ${q.P} kW · ${q.rpm} d/dk · kılavuz direk ${q.Hd} mm (tabliyeye bağlı) + pergel vinç`,
-    bilgi: q => `Pervane Ø${q.D} mm, ${q.P} kW, ${q.rpm} d/dk; eksen tabandan ${q.hm} mm; kılavuz direk ${q.Hd} mm, tabliye ön yüzüne bağlı; pergel vinç tabliyede, mikser ekseninde`,
+    tipler: [{ ad: 'MIK-K-370', p: { D: 370, P: 2.5, rpm: 1400, lm: 700, hm: 600, Hd: 3950, vg: 300, vh: 1800 } },
+      { ad: 'KSB-AMAPROP-2603', p: { model: 'ksb_amaprop_2603', D: 2603, P: 5.5, rpm: 45, lm: 700, hm: 1610, Hd: 5310, vg: 300, vh: 1800 } }],
+    etiket: q => `${MDL(q) ? MDL(q).ad + ' · ' : ''}Ø${q.D} · ${q.P} kW`,
+    etiketYer: q => [0, (MDL(q) ? MDL(q).pervaneY() : m(q.lm) / 2) + 0.55, 0],
+    liste: q => `${MDL(q) ? MDL(q).ad + ' (' + MDL(q).motor + ', dişli ' + MDL(q).disli + ') · ' : ''}Pervane Ø${q.D} mm · ${q.P} kW · ${q.rpm} d/dk · ${MDL(q) ? 'kılavuz ray + üst tutucu (tabliyeye bağlı)' : `kılavuz direk ${q.Hd} mm (tabliyeye bağlı)`} + pergel vinç`,
+    bilgi: q => `${MDL(q) ? MDL(q).ad + ' üretici modeli; ' : ''}Pervane Ø${q.D} mm, ${q.P} kW, ${q.rpm} d/dk; eksen tabandan ${MDL(q) ? MDL(q).hm() : q.hm} mm; ${MDL(q) ? 'kılavuz ray ayaktan tabliyeye, üst tutucu' : `kılavuz direk ${q.Hd} mm,`} tabliye ön yüzüne bağlı; pergel vinç tabliyede, mikser ekseninde`,
     plan: (q, g) => {
-      const G = mik(q);
+      const G = mik(q), Md = MDL(q);
+      if (Md && Md.plan(q, g)) { // üretici modeli: gövde, ray, tutucu, pervane modelin izdüşümünden; pergel vinç kolu raya uzanır; akış oku pervanenin önünde
+        const yr = Md.rayY / 1000, yp = Md.pervaneY();
+        g.daire([0, G.yv], 0.08, { lw: 25 }); g.cizgi([0, G.yv], [0, yr], { lw: 18, lt: 'DASHED' });
+        g.cizgi([0, yp + 0.3], [0, yp + 0.9], { lw: 25 }); g.cizgi([0, yp + 0.9], [0.08, yp + 0.75], { lw: 25 }); g.cizgi([0, yp + 0.9], [-0.08, yp + 0.75], { lw: 25 });
+        return;
+      }
       g.dik(-G.rb, -G.L / 2, G.rb, G.L / 2, { lw: 35 });
       g.dik(-G.r, G.L / 2 + 0.08, G.r, G.L / 2 + 0.14, { lw: 50 }); // pervane
       g.dik(-0.05, G.ym - 0.05, 0.05, G.ym + 0.05, { lw: 25 }); // kılavuz direk
       g.daire([0, G.yv], 0.08, { lw: 25 }); g.cizgi([0, G.yv], [0, G.ym + 0.05], { lw: 18, lt: 'DASHED' }); // pergel vinç ve kolu
       g.cizgi([0, G.L / 2 + 0.3], [0, G.L / 2 + 0.9], { lw: 25 }); g.cizgi([0, G.L / 2 + 0.9], [0.08, G.L / 2 + 0.75], { lw: 25 }); g.cizgi([0, G.L / 2 + 0.9], [-0.08, G.L / 2 + 0.75], { lw: 25 });
     },
-    mesh: (q, g) => {
-      const G = mik(q), vt = G.H + m(q.vh);
+    mesh: (q, g, e) => {
+      const G = mik(q), vt = G.H + m(q.vh), Md = MDL(q);
+      if (Md && Md.mesh(q, g, e)) { // üretici modeli + parametrik pergel vinç (kol raya uzanır)
+        const yr = Md.rayY / 1000;
+        g.silindir([0, G.yv, G.H], [0, G.yv, vt], 0.045, MCOL.davit, 12); g.kutu(-0.07, 0.07, G.yv - 0.07, G.yv + 0.07, G.H, G.H + 0.02, MCOL.davit);
+        g.kutu(-0.03, 0.03, G.yv, yr + 0.03, vt - 0.06, vt, MCOL.davit); g.silindir([0, yr, vt - 0.06], [0, yr, G.H + 0.3], 0.008, MCOL.mast, 6);
+        return;
+      }
       g.silindir([0, -G.L / 2, G.z], [0, G.L / 2, G.z], G.rb, MCOL.body, 16);
       g.silindir([0, G.L / 2, G.z], [0, G.L / 2 + 0.06, G.z], 0.05, MCOL.body, 10);
       g.silindir([0, G.L / 2 + 0.08, G.z], [0, G.L / 2 + 0.14, G.z], G.r, MCOL.prop, 24);

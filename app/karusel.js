@@ -28,11 +28,13 @@
     slow18: { name: 'Yavaş devirli Ø1,8', D: 1.8, rpm: 55, P: 2.2 },
     mid75: { name: 'Orta devirli Ø0,75', D: 0.75, rpm: 480, P: 4.0 },
     fast37: { name: 'Kompakt Ø0,37', D: 0.37, rpm: 1400, P: 2.5 },
+    /* üretici modelli (app/mikser-ksb.js): yalnız anaerobik havuzda, motor gücü sabit (kullanıcı kararı 20.11.2026) */
+    ksb2603: { name: 'KSB AmaProp 2603', D: 2.603, rpm: 45, P: 5.5, sabit: true, model: 'ksb_amaprop_2603', unite: ['anaerobik'] },
   };
   const MPAR = { rho: 1000, lam: 0.03, zTurnOval: 0.8, etaInst: 0.85, fm: 0.65, vTarget: 0.30, pMin: 1, pMax: 4 };
   const P_STD = [0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3.0, 4.0, 5.5, 7.5, 11, 15]; // standart motor güçleri (kW)
   C.MIKSER_LIB = MLIB;
-  C.mikserSec = function (o) { // o: { b, tw, Ls, H, n0 (havuz başına mikser sayısı; boşsa otomatik), lib (zorunlu tip) }
+  C.mikserSec = function (o) { // o: { b, tw, Ls, H, n0 (havuz başına mikser sayısı; boşsa otomatik), lib (zorunlu tip), unite (ör. 'anaerobik': yalnız o ünitenin tipleri de aday) }
     const Ro = o.b + o.tw / 2, ri = o.tw / 2, H = o.H, Ls = o.Ls, rho = MPAR.rho;
     const area = Ls * 2 * Ro + Math.PI * Ro * Ro - (Ls * o.tw + Math.PI * o.tw * o.tw / 4), V = area * H;
     const w = Ro - ri, Ac = w * H, Dh = 4 * Ac / (w + 2 * H), Lpath = 2 * Ls + 2 * Math.PI * (ri + Ro) / 2;
@@ -41,13 +43,14 @@
     const cands = [];
     for (const [k, m] of Object.entries(MLIB)) {
       if (o.lib && o.lib !== k) continue;
+      if (m.unite && !o.lib && !m.unite.includes(o.unite)) continue;
       const Am = Math.PI * m.D * m.D / 4, F = Math.cbrt(2 * rho * Am) * Math.pow(MPAR.fm * m.P * 1000, 2 / 3);
       const etaFree = Math.max(0.3, Math.min(1, (Ls - 2) / (5 * m.D)));
       let n = o.n0 || Math.max(2, Math.ceil(FreqGross / (F * etaFree)));
       if (!o.n0 && n % 2) n++; // her düz kısımda eşit sayı
       // motor gücü: hızı hedefin (0,30 m/s) hemen üstünde tutan en küçük standart güç (katalog gücünü aşmadan) — gereğinden hızlı döndürmesin
       const Freq1 = Freq / (n * MPAR.etaInst * etaFree), Preq = Math.pow(Freq1 / Math.cbrt(2 * rho * Am), 1.5) / (MPAR.fm * 1000);
-      const Pm = o.tamGuc ? m.P : (P_STD.find(p => p >= Preq - 1e-9 && p <= m.P) || m.P), Fm = Math.cbrt(2 * rho * Am) * Math.pow(MPAR.fm * Pm * 1000, 2 / 3);
+      const Pm = o.tamGuc || m.sabit ? m.P : (P_STD.find(p => p >= Preq - 1e-9 && p <= m.P) || m.P), Fm = Math.cbrt(2 * rho * Am) * Math.pow(MPAR.fm * Pm * 1000, 2 / 3);
       const Feff = n * Fm * MPAR.etaInst * etaFree, v = Math.sqrt(2 * Feff / (rho * Ac * zeta)), Ptot = n * Pm;
       const pSpec = Ptot * 1000 / V, fitW = 0.75 * m.D * 2 * Math.ceil(n / 2) <= o.b; // koridora sığar mı (0,75·D yan boşluk)
       const ok = v >= MPAR.vTarget - 1e-9 && fitW && m.D / 2 + 0.3 <= H / 2;

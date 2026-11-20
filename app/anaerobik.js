@@ -240,7 +240,7 @@
         for (let m = 0; m < cnt; m++) {
           let y = ust ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt; // köprü bastonun üstündeyse direk baston ucunun önünde (ona da bağlanır)
           for (const s of kp === G.kopru ? G.sahanlik : []) if (y > s.y0 - 0.12 && y < s.y1 + 0.12) y = y < (s.y0 + s.y1) / 2 ? s.y0 - 0.12 : s.y1 + 0.12; // direk kapak sahanlığına değmesin
-          out.push({ anahtar: `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, ad: mx.name, Hd: kp.z1 - G.zB, direk: [xd, y], vinc: [xd - dir * 0.36, y] });
+          out.push({ anahtar: `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, model: mx.model || null, ad: mx.name, Hd: kp.z1 - G.zB, direk: [xd, y], vinc: [xd - dir * 0.36, y] });
         }
       }
     }
@@ -398,7 +398,7 @@
   const unum = e => (String(e.code || '').match(/\d+/) || ['1xx'])[0];
   const mix = (e, G) => { // halka başına mikser (mikser programının itki dengesi)
     const key = [G.b, G.q.tw, G.q.Ls, G.q.h].join('|');
-    if (!e._mx || e._mx.key !== key) e._mx = { key, r: C.mikserSec ? C.mikserSec({ b: G.b, tw: G.q.tw, Ls: G.q.Ls, H: G.q.h, n0: 0 }) : null };
+    if (!e._mx || e._mx.key !== key) e._mx = { key, r: C.mikserSec ? C.mikserSec({ b: G.b, tw: G.q.tw, Ls: G.q.Ls, H: G.q.h, n0: 0, unite: 'anaerobik' }) : null };
     return e._mx.r;
   };
   /* mikser sayısı ve tipi: önce mikser hesabı penceresinin sonucu (aynı halka için yapılmışsa: koridor ve düz boy tutuyorsa),
@@ -532,6 +532,12 @@
   }
   const mm = v => Math.round(v * 1000);
   const imza = x => JSON.stringify(x.type === 'aile' ? [x.p, x.rot, x.z, x.par] : [x.pts, x.z0, x.z1]);
+  /* mikser parametreleri: 5,5 kW yavaş devirli mikser (programın seçimi ya da mikser hesabı) KSB AmaProp 2603 üretici modeliyle çizilir (app/mikser-ksb.js) */
+  const mikserPar = y => {
+    const k = y.model || (C.mikserModelBul && C.mikserModelBul(y)), Md = k && C.mikserModel && C.mikserModel[k];
+    if (Md) return { model: k, D: Md.D, P: Md.P, rpm: Md.rpm, hm: Md.hm(), Hd: mm(y.Hd) };
+    return { model: 'GENEL', D: mm(y.D), P: y.P, rpm: y.rpm, hm: Math.max(300, mm(y.D) / 2 + 250), Hd: mm(y.Hd) };
+  };
   /* yerel ekipman yeri → çizim nesnesi özellikleri (dünya koordinatı) */
   function nesne(e, y) {
     const f = C.frame(e.o, e.rot), un = unum(e), W2 = p => { const w = f.at(p[0], p[1], 0); return [w[0], w[1]]; };
@@ -539,7 +545,7 @@
       const fam = y.tur === 'penstok' ? 'penstock_kanal' : 'dalgic_mikser', d = C.AILELER && C.AILELER[fam]; if (!d) return null;
       const t0 = d.tipler && d.tipler[0], par = Object.assign({}, t0 ? t0.p : {}, y.tur === 'penstok'
         ? { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.tahrik, konum: 'K' }
-        : { D: mm(y.D), P: y.P, rpm: y.rpm, hm: Math.max(300, mm(y.D) / 2 + 250), Hd: mm(y.Hd) });
+        : mikserPar(y));
       return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par, p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: y.tur === 'penstok' ? `SK-${un}${y.etiket}` : `Z-${un}/${y.etiket}`, layer: d.katman || C.doc.cur.layer } };
     }
     if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)

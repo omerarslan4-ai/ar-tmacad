@@ -79,7 +79,7 @@
   const xml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   C.primsSvg = function (out, prims, e, P, k, mono, ltk) { // P: model -> kağıt mm (y aşağı); k: mm / birim
     for (const pr of prims) {
-      const aci = C.entColor(e, pr.color), col = mono ? '#000' : (aci === 7 ? '#000' : C.aciCss(aci));
+      const aci = C.entColor(e, pr.color), col = mono && !e.monoRenk ? '#000' : (aci === 7 ? '#000' : C.aciCss(aci)); // monoRenk: siyah-beyazda da kendi rengi (ünite kesit planının gri taraması)
       const lw = Math.max(0.09, C.entLw(e, pr.lw) / 100), lt = C.entLt(e, pr.lt);
       const pat = C.LT[lt] && C.LT[lt].p.length ? C.LT[lt].p.map(v => Math.max(Math.abs(v) * ltk, v === 0 ? 0.01 : 0.1).toFixed(3)).join(' ') : null;
       const st = `stroke="${col}" stroke-width="${lw}"${pat ? ` stroke-dasharray="${pat}"` : ''}`;
@@ -87,7 +87,9 @@
       switch (pr.k) {
         case 'L': { const a = P(pr.a), b = P(pr.b); out.push(`<line x1="${a[0].toFixed(3)}" y1="${a[1].toFixed(3)}" x2="${b[0].toFixed(3)}" y2="${b[1].toFixed(3)}" ${st}/>`); break; }
         case 'P': out.push(`<${pr.c ? 'polygon' : 'polyline'} points="${pr.pts.map(q).join(' ')}" ${st}/>`); break;
-        case 'S': out.push(`<polygon points="${pr.pts.map(q).join(' ')}" fill="${pr.maske ? '#fff' : col}" stroke="none"/>`); break; // maske: yazı arkası kâğıt rengi
+        case 'S': { const fc = pr.maske ? '#fff' : col; // maske: yazı arkası kâğıt rengi
+          if (pr.tris && pr.tris.length && pr.pts.length > 4) { out.push(`<path d="${pr.tris.map(t => `M${q(pr.pts[t[0]])}L${q(pr.pts[t[1]])}L${q(pr.pts[t[2]])}Z`).join('')}" fill="${fc}" stroke="${fc}" stroke-width="0.05"/>`); break; } // delikli dolu tarama: üçgenlerle (köşe listesi tek çokgen değil)
+          out.push(`<polygon points="${pr.pts.map(q).join(' ')}" fill="${fc}" stroke="none"/>`); break; }
         case 'C': { const c = P(pr.c); out.push(`<circle cx="${c[0].toFixed(3)}" cy="${c[1].toFixed(3)}" r="${(pr.r * k).toFixed(3)}" ${st}/>`); break; }
         case 'A': { const p0 = P(M.polar(pr.c, pr.a0, pr.r)), p1 = P(M.polar(pr.c, pr.a1, pr.r)), sw = M.normAng(pr.a1 - pr.a0); out.push(`<path d="M${p0[0].toFixed(3)} ${p0[1].toFixed(3)} A${(pr.r * k).toFixed(3)} ${(pr.r * k).toFixed(3)} 0 ${sw > Math.PI ? 1 : 0} 0 ${p1[0].toFixed(3)} ${p1[1].toFixed(3)}" ${st}/>`); break; }
         case 'X': { const c = P(pr.p); out.push(`<circle cx="${c[0].toFixed(3)}" cy="${c[1].toFixed(3)}" r="0.2" fill="${col}"/>`); break; }
