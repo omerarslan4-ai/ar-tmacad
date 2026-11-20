@@ -107,10 +107,10 @@ t('kesit planda yalnız kesme kotunun altındaki elemanların kodu: yürüme yol
 });
 
 /* kullanıcı 20.11.2026: tretuvar kaplaması elle seçilir (beton, kilit taşı, karo …); katalog tretuvar.js ile aynı (kalınlık, yatak) */
-t('tretuvar açılımı: seçilen kaplamanın katmanları; seçilmezse eski tek satır', () => {
+t('tretuvar açılımı: seçilen kaplamanın katmanları; seçilmezse perdahlı beton (tretuvar nesnesiyle aynı)', () => {
   const KAT = { parke: { ad: 'Kilitli beton parke taşı', t: 6, yatak: 'Kum yatak' }, karo: { ad: 'Beton karo 40×40', t: 3, yatak: 'Çimento harcı' }, beton: { ad: 'Perdahlı beton (yüzey sertleştirici)', t: 0, yatak: null } };
   const satir = (kap, kat) => P.acilimlar(A.geo(Object.assign({}, E50, kap ? { tretKap: kap } : {})), { tretKat: kat }).find(x => x.ad === 'Tretuvar').lines;
-  assert.deepStrictEqual(satir(null, KAT), ['Tretuvar, 15 cm']);
+  assert.deepStrictEqual(satir(null, KAT), ['Perdahlı beton (yüzey sertleştirici), 15 cm', 'Stabilize dolgu, 15 cm']);
   assert.deepStrictEqual(satir('parke', KAT), ['Kilitli beton parke taşı, 6 cm', 'Kum yatak, 3 cm', 'C16/20 beton, 10 cm', 'Stabilize dolgu, 15 cm']);
   assert.deepStrictEqual(satir('karo', KAT), ['Beton karo 40×40, 3 cm', 'Çimento harcı, 3 cm', 'C16/20 beton, 10 cm', 'Stabilize dolgu, 15 cm']);
   assert.deepStrictEqual(satir('beton', KAT), ['Perdahlı beton (yüzey sertleştirici), 15 cm', 'Stabilize dolgu, 15 cm']);

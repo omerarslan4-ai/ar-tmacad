@@ -280,4 +280,16 @@ t('tretuvar ve radye dış çizgiyi izler: tretuvar her yerde tre, radye ampatma
   }
 });
 
+/* kullanıcı 20.11.2026: "kapaklar savak kapağı olmasına rağmen yukarı açılıyor; aşağı inip üstünden savaklanması gerekmiyor mu?" ve "tretuvar İnşaat'taki tretuvar bölümüne göre çizilsin" */
+t('savak açıklıklarının kapağı aşağı iner, su altındaki orifisinki yukarı açılır; tretuvar İnşaat tretuvarı olarak havuzun dış yüzünü izler', () => {
+  const { ekipmanYer, boyutla } = require('../app/anaerobik.js');
+  for (const G0 of [G, geo(Object.assign({ zt: 97.25, fb: 0.61 }, boyutla({ Qd: 50000 }).par))]) {
+    const E = ekipmanYer(G0, null, 95), K = E.filter(y => y.tur === 'penstok');
+    for (const y of K) { const ust = y.z + y.H; assert.strictEqual(y.acilis, ust > G0.zW ? 'ASAGI' : 'YUKARI', y.anahtar + ' (üst ' + ust.toFixed(2) + ', su ' + G0.zW.toFixed(2) + ')'); if (y.acilis === 'ASAGI') assert.ok(y.z - y.H > G0.zB + 0.3, y.anahtar + ': inen kapak tabana değmez'); }
+    assert.ok(K.filter(y => /pen-(sol|sag|pen)-/.test(y.anahtar)).every(y => y.acilis === 'ASAGI'), 'ağız ve pencere kapakları savak kapağı');
+    if (G0.ara) assert.strictEqual(K.find(y => y.anahtar === 'pen-bolme').acilis, 'YUKARI', 'orifis kapağı yukarı açılır');
+    const T = E.filter(y => y.tur === 'tretuvar'); assert.strictEqual(T.length, 1, 'tek tretuvar nesnesi'); assert.deepStrictEqual(T[0].pts, G0.bolge.dis.map(p => [p[0], p[1]]), 'havuzun dış perde yüzü'); assert.strictEqual(T[0].w, G0.q.tre);
+  }
+});
+
 console.log(`\n${n} test geçti.`);

@@ -239,7 +239,7 @@
     const pen = (anahtar, etiket, p, aci, z0, B, H, duvarY = 1) => {
       const hw = Math.max(0, G.zW - z0), F = hw >= H ? 9.81 * B * H * (hw - H / 2) : 9.81 * B * hw * hw / 2;
       const tahrik = q.tahrik === 'EL' || q.tahrik === 'AKT' ? q.tahrik : (B * H > q.akA + 1e-9 || F > q.akF + 1e-9 ? 'AKT' : 'EL');
-      out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw, F, tahrik, nervur: duvarY > 0 ? 'ARKA' : 'ON' });
+      out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw, F, tahrik, nervur: duvarY > 0 ? 'ARKA' : 'ON', acilis: z0 + H > G.zW + 1e-6 ? 'ASAGI' : 'YUKARI' }); // üst kenarı su yüzünün üstünde → savak kapağı (aşağı iner)
     };
     for (let i = 0; i < n; i++) {
       const A = G.agizO[i]; // kapak açıklığın kendi ölçüsünde (açıklık kendi debisiyle boyutlanır)
@@ -275,6 +275,8 @@
         }
       }
     }
+    /* tretuvar: İnşaat bölümünün tretuvar nesnesi, havuzun dış perde yüzünü izler (kullanıcı 20.11.2026) */
+    out.push({ anahtar: 'tretuvar', tur: 'tretuvar', pts: G.bolge.dis.map(p => [p[0], p[1]]), w: q.tre });
     // merdiven(ler): yer seçimli — havuzun yanı (üst / alt uzun yan) ve yola giriş yönü (soldan / sağdan); m1 = servis köprüsü, m2 = ikinci yol.
     // Varsayılan: üst yanda, iki merdiven birbirine bakar (ikisi de aradaki uzun kısımdan kendi yoluna çıkar); yer yetmezse yön çevrilir.
     const z0 = zg != null ? zg : G.zTop - 2.25, H = zK - z0, a = 0.05;
@@ -408,6 +410,10 @@
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
+  /* havuza bağlı İnşaat tretuvarı var mı (ekipmanla konur); yoksa havuz tretuvarı kendisi çizer — eski projeler ve ekipmansız havuzlar */
+  const tretNesne = e => !!(C.doc && C.doc.ents.some(x => x.type === 'tretuvar' && x.bag === e.id && x.anahtar === 'tretuvar'));
+  /* kesitte havuz temel sayılır: radyenin altına 10 cm grobeton (iki yandan 10 cm taşkın, grobeton taraması) — kesit.js grobeton şeridi (kullanıcı 20.11.2026) */
+  { const f0 = C.secFnd; if (f0 && !f0._anaerobik) { const f1 = e => (e && e.type === 'anaerobik') || f0(e); f1._anaerobik = true; C.secFnd = f1; } }
   C.anaerobikBoyutla = boyutla; // ünite kartı (unite-kart.js) havuzu bununla boyutlar
   /* STATİK: anaerobik havuzdan statik penceresinin 3B kabuk modeli (statik-oval.js C.statikKabukModel ile aynı biçim).
      Perde eksenleri su tutucu bant yollarından (G.bantlar) alınır; dış duvar / halka yayları / ortak duvarlar / kanal duvarları
@@ -489,7 +495,7 @@
       // köprü
       const k = G.kopru; out.push(PL([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], true, rol('beton')));
       for (const sh of G.sahanlik) { out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, rol('beton'))); for (const y of sh.yarik || []) out.push(PL(y, true, rol('gorunen'))); }
-      out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, rol('tretuvar')));
+      if (!tretNesne(e)) out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, rol('tretuvar'))); // tretuvar nesnesi yoksa (ekipmansız havuz) çizgiyi havuz çizer
       out.push(T1((k.x0 + k.x1) / 2, G.Wo + 0.9, `Servis köprüsü ${f2(q.kb)} m · ${kot(k.z1)}`, rol('yazi')));
       if (G.kopru2) { const k2 = G.kopru2; out.push(PL([[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], true, rol('beton')), T1((k2.x0 + k2.x1) / 2, G.Wo + 0.9, `Yürüyüş yolu ${f2(q.kb)} m · ${kot(k2.z1)}`, rol('yazi'))); }
       // kapaklar
@@ -553,10 +559,11 @@
         const Ks = bolgeKati({ dis: [[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], delik: (sh.yarik || []).map(y => y.slice().reverse()) }, sh.z0, sh.z1);
         out.push({ t: 'tri', v: Ks.v.map(W), vn: Ks.vn.map(Wn), f: Ks.f, edges3: Ks.e.map(ab => ab.map(W)) });
       }
-      { // tretuvar: zemin kotunda havuz çevresi
+      /* tretuvar havuzun gövdesinde değil: İnşaat bölümünün tretuvar nesnesi (ekipmanla birlikte konur; katmanlı, eğimli, bordürlü — kullanıcı 20.11.2026) */
+      if (!tretNesne(e)) { // tretuvar nesnesi yoksa (ekipmansız havuz): eskisi gibi zemin kotunda düz tretuvar
         const zg = zemin(e, G), uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
         const Kt = bolgeKati({ dis: G.tretuvar.dis, delik: [G.bolge.dis.slice().reverse()] }, zg - G.tretuvar.kal, zg);
-        const kp = e.tretKap && C.TRETUVAR_KAP && C.TRETUVAR_KAP[e.tretKap], tc = kp ? kp.col : [0.62, 0.62, 0.60]; // seçilen kaplamanın rengi
+        const kp = e.tretKap && C.TRETUVAR_KAP && C.TRETUVAR_KAP[e.tretKap], tc = kp ? kp.col : [0.62, 0.62, 0.60];
         out.push({ t: 'tri', v: Kt.v.map(W), vn: Kt.vn.map(Wn), f: Kt.f, edges3: Kt.e.map(ab => ab.map(W)), fc: Kt.f.map(() => tc) });
       }
       return out;
@@ -599,10 +606,11 @@
     if (y.tur === 'penstok' || y.tur === 'mikser') {
       const fam = y.tur === 'penstok' ? 'penstock_kanal' : 'dalgic_mikser', d = C.AILELER && C.AILELER[fam]; if (!d) return null;
       const t0 = d.tipler && d.tipler[0], par = Object.assign({}, t0 ? t0.p : {}, y.tur === 'penstok'
-        ? { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.tahrik, konum: 'K', nervur: y.nervur || 'ON' }
+        ? { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.tahrik, konum: 'K', nervur: y.nervur || 'ON', acilis: y.acilis || 'YUKARI' }
         : mikserPar(y));
       return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par, p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: y.tur === 'penstok' ? `SK-${un}${y.etiket}` : `Z-${un}/${y.etiket}`, layer: d.katman || C.doc.cur.layer } };
     }
+    if (y.tur === 'tretuvar') return { type: 'tretuvar', props: { pts: y.pts.map(W2), w: y.w, egim: 2, zg: r3(zemin(e, geo(e))), h: 0, kap: e.tretKap || 'beton', tk: 0, th: 3, tb: e.tretKap && e.tretKap !== 'beton' ? 10 : Math.round(geo(e).q.treT * 100), ts: 15, bw: 10, bh: 30, bc: 0, by: 10, derz: 2, layer: 'INS_TRETUVAR' } }; // İnşaat tretuvarı (kaplama · yatak · beton · stabilize · bordür)
     if (y.tur === 'vinc') { const d = C.AILELER && C.AILELER.pergel_vinc; if (!d) return null; const t0 = d.tipler.find(t => t.p.model === 'jib') || d.tipler[0]; // kullanıcının seçtiği jib vinç modeli (20.11.2026)
       return { type: 'aile', props: { fam: 'pergel_vinc', tip: t0.ad, tipU: t0.ad, par: Object.assign({}, t0.p, { L: mm(y.L) }), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: `PV-${un}/${y.etiket}`, layer: d.katman } }; }
     if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: e.korkKm || 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)
@@ -634,7 +642,7 @@
     if (silinmis.length && !sessiz) C.warn(`${e.code || ''} ekipmanından ${silinmis.length} parça daha önce silindiği için konmadı: ${silinmis.join(', ')} — geri getirmek için: ANAEKIPMAN GERIGETIR`);
   };
   // havuz değişince (ölçü, konum, dönüş) ekipman kendiliğinden güncellenir
-  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]); if (e._ekK !== k) { if (e._ekK == null) { e._ekK = k; continue; } C.anaerobikEkipman(e, true); } } });
+  C.on && C.on('changeIdle', () => { if (!C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) { const k = JSON.stringify([geo(e).q, e.o, e.rot, e.code]); if (e._ekK !== k) { if (e._ekK == null && (e.ekAnahtar || []).includes('tretuvar')) { e._ekK = k; continue; } /* açılışta yalnız anahtar yazılır; eski projede (tretuvar anahtarı yok) ekipman bir kez güncellenir ki tretuvar nesnesi eklensin */ C.anaerobikEkipman(e, true); } } });
 
   // mikser hesabı penceresinde sonuç değişince (aynı tarayıcı belleği) ekipman güncellenir
   if (typeof window !== 'undefined') window.addEventListener('storage', ev => { if (ev.key !== 'mixer-analysis-v1' || !C.doc) return; for (const e of C.doc.ents) if (e.type === 'anaerobik' && e.ekipman) C.anaerobikEkipman(e, true); });

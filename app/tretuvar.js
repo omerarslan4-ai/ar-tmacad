@@ -42,7 +42,7 @@
   };
   const per = q => q.reduce((s, p, i) => s + M.dist2(p, q[(i + 1) % q.length]), 0);
   const geo = e => {
-    const q = ccw(e.pts), w = +e.w || 1, bw = (+e.bw || 10) / 100, s = (+e.egim || 2) / 100, zg = +e.zg || 0, top = zg + (+e.h || 0.15);
+    const q = ccw(e.pts), w = +e.w || 1, bw = (+e.bw || 10) / 100, s = (+e.egim || 2) / 100, zg = +e.zg || 0, top = zg + (e.h == null || e.h === '' ? 0.15 : +e.h); // h: 0 → üst kot zeminde (anaerobik havuz tretuvarı)
     const kp = KAP[e.kap] || KAP.karo, tk = (e.kap === 'beton' ? 0 : (+e.tk || kp.t)) / 100, th = (e.kap === 'beton' ? 0 : (+e.th || 3)) / 100, tb = (+e.tb || 10) / 100, ts = (+e.ts || 15) / 100;
     const inner = q, pav = off(q, w - bw), outer = off(q, w); // kaplama bordüre kadar, bordür en dışta
     const zt = d => top - d * s; // binadan d uzaklıkta üst kot

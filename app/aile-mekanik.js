@@ -14,11 +14,11 @@
      OTO: derinlik 5,0 m'ye kadar tam şasi, daha derinde kısa şasi (firma kuralı, Çokal ızgara kanalları). */
   const kisaSasi = q => q.sasi === 'KISA' || (q.sasi !== 'TAM' && q.D > 5000);
   const pen = q => { // türetilmiş geometri (m)
-    const b2 = m(q.B) / 2, e = m(q.e), wf2 = b2 + e, wd2 = m(q.Wd) / 2, Hf = m(q.Hf), H = m(q.H), pw = m(q.pw), kt = m(q.kt), dz = q.konum === 'A' ? H : 0;
+    const b2 = m(q.B) / 2, e = m(q.e), wf2 = b2 + e, wd2 = m(q.Wd) / 2, Hf = m(q.Hf), H = m(q.H), pw = m(q.pw), kt = m(q.kt), asagi = q.acilis === 'ASAGI', dz = q.konum === 'A' ? (asagi ? -H : H) : 0, zAlt = asagi ? -H : 0; // savak kapağı (ASAGI): kapak eşiğin altına iner, kılavuzlar eşiğin H altına uzanır
     const ks = kisaSasi(q), trz = ks ? [] : [Hf - 0.10]; for (let k = 1; k <= q.nTr; k++) trz.push(Hf - 0.10 - k * m(q.tr));
     const actH = q.tahrik === 'AKT' ? 0.55 : 0.85;
     const D = m(q.D), zA = ks ? D : Hf; // tahrik tabanı: tam şaside çerçeve üstü, kısa şaside platform (zemin ayağı)
-    return { b2, e, wf2, wd2, Hf, H, pw, kt, dz, trz, yk: m(q.yk), yd: m(q.yd), D, r: m(q.mil) / 2, actH, ks, zA };
+    return { b2, e, wf2, wd2, Hf, H, pw, kt, dz, zAlt, asagi, trz, yk: m(q.yk), yd: m(q.yd), D, r: m(q.mil) / 2, actH, ks, zA };
   };
   C.aileKaydet({
     id: 'penstock_kanal', ad: 'Penstock — kanal tipi (duvar yuvalı)', kisaAd: 'PENSTOCK', kat: 'Kapak / vana', katman: 'MEK_KAPAK', renk: 5, ifc: 'IfcValve', // renk: paftadaki Mek_Kapak (20.11.2026)
@@ -38,6 +38,7 @@
       { k: 'mil', ad: 'Mil çapı', d: 48, grup: 'Kapak ve tahrik' },
       { k: 'tahrik', ad: 'Tahrik', d: 'AKT', opts: [['AKT', 'Elektrikli aktüatör (AUMA)'], ['EL', 'El çarkı']], grup: 'Kapak ve tahrik' },
       { k: 'konum', ad: 'Gösterim konumu', d: 'K', opts: [['K', 'Kapalı'], ['A', 'Tam açık']], grup: 'Kapak ve tahrik' },
+      { k: 'acilis', ad: 'Açılış', d: 'YUKARI', opts: [['YUKARI', 'Yukarı açılır (orifis kapağı)'], ['ASAGI', 'Aşağı iner (savak kapağı — su üstünden savaklanır)']], grup: 'Kapak ve tahrik' }, // kullanıcı 20.11.2026
       { k: 'nervur', ad: 'Nervür (ara destek) yüzü', d: 'ON', opts: [['ON', 'Akış yönündeki yüz (+y)'], ['ARKA', 'Akışa karşı yüz (−y)']], grup: 'Kapak ve tahrik' }, // duvara monte kapakta nervürler suya bakan yüzde, duvar yüzü düz (kullanıcı 20.11.2026)
       { k: 'yk', ad: 'Perde yuvası ek genişliği (her yan)', d: 125, grup: 'İnşaat (yuva)' },
       { k: 'yd', ad: 'Perde yuvası derinliği (akış yönü)', d: 200, grup: 'İnşaat (yuva)' },
@@ -78,8 +79,8 @@
     },
     mesh: (q, g) => {
       const G = pen(q);
-      for (const s of [-1, 1]) g.kutu(s * (G.b2 - 0.015), s * G.wf2, -G.pw / 2, G.pw / 2, 0, G.Hf, COL.frame); // yan kılavuzlar
-      g.kutu(-G.wf2, G.wf2, -G.pw / 2, G.pw / 2, 0, 0.03, COL.frame); // eşik
+      for (const s of [-1, 1]) g.kutu(s * (G.b2 - 0.015), s * G.wf2, -G.pw / 2, G.pw / 2, G.zAlt, G.Hf, COL.frame); // yan kılavuzlar (savak kapağında eşiğin altına iner)
+      g.kutu(-G.wf2, G.wf2, -G.pw / 2, G.pw / 2, G.zAlt, G.zAlt + 0.03, COL.frame); // eşik / alt bağ
       g.kutu(-G.wd2, G.wd2, -G.kt / 2, G.kt / 2, G.dz, G.dz + G.H, COL.door); // kapak
       const ny0 = q.nervur === 'ARKA' ? -G.kt / 2 - 0.05 : G.kt / 2, ny1 = ny0 + 0.05; // nervür yüzü: ON +y, ARKA −y (duvara bakan yüz düz kalır)
       const nR = Math.max(2, Math.round(G.H / 0.35)); for (let k = 1; k < nR; k++) { const z = G.dz + G.H * k / nR; g.kutu(-G.wd2 + 0.02, G.wd2 - 0.02, ny0, ny1, z - 0.025, z + 0.025, COL.rib); }
@@ -93,9 +94,9 @@
     },
     on: (q, g) => { // akış yönünden bakış (u = x, v = z)
       const G = pen(q), top = G.zA + 0.15 + G.actH;
-      for (const s of [-1, 1]) { g.dik(s * (G.b2 - 0.015), 0, s * G.wf2, G.Hf, { lw: 35 }); g.cok([[s * G.b2, -0.3], [s * G.b2, G.D]], false, { lt: 'DASHED', lw: 13 }); g.cok([[s * (G.b2 + G.yk), -0.1], [s * (G.b2 + G.yk), G.D]], false, { lt: 'HIDDEN', lw: 13 }); g.cizgi([s * G.b2, G.D], [s * (G.b2 + 0.9), G.D], { lw: 25 }); }
+      for (const s of [-1, 1]) { g.dik(s * (G.b2 - 0.015), G.zAlt, s * G.wf2, G.Hf, { lw: 35 }); g.cok([[s * G.b2, -0.3], [s * G.b2, G.D]], false, { lt: 'DASHED', lw: 13 }); g.cok([[s * (G.b2 + G.yk), -0.1], [s * (G.b2 + G.yk), G.D]], false, { lt: 'HIDDEN', lw: 13 }); g.cizgi([s * G.b2, G.D], [s * (G.b2 + 0.9), G.D], { lw: 25 }); }
       g.cizgi([-(G.b2 + 0.9), 0], [G.b2 + 0.9, 0], { lw: 25 }); g.yazi([G.b2 + 0.9, G.D + 0.05], 'platform', 0.09, 'R'); g.yazi([G.b2 + 0.9, 0.05], 'kanal tabanı', 0.09, 'R');
-      g.dik(-G.wf2, 0, G.wf2, 0.03);
+      g.dik(-G.wf2, G.zAlt, G.wf2, G.zAlt + 0.03); if (G.asagi) g.cizgi([-G.wf2, 0], [G.wf2, 0], { lt: 'DASHED', lw: 13 }); // savak kapağında açıklık eşiği
       g.dik(-G.wd2, G.dz, G.wd2, G.dz + G.H, { lw: 35 }); const nR = Math.max(2, Math.round(G.H / 0.35)); for (let k = 1; k < nR; k++) { const z = G.dz + G.H * k / nR; g.cizgi([-G.wd2, z], [G.wd2, z], { lw: 13 }); } g.cizgi([0, G.dz], [0, G.dz + G.H], { lw: 13 });
       for (const z of G.trz) g.dik(-G.wf2, z, G.wf2, z + 0.10);
       g.dik(-(G.wf2 + 0.05), G.Hf, G.wf2 + 0.05, G.Hf + 0.15, { lw: 35 }); if (G.ks) { g.dik(-0.20, G.D, 0.20, G.D + 0.03, { lw: 25 }); g.dik(-0.10, G.D + 0.03, 0.10, G.D + 0.15, { lw: 25 }); }
@@ -109,7 +110,7 @@
     },
     yan: (q, g) => { // yandan (u = y akış, v = z)
       const G = pen(q), top = G.zA + 0.15 + G.actH;
-      g.dik(-G.pw / 2, 0, G.pw / 2, G.Hf, { lw: 35 }); g.dik(-G.kt / 2, G.dz, G.kt / 2, G.dz + G.H, { lw: 35 }); { const ny0 = q.nervur === 'ARKA' ? -G.kt / 2 - 0.05 : G.kt / 2; g.dik(ny0, G.dz, ny0 + 0.05, G.dz + G.H, { lw: 13 }); } // nervürler
+      g.dik(-G.pw / 2, G.zAlt, G.pw / 2, G.Hf, { lw: 35 }); g.dik(-G.kt / 2, G.dz, G.kt / 2, G.dz + G.H, { lw: 35 }); { const ny0 = q.nervur === 'ARKA' ? -G.kt / 2 - 0.05 : G.kt / 2; g.dik(ny0, G.dz, ny0 + 0.05, G.dz + G.H, { lw: 13 }); } // nervürler
       g.dik(-G.yd / 2, -0.1, G.yd / 2, G.D, { lt: 'HIDDEN', lw: 13 });
       for (const z of G.trz) g.dik(-0.06, z, 0.06, z + 0.10);
       g.dik(-0.11, G.Hf, 0.11, G.Hf + 0.15, { lw: 35 }); if (G.ks) { g.dik(-0.20, G.D, 0.20, G.D + 0.03, { lw: 25 }); g.dik(-0.10, G.D + 0.03, 0.10, G.D + 0.15, { lw: 25 }); } g.cizgi([-G.r, G.dz + G.H], [-G.r, top + 0.15]); g.cizgi([G.r, G.dz + G.H], [G.r, top + 0.15]);

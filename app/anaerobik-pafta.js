@@ -109,7 +109,7 @@
   /* tretuvar açılımı: kaplama seçildiyse (q.tretKap; katalog o.tretKat = tretuvar.js C.TRETUVAR_KAP) katmanlarıyla, yoksa eskisi gibi tek satır.
      Katmanlar tretuvar.js ile aynı: kaplama (katalog kalınlığı) › harç / kum yatak 3 cm › C16/20 beton 10 cm › stabilize 15 cm; perdahlı betonda beton q.treT */
   function tretSatir(q, kat) {
-    const kp = q.tretKap && kat && kat[q.tretKap]; if (!kp) return [`Tretuvar, ${cm(q.treT)} cm`];
+    const kp = kat && kat[q.tretKap || 'beton']; if (!kp) return [`Tretuvar, ${cm(q.treT)} cm`]; // kaplama seçilmezse perdahlı beton (anaerobik.js tretuvar nesnesiyle aynı)
     if (q.tretKap === 'beton' || !kp.t) return [`${kp.ad}, ${cm(q.treT)} cm`, 'Stabilize dolgu, 15 cm'];
     return [`${kp.ad}, ${kp.t} cm`, `${kp.yatak || 'Çimento harcı'}, 3 cm`, 'C16/20 beton, 10 cm', 'Stabilize dolgu, 15 cm'];
   }
