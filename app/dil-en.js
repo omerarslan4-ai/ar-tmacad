@@ -516,6 +516,42 @@
     ['Kaldırılacak en ağır yük', 'Heaviest load to lift'], ['Kaldırma kapasitesi', 'Lifting capacity'], ['Palanga motor gücü', 'Hoist motor power'],
     ['Mikser ağırlığı (0: tahmin)', 'Mixer weight (0: estimate)'], ['Mikser ağırlığı (listede)', 'Mixer weight (schedule)'],
     ['kaldırma kapasitesi # kg', 'lifting capacity # kg'], ['manuel zincirli palanga', 'manual chain hoist'], ['elektrikli zincirli palanga', 'electric chain hoist'], ['yakl. # kg', 'approx. # kg'], ['el çarkı', 'handwheel'],
+    ['TABAN PLAKASI', 'BASE PLATE'], ['Aktüatör', 'Actuator'], ['ARA BİRLEŞTİRME', 'INTERMEDIATE JOINT'],
     ['Gerekli mil torku', 'Required stem torque'], ['Aktüatör motor gücü (katalog)', 'Actuator motor power (catalogue)'], ['Elektrikli aktüatör (çok turlu)', 'Electric actuator (multi-turn)'],
+  ]);
+  /* ---------- Ünite mekanik bağlantı detayları (unite-mekanik-detay.js, MEK-02; 21.11.2026) ---------- */
+  window.DIL.ekle('en', 'English', [
+    ['MEKANİK BAĞLANTI DETAYLARI', 'MECHANICAL CONNECTION DETAILS'], ['MALZEME AÇILIMI', 'MATERIAL KEY'], ['KAPAK ÖLÇÜLERİ', 'PENSTOCK DIMENSIONS'],
+    ['SAVAK KAPAĞI BAĞLANTI DETAYI', 'WEIR PENSTOCK CONNECTION DETAIL'], ['KAPAK BAĞLANTI DETAYI', 'PENSTOCK CONNECTION DETAIL'], ['(YATAY KESİT)', '(HORIZONTAL SECTION)'], ['(DÜŞEY KESİT)', '(VERTICAL SECTION)'],
+    ['MİKSER VE PERGEL VİNÇ BAĞLANTI DETAYI (GÖRÜNÜŞ)', 'MIXER AND JIB CRANE CONNECTION DETAIL (ELEVATION)'], ['A: MİKSER AYAĞI TABAN ANKRAJI (PLAN)', 'A: MIXER STAND BASE ANCHORAGE (PLAN)'],
+    ['B: ÜST TUTUCU BAĞLANTISI (PLAN)', 'B: UPPER BRACKET CONNECTION (PLAN)'], ['C: PERGEL VİNÇ TABAN PLAKASI (PLAN)', 'C: JIB CRANE BASE PLATE (PLAN)'],
+    ['KORKULUK BAĞLANTI DETAYI, ÜSTTEN (h = # cm)', 'HANDRAIL CONNECTION DETAIL, TOP MOUNTED (h = # cm)', 'ic'], ['KORKULUK BAĞLANTI DETAYI, YANDAN (PERDE / TABLİYE YAN YÜZÜNE)', 'HANDRAIL CONNECTION DETAIL, SIDE MOUNTED (TO WALL / DECK FACE)'],
+    ['NERVÜRLÜ YÜZ (SU TARAFI)', 'RIBBED FACE (WATER SIDE)'], ['DÜZ YÜZ', 'FLAT FACE'], ['AKIŞ', 'FLOW'], ['PERDE ÜSTÜ / PLATFORM', 'TOP OF WALL / PLATFORM'], ['AÇIKLIK EŞİĞİ (SAVAK KRETİ)', 'OPENING SILL (WEIR CREST)'], ['AÇIKLIK EŞİĞİ', 'OPENING SILL'],
+    ['KAPAK AÇIK KONUMU', 'GATE OPEN POSITION'], ['İTKİ YÖNÜ', 'THRUST DIRECTION'], ['TABLİYE', 'DECK'], ['KOL / MİKSER YÖNÜ', 'JIB / MIXER DIRECTION'],
+    ['AÇILIŞ', 'OPENING'], ['AÇIKLIK B x H (mm)', 'OPENING B x H (mm)'], ['KANAL DERİNLİĞİ D (mm)', 'CHANNEL DEPTH D (mm)'], ['ÇERÇEVE Wf x Hf (mm)', 'FRAME Wf x Hf (mm)'], ['GÖMME e (mm)', 'EMBEDMENT e (mm)'],
+    ['PERDE YUVASI (mm)', 'WALL RECESS (mm)'], ['MİL', 'STEM'], ['TAHRİK / FLANŞ', 'DRIVE / FLANGE'], ['Aşağı açılır (savak)', 'Opens downward (weir)'], ['Yukarı açılır', 'Opens upward'], ['El çarkı', 'Handwheel'], ['Elektrikli aktüatör', 'Electric actuator'],
+    /* malzeme açılımı satırları */
+    ['BETONARME PERDE, # cm', 'RC WALL, # cm', 'ic'], ['İKİNCİ KADEME DOLGU: RÖTRESİZ HARÇ', 'SECOND-STAGE INFILL: NON-SHRINK GROUT'], ['(ÇERÇEVE AYARLANDIKTAN SONRA)', '(AFTER FRAME ALIGNMENT)'],
+    ['KİMYASAL DÜBEL', 'CHEMICAL ANCHOR'], ['ÇERÇEVE (YAN KIZAK):', 'FRAME (SIDE GUIDE):'], ['BÜKÜM U PROFİL', 'BENT U SECTION'], ['PERDEYE GÖMÜLME e = # mm (HER YAN)', 'EMBEDDED IN WALL e = # mm (EACH SIDE)', 'ic'],
+    ['SAC + YATAY NERVÜRLER', 'PLATE + HORIZONTAL RIBS'], ['KAPAK ENİ # mm (B + 2e - 15)', 'GATE WIDTH # mm (B + 2e - 15)', 'ic'], ['SIZDIRMAZLIK CONTASI:', 'SEAL:'], ['J PROFİL (YAN VE ALT)', 'J PROFILE (SIDES AND BOTTOM)'],
+    ['NERVÜRLÜ YÜZ SU TARAFINDA, DUVAR TARAFI DÜZ', 'RIBBED FACE ON WATER SIDE, WALL SIDE FLAT'], ['NERVÜR:', 'RIB:'], ['LAMA', 'FLAT BAR'],
+    ['ELEKTRİKLİ AKTÜATÖR', 'ELECTRIC ACTUATOR'], ['(ÇOK TURLU, 400 V)', '(MULTI-TURN, 400 V)'], ['BAĞLANTI FLANŞI', 'MOUNTING FLANGE'], ['EL ÇARKLI TAHRİK KUTUSU', 'HANDWHEEL GEARBOX'],
+    ['ZEMİN AYAĞI (KISA ŞASİ)', 'FLOOR PEDESTAL (SHORT FRAME)'], ['ÜST BOYUNDURUK:', 'TOP YOKE:'], ['AKTÜATÖR MONTAJ PLAKASI', 'ACTUATOR MOUNTING PLATE'], ['ÇERÇEVE PLATFORMDAN # mm YUKARIDA', 'FRAME # mm ABOVE PLATFORM', 'ic'],
+    ['YÜKSELEN MİL:', 'RISING STEM:'], ['TRAPEZ', 'TRAPEZOIDAL'], ['ÇERÇEVE:', 'FRAME:'], ['(YAN KIZAK, EŞİK, ARA TRAVERSE)', '(SIDE GUIDES, SILL, CROSS BEAMS)'], ['KAPAK:', 'GATE:'], ['(ALT)', '(BOTTOM)'],
+    ['KAPAK YUVASI (PERDE İÇİNDE, KAPAK AŞAĞI İNER)', 'GATE POCKET (IN WALL, GATE LOWERS)'], ['EŞİK (ALT BAĞ)', 'SILL (BOTTOM TIE)'],
+    ['BETONARME TABLİYE, # cm', 'RC DECK, # cm', 'ic'], ['ÜST TUTUCU: SS304, TABLİYE ÖN YÜZÜNE', 'UPPER BRACKET: SS304, TO DECK FRONT FACE'], ['ANKRAJ PLAKASI', 'ANCHOR PLATE'],
+    ['PERGEL VİNÇ TABAN PLAKASI', 'JIB CRANE BASE PLATE'], ['(S235, SICAK DALDIRMA GALVANİZ)', '(S235, HOT-DIP GALVANISED)'], ['GEÇME BULON + TABLİYE ALTINDA KARŞI PLAKA', 'THROUGH BOLTS + BACKING PLATE UNDER DECK'],
+    ['PERGEL VİNÇ', 'JIB CRANE'], ['KALDIRMA KAPASİTESİ # kg', 'LIFTING CAPACITY # kg', 'ic'], ['MANUEL ZİNCİRLİ PALANGA, DÖNER KOL', 'MANUAL CHAIN HOIST, SLEWING JIB'], ['ELEKTRİKLİ ZİNCİRLİ PALANGA, DÖNER KOL', 'ELECTRIC CHAIN HOIST, SLEWING JIB'],
+    ['HALAT EKSENİ = ASKI KOLU KALDIRMA NOKTASI EKSENİ', 'ROPE AXIS = LIFTING BAIL AXIS'], ['(KOL ERİŞİMİ # mm)', '(JIB REACH # mm)', 'ic'], ['ASKI KOLU KALDIRMA NOKTASI', 'LIFTING BAIL'],
+    ['KARE PROFİL', 'SQUARE TUBE'], ['KILAVUZ RAY', 'GUIDE RAIL'], ['AYAKTAN ÜST TUTUCUYA', 'FROM STAND TO UPPER BRACKET'], ['MİKSER AYAĞI (TABAN PLAKALI)', 'MIXER STAND (WITH BASE PLATE)'], ['BETONARME RADYE (HAVUZ TABANI)', 'RC RAFT (TANK FLOOR)'],
+    ['ÜST TUTUCU (DÖNER), SS304', 'UPPER BRACKET (SWIVEL), SS304'], ['GEÇME BULON', 'THROUGH BOLT'], ['TABLİYE ALTINDA KARŞI PLAKA', 'BACKING PLATE UNDER DECK'], ['BERKİTMELİ', 'STIFFENED'], ['DİREK', 'MAST'],
+    /* ekipman malzemesi (aile-mekanik.js "Malzeme" parametreleri, liste ÖZELLİKLER; 21.11.2026) */
+    ['Malzeme', 'Material'], ['Çerçeve, kapak levhası ve nervür malzemesi', 'Frame, gate plate and rib material'], ['Mil malzemesi', 'Stem material'], ['Sızdırmazlık contası', 'Seal'], ['Ankraj', 'Anchorage'],
+    ['AISI 316L paslanmaz çelik', 'AISI 316L stainless steel'], ['AISI 304L paslanmaz çelik', 'AISI 304L stainless steel'], ['AISI 316 paslanmaz çelik', 'AISI 316 stainless steel'], ['AISI 304 paslanmaz çelik', 'AISI 304 stainless steel'],
+    ['A4 paslanmaz kimyasal dübel', 'A4 stainless chemical anchor'], ['Direk ve kol malzemesi', 'Mast and jib material'], ['Ankraj bulonu', 'Anchor bolt'], ['Sıcak daldırma galvaniz S235JR çelik', 'Hot-dip galvanised S235JR steel'],
+    ['Sıcak daldırma galvaniz', 'Hot-dip galvanised'], ['A4 paslanmaz', 'A4 stainless'], ['çerçeve, kapak levhası ve nervür', 'frame, gate plate and ribs'], ['direk ve kol', 'mast and jib'], ['ankraj bulonu', 'anchor bolt'],
+    ['sıcak daldırma galvaniz S235JR çelik', 'hot-dip galvanised S235JR steel'], ['sıcak daldırma galvaniz', 'hot-dip galvanised'], ['A4 PASLANMAZ KİMYASAL DÜBEL', 'A4 STAINLESS CHEMICAL ANCHOR'],
+    ['SICAK DALDIRMA GALVANİZ S235JR ÇELİK', 'HOT-DIP GALVANISED S235JR STEEL'], ['DİREK VE KOL:', 'MAST AND JIB:'], ['MALZEME (ÇERÇEVE, KAPAK / MİL / CONTA)', 'MATERIAL (FRAME, GATE / STEM / SEAL)'],
+    ['YAN PLAKA', 'SIDE PLATE'], ['DİKME', 'POST'], ['KÜPEŞTE', 'HANDRAIL'], ['ARA KÜPEŞTE', 'MID RAIL'], ['TEKMELİK LAMASI', 'TOE BOARD'], ['BETONARME PERDE / TABLİYE KENARI', 'RC WALL / DECK EDGE'],
   ]);
 })();

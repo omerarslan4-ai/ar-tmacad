@@ -40,6 +40,11 @@
       { k: 'konum', ad: 'Gösterim konumu', d: 'K', opts: [['K', 'Kapalı'], ['A', 'Tam açık']], grup: 'Kapak ve tahrik' },
       { k: 'acilis', ad: 'Açılış', d: 'YUKARI', opts: [['YUKARI', 'Yukarı açılır (orifis kapağı)'], ['ASAGI', 'Aşağı iner (savak kapağı — su üstünden savaklanır)']], grup: 'Kapak ve tahrik' }, // kullanıcı 20.11.2026
       { k: 'nervur', ad: 'Nervür (ara destek) yüzü', d: 'ON', opts: [['ON', 'Akış yönündeki yüz (+y)'], ['ARKA', 'Akışa karşı yüz (−y)']], grup: 'Kapak ve tahrik' }, // duvara monte kapakta nervürler suya bakan yüzde, duvar yüzü düz (kullanıcı 20.11.2026)
+      /* malzeme (kullanıcı 21.11.2026: "kapak ve pergel vinç için malzeme özelliklerini de eklemeliyiz"); eski projelerde yoksa varsayılan alınır. Adlar unite-mekanik.js MLZ ile aynı */
+      { k: 'mlz', ad: 'Çerçeve, kapak levhası ve nervür malzemesi', d: '316L', opts: [['316L', 'AISI 316L paslanmaz çelik'], ['304L', 'AISI 304L paslanmaz çelik']], grup: 'Malzeme' },
+      { k: 'milM', ad: 'Mil malzemesi', d: '316', opts: [['316', 'AISI 316 paslanmaz çelik'], ['304', 'AISI 304 paslanmaz çelik']], grup: 'Malzeme' },
+      { k: 'conta', ad: 'Sızdırmazlık contası', d: 'EPDM', opts: [['EPDM', 'EPDM']], grup: 'Malzeme' },
+      { k: 'ankraj', ad: 'Ankraj', d: 'A4', opts: [['A4', 'A4 paslanmaz kimyasal dübel']], grup: 'Malzeme' },
       { k: 'yk', ad: 'Perde yuvası ek genişliği (her yan)', d: 125, grup: 'İnşaat (yuva)' },
       { k: 'yd', ad: 'Perde yuvası derinliği (akış yönü)', d: 200, grup: 'İnşaat (yuva)' },
       { k: 'Wf', ad: 'Çerçeve genişliği', f: 'B+2*e', grup: 'Hesaplanan' },
@@ -532,6 +537,8 @@
       { k: 'L', ad: 'Kol erişimi (direkten halata / kancaya)', d: 600, min: 200, max: 3000, grup: 'Pergel vinç' },
       { k: 'hh', ad: 'Halat ucu (tabliyeden)', d: 300, min: 0, max: 2000, grup: 'Pergel vinç' },
       { k: 'tahrik', ad: 'Tahrik', d: 'MANUEL', opts: [['MANUEL', 'Manuel (elle zincirli palanga)'], ['ELEKTRIKLI', 'Elektrikli zincirli palanga']], grup: 'Pergel vinç' }, // ünite kartında seçilir (kullanıcı 21.11.2026); yük en çok 2560 kg (× 1,25 = 3200 kg, en büyük katalog kapasitesi)
+      { k: 'mlz', ad: 'Direk ve kol malzemesi', d: 'GALV', opts: [['GALV', 'Sıcak daldırma galvaniz S235JR çelik'], ['304', 'AISI 304 paslanmaz çelik']], grup: 'Malzeme' }, // kullanıcı 21.11.2026; eski projede yoksa varsayılan
+      { k: 'bulon', ad: 'Ankraj bulonu', d: 'GALV', opts: [['GALV', 'Sıcak daldırma galvaniz'], ['A4', 'A4 paslanmaz']], grup: 'Malzeme' },
       { k: 'yuk', ad: 'Kaldırılacak en ağır yük', birim: 'kg', d: 300, min: 0, max: 2560, grup: 'Pergel vinç' },
       { k: 'kap', ad: 'Kaldırma kapasitesi', birim: 'kg', f: q => { const A = C && C.aktuator; return A ? (A.vincKapasite(q.yuk) || 0) : 0; }, grup: 'Hesaplanan' },
       { k: 'Pv', ad: 'Palanga motor gücü', birim: 'kW', f: q => { const A = C && C.aktuator; return A && q.tahrik === 'ELEKTRIKLI' ? (A.palangaGuc(A.vincKapasite(q.yuk)) || 0) : 0; }, grup: 'Hesaplanan' },

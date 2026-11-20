@@ -20,6 +20,15 @@
   const sayi = (v, d = 2) => { const x = Math.round(+v * Math.pow(10, d)) / Math.pow(10, d); return String(x).replace('.', ','); }; // 5,5 · 33 · 1,25
   const mm = v => Math.round(+v || 0);
   const uzunluk = P => { let L = 0; for (let i = 1; i < (P || []).length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
+  /* malzeme adları (aile-mekanik.js penstock_kanal / pergel_vinc "Malzeme" parametreleri; kullanıcı 21.11.2026). Değer yoksa (eski proje) varsayılan: ilk anahtar.
+     Listedeki ÖZELLİKLER metnine ve poz anahtarına girer; detay paftasının malzeme açılımı da buradan okur (unite-mekanik-detay.js). */
+  const MLZ = {
+    kapak: { '316L': 'AISI 316L', '304L': 'AISI 304L' }, mil: { '316': 'AISI 316', '304': 'AISI 304' }, conta: { EPDM: 'EPDM' }, ankraj: { A4: 'A4 paslanmaz kimyasal dübel' },
+    vinc: { GALV: 'sıcak daldırma galvaniz S235JR çelik', '304': 'AISI 304 paslanmaz çelik' }, bulon: { GALV: 'sıcak daldırma galvaniz', A4: 'A4 paslanmaz' },
+  };
+  const MLZ_VARS = { kapak: '316L', mil: '316', conta: 'EPDM', ankraj: 'A4', vinc: 'GALV', bulon: 'GALV' }; // aile varsayılanları (sayısal anahtarlar sıralandığı için ayrı tablo)
+  const mlzK = (tur, v) => (MLZ[tur][v] ? v : MLZ_VARS[tur]); // geçerli anahtar (yoksa varsayılan)
+  const mlzAd = (tur, v) => MLZ[tur][mlzK(tur, v)];
   const MERD_TIP = { beton: 'Betonarme merdiven', izgara: 'Çelik ızgaralı merdiven (galvaniz)', ctp: 'CTP (FRP) merdiven' };
 
   /* bir çizim nesnesinden liste kalemi (ya da null: mekanik değil).
@@ -32,9 +41,11 @@
       const B = mm(q.B), H = mm(q.H), D = mm(q.D), akt = q.tahrik !== 'EL', asagi = q.acilis === 'ASAGI', kisa = q.sasi === 'KISA' || (q.sasi !== 'TAM' && D > 5000);
       /* aktüatör gücü katalogdan (aktuator-katalog.js; ailede hesaplanan Pakt) — kapak ebadı, su derinliği, ağırlık ve mil çapından seçilen boyun motor gücü */
       const AK = akt && ctx.aktuator ? ctx.aktuator(q) : null, Pa = akt && +q.Pakt > 0 ? +q.Pakt : AK ? AK.P : null;
-      return { grup: 'kapak', anahtar: ['kapak', B, H, D, akt ? 'AKT' : 'EL', asagi ? 'A' : 'Y', kisa ? 'K' : 'T'].join('|'), kod,
+      const mK = mlzK('kapak', q.mlz), mM = mlzK('mil', q.milM), mC = mlzK('conta', q.conta), mA = mlzK('ankraj', q.ankraj);
+      return { grup: 'kapak', anahtar: ['kapak', B, H, D, akt ? 'AKT' : 'EL', asagi ? 'A' : 'Y', kisa ? 'K' : 'T', mK, mM, mC, mA].join('|'), kod,
         tanim: asagi ? 'Savak kapağı (penstok, aşağı açılır)' : 'Kanal kapağı (penstok)',
-        oz: [`B×H ${B}×${H} mm`, `kanal derinliği ${D} mm`, +q.G > 0 ? `≈ ${Math.round(+q.G)} kg` : '', kisa ? 'kısa şasi + uzatma mili' : 'tam şasi', akt ? (AK ? `elektrikli aktüatör ${AK.boy} (ISO 5210 ${AK.flans}, ${AK.Tmin}-${AK.Tmax} Nm, ${AK.devir} d/dk)` : 'elektrikli aktüatör') : 'el çarkı'].filter(Boolean).join(' · '),
+        oz: [`B×H ${B}×${H} mm`, `kanal derinliği ${D} mm`, +q.G > 0 ? `≈ ${Math.round(+q.G)} kg` : '', kisa ? 'kısa şasi + uzatma mili' : 'tam şasi', akt ? (AK ? `elektrikli aktüatör ${AK.boy} (ISO 5210 ${AK.flans}, ${AK.Tmin}-${AK.Tmax} Nm, ${AK.devir} d/dk)` : 'elektrikli aktüatör') : 'el çarkı',
+          `çerçeve, kapak levhası ve nervür ${MLZ.kapak[mK]}`, `mil ${MLZ.mil[mM]}`, `conta ${MLZ.conta[mC]}`, `ankraj ${MLZ.ankraj[mA]}`].filter(Boolean).join(' · '),
         P: Pa, gucYok: !akt, veriYok: akt && Pa == null, miktar: 1, birim: 'adet' };
     }
     if (e.type === 'aile' && e.fam === 'dalgic_mikser') {
@@ -47,8 +58,9 @@
       const V = ctx.vincModel ? ctx.vincModel(q) : null, H = V ? mm(V.H) : mm(q.vh), L = mm(q.L);
       /* kapasite kaldırılan en ağır yükten (mikser ağırlığı × 1,25 → standart kapasite), tahrik ünite kartından (kullanıcı 21.11.2026) */
       const elk = q.tahrik === 'ELEKTRIKLI', kap = +q.kap > 0 ? +q.kap : null, Pv = elk && +q.Pv > 0 ? +q.Pv : null;
-      return { grup: 'vinc', anahtar: ['vinc', q.model || 'GENEL', H, L, kap || 0, elk ? 'E' : 'M'].join('|'), kod, tanim: 'Pergel vinç (mikser bakımı)',
-        oz: [kap ? `kaldırma kapasitesi ${kap} kg` : '', elk ? 'elektrikli zincirli palanga' : 'manuel zincirli palanga', `direk yüksekliği ${H} mm`, `kol erişimi ${L} mm`, 'döner kollu, tabliyeye ankrajlı'].filter(Boolean).join(' · '),
+      const mV = mlzK('vinc', q.mlz), mB = mlzK('bulon', q.bulon);
+      return { grup: 'vinc', anahtar: ['vinc', q.model || 'GENEL', H, L, kap || 0, elk ? 'E' : 'M', mV, mB].join('|'), kod, tanim: 'Pergel vinç (mikser bakımı)',
+        oz: [kap ? `kaldırma kapasitesi ${kap} kg` : '', elk ? 'elektrikli zincirli palanga' : 'manuel zincirli palanga', `direk yüksekliği ${H} mm`, `kol erişimi ${L} mm`, 'döner kollu, tabliyeye ankrajlı', `direk ve kol ${MLZ.vinc[mV]}`, `ankraj bulonu ${MLZ.bulon[mB]}`].filter(Boolean).join(' · '),
         P: Pv, gucYok: !elk, veriYok: elk && Pv == null, miktar: 1, birim: 'adet' };
     }
     if (e.type === 'merdiven') {
@@ -98,7 +110,7 @@
      Boş dizi → tabloda BORULAR bölümü çizilmez. */
   function boruSatirlari(/* u, borular */) { return []; }
 
-  const api = { GRUP_SIRA, kalem, pozla, kuruluGuc, tabloSatirlari, boruSatirlari, temiz, sayi, SUTUN };
+  const api = { MLZ, MLZ_VARS, mlzK, mlzAd, GRUP_SIRA, kalem, pozla, kuruluGuc, tabloSatirlari, boruSatirlari, temiz, sayi, SUTUN };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C || !C.addCommand) return;
   C.uniteMekanikApi = api;
@@ -254,11 +266,18 @@
       const bT = (() => { const b = C.extents(C.doc.ents.filter(e => e.gv === gvT)); if (!b) return null; const k = 1000 / SC; return { gv: gvT, sc: SC, bb: b, w: (b[2] - b[0]) * k + 2, h: (b[3] - b[1]) * k + 2 }; })();
       /* ekipman listesi çizimlerle aynı paftada (kullanıcı 21.11.2026: "mekanik ekipman listesi için ayrı pafta yapmana gerek yok") */
       kur('MEK1', 'PLAN, KESİTLER VE EKİPMAN LİSTESİ', [...b1, bT]);
+      /* MEK-02 MEKANİK BAĞLANTI DETAYLARI (unite-mekanik-detay.js; kullanıcı 21.11.2026): kapak, mikser + pergel vinç, korkuluk bağlantıları — tip başına bir detay */
+      let nD = 0;
+      try { const DT = C.uniteMekDetay; if (DT) { const bTb = C.extents(C.doc.ents.filter(e => e.gv === gvT)), r2 = DT({ u, K, satir, X0, Yc: bTb ? bTb[1] - 3 : Yc });
+        if (r2 && r2.bloklar.length) { r2.bloklar.forEach(b => st.gvs.push(b.gv)); const n0 = paf.length; nD = r2.n;
+          kur('MEK2', 'MEKANİK BAĞLANTI DETAYLARI', r2.bloklar.map(b => { const x = blok(b.gv, b.sc); if (x && b.tablo) x.tablo = true; return x; }).filter(Boolean));
+          const tGv = new Set(r2.bloklar.filter(b => b.tablo).map(b => b.gv)); // tablo ve açılım kutusu pencereleri ölçeksiz (antet ölçeği yalnız detaylardan)
+          for (const L of paf.slice(n0)) { for (const v of L.vps || []) if (tGv.has(v.gvOnly)) v.olceksiz = true; L.f.olcek = C.paftaOlcekYazisi ? C.paftaOlcekYazisi(L) : L.f.olcek; } } } } catch (er) { console.error('mekanik bağlantı detayları', er); }
       numarala();
       try { if (C.bolgeDuzenle) C.bolgeDuzenle({ sessiz: true }); } catch (er) { console.error('bölge düzeni', er); }
       { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Mekanik')) s.grups.push('Mekanik'); }
       Object.assign(st, { t: Date.now(), olcek: SC, poz: satir.length }); void vps; void ana;
-      return { paf, satir, toplam: TS.toplam, nB, olcek: os, yapi };
+      return { paf, satir, toplam: TS.toplam, nB, olcek: os, yapi, nD };
     } finally { C.doc.set.anno = anno0; }
   };
   /* Mekanik pafta numaraları: tesisat paftaları (mt-pafta.js, L.mtPafta) MEK-01 …; ünite mekanik paftaları onlardan sonra, ünite ve parça sırasıyla */
@@ -279,6 +298,6 @@
     C.changed(); C.emit('layouts');
     const L0 = res.paf[0]; if (L0) { C.layoutIdx = C.doc.layouts.indexOf(L0); C.grpCur = 'Mekanik'; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60); }
     const eksik = res.toplam.eksik.length ? ` Güç verisi olmayan pozlar ("–"): ${res.toplam.eksik.join(', ')}.` : '';
-    C.log(`${res.yapi}: ${res.paf.length} mekanik pafta (1/${res.olcek.olcek}) — ${res.satir.length} poz, ${res.nB} poz balonu; kurulu toplam güç ${sayi(res.toplam.kW)} kW.${eksik} Ekipman değişince MEKANIKPAFTA ile yeniden üretin.`);
+    C.log(`${res.yapi}: ${res.paf.length} mekanik pafta (1/${res.olcek.olcek}) — ${res.satir.length} poz, ${res.nB} poz balonu${res.nD ? `, ${res.nD} bağlantı detayı` : ''}; kurulu toplam güç ${sayi(res.toplam.kW)} kW.${eksik} Ekipman değişince MEKANIKPAFTA ile yeniden üretin.`);
   });
 })(typeof window !== 'undefined' ? window.C : null);
