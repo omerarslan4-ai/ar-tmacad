@@ -356,6 +356,7 @@
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
   C.anaerobikGeo = geo;
+  C.anaerobikBoyutla = boyutla; // ünite kartı (unite-kart.js) havuzu bununla boyutlar
   /* STATİK: anaerobik havuzdan statik penceresinin 3B kabuk modeli (statik-oval.js C.statikKabukModel ile aynı biçim).
      Perde eksenleri su tutucu bant yollarından (G.bantlar) alınır; dış duvar / halka yayları / ortak duvarlar / kanal duvarları
      dış ya da bölme perde, orta ve yönlendirme perdeleri iç perde (iki yanda aynı su). Radye: taban plağı. */
@@ -594,21 +595,35 @@
   /* ================= KOMUT ================= */
   const takeKV = () => { const kv = {}; C.cmd.queue = C.cmd.queue.filter(t => { const m = t.match(/^([A-Za-zÇĞİÖŞÜçğıöşü_0-9]+)=(.*)$/); if (m) { kv[C.up(m[1])] = m[2]; return false; } return true; }); return kv; };
   const KV = { N: 'n', LS: 'Ls', H: 'h', HP: 'fb', Z: 'zt', R: 'Ro' };
-  /* ünite kartından değerler (varsa): halka sayısı, düz boy, su derinliği, standartlar, duvar üstü */
+  /* ünite kartından değerler (varsa): kartın çizim parametreleri (debiden boyutlanmış halka, açıklıklar, kalınlıklar, kotlar) ve ünite numarası */
   const karttan = () => {
     try {
-      const Z = C.kart && C.kart.hesapla && C.kart.hesapla(); const x = Z && Z.su.find(y => y.id === 'an'); const k = x && x.kart; if (!k || !k.halka) return null;
-      const v = id => (k.params.find(p => p.k === id) || {}).v, o = { n: k.halka.n, Ls: k.halka.Ls, h: k.halka.h, Ro: k.halka.Ro, tw: k.halka.tw, two: k.halka.two, rg: k.halka.rg, tg: k.halka.tg };
-      for (const id of ['bG', 'bC', 'tK', 'ag', 'ah', 'or', 'kb', 'tb']) if (v(id) != null) o[id] = v(id);
-      if (v('hp') != null) o.fb = v('hp'); if (v('zu') != null && v('zs')) o.zt = v('zu');
+      const Z = C.kart && C.kart.hesapla && C.kart.hesapla(); const x = Z && Z.su.find(y => y.id === 'an'); const k = x && x.kart; if (!k || !k.cizim) return null;
+      const o = JSON.parse(JSON.stringify(k.cizim)); if (x.kod) { o.code = String(x.kod).replace('-', ''); o.kodSabit = true; } // kartın numarası (T-108 → T108); ekipman kodları bundan
       return o;
     } catch (err) { return null; }
   };
-  C.addCommand(['ANAEROBIK', 'ANAEROBIKHAVUZ'], 'Anaerobik havuz (Çokal T-105 düzeni: karusel halkaları, giriş/çıkış kanalları, ağızlar, orifisler, köprü). ANAEROBIK [N=3 LS=11 H=3.14 HP=0.61 Z=97.25]; değerler ünite kartından da alınır', async (I) => {
+  /* var olan havuzu kartın değerleriyle günceller (yer, dönüş, elle taşınan boru delikleri korunur) */
+  const karttanGuncelle = (e, kt) => {
+    Object.assign(e, kt); delete e._c; delete e._ag; delete e._mx;
+    if (C.touch) C.touch(e); if (C.uniteNumarala) C.uniteNumarala(true);
+    if (e.ekipman) C.anaerobikEkipman(e, true); else C.anaerobikEkipman(e);
+    if (e.suAnahtar) C.anaerobikSu(e); if (C.anaerobikOlcu && e.olcu !== false) C.anaerobikOlcu(e, true);
+    C.changed && C.changed();
+  };
+  /* ünite kartındaki "Çiz" düğmesi: ANAEROBIK komutu — havuz yoksa yerleştirilir, varsa yerinde güncellenir */
+  C.anaerobikKarttanCiz = () => { if (C.cmd.running) C.cmd.cancel(); setTimeout(() => C.cmd.run('ANAEROBIK'), 0); }; // yarım kalan komut varsa önce o iptal edilir
+  C.addCommand(['ANAEROBIK', 'ANAEROBIKHAVUZ'], 'Anaerobik havuz (Çokal T-105 düzeni: karusel halkaları, giriş/çıkış kanalları, ağızlar, orifisler, köprü), ekipmanı, aksları ve ölçüleri. ANAEROBIK [N=3 LS=11 H=3.14 HP=0.61 Z=97.25 OLCU=H]; değerler ünite kartından alınır', async (I) => {
     const kv = takeKV(), kt = karttan();
+    const var_ = kt && C.doc.ents.find(x => x.type === 'anaerobik' && x.u === 'an');
+    if (var_) { // çizimde havuz var: kartın değerleriyle yerinde güncelle (ya da ikinci bir havuz çiz)
+      const sec = await I.kw(`${var_.code || ''} anaerobik havuz çizimde var`, [['GUNCELLE', 'Kartın değerleriyle güncelle'], ['YENI', 'Yeni havuz çiz']], 'GUNCELLE'); if (!sec) return;
+      if (sec === 'GUNCELLE') { karttanGuncelle(var_, kt); C.log(`✓ Ünite kartından güncellendi: ${T.anaerobik.info(var_)}`); return; }
+      delete kt.code; delete kt.kodSabit; // ikinci havuz kartın numarasını almaz (aynı kod iki havuzda olmasın); sıradaki numarayı alır
+    }
     const e = C.newEnt('anaerobik', Object.assign(JSON.parse(JSON.stringify(DEF)), kt || {}, { layer: C.std('BETON'), u: 'an', name: 'Anaerobik havuz', o: [0, 0, 0], rot: 0, sira: Date.now() }));
     for (const [k, p] of Object.entries(KV)) if (kv[k] != null && !isNaN(C.num(kv[k]))) e[p] = C.num(kv[k]);
-    if (kt) C.log('Değerler ünite kartından alındı.');
+    if (kt) C.log('Değerler ünite kartından alındı (debiden boyutlandı).');
     C.cmd.base = null; C.cmd.preview = c => T.anaerobik.prims(Object.assign({}, e, { o: c, _c: null }));
     const p = await I.pt('Havuzun sol alt köşesi'); C.cmd.preview = null; if (!p || typeof p === 'string') return;
     e.o = [p[0], p[1], 0];
@@ -617,6 +632,7 @@
     C.add(e); if (C.uniteNumarala) C.uniteNumarala(true);
     C.log(`✓ ${T.anaerobik.info(e)}`);
     if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
+    if (kv.OLCU !== 'H' && C.anaerobikOlcu) C.anaerobikOlcu(e);
   });
   C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT]', async (I) => {
     const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');

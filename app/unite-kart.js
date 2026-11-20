@@ -407,62 +407,83 @@
   };
 
   /* ---------- ANAEROBİK HAVUZ KARTI (Çokal AAT T-105 biçimi — firma kararı 11.11.2026) ----------
-     Karusel halkaları yan yana, ortak 40 cm duvarlı: 1. halka geri devir (RAS), diğerleri ham su (Çokal: RAS, T-105/1, T-105/2).
-     Her halka: iç eni 2·Ro, ortada 30 cm duvar, iki koridor; uçlar yarım daire, dönüşte kılavuz duvar (karusel modülüyle aynı ölçüler).
-     Sol yanda giriş kanalı (0,80): her halkanın ucuna kapaklı ağız 0,60 × 1,00 (kapaklarla ham suyun gireceği halka seçilir).
-     Sağ yanda çıkış kanalı (1,00), ara duvarla ikiye bölünür: alt bölüm RAS girişi, üst bölüm ham su halkalarının çıkışı.
-     Halkalar arası duvarda tabana yakın 0,50 × 0,50 orifis: akış RAS → 1 → 2. Ortadan enine 1,50 m servis köprüsü.
-     Toplam hacim ATV'den; düz boy hacimden (karusel formülü), elle değiştirilebilir. Temas süresi = V / (Q ort. + geri devir).
-     Mikser karusel modülünün mikser seçiminden (yüklüyse). Çokal: düz 11,00 → ayak izi 17,20 × 10,60. */
+     Karusel halkaları yan yana, ortak duvarlı: 1. halka geri devir (RAS), diğerleri ham su (Çokal: RAS, T-105/1, T-105/2).
+     Her halka: iç eni 2·Ro, ortada perde, iki koridor; uçlar yarım daire, dönüşte yönlendirme perdesi.
+     Sol yanda giriş kanalı: her halkanın ucuna kapaklı ağız (kapaklarla ham suyun gireceği halka seçilir).
+     Sağ yanda çıkış kanalı, ara duvarla ikiye bölünür: alt bölüm RAS girişi, üst bölüm ham su halkalarının çıkışı (tabanda kapaklı orifis).
+     Halkalar arası duvarda kapaklı pencere: akış RAS → 1 → 2. Ortadan enine servis köprüsü.
+     Boyutlar debiden (kullanıcı kararı 20.11.2026, "50 bin çizimim gibi"): anaerobik.js → boyutla (ANABOYUT kuralları) halka yarıçapı,
+     yönlendirme perdesi, ağız, pencere, orifis, kanal enleri ve boruları verir; düz boy temas süresi (0,75 sa) ile ATV hacminden büyük olanı.
+     Kalınlıklar 50.000 m³/gün örneğinden (dış 70, kanal 65, orta perde 35, yönlendirme 30, radye 80 cm). Hepsi kartta elle değiştirilebilir.
+     ana = { boyutla } (tarayıcıda C.anaerobikBoyutla); yoksa sabit Çokal halkasıyla (Ro 1,50) boyutlanır.
+     Kart çizim için havuz parametrelerini de verir (cizim) — ANAEROBIK komutu ve kartın "Çiz" düğmesi bunları kullanır. */
   K.STD_AN = {
-    Ro: { ad: 'Halka iç yarıçapı (halka iç eni / 2)', v: 1.50, birim: 'm' },
-    tw: { ad: 'Halka orta duvarı', v: 0.30, birim: 'm' },
-    two: { ad: 'Dış duvar ve halkalar arası duvar', v: 0.40, birim: 'm' },
-    rg: { ad: 'Kılavuz duvar iç yarıçapı', v: 0.70, birim: 'm' },
-    tg: { ad: 'Kılavuz duvar kalınlığı', v: 0.30, birim: 'm' },
-    bG: { ad: 'Giriş kanalı iç genişliği (sol)', v: 0.80, birim: 'm' },
-    bC: { ad: 'Çıkış kanalı iç genişliği (sağ; RAS girişi ve çıkış)', v: 1.00, birim: 'm' },
-    tK: { ad: 'Kanal dış duvarı', v: 0.30, birim: 'm' },
-    ag: { ad: 'Halka giriş / çıkış ağzı eni (kapaklı)', v: 0.60, birim: 'm' },
-    ah: { ad: 'Ağız yüksekliği', v: 1.00, birim: 'm' },
-    or: { ad: 'Halkalar arası orifis (kare, tabanda)', v: 0.50, birim: 'm' },
+    tw: { ad: 'Halka orta perdesi', v: 0.35, birim: 'm' },
+    two: { ad: 'Dış duvar ve halkalar arası duvar', v: 0.70, birim: 'm' },
+    tg: { ad: 'Yönlendirme perdesi kalınlığı', v: 0.30, birim: 'm' },
+    tK: { ad: 'Kanal duvarları', v: 0.65, birim: 'm' },
     kb: { ad: 'Servis köprüsü eni (ortadan enine)', v: 1.50, birim: 'm' },
     hp: { ad: 'Hava payı (su yüzü → duvar üstü)', v: 0.60, birim: 'm' },
     pz: { ad: 'Duvar üstü — zeminden en az yükseklik', v: 0.65, birim: 'm' },
-    tb: { ad: 'Taban plağı kalınlığı', v: 0.50, birim: 'm' },
+    tb: { ad: 'Taban plağı (radye) kalınlığı', v: 0.80, birim: 'm' },
     ras: { ad: 'Geri devir oranı (Q maks.\'a göre)', v: 0.75, birim: '' },
+  };
+  /* debiden türeyen ölçüler (boyutla yoksa Çokal değerleri) */
+  K.AN_TUREV = {
+    Ro: { ad: 'Halka iç yarıçapı (halka iç eni / 2)', v: 1.50, birim: 'm' },
+    rg: { ad: 'Yönlendirme perdesi iç yarıçapı', v: 0.70, birim: 'm' },
+    bG: { ad: 'Giriş kanalı iç genişliği (sol)', v: 0.80, birim: 'm' },
+    bC: { ad: 'Çıkış kanalı iç genişliği (sağ; RAS girişi ve çıkış)', v: 1.00, birim: 'm' },
+    ag: { ad: 'Halka giriş / çıkış ağzı eni (kapaklı)', v: 0.60, birim: 'm' },
+    ah: { ad: 'Ağız yüksekliği', v: 1.00, birim: 'm' },
+    dAg: { ad: 'Ağız eşiği — su yüzünden derinlik', v: 0.89, birim: 'm' },
+    ow: { ad: 'Halkalar arası pencere eni (kapaklı)', v: 1.50, birim: 'm' },
+    oh: { ad: 'Pencere yüksekliği', v: 1.00, birim: 'm' },
+    dPe: { ad: 'Pencere eşiği — su yüzünden derinlik', v: 0.89, birim: 'm' },
+    bO: { ad: 'Ara duvar orifisi yüksekliği (eni = ağız eni)', v: 0.60, birim: 'm' },
+    dG: { ad: 'Giriş borusu dış çapı (öneri)', v: 0.355, birim: 'm' },
+    dR: { ad: 'RAS borusu dış çapı (öneri)', v: 0.315, birim: 'm' },
+    dC: { ad: 'Çıkış borusu dış çapı (öneri)', v: 0.50, birim: 'm' },
   };
   /* halka alanı (karusel.js ile aynı): düz kısım − orta duvar + iki yarım daire − kılavuz duvar halkası */
   K.anHalkaAlan = (Ls, S) => Ls * 2 * S.Ro - Ls * S.tw + Math.PI * S.Ro * S.Ro - Math.PI * ((S.rg + S.tg) ** 2 - S.rg ** 2);
-  K.anaerobikKart = (id, dim, debi, par, sec, kar) => {
+  K.anaerobikKart = (id, dim, debi, par, sec, kar, ana) => {
     par = par || {}; dim = dim || {}; debi = debi || {}; sec = sec || {};
+    if (!ana && C && C.anaerobikBoyutla) ana = { boyutla: C.anaerobikBoyutla };
     const P = [], uyari = [];
     const ek = (k, ad, v, birim, kaynak, o) => { const x = Object.assign({ k, ad, v: typeof v === 'number' ? r3(v) : v, birim, kaynak }, o); P.push(x); return x.v; };
     const dz = (k, ad, v, birim, kaynak, not) => { const o = par[k] != null && par[k] !== '' && isFinite(+par[k]); return ek(k, ad, o ? +par[k] : v, birim, kaynak, { duz: true, deg: o, vars: v, not }); };
     // hesaptan (ATV: N hat × L × W × h)
-    const Nh = Math.max(1, Math.round(+dim.N || 1));
     const h = ek('h', 'Su derinliği', +dim.h || 0, 'm', 'hesap');
-    const V = ek('V', 'Gerekli hacim', Nh * (+dim.L || 0) * (+dim.W || 0) * (+dim.h || 0), 'm³', 'hesap', { f: 'ATV: hat × L × W × h' });
+    const V = ek('V', 'Gerekli hacim', Math.max(1, Math.round(+dim.N || 1)) * (+dim.L || 0) * (+dim.W || 0) * (+dim.h || 0), 'm³', 'hesap', { f: 'ATV: hat × L × W × h' });
     const Qo = ek('Qo', 'Ortalama debi (mevcut kademe)', (+debi.Qd || 0) / 24, 'm³/h', 'hesap');
     const Qm = ek('Qm', 'En büyük debi (mevcut kademe)', +debi.Qww || 0, 'm³/h', 'hesap');
     // seçenek ve standart
     const nh = sec.anGoz === '1' ? 1 : 3;
     ek('nh', 'Halka sayısı', nh, 'adet', 'standart', { not: 'Seçenek: üstteki "Anaerobik halka"' });
-    const S = {}; for (const [k, s] of Object.entries(K.STD_AN)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart', k === 'ras' ? null : 'Çokal AAT T-105');
+    const S = {}; for (const [k, s] of Object.entries(K.STD_AN)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart', k === 'ras' ? null : '50.000 m³/gün örneği');
+    const QRS = S.ras * Qm;
+    // debiden türeyen ölçüler (ANABOYUT kuralları)
+    let B = null;
+    if (ana && ana.boyutla && Qo > 0 && h > 0) { try { B = ana.boyutla({ n: nh, Qd: Qo * 24, Qmax: Qm || undefined, QRS: QRS || undefined, h }); } catch (er) { B = null; } }
+    for (const [k, s] of Object.entries(K.AN_TUREV)) S[k] = dz(k, s.ad, B && B.par[k] != null ? B.par[k] : s.v, s.birim, 'türetilen', B ? 'debiden (ANABOYUT kuralları)' : 'Çokal AAT T-105');
     ek('rol', 'Halkaların görevi', nh > 1 ? `1. halka: geri devir (RAS) · ${nh === 3 ? '2. ve 3.' : 'diğerleri'}: ham su (giriş kanalındaki kapaklarla seçilir)` : 'tek halka: ham su + geri devir', '', 'standart');
-    ek('akis', 'Akış', nh > 1 ? 'giriş kanalı → kapaklı ağızlar → halkalar arası orifisler (RAS → 1 → 2) → çıkış kanalının üst bölümü' : 'giriş kanalı → halka → çıkış kanalı', '', 'standart');
+    ek('akis', 'Akış', nh > 1 ? 'giriş kanalı → kapaklı ağızlar → halkalar arası pencereler (RAS → 1 → 2) → çıkış kanalının üst bölümü' : 'giriş kanalı → halka → çıkış kanalı', '', 'standart');
     // elle
     const zs = dz('zs', 'Su yüzü kotu', 0, 'm', 'elle', '3. parçada hidrolik profilden gelecek');
     const zzVars = zs + S.hp - S.pz;
     const zzO = par.zz != null && par.zz !== '' && isFinite(+par.zz);
     const zz = ek('zz', 'Zemin kotu', zzO ? +par.zz : zzVars, 'm', 'elle', { duz: true, deg: zzO, vars: r3(zzVars), not: '2. parçada araziden okunacak' });
-    // türetilen: düz boy hacimden (elle değiştirilebilir)
+    // türetilen: düz boy — ATV hacminden ve temas süresinden (boyutla) büyük olanı (elle değiştirilebilir)
     const A0 = K.anHalkaAlan(0, S), dA = 2 * S.Ro - S.tw;
     const LsV = h > 0 && dA > 0 ? Math.max(2, (V / (h * nh) - A0) / dA) : 0;
-    const Ls = dz('Ls', 'Düz boy (yarım daire merkezleri arası)', r3(LsV), 'm', 'türetilen', 'hacimden; Çokal 11,00');
+    // temas süresinden: debiden gelen halkayla boyutla'nın düz boyu; halka ölçüsü elle değiştiyse aynı hacim (0,75 sa) yeni halkaya göre
+    const ayni = B && Math.abs(S.Ro - B.par.Ro) < 1e-6 && Math.abs(S.rg - B.par.rg) < 1e-6;
+    const LsT = !B ? 0 : ayni ? B.par.Ls : (dA > 0 ? Math.max(2, Math.ceil(((B.V / (h * nh) - A0) / dA) / 0.1 - 1e-9) * 0.1) : 0), f2 = v => v.toFixed(2).replace('.', ',');
+    const Ls = dz('Ls', 'Düz boy (yarım daire merkezleri arası)', r3(Math.max(LsV, LsT)), 'm', 'türetilen', B ? `ATV hacminden ${f2(LsV)} · temas süresinden ${f2(LsT)} — büyüğü` : 'hacimden; Çokal 11,00');
     const Vk = ek('Vk', 'Havuz hacmi (geometriden)', K.anHalkaAlan(Ls, S) * h * nh, 'm³', 'türetilen', { f: 'halka alanı × h × halka sayısı' });
-    ek('b', 'Koridor genişliği', S.Ro - S.tw / 2, 'm', 'türetilen', { f: 'Ro − orta duvar / 2' });
-    const QRS = ek('QRS', 'Geri devir debisi', S.ras * Qm, 'm³/h', 'türetilen', { f: 'oran × Q maks.' });
+    ek('b', 'Koridor genişliği', S.Ro - S.tw / 2, 'm', 'türetilen', { f: 'Ro − orta perde / 2' });
+    ek('QRS', 'Geri devir debisi', QRS, 'm³/h', 'türetilen', { f: 'oran × Q maks.' });
     const t = ek('t', 'Temas süresi', Qo + QRS > 0 ? Vk / (Qo + QRS) : 0, 'sa', 'türetilen', { f: 'V / (Q ort. + geri devir)', not: 'Süzüntü suyu debisi dahil değil' });
     // mikser (karusel modülünün mikser seçimi)
     if (kar && kar.geo && Ls > 0 && h > 0) {
@@ -479,7 +500,7 @@
     const zu = ek('zu', 'Duvar üstü kotu', zuV, 'm', 'türetilen', { f: 'en büyük(su yüzü + hava payı ; zemin + 0,65)', not: 'Belirleyen: ' + neden });
     const zt = ek('zt', 'Taban kotu', zs - h, 'm', 'türetilen', { f: 'su yüzü − h' });
     const zf = ek('zf', 'Temel alt kotu', zt - S.tb, 'm', 'türetilen', { f: 'taban − taban plağı' });
-    const za = ek('za', 'Ağız alt kotu', zs - 0.89, 'm', 'türetilen', { f: 'su yüzü − 0,89', not: 'Çokal: 95,75 – 96,75, su 96,64' });
+    const za = ek('za', 'Ağız alt kotu', zs - S.dAg, 'm', 'türetilen', { f: 'su yüzü − ağız eşiği derinliği', not: 'Çokal: 95,75 – 96,75, su 96,64' });
     const en = ek('en', 'Ayak izi eni', nh * 2 * S.Ro + (nh + 1) * S.two, 'm', 'türetilen', { f: 'halka · 2Ro + (halka + 1) · duvar' });
     const Lo = 2 * S.two + 2 * S.Ro + Ls;
     const boy = ek('boy', 'Ayak izi boyu', S.tK + S.bG + Lo + S.bC + S.tK, 'm', 'türetilen', { f: 'kanal duvarı + giriş kanalı + halka boyu + çıkış kanalı + kanal duvarı' });
@@ -488,14 +509,20 @@
     if (!V) uyari.push('Anaerobik havuz ölçüleri proses hesabında eksik.');
     if (V && Vk < V - 0.5) uyari.push(`Havuz hacmi ${Vk.toFixed(0)} m³, gerekli ${V.toFixed(0)} m³'ten küçük; düz boyu artırın.`);
     if (t && (t < 0.5 || t > 1.5)) uyari.push(`Temas süresi ${t.toFixed(2).replace('.', ',')} sa; ATV-DVWK-A 131'e göre 0,5–1,5 sa olmalı.`);
+    if (S.rg + S.tg > S.Ro - 0.3) uyari.push('Yönlendirme perdesi halka yarıçapına çok yakın; perde yarıçapını küçültün.');
     const yc = i => S.two + S.Ro + i * (2 * S.Ro + S.two);
+    // çizim parametreleri (app/anaerobik.js varlığı). Su yüzü girilmişse duvar üstü kotu ve hava payı = duvar üstü − su yüzü (zemin belirleyince büyür)
+    const cizim = { n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
+    if (zs) Object.assign(cizim, { zt: r3(zu), fb: r3(zu - zs) });
+    if (Qm) Object.assign(cizim, { Qmax: r3(Qm), Qmin: r3(Qo * 0.5), QRS: r3(QRS) });
     return {
       id, tip: 'anaerobik', params: P, uyari, koku: false,
       ayakIzi: { en: r3(en), boy: r3(boy) },
       giris: { x: 0, y: r3(en / 2), z: zs }, cikis: { x: r3(boy), y: r3(yc(nh - 1)), z: zs },
       girisler: ['ham su', 'geri devir', 'süzüntü suyu'],
-      // 6. adımda detay şablonuna aktarılır (halka eksenleri ayak izinin sol alt köşesine göre)
+      // halka eksenleri ayak izinin sol alt köşesine göre
       halka: { n: nh, Ls, h, Ro: S.Ro, tw: S.tw, two: S.two, rg: S.rg, tg: S.tg, x1: r3(S.tK + S.bG + S.two + S.Ro), yc: Array.from({ length: nh }, (_, i) => r3(yc(i))) },
+      cizim,
       kot: { su: zs, ust: zu, taban: zt, temel: zf, zemin: zz, agiz: za },
     };
   };
@@ -744,7 +771,7 @@
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'anaerobik') {
         const kar = opts.karusel || (C && C.karuselGeo ? { DEF: C.KARUSEL_DEF, Ls: C.karuselLs, geo: C.karuselGeo } : null);
-        x.kart = K.anaerobikKart(x.id, veri(x.id).dim, Z.kademe.mevcut.debi, par[x.id], sec, kar);
+        x.kart = K.anaerobikKart(x.id, veri(x.id).dim, Z.kademe.mevcut.debi, par[x.id], sec, kar, opts.anaerobik);
         x.ayakIzi = x.kart.ayakIzi;
       } else if (x.durum === 'kart' && x.tip === 'debimetre') {
         // çıkış debimetresi her zaman manyetik (boru üstünde); giriş debimetresinin tipi üstteki seçenekten
@@ -840,7 +867,11 @@
       }
       h += '</tbody></table>';
       if (k.uyari.length) h += `<div class="hint" style="color:#e0a030;margin-top:8px">${k.uyari.map(esc).join('<br>')}</div>`;
+      /* çizim şablonu hazır ünitelerde "Çiz": havuz yoksa yerleştirilir, varsa kartın değerleriyle güncellenir (ekipman, akslar ve ölçülerle birlikte) */
+      const CIZ = { anaerobik: () => C.anaerobikKarttanCiz && C.anaerobikKarttanCiz() }[x.tip];
+      if (CIZ) h += `<div class="bar" style="margin-top:10px;gap:8px;align-items:center"><button id="ukCiz" class="pri">Çiz</button><span class="hint">Havuzu ekipmanı, aksları ve ölçüleriyle çizer; çizimde varsa günceller.</span></div>`;
       R1.innerHTML = h; grupBagla(x);
+      const bc = R1.querySelector('#ukCiz'); if (bc) bc.onclick = () => { fin(); setTimeout(CIZ, 0); };
       const pr = () => (A.par[x.id] = A.par[x.id] || {});
       R1.querySelectorAll('[data-p]').forEach(i => i.onchange = () => { const v = parseFloat(String(i.value).replace(',', '.')); if (isFinite(v)) pr()[i.dataset.p] = v; else delete pr()[i.dataset.p]; C.changed && C.changed(); ciz(); });
       R1.querySelectorAll('[data-sil]').forEach(i => i.onclick = () => { delete pr()[i.dataset.sil]; C.changed && C.changed(); ciz(); });
@@ -877,7 +908,7 @@
       ['Kaba ızgara yapısı', 'Coarse screen structure'], ['İnce ızgara yapısı', 'Fine screen structure'], ['Kaba ve ince ızgara yapısı (aynı kanal)', 'Coarse and fine screen structure (common channel)'],
       ['Giriş terfi istasyonu', 'Inlet pumping station'], ['Kum ve yağ tutucu', 'Grit and grease chamber'], ['Debimetre', 'Flow meter'], ['Ön çökeltme', 'Primary clarifier'],
       ['Dağıtma yapısı (biyolojik havuzlar)', 'Distribution chamber (biological tanks)'], ['Dağıtma yapısı (son çökeltme)', 'Distribution chamber (final clarifiers)'],
-      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
+      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
       ['Disk filtre', 'Disc filter'], ['Filtre besleme pompaları', 'Filter feed pumps'], ['Basınçlı kum filtresi', 'Pressure sand filter'],
       ['Ultrafiltrasyon', 'Ultrafiltration'], ['UV dezenfeksiyon', 'UV disinfection'], ['Çıkış debimetresi', 'Outlet flow meter'],
       ['Klor temas tankı', 'Chlorine contact tank'], ['Temiz su deposu', 'Treated water tank'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],

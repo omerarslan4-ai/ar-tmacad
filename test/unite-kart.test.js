@@ -196,29 +196,50 @@ const KAR = karuselYukle();
    Çizim: 3 karusel halkası (RAS, T-105/1, T-105/2), halka iç eni 3,00, orta duvar 30, halkalar arası 40 cm, R0,70–R1,00 kılavuz,
    düz boy 11,00; giriş kanalı 0,80 (sol), çıkış kanalı 1,00 (sağ), kanal duvarı 30 → dış ölçü 17,20 × 10,60.
    Halka eksenleri sol alt köşeden: x 3,00; y 1,90 / 5,30 / 8,70. Su 96,64, duvar üstü 97,25, ağız 95,75–96,75, zemin 95,00. */
+const ANA = { boyutla: require('../app/anaerobik.js').boyutla };
+const COKAL_KAL = { two: 0.40, tK: 0.30, tw: 0.30, tb: 0.50 }; // Çokal kalınlıkları (kartın varsayılanı 50 bin örneğinin kalınlıkları)
 t('Çokal AAT T-105: anaerobik karusel halkaları, ayak izi, temas süresi ve kotlar', () => {
-  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 145.83 * 24, Qww: 275.83 }, { zs: 96.64, zz: 95.00, Ls: 11 }, {}, KAR);
+  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 145.83 * 24, Qww: 275.83 }, Object.assign({ zs: 96.64, zz: 95.00, Ls: 11 }, COKAL_KAL), {}, KAR, ANA);
   yakin(k.ayakIzi.en, 10.60, 'en (çizim 10,60)'); yakin(k.ayakIzi.boy, 17.20, 'boy (çizim 17,20)');
   yakin(k.halka.x1, 3.00, 'sol yarım daire merkezi'); assert.deepStrictEqual(k.halka.yc, [1.9, 5.3, 8.7]);
+  // Çokal debisinden boyutlanınca Çokal açıklıkları çıkar
+  for (const [a, v] of [['Ro', 1.5], ['rg', 0.7], ['ag', 0.6], ['ah', 1.0], ['bG', 0.8], ['bC', 1.0], ['ow', 1.5], ['bO', 0.6]]) yakin(p(k, a).v, v, a);
   assert.ok(Math.abs(p(k, 'QRS').v - 206.87) < 0.01, 'geri devir (rapor 206,87)');
   const Vk = (11 * 3 - 11 * 0.3 + Math.PI * 2.25 - Math.PI * (1 - 0.49)) * 3 * 3;
   assert.ok(Math.abs(p(k, 'Vk').v - Vk) < 0.01, 'geometri hacmi'); yakin(p(k, 'b').v, 1.35, 'koridor');
   assert.ok(p(k, 't').v > 0.57 && p(k, 't').v < 0.95, 'raporun temas aralığında');
   yakin(k.kot.ust, 97.24, 'duvar üstü (çizim 97,25)'); yakin(k.kot.agiz, 95.75, 'ağız alt kotu (çizim 95,75)');
+  yakin(k.cizim.zt, 97.24, 'çizimde duvar üstü'); yakin(k.cizim.fb, 0.60, 'çizimde hava payı');
   assert.ok(p(k, 'mix').v.includes('×'), 'mikser seçildi');
   assert.deepStrictEqual(k.uyari, []); assert.deepStrictEqual(k.girisler, ['ham su', 'geri devir', 'süzüntü suyu']);
 });
 
+/* GERÇEK PROJE: kullanıcının 50.000 m³/gün anaerobik havuzu (test-proje/Anaerobik-50bin-statik.aritma, ANABOYUT Q=50000 + statik kalınlıkları).
+   Kart varsayılanlarıyla aynı havuz çıkmalı (kullanıcı kararı 20.11.2026). Debiler: Q ort. 2083,33, Q maks. 3958,33 m³/h, RAS %75. */
+t('50 bin m³/gün: kart, kullanıcının çizdiği havuzun ölçülerini verir', () => {
+  const k = K.anaerobikKart('an', { N: 3, L: 1, W: 1, h: 4.5 }, { Qd: 50000, Qww: 3958.3333 }, {}, {}, KAR, ANA);
+  const cizim = { n: 3, Ls: 29.4, Ro: 4.1, tw: 0.35, two: 0.7, rg: 1.95, tg: 0.3, bG: 2.2, bC: 2.4, tK: 0.65, ag: 2, ah: 2.05, dAg: 1.94, ow: 3, oh: 2.25, dPe: 2.14, bO: 1.4, dG: 1.4, dR: 1.2, dC: 1.6, h: 4.5, tb: 0.8, kb: 1.5 };
+  for (const [a, v] of Object.entries(cizim)) yakin(k.cizim[a], v, a);
+  assert.ok(Math.abs(p(k, 't').v - 0.75) < 0.01, 'temas süresi ≈ 0,75 sa'); assert.ok(p(k, 'Vk').v > 3770);
+  yakin(k.ayakIzi.boy, 0.65 + 2.2 + 2 * 0.7 + 2 * 4.1 + 29.4 + 2.4 + 0.65, 'boy'); yakin(k.ayakIzi.en, 3 * 8.2 + 4 * 0.7, 'en');
+  // elle değişen değer korunur, ATV hacmi büyükse düz boy ondan
+  const e = K.anaerobikKart('an', { N: 3, L: 1, W: 1, h: 4.5 }, { Qd: 50000, Qww: 3958.3333 }, { Ro: 4.0, two: 0.5 }, {}, KAR, ANA);
+  yakin(e.cizim.Ro, 4.0, 'elle Ro'); assert.ok(e.cizim.Ls > 29.4 && Math.abs(p(e, 't').v - 0.75) < 0.02, 'halka daralınca düz boy uzar, temas süresi korunur'); yakin(e.cizim.two, 0.5, 'elle duvar'); assert.ok(p(e, 'Ro').deg);
+  const v = K.anaerobikKart('an', { N: 3, L: 40, W: 8, h: 4.5 }, { Qd: 50000, Qww: 3958.3333 }, {}, {}, KAR, ANA);
+  assert.ok(p(v, 'Vk').v >= 3 * 40 * 8 * 4.5 - 0.5 && p(v, 'Ls').v > 29.4, 'ATV hacmi büyük → düz boy uzar');
+});
+
 t('anaerobik: düz boy hacimden; tek halka; zincirde mevcut kademe', () => {
-  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, {}, {}, KAR);
+  const k = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, COKAL_KAL, {}, KAR);
   assert.ok(Math.abs(p(k, 'Vk').v - 267.3) < 0.01, 'hacim korunur'); yakin(p(k, 'Ls').v, (29.7 - (Math.PI * 2.25 - Math.PI * 0.51)) / 2.7, 'düz boy');
-  const t1 = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, {}, { anGoz: '1' }, KAR);
+  const t1 = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, COKAL_KAL, { anGoz: '1' }, KAR);
   yakin(t1.ayakIzi.en, 3.8, 'tek halka eni'); assert.ok(Math.abs(p(t1, 'Vk').v - 267.3) < 0.01, 'tek halkada da hacim');
-  const az = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, { Ls: 5 }, {}, KAR);
+  const az = K.anaerobikKart('an', { N: 3, L: 11, W: 2.7, h: 3.0 }, { Qd: 3500, Qww: 275.83 }, Object.assign({ Ls: 5 }, COKAL_KAL), {}, KAR);
   assert.ok(az.uyari.some(u => u.includes('düz boyu artırın')));
-  const x = K.kartlar(j, {}, { karusel: KAR }).su.find(y => y.id === 'an');
+  const x = K.kartlar(j, {}, { karusel: KAR, anaerobik: ANA }).su.find(y => y.id === 'an');
   assert.strictEqual(x.durum, 'kart'); assert.strictEqual(x.kademe, 'mevcut');
   yakin(p(x.kart, 't').v, p(x.kart, 'Vk').v / (55300 / 24 + 0.75 * 4608), 'WB 2025 temas süresi');
+  assert.ok(p(x.kart, 'Ro').v > 1.5, 'WB 2025: halka debiden genişler');
   const kisa = K.anaerobikKart('an', { N: 1, L: 5, W: 5, h: 3 }, { Qd: 24000, Qww: 2000 }, {}, {});
   assert.ok(kisa.uyari.some(u => u.includes('Temas süresi')));
 });
