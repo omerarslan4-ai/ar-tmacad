@@ -127,7 +127,7 @@
   }
 
   /* yapı türü: havuz (E-BP) | yasam (E-BB). e.elYapi elle seçilir; havuz tipi üniteler kendiliğinden havuz */
-  const HAVUZ_TIP = /^(anaerobik|aerobik|havuz|karusel|cokel|cokeltme|kumtutucu|kum_tutucu|izgara|dengeleme|biyolojik|klor|temas|camur|filtre|ontesis|on_arit|ozon|terfi)/i;
+  const HAVUZ_TIP = /^(anaerobik|aerobik|havuz|karusel|cokel|cokeltme|kumtutucu|kum_tutucu|izgara|dengeleme|biyolojik|klor|temas|camur|filtre|ontesis|on_arit|ozon)/i; // terfi istasyonu üst binalı olabilir: kendiliğinden havuz sayılmaz (ELYAPITURU ile seçilir; kullanıcıya soruldu)
   const yapiTuru = e => { if (!e) return null; if (e.elYapi === 'havuz' || e.elYapi === 'yasam') return e.elYapi; if (e.type === 'unite' || HAVUZ_TIP.test(String(e.type || ''))) return 'havuz'; return 'yasam'; };
 
   /* kablo etiketi satırları (örnek: "GK-1/Z-109" / "4x2.5 mm² NYY 173 mt"; boy yoksa yalnız cins) */
@@ -381,9 +381,9 @@
     c.T(0, y, sMm('baslik'), 'SEMBOLLER', 'L', 0, 2); y -= rh * 1.2;
     const sat = (cizim, yazi) => { cizim(4, y + h * 0.4); c.T(26, y, h, yazi, 'L', 0, 2); y -= rh; };
     sat((x, yy) => { c.B(x, yy - 2, 14, 5, 'k'); c.L(x, yy - 2, x + 14, yy + 3, 'i'); c.L(x, yy + 3, x + 14, yy - 2, 'i'); }, 'ANA DAĞITIM VE MOTOR BESLEME PANOLARI (MCC)');
-    sat((x, yy) => { const w = 11.9 / 5; c.B(x + 5, yy - w / 2, w, w, 'i'); c.L(x + 5, yy - w / 2, x + 5 + w, yy + w / 2, 'i'); c.g.S.push([[x + 5, yy - w / 2], [x + 5 + w, yy - w / 2], [x + 5 + w, yy + w / 2]]); }, 'SAHA LOKAL KUMANDA PANOSU (LCU)');
-    sat((x, yy) => { const w = 8 / 5; c.B(x + 5.5, yy - w / 2, w, w, 'i'); }, 'JUNCTION BOX (JB)');
-    sat((x, yy) => { const r = 15.6 / 5; const N = 20; for (let i = 0; i < N; i++) { const a0 = 2 * Math.PI * i / N, a1 = 2 * Math.PI * (i + 1) / N; c.L(x + 7 + r * Math.cos(a0), yy + r * Math.sin(a0), x + 7 + r * Math.cos(a1), yy + r * Math.sin(a1), 'i'); } c.T(x + 7, yy + 0.2, r * 0.62, 'M', 'BC', 0, 2); c.T(x + 7, yy - 0.3, r * 0.5, '3~', 'TC', 0, 2); }, 'ELEKTRİK MOTORU');
+    sat((x, yy) => { const w = (UK().sembol || {}).lcu / 5; c.B(x + 5, yy - w / 2, w, w, 'i'); c.L(x + 5, yy - w / 2, x + 5 + w, yy + w / 2, 'i'); c.g.S.push([[x + 5, yy - w / 2], [x + 5 + w, yy - w / 2], [x + 5 + w, yy + w / 2]]); }, 'SAHA LOKAL KUMANDA PANOSU (LCU)');
+    sat((x, yy) => { const w = (UK().sembol || {}).jb / 5; c.B(x + 5.5, yy - w / 2, w, w, 'i'); }, 'JUNCTION BOX (JB)');
+    sat((x, yy) => { const r = (UK().sembol || {}).motorR / 5; const N = 20; for (let i = 0; i < N; i++) { const a0 = 2 * Math.PI * i / N, a1 = 2 * Math.PI * (i + 1) / N; c.L(x + 7 + r * Math.cos(a0), yy + r * Math.sin(a0), x + 7 + r * Math.cos(a1), yy + r * Math.sin(a1), 'i'); } c.T(x + 7, yy + 0.2, r * 0.62, 'M', 'BC', 0, 2); c.T(x + 7, yy - 0.3, r * 0.5, '3~', 'TC', 0, 2); }, 'ELEKTRİK MOTORU');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'gK'), 'GÜÇ KABLOLARI');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'kK'), 'KUMANDA KABLOLARI');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'gK2'), 'GÜÇ KABLOLARI 2. KADEME');
@@ -396,15 +396,23 @@
     ac('GK-1/Z-108/A', ['EKİPMAN KODU', 'ÇIKTIĞI PANO (1: MCC-1, 2: LOKAL PANO)', 'GÜÇ KABLOLARI']);
     ac('KK-LK-1/Z-108/A', ['EKİPMAN KODU', 'ÇIKTIĞI PANO', 'LOKAL KUMANDA', 'KUMANDA KABLOLARI']);
     y -= rh * 0.3; c.T(0, y, sMm('baslik'), 'NOTLAR:', 'L', 0, 2); y -= rh;
-    const not = ['1- TEKNİK ÜNİTELERİN KUVVET KABLOLARI, KANAL İLE YAPI ARASINDA KABLO SAYISI VE CİNSİNE UYGUN ÇAPTAKİ PVC BORULAR İÇERİSİNE ALINACAKTIR.',
-      '2- TEKNİK ÜNİTELERİN ÇEVRE VEYA BÖLME DUVARLARI İLE YÜRÜME YOLLARI KENARLARINDAN ÇEKİLECEK KUVVET KABLOLARI GALVANİZLİ DELİKLİ KABLO TEPSİLERİ ÜZERİNE DÖŞENECEKTİR.',
-      '3- TEKNİK ÜNİTELERE AÇIKTAN GEÇİRİLECEK KUVVET KABLOLARI, KABLO CİNSİNE UYGUN ÇAPTA GALVANİZLİ BORULAR İÇİNDEN ÇEKİLECEKTİR.',
-      '4- KABLO KESİTLERİ MOTOR GÜCÜNDEN AKIM TAŞIMA KOŞULUYLA SEÇİLMİŞTİR (cosφ 0,85, verim 0,87, tava gruplama 0,80, 1,25 In). MCC PANOSUNUN YERİ VE KABLO BOYLARI GENEL YERLEŞİM VE GENEL KABLOLAMADA BELİRLENECEK; GERİLİM DÜŞÜMÜ KONTROLÜ BOYLARLA BİRLİKTE YAPILACAKTIR.',
-      '5- MARKA / MODEL BELİRTİLMEMİŞTİR; EŞDEĞER ÜRÜN KULLANILABİLİR.'];
-    for (const s of not) for (const p of sar(s, 95)) { c.T(p.ilk ? 2 : 6, y, h, p.s, 'L', 0, 2); y -= rh * 0.85; }
+    for (const [t, ic] of NOT1) { c.T(ic ? 6 : 2, y, h, t, 'L', 0, 2); y -= rh * 0.85; }
     return c.g;
   }
-  const sar = (s, n) => { const out = []; let cur = ''; for (const w of String(s).split(' ')) { if ((cur + ' ' + w).trim().length > n && cur) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); } if (cur) out.push(cur); return out.map((s2, i) => ({ s: s2, ilk: i === 0 })); };
+  /* notlar elle bölünmüş satırlar (çeviri anahtarı satır satır: dil-en.js); [metin, girinti] */
+  const NOT1 = [['1- TEKNİK ÜNİTELERİN KUVVET KABLOLARI, KANAL İLE YAPI ARASINDA KABLO SAYISI'], ['VE CİNSİNE UYGUN ÇAPTAKİ PVC BORULAR İÇERİSİNE ALINACAKTIR.', 1],
+    ['2- TEKNİK ÜNİTELERİN ÇEVRE VEYA BÖLME DUVARLARI İLE YÜRÜME YOLLARI KENARLARINDAN'], ['ÇEKİLECEK KUVVET KABLOLARI GALVANİZLİ DELİKLİ KABLO TEPSİLERİ ÜZERİNE DÖŞENECEKTİR.', 1],
+    ['3- TEKNİK ÜNİTELERE AÇIKTAN GEÇİRİLECEK KUVVET KABLOLARI, KABLO CİNSİNE UYGUN ÇAPTA'], ['GALVANİZLİ BORULAR İÇİNDEN ÇEKİLECEKTİR.', 1],
+    ['4- KABLO KESİTLERİ MOTOR GÜCÜNDEN AKIM TAŞIMA KOŞULUYLA SEÇİLMİŞTİR'], ['(cosφ 0,85, verim 0,87, tava gruplama 0,80, 1,25 In).', 1],
+    ['MCC PANOSUNUN YERİ VE KABLO BOYLARI GENEL YERLEŞİM VE GENEL KABLOLAMADA BELİRLENECEK;', 1], ['GERİLİM DÜŞÜMÜ KONTROLÜ BOYLARLA BİRLİKTE YAPILACAKTIR.', 1],
+    ['5- MARKA / MODEL BELİRTİLMEMİŞTİR; EŞDEĞER ÜRÜN KULLANILABİLİR.']];
+  const NOT2 = [['1- HAVUZ ÇEVRESİNE 30x3.5 GALVANİZLİ ŞERİT İLE HALKA TOPRAKLAYICI, TEMELE'], ['30x3.5 GALVANİZLİ ŞERİT İLE TEMEL TOPRAKLAMASI YAPILACAKTIR.', 1],
+    ['2- KÖŞELERE BAKIR KILIFLI ÇELİK TOPRAKLAMA ÇUBUĞU (Ø20, L=3 m) ÇAKILACAK,'], ['ŞERİDE ÇAPRAZ KLEMENSLE BAĞLANACAKTIR.', 1],
+    ['3- KABLO TAVALARI, KORKULUKLAR, LOKAL PANOLAR VE ELEKTRİKLİ EKİPMANLAR EN AZ'], ['16 mm² Cu İLETKENLE TB-1 TOPRAKLAMA BARASINA BAĞLANACAKTIR.', 1]];
+  const NOT3 = [['1- ARMATÜRLER LED ETANŞTIR (KOD, GÜÇ, IŞIK AKISI, RENK SICAKLIĞI VE IP SINIFI'], ['SEMBOLLER LİSTESİNDE); KORKULUĞA 3" GALVANİZ BORU DİREKLE MONTE EDİLECEKTİR.', 1],
+    ['2- IŞIK LİNYELERİ 3x2.5 NYY, PRİZ PANOSU BESLEMELERİ 4x4 NYY KABLO İLE, KABLO TAVASI'], ['ÜZERİNDEN VE AÇIKTA GALVANİZLİ BORU İÇİNDEN ÇEKİLECEKTİR.', 1],
+    ['3- BHAK ANAHTAR KUTUSU MCC-1 PANOSUNDAN BESLENİR (KABLO VE ANA ŞALTER TEK HAT'], ['ŞEMASINDA); KABLO BOYU VE GERİLİM DÜŞÜMÜ GENEL KABLOLAMADA BELİRLENECEKTİR.', 1],
+    ['4- BÜTÜN ARMATÜR DİREKLERİ, PRİZ PANOLARI VE ANAHTAR KUTULARI TOPRAKLAMA'], ['SİSTEMİNE BAĞLANACAKTIR.', 1]];
   /* genel tablo: başlık + sütunlar + satırlar */
   function tablo(baslik, cols, rows, o) {
     o = o || {}; const c = cz(), h = o.h || sMm('tablo'), rh = h * 2.2, W = cols.reduce((s, x) => s + x.w, 0); let y = 0;
@@ -432,7 +440,7 @@
     c.T(0, y, sMm('baslik'), 'SEMBOLLER', 'L', 0, 2); y -= rh * 1.2;
     const sat = (ciz, t) => { ciz(8, y + h * 0.4); c.T(26, y, h, t, 'L', 0, 2); y -= rh; };
     const A = EL().ARMATUR && EL().ARMATUR[armKod];
-    sat((x, yy) => { c.L(x, yy - 3, x, yy + 0.5, 'i'); c.g.S.push([[x, yy + 0.5], [x - 1.4, yy + 3], [x + 1.4, yy + 3]]); }, `KORKULUĞA MONTE EDİLMİŞ LED ETANŞ ARMATÜR (${armKod}${A ? `, ${A.W} W, ${A.lm} lm, ${A.K} K, IP${A.ip}` : ''})`);
+    sat((x, yy) => { c.L(x, yy - 3, x, yy + 0.5, 'i'); c.g.S.push([[x, yy + 0.5], [x - 1.4, yy + 3], [x + 1.4, yy + 3]]); }, 'KORKULUĞA MONTE EDİLMİŞ LED ETANŞ ARMATÜR'); if (A) { y += rh * 0.45; c.T(26, y, h * 0.85, `${armKod}: ${A.W} W, ${A.lm} lm, ${A.K} K, IP${A.ip}`, 'L', 0, 2); y -= rh; }
     sat((x, yy) => { c.B(x - 1.6, yy - 2.3, 3.2, 4.6, 'i'); c.L(x + 0.4, yy + 1.5, x - 0.5, yy, 'i'); c.L(x - 0.5, yy, x + 0.5, yy, 'i'); c.L(x + 0.5, yy, x - 0.4, yy - 1.5, 'i'); }, 'KORKULUĞA MONTE EDİLMİŞ ETANŞ ANAHTAR KUTUSU (BHAK)');
     sat((x, yy) => { c.B(x - 3, yy - 1.5, 6, 3.6, 'i'); c.L(x - 2.3, yy, x - 0.7, yy, 'i'); c.L(x + 0.7, yy, x + 2.3, yy, 'i'); }, '3 FAZLI PRİZ PANOSU (1x16A TOPRAKLI + 3x32A 3 FAZ PRİZ, IP65)');
     sat((x, yy) => c.L(x - 8, yy, x + 8, yy, 'k'), 'IŞIK LİNYESİ 3x2.5 NYY / PRİZ PANOSU BESLEMESİ 4x4 NYY');
@@ -467,21 +475,14 @@
   /* aydınlatma notları (LED, linye, hesap) */
   function notlar3(d) {
     const c = cz(), h = sMm('not'), rh = h * 2.2; let y = 0; c.T(0, y, sMm('baslik'), 'NOTLAR:', 'L', 0, 2); y -= rh * 1.2;
-    const A = EL().ARMATUR && EL().ARMATUR[d.armKod];
-    const L0 = [`1- ARMATÜRLER LED ETANŞ (${d.armKod}${A ? `: ${A.W} W, ${A.lm} lm, ${A.K} K, Ra≥${A.Ra}, IP${A.ip}, ömür 50.000 saat L70` : ''}), KORKULUĞA 3" GALVANİZ BORU DİREKLE (${vir(UK().direkH || 3.5)} m) MONTE EDİLECEKTİR; ARALIK ${vir(UK().armaturAralik || 4.8)} m.`,
-      `2- IŞIK LİNYELERİ 3x2.5 NYY, PRİZ PANOSU BESLEMELERİ 4x4 NYY KABLO İLE, KABLO TAVASI ÜZERİNDEN VE AÇIKTA GALVANİZLİ BORU İÇİNDEN ÇEKİLECEKTİR.`,
-      `3- BHAK ANAHTAR KUTUSU ${d.bhak.kod} ${d.bhak.kablo} KABLO İLE MCC-1 PANOSUNDAN BESLENİR (ANA ŞALTER 3x${d.bhak.In}A); KABLO BOYU VE GERİLİM DÜŞÜMÜ GENEL KABLOLAMADA.`,
-      '4- BÜTÜN ARMATÜR DİREKLERİ, PRİZ PANOLARI VE ANAHTAR KUTULARI TOPRAKLAMA SİSTEMİNE BAĞLANACAKTIR.'];
-    for (const s of L0) for (const p of sar(s, 90)) { c.T(p.ilk ? 0 : 4, y, h, p.s, 'L', 0, 2); y -= rh; }
+    const sat = [...NOT3, [`5- ARMATÜR ARALIĞI ${vir(UK().armaturAralik || 4.8)} m, DİREK YÜKSEKLİĞİ ${vir(UK().direkH || 3.5)} m.`]]; void d;
+    for (const [t, ic] of sat) { c.T(ic ? 4 : 0, y, h, t, 'L', 0, 2); y -= rh; }
     return c.g;
   }
   function notlar2(TR) {
     const c = cz(), h = sMm('not'), rh = h * 2.2; let y = 0; c.T(0, y, sMm('baslik'), 'NOTLAR:', 'L', 0, 2); y -= rh * 1.2;
-    const L0 = ['1- HAVUZ ÇEVRESİNE 30x3.5 GALVANİZLİ ŞERİT İLE HALKA TOPRAKLAYICI, TEMELE 30x3.5 GALVANİZLİ ŞERİT İLE TEMEL TOPRAKLAMASI YAPILACAKTIR.',
-      '2- KÖŞELERE BAKIR KILIFLI ÇELİK TOPRAKLAMA ÇUBUĞU (Ø20, L=3 m) ÇAKILACAK, ŞERİDE ÇAPRAZ KLEMENSLE BAĞLANACAKTIR.',
-      '3- KABLO TAVALARI, KORKULUKLAR, LOKAL PANOLAR VE ELEKTRİKLİ EKİPMANLAR EN AZ 16 mm² Cu İLETKENLE TB-1 TOPRAKLAMA BARASINA BAĞLANACAKTIR.',
-      TR ? `4- TOPRAKLAMA DİRENCİ R = ${vir(TR.R)} Ω (ρ = ${Math.round(TR.rho)} Ωm, ${TR.cubuk} ÇUBUK); ÖLÇÜLEREK DOĞRULANACAKTIR.` : '4- TOPRAKLAMA DİRENCİ ÖLÇÜLEREK DOĞRULANACAKTIR.'];
-    for (const s of L0) for (const p of sar(s, 90)) { c.T(p.ilk ? 0 : 4, y, h, p.s, 'L', 0, 2); y -= rh; }
+    const sat = [...NOT2, TR ? [`4- TOPRAKLAMA DİRENCİ R = ${vir(TR.R)} Ω (ρ = ${Math.round(TR.rho)} Ωm, ${TR.cubuk} ÇUBUK);`] : ['4- TOPRAKLAMA DİRENCİ'], ['ÖLÇÜLEREK DOĞRULANACAKTIR.', 1]];
+    for (const [t, ic] of sat) { c.T(ic ? 4 : 0, y, h, t, 'L', 0, 2); y -= rh; }
     return c.g;
   }
 
@@ -497,7 +498,8 @@
   /* elsema çizgi stilleri: kablo lejantı için katman renginde çizgi (gK güç, kK kumanda, 2 = kesikli) — elsema yalnız k/i/b/t/h bilir; ek stiller burada */
   { const t0 = T.elsema; if (t0 && !t0._eluSar) { const p0 = t0.prims; t0.prims = e => { const g = e.g || {}; const ek = (g.L || []).filter(l => /^[gk]K2?$/.test(l[4]));
       if (!ek.length) return p0(e); const out = p0(Object.assign({}, e, { g: Object.assign({}, g, { L: g.L.filter(l => !/^[gk]K2?$/.test(l[4])) }) })), k = C.doc.set.anno / 1000, o = M.p3(e.p);
-      for (const l of ek) out.unshift(L([o[0] + l[0] * k, o[1] + l[1] * k, 0], [o[0] + l[2] * k, o[1] + l[3] * k, 0], { color: l[4][0] === 'g' ? 5 : 3, lw: 25, lt: /2$/.test(l[4]) ? 'HIDDEN' : undefined }));
+      for (const l of ek) { const t = ((KR().katmanlar || {})[{ gK: 'ELK_GUC', kK: 'ELK_KUMANDA', gK2: 'ELK_GUC2', kK2: 'ELK_KUMANDA2' }[l[4]]]) || { renk: 7, tip: 'Continuous', kal: 0.25 }; /* kablo lejantı: katman kuralından (renk, çizgi tipi, kalınlık) */
+        out.unshift(L([o[0] + l[0] * k, o[1] + l[1] * k, 0], [o[0] + l[2] * k, o[1] + l[3] * k, 0], { color: t.renk, lw: Math.round(t.kal * 100), lt: /^continuous$/i.test(t.tip) ? undefined : String(t.tip).toUpperCase() })); }
       return out; }; t0._eluSar = true; } }
   const gKutu = g => { let b = null; const ek = (x, y) => { if (!b) b = [x, y, x, y]; else { b[0] = Math.min(b[0], x); b[1] = Math.min(b[1], y); b[2] = Math.max(b[2], x); b[3] = Math.max(b[3], y); } };
     for (const l of g.L || []) { ek(l[0], l[1]); ek(l[2], l[3]); } for (const t of g.T || []) { const w = String(t[3]).length * t[2] * 0.6; if (t[5]) { ek(t[0] - t[2], t[1]); ek(t[0] + t[2], t[1] + (/^R/.test(t[4]) ? -w : w)); } else { const x0 = /C$|^MC/.test(t[4]) ? t[0] - w / 2 : /R$/.test(t[4]) ? t[0] - w : t[0]; ek(x0, t[1] - t[2] * 0.3); ek(x0 + w, t[1] + t[2]); } } for (const s of g.S || []) for (const q of s) ek(q[0], q[1]); return b; };

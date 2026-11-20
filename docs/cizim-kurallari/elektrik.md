@@ -143,6 +143,7 @@ Bina (yaşam alanı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler
 - Yazılar renk 7 (örnekte sarı 2). Örnekte kablo tavası çizgileri sarı (`Elektrik` katmanı, renk 2) idi; sarı kullanılmaz → tava renk 7 (kabul).
 - Kablo **boyu yazılmaz** (MCC yeri genel yerleşimde): etiket ikinci satırı `4x2.5 mm² NYY` + boy yerine boşluk; kablo listesinde BOY sütunu "genel kablolamada". Veri: her kablo `{ kod, tur, cins, nereden, nereye, boy: null }`.
 - Kablo kesiti motor gücünden (akım taşıma): In = P / (√3 · 400 · cosφ · η), cosφ 0,85, η 0,87 (kabul); NYY havada / tavada (VDE 0298-4, 30 °C) × tava gruplama 0,80 (kabul) ≥ 1,25 · In; en küçük 2,5 mm². Gerilim düşümü boy gelince.
+- Terfi istasyonu kendiliğinden havuz sayılmaz (üst binası olabilir); ELYAPITURU ile seçilir — kullanıcıya sorulacak.
 - 10x1.5 kumanda kablosu örnekteki galvaniz boru tablosunda yok: dış çapı (≈ 17 mm) 4x2,5'e yakın olduğu için **1"** boruya konur (kabul).
 - Pergel vinç (elektrikli palanga) örnekte yok: `GK-1/<kod>` güç kablosu; kumanda palanganın kendi sarkıt butonundan (KK yok) — kabul.
 
