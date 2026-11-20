@@ -415,6 +415,12 @@
   };
   const halkaAd = (e, G, i) => (i === 0 && G.n > 1 ? 'RAS' : `${e.code || ''}/${G.n > 1 ? i : 1}`);
 
+  /* ÇİZİM ROLLERİ → mimari kural katmanı (app/cizim-kural.js MIMARI; karar 3: renk, çizgi tipi ve kalınlık katmandan — elle yazılmaz; 20.11.2026).
+     Çokal anaerobik planı (3-Çokal_AAT_Anaerobik_R3.dwg): duvarlar ve köprü Beton 0,50 · görünen Ongor 0,15 · gizli Arkagor 0,15 kesikli · tretuvar Tretuvar 0,20;
+     ekipman Mekanik 0,25, ekipman etiketi Mek_Yazi, halka adı MAHAL İSİM, açıklama oku YZ, yazı Mim_Yazi25, başlık Yazi30. */
+  const ROLK = { beton: 'Beton', gorunen: 'Ongor', gizli: 'Arkagor', tretuvar: 'Tretuvar', ekipman: 'Mekanik', ekipYazi: 'Mek_Yazi', mahal: 'MAHAL İSİM', ok: 'YZ', yazi: 'Mim_Yazi25', baslik: 'Yazi30' };
+  const rol = (r, ek) => { const K = C.cizimKural, ad = ROLK[r], t = K && K.MIMARI && K.tanim(K.MIMARI, ad); if (!t) return Object.assign({}, ek); const o = K.ozellik(t), lt = C.LT && C.LT[o.lt] ? o.lt : 'CONTINUOUS';
+    if (C.doc && !C.doc.layers[ad] && C.ensureLayer) C.ensureLayer(ad, o.color, lt, o.lw); return Object.assign({ ly: ad, color: o.color, lt, lw: o.lw }, ek); };
   T.anaerobik = {
     label: 'Anaerobik havuz', ifc: 'IfcTank',
     prims: e => {
@@ -423,52 +429,52 @@
       const PL = (pts, c, o) => P(pts.map(p => f.at(p[0], p[1], z)), c, o);
       const T1 = (x, y, s, o, al) => TX(f.at(x, y, z), o && o.h || h, s, rd, al || 'M', o);
       // beton: dış kabuk, su hacimleri (delikler), bağımsız perdeler
-      for (const h of [G.bolge.dis, ...G.bolge.delik]) out.push(PL(h, true, { lw: 50 }));
-      for (const p of G.parca) out.push(PL(p.pts, true, { lw: 35 }));
+      for (const h of [G.bolge.dis, ...G.bolge.delik]) out.push(PL(h, true, rol('beton')));
+      for (const p of G.parca) out.push(PL(p.pts, true, rol('beton')));
       // görünmeyen açıklıklar (kesikli): ağız, orifis, pencere, boru
-      for (const a of G.acik) out.push(PL(a.pts, true, { lt: 'DASHED', color: 8, lw: 18 }));
+      for (const a of G.acik) out.push(PL(a.pts, true, rol('gizli')));
       // köprü
-      const k = G.kopru; out.push(PL([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], true, { color: 30, lw: 35 }));
-      for (const sh of G.sahanlik) { out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, { color: 30, lw: 25 })); for (const y of sh.yarik || []) out.push(PL(y, true, { color: 30, lw: 18 })); }
-      out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, { color: 8, lw: 18 }));
-      out.push(T1((k.x0 + k.x1) / 2, G.Wo + 0.9, `Servis köprüsü ${f2(q.kb)} m · ${kot(k.z1)}`, { color: 30 }));
-      if (G.kopru2) { const k2 = G.kopru2; out.push(PL([[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], true, { color: 30, lw: 35 }), T1((k2.x0 + k2.x1) / 2, G.Wo + 0.9, `Yürüyüş yolu ${f2(q.kb)} m · ${kot(k2.z1)}`, { color: 30 })); }
+      const k = G.kopru; out.push(PL([[k.x0, k.y0], [k.x1, k.y0], [k.x1, k.y1], [k.x0, k.y1]], true, rol('beton')));
+      for (const sh of G.sahanlik) { out.push(PL([[sh.x0, sh.y0], [k.x0, sh.y0], [k.x0, sh.y1], [sh.x0, sh.y1]], true, rol('beton'))); for (const y of sh.yarik || []) out.push(PL(y, true, rol('gorunen'))); }
+      out.push(P(G.tretuvar.dis.map(p => f.at(p[0], p[1], z)), true, rol('tretuvar')));
+      out.push(T1((k.x0 + k.x1) / 2, G.Wo + 0.9, `Servis köprüsü ${f2(q.kb)} m · ${kot(k.z1)}`, rol('yazi')));
+      if (G.kopru2) { const k2 = G.kopru2; out.push(PL([[k2.x0, k2.y0], [k2.x1, k2.y0], [k2.x1, k2.y1], [k2.x0, k2.y1]], true, rol('beton')), T1((k2.x0 + k2.x1) / 2, G.Wo + 0.9, `Yürüyüş yolu ${f2(q.kb)} m · ${kot(k2.z1)}`, rol('yazi'))); }
       // kapaklar
       const un = unum(e);
-      if (!e.ekipman) G.kapak.forEach((c, i) => out.push(L(f.at(c.a[0], c.a[1], z), f.at(c.b[0], c.b[1], z), { color: 6, lw: 70 })));
+      if (!e.ekipman) G.kapak.forEach((c, i) => out.push(L(f.at(c.a[0], c.a[1], z), f.at(c.b[0], c.b[1], z), rol('ekipman'))));
       const agL = G.kapak.filter(c => c.k === 'agiz' && c.yan === 'sol'), agR = G.kapak.filter(c => c.k === 'agiz' && c.yan === 'sag');
-      agL.forEach((c, i) => out.push(T1(c.a[0] - 0.15, c.b[1] + 0.25, `SK-${un}G/${LET[i]}`, { color: 6 }, 'R')));
-      agR.forEach((c, i) => out.push(T1(c.a[0] + 0.15, c.b[1] + 0.25, `SK-${un}C/${LET[i]}`, { color: 6 }, 'L')));
-      G.kapak.filter(c => c.k === 'pencere').forEach((c, i) => out.push(T1((c.a[0] + c.b[0]) / 2, c.a[1] + 0.45, `SK-${un}P/${LET[i]} ${c.eb}`, { color: 6 })));
-      G.kapak.filter(c => c.k === 'bolme').forEach(c => out.push(T1(c.b[0] + 0.2, c.b[1] + 0.35, `SK-${un}B ${c.eb}`, { color: 6 }, 'L')));
+      agL.forEach((c, i) => out.push(T1(c.a[0] - 0.15, c.b[1] + 0.25, `SK-${un}G/${LET[i]}`, rol('ekipYazi'), 'R')));
+      agR.forEach((c, i) => out.push(T1(c.a[0] + 0.15, c.b[1] + 0.25, `SK-${un}C/${LET[i]}`, rol('ekipYazi'), 'L')));
+      G.kapak.filter(c => c.k === 'pencere').forEach((c, i) => out.push(T1((c.a[0] + c.b[0]) / 2, c.a[1] + 0.45, `SK-${un}P/${LET[i]} ${c.eb}`, rol('ekipYazi'))));
+      G.kapak.filter(c => c.k === 'bolme').forEach(c => out.push(T1(c.b[0] + 0.2, c.b[1] + 0.35, `SK-${un}B ${c.eb}`, rol('ekipYazi'), 'L')));
       // halka adları, akış okları, mikserler
       const mx = mixKaynak(e, G);
       for (const H of G.halka) {
-        out.push(T1(G.xc1 + q.Ls * 0.35, H.yc + q.tw / 2 + G.b * 0.5, halkaAd(e, G, H.i), { color: 2, h: hB }));
+        out.push(T1(G.xc1 + q.Ls * 0.35, H.yc + q.tw / 2 + G.b * 0.5, halkaAd(e, G, H.i), rol('mahal', { h: hB })));
         for (const [yy, sg] of [[H.yc + q.tw / 2 + G.b * 0.5, H.yon], [H.yc - q.tw / 2 - G.b * 0.5, -H.yon]]) {
           const xa = G.xc1 + q.Ls * 0.62, ln = Math.min(1.2, q.Ls * 0.08);
-          out.push(L(f.at(xa - sg * ln, yy, z), f.at(xa + sg * ln, yy, z), { color: 5, lw: 35 }), L(f.at(xa + sg * ln, yy, z), f.at(xa + sg * (ln - 0.35), yy + 0.18, z), { color: 5, lw: 35 }), L(f.at(xa + sg * ln, yy, z), f.at(xa + sg * (ln - 0.35), yy - 0.18, z), { color: 5, lw: 35 }));
+          out.push(L(f.at(xa - sg * ln, yy, z), f.at(xa + sg * ln, yy, z), rol('ok')), L(f.at(xa + sg * ln, yy, z), f.at(xa + sg * (ln - 0.35), yy + 0.18, z), rol('ok')), L(f.at(xa + sg * ln, yy, z), f.at(xa + sg * (ln - 0.35), yy - 0.18, z), rol('ok')));
         }
         if (mx && !e.ekipman) { // çıkış uçlarında: sol dönüş çıkışı ve sağ dönüş çıkışı koridorları
           const per = Math.ceil(mx.n / 2);
           [[G.xc1 + 2.0, H.yon > 0 ? 1 : -1, 1, per], [G.xc2 - 2.0, H.yon > 0 ? -1 : 1, -1, mx.n - per]].forEach(([x, side, dir, cnt], j) => {
             for (let m = 0; m < cnt; m++) {
               const y = side > 0 ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt, D = Math.min(mx.D, G.b * 0.8);
-              out.push(L(f.at(x, y - D / 2, z), f.at(x, y + D / 2, z), { color: 1, lw: 50 }), L(f.at(x, y, z), f.at(x - dir * 0.6, y, z), { color: 1, lw: 35 }));
+              out.push(L(f.at(x, y - D / 2, z), f.at(x, y + D / 2, z), rol('ekipman')), L(f.at(x, y, z), f.at(x - dir * 0.6, y, z), rol('ekipman')));
             }
           });
         }
       }
       // kotlar ve açıklama yazıları
-      for (const [k, ad] of [['giris', 'Giriş borusu'], ['ras', 'RAS borusu']]) { const b = G.boru.find(x => x.k === k); if (b) out.push(T1(b.p[0], G.kanal.yb - 0.9, `${ad} Ø${f0(b.d * 1000)}`, { color: 1 })); }
-      const cb = G.boru.find(b => b.k === 'cikis'); if (cb) out.push(T1(cb.p[0] + 0.3, cb.p[1], `Çıkış Ø${f0(cb.d * 1000)}`, { color: 1 }, 'L'));
-      out.push(T1(q.tK + q.bG / 2, (G.kanal.yb + G.kanal.yt) / 2, `Giriş kanalı ${f2(q.bG)}`, { color: 8 }), T1(G.xR + q.bC / 2, (G.kanal.yb + G.kanal.yt) / 2 + 1.2, `Çıkış kanalı ${f2(q.bC)}`, { color: 8 }));
-      if (G.n > 1) out.push(T1(G.xR + q.bC / 2, G.yc[0], 'RAS girişi', { color: 8 }));
-      const o0 = G.acik.find(a => a.k === 'orifis'); if (o0) out.push(T1((G.ara.g0 + G.ara.g1) / 2, o0.pts[0][1] - 0.35, `Orifis ${f0(q.ag * 100)}×${f0(q.bO * 100)} (${kot(G.zB)})`, { color: 8 }));
-      out.push(T1(G.Lo / 2, -1.4, `Ağız ${f2(q.ag)}×${f2(q.ah)} m: ${kot(G.zS)} – ${kot(G.zH)} · su ${kot(G.zW)} · taban ${kot(G.zB)} · duvar üstü ${kot(G.zTop)}`, { color: 3 }));
+      for (const [k, ad] of [['giris', 'Giriş borusu'], ['ras', 'RAS borusu']]) { const b = G.boru.find(x => x.k === k); if (b) out.push(T1(b.p[0], G.kanal.yb - 0.9, `${ad} Ø${f0(b.d * 1000)}`, rol('ekipYazi'))); }
+      const cb = G.boru.find(b => b.k === 'cikis'); if (cb) out.push(T1(cb.p[0] + 0.3, cb.p[1], `Çıkış Ø${f0(cb.d * 1000)}`, rol('ekipYazi'), 'L'));
+      out.push(T1(q.tK + q.bG / 2, (G.kanal.yb + G.kanal.yt) / 2, `Giriş kanalı ${f2(q.bG)}`, rol('yazi')), T1(G.xR + q.bC / 2, (G.kanal.yb + G.kanal.yt) / 2 + 1.2, `Çıkış kanalı ${f2(q.bC)}`, rol('yazi')));
+      if (G.n > 1) out.push(T1(G.xR + q.bC / 2, G.yc[0], 'RAS girişi', rol('yazi')));
+      const o0 = G.acik.find(a => a.k === 'orifis'); if (o0) out.push(T1((G.ara.g0 + G.ara.g1) / 2, o0.pts[0][1] - 0.35, `Orifis ${f0(q.ag * 100)}×${f0(q.bO * 100)} (${kot(G.zB)})`, rol('yazi')));
+      out.push(T1(G.Lo / 2, -1.4, `Ağız ${f2(q.ag)}×${f2(q.ah)} m: ${kot(G.zS)} – ${kot(G.zH)} · su ${kot(G.zW)} · taban ${kot(G.zB)} · duvar üstü ${kot(G.zTop)}`, rol('yazi')));
       // başlık
-      out.push(TX(f.at(G.Lo / 2, G.Wo + h * 9, z), tH(5), `${e.code || ''} ${e.name || 'Anaerobik havuz'}`.trim(), rd, 'C', { color: 2 }));
-      out.push(TX(f.at(G.Lo / 2, G.Wo + h * 5.5, z), h, `${G.n} halka · düz ${f2(q.Ls)} m · koridor ${f2(G.b)} m · su ${f2(q.h)} m · V = ${f0(G.V)} m³${mx ? ` · mikser ${G.n}×${mx.n} ${mx.name}` : ''} · ${f2(G.Lo)} × ${f2(G.Wo)} m`, rd, 'C'));
+      out.push(TX(f.at(G.Lo / 2, G.Wo + h * 9, z), tH(5), `${e.code || ''} ${e.name || 'Anaerobik havuz'}`.trim(), rd, 'C', rol('baslik')));
+      out.push(TX(f.at(G.Lo / 2, G.Wo + h * 5.5, z), h, `${G.n} halka · düz ${f2(q.Ls)} m · koridor ${f2(G.b)} m · su ${f2(q.h)} m · V = ${f0(G.V)} m³${mx ? ` · mikser ${G.n}×${mx.n} ${mx.name}` : ''} · ${f2(G.Lo)} × ${f2(G.Wo)} m`, rd, 'C', rol('yazi')));
       return out;
     },
     mesh: e => {

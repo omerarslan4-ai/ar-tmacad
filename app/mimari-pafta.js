@@ -368,10 +368,62 @@
     C.doc.ents = C.doc.ents.filter(e => !(e.type === 'kesitisaret' && !e.planIsaret && !tut.has(e.id) && adlar.has(e.name) && (/^K/.test(e.gv || '') || (e.gorunum && !VL.some(v => v.id === e.gorunum)) || (e.canli && !e.gv && !e.gorunum && ayniHat(e))))); // yetim: geçici gv'de, bağlı görünümü silinmiş ya da canlı yenilemeden kalmış bağsız kopya
     return n0 - C.doc.ents.length; };
   C.kesitIsaretTemizle = kesitIsaretTemizle;
+  /* ---------- ÜNİTE TARİFİ (T[tip].paftaTarifi) ----------
+     Kapsamdaki elemanlar tek bir üniteye aitse (ünitenin kendisi + bag ile ona bağlı olanlar) tarifini döner; değilse null (genel yol). */
+  const uniteTarifi = ents => {
+    const us = ents.filter(e => C.T[e.type] && C.T[e.type].paftaTarifi); if (us.length !== 1) return null;
+    const u = us[0]; if (!ents.every(e => e === u || e.bag === u.id)) return null;
+    return C.T[u.type].paftaTarifi(u, { kh: 1.2 }) || null; // kh: plan kesme yüksekliği (katKotlari ile aynı)
+  };
+  /* kural tablosundaki katman (program katmanı → çizim katmanının rengi / çizgi tipi / kalınlığı) */
+  const kuralKatman = ad => { const K = C.cizimKural, R = K && K.MIMARI, h = R && K.esle(R, ad), t = h && K.tanim(R, h), o = t ? K.ozellik(t) : { color: 7, lt: 'CONTINUOUS', lw: 18 }; C.ensureLayer(ad, o.color, C.LT && C.LT[o.lt] ? o.lt : 'CONTINUOUS', o.lw); return ad; };
+  const mahalYazi = () => { const R = C.cizimKural && C.cizimKural.MIMARI, y = (R && R.yazi && R.yazi['MAHAL İSİM']) || { stil: ['ARIAL'], mm: [3] }; return { st: y.stil[0], mm: y.mm[0] }; };
+  const mahalKoy = (gv, p, ad) => { const y = mahalYazi(), e = C.add(C.newEnt('text', { p: [p[0], p[1], 0], h: C.annoH(y.mm), s: String(ad), al: 'MC', st: y.st, ann: false, layer: kuralKatman('MAHAL_ADI'), gv })); if (e) delete e.sp; return e; };
+  /* planda: mahal (halka) adları, eleman kodları (DÖ01, DU01 …; açılım nesnesi → açılım tablosuna girer) ve ünitenin kendi plan ölçüleri */
+  const unitePlanEtiket = (gv, W, tarif) => {
+    for (const m of tarif.mahaller || []) mahalKoy(gv, W(m.p), m.ad);
+    const Ek = C.acilimEtiketKural ? C.acilimEtiketKural() : { duvarTasma: 4.5, dosemeDik: 12, dosemeYatay: 2.3 }, k = C.annoH(1);
+    for (const q of tarif.kodlar || []) { const a = W(q.a), duvar = q.tur === 'duvar', p = duvar ? [a[0] + (q.t || 0) / 2 + Ek.duvarTasma * k, a[1], 0] : [a[0] + Ek.dosemeYatay * k, a[1] + Ek.dosemeDik * k, 0];
+      const e = C.add(C.newEnt('acilim', { a: [a[0], a[1], 0], p, lines: q.lines.slice(), tur: q.tur, side: 1, dis: 'Mimari', planKod: true, layer: kuralKatman('MALZEME_ACILIM'), gv })); if (e) delete e.sp; }
+    for (const d of tarif.planOlcu || []) { const c = JSON.parse(JSON.stringify(d)); for (const key of ['id', '_c', 'sp', 'oto', 'bag']) delete c[key]; for (const key of ['a', 'b', 'p', 'c']) if (Array.isArray(c[key])) c[key] = W(c[key]); c.gv = gv; const e = C.add(C.newEnt(c.type, c)); if (e) delete e.sp; }
+  };
+  /* planda ünite gövdesinin görünen çizgileri (tarif.planSinif): Çokal ünite planlarında havuz duvarları ve köprü Beton katmanında (kalın, taramasız), tretuvar Tretuvar
+     katmanında, radyenin toprak altında kalan kenarı çizilmez. Düz çizgi sınıf değiştirdiği yerde bölünür. Döner: katmanı değişen / bölünen nesne sayısı */
+  const uniteGovdeCizgi = (gv, W, tarif) => {
+    const u = C.byId(tarif.unite); if (!u || !tarif.planSinif || !C.secLk) return 0;
+    const d = W([0, 0]), lk = C.secLk(u), son = '_GORUNEN_' + lk, S = p => tarif.planSinif([p[0] - d[0], p[1] - d[1]]);
+    const hedef = (ly, s) => (s === 'govde' ? kuralKatman(ly.slice(0, ly.length - son.length) + '_KESIT_' + lk) : s === 'tretuvar' ? kuralKatman(ly.slice(0, ly.length - lk.length) + 'TRETUVAR') : null);
+    const at = new Set(); let n = 0;
+    const parca = (e, a, b) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), N = Math.max(1, Math.ceil(L / 0.1)), P = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, 0], out = []; let cur = null;
+      for (let i = 0; i < N; i++) { const s = S(P((i + 0.5) / N)); if (cur && cur.s === s) cur.t1 = (i + 1) / N; else out.push(cur = { s, t0: i / N, t1: (i + 1) / N }); }
+      return out.map(q => ({ s: q.s, a: P(q.t0), b: P(q.t1) })); };
+    for (const e of C.doc.ents.filter(q => q.gv === gv && String(q.layer || '').endsWith(son))) {
+      if (e.type === 'line' || (e.type === 'pline' && !e.bul && e.pts && e.pts.length > 1)) {
+        const K = e.type === 'line' ? [[e.a, e.b]] : e.pts.map((p, i) => [p, e.pts[(i + 1) % e.pts.length]]).slice(0, e.closed ? e.pts.length : e.pts.length - 1), Q = K.flatMap(k => parca(e, k[0], k[1])), tek = Q.every(q => q.s === Q[0].s);
+        if (tek) { const h = hedef(e.layer, Q[0].s); if (h) { e.layer = h; delete e._c; } else at.add(e.id); n++; continue; }
+        at.add(e.id); n++; for (const q of Q) { const h = hedef(e.layer, q.s); if (!h) continue; const x = C.add(C.newEnt('line', { a: q.a, b: q.b, layer: h, gv })); if (x) delete x.sp; }
+      } else { const p = e.type === 'circle' ? [e.c[0] + e.r, e.c[1]] : e.pts && e.pts[0]; if (!p) continue; const h = hedef(e.layer, S(p)); if (h) { e.layer = h; delete e._c; } else at.add(e.id); n++; }
+    }
+    if (at.size) C.doc.ents = C.doc.ents.filter(e => !at.has(e.id));
+    return n; };
+  /* ünite kesitinde su tutucu bant açıklaması: çok perdeli havuzda her bant için bir "SU TUTUCU BANT (…)" yazısı üst üste biniyordu (20.11.2026). Yalnız en soldaki ve
+     en sağdaki bantın oklu açıklaması kalır (yazı yapının dışına düşer); bant sembolleri hepsinde durur. Çokal anaerobik kesitlerinde bant yazısı yok, yalnız sembol.
+     Açıklama kesit.js'te ardışık üç nesnedir: ok çizgisi (pline), ok ucu (solid / pline), yazı. Döner: silinen açıklama sayısı */
+  const bantEtiketSadele = gv => { const E = C.doc.ents, I = []; for (let i = 0; i < E.length; i++) if (E[i].gv === gv && E[i].type === 'text' && /^SU TUTUCU BANT/.test(String(E[i].s || ''))) I.push(i);
+    if (I.length < 3) return 0; const x = i => E[i].p[0], sol = I.reduce((a, b) => (x(b) < x(a) ? b : a)), sag = I.reduce((a, b) => (x(b) > x(a) ? b : a)), at = new Set();
+    for (const i of I) { if (i === sol || i === sag) continue; at.add(E[i].id); for (const j of [i - 1, i - 2]) if (j >= 0 && E[j].gv === gv && E[j].layer === 'YAZI' && (E[j].type === 'solid' || E[j].type === 'pline')) at.add(E[j].id); }
+    C.doc.ents = E.filter(e => !at.has(e.id)); return I.length - 2; };
+  /* kesitte mahal adı: L = [{ ad, p: [x, y] (dünya), z }] — kesit düzlemindeki yeri kesit → çizim eşlemesinden (C.doc.set.kesitMeta) */
+  const uniteKesitMahal = (v, L) => { const km = (C.doc.set.kesitMeta || {})[v.nm]; if (!km || !v.gv) return 0; let n = 0;
+    for (const m of L) { const s = (m.p[0] - km.a[0]) * km.u[0] + (m.p[1] - km.a[1]) * km.u[1]; if (s < km.ub[0] - 1e-6 || s > km.ub[2] + 1e-6) continue; mahalKoy(v.gv, [km.q0[0] + s, km.q0[1] + m.z], m.ad); n++; }
+    return n; };
   const uret = async (SC) => {
     const G = C.gorunumApi; if (!G || !C.makeView) { C.warn('Görünüş / disiplin modülleri yüklenmemiş.'); return null; }
     const { ents, secim, u } = kapsam(); if (!ents.length) { C.warn('3B model yok: mimari pafta için önce yapıyı (perde, döşeme, duvar …) 3B modelleyin.'); return null; }
     const st = durum(), ids = secim ? ents.map(e => e.id) : null;
+    /* ÜNİTENİN KENDİ PAFTA TARİFİ (anaerobik havuz, 20.11.2026): kapsam tek bir ünite ve ona bağlı elemanlarsa (ekipman, merdiven, korkuluk, su) ve ünitenin
+       T[tip].paftaTarifi(e) işlevi varsa plan kotları, kesit hatları, mahal adları ve plandaki kod etiketleri üniteden alınır; yoksa (bina, kum tutucu …) genel yol */
+    let tarif = null; try { tarif = uniteTarifi(ents); } catch (er) { console.error('ünite pafta tarifi', er); }
     const grup0 = new Map(G.liste().map(v => [v.id, (v.gruplar || []).slice()])); /* kesitlerin özgün disiplin grupları (aşağıdaki temizlik hepsini Mimari'ye çevirir) */
     /* eski projelerin otomatik Statik / Mekanik / Elektrik kesit pencereleri ve görünümleri temizlenir (yalnız Mimari kesit; elle düzeltilmiş olanlar kalır) */
     try { if (G.tekDisiplinTemizle) { const T = G.tekDisiplinTemizle(); if (T.pencere || T.gorunum || T.pafta.length) C.log(`Yalnız mimari kesit (kullanıcı kararı): ${T.pencere} disiplin kesit penceresi, ${T.gorunum} Statik / Mekanik / Elektrik kesit görünümü kaldırıldı${T.pafta.length ? `; boşalan otomatik kesit paftaları silindi: ${T.pafta.join(', ')}` : ''}.`); } } catch (er) { console.error('disiplin kesit temizliği', er); }
@@ -400,7 +452,9 @@
     /* merdivenli katta plan ilk ara sahanlığın üstünden kesilir (planKesmeKotu); başlık yine kat kotu */
     const merd = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e); return { z0: +Gm.z0, sahanliklar: (Gm.pieces || []).filter(p => p.kind === 'sah').map(p => +p.z) }; } catch (er) { return null; } }).filter(Boolean);
     katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
-    const planlar = katlar.map(k => { const gv = gorunus({ kind: 'plan', h: k.h, depth: Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false, dograma: true }); if (!gv) return null;
+    if (tarif && tarif.planlar && tarif.planlar.length) katlar = tarif.planlar.map(p => ({ z: p.h, h: p.h, baslik: up(p.baslik), depth: p.depth, gizle: p.gizle, unite: true })); // ünitenin planları (kesme kotu ve başlık üniteden)
+    const planlar = katlar.map(k => { const gv = gorunus(Object.assign({ kind: 'plan', h: k.h, depth: k.depth || Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false, dograma: true }, k.gizle ? { ids: ents.filter(e => !k.gizle(e)).map(e => e.id) } : {})); if (!gv) return null;
+      if (k.unite) { const W = sonW; try { uniteGovdeCizgi(gv, W, tarif); unitePlanEtiket(gv, W, tarif); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, k.depth); baslikAlta(gv); asagi(gv); } catch (er) { console.error('ünite planı', er); } return { ad: k.baslik, gv, W }; }
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
       const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); if (C.yagmurOkPlan) C.yagmurOkPlan(gv, W, k.h, ents); if (C.lentoOkPlan) C.lentoOkPlan(gv, W, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
@@ -420,14 +474,19 @@
       const sGr = ['Mimari']; /* yalnız Mimari kesit (kullanıcı kararı 14.11.2026: "statik, mekanik ve elektrik kesit istemiyorum") */
       /* kesit yerleri (firma kuralı 14.11.2026): uzun kesit bütün mahallerden, kısa kesitler büyük hacimden ve odalardan; doğramadan geçer, kolon / kiriş üstünde değil.
          Var olan (kullanıcının aldığı) kesitler korunur; kuralı sağlamayan eksik varsa (ör. bir oda hiçbir kısa kesitte yok) yalnız eksik hatlar eklenir */
-      let hatlar = null; try { if (C.mimariKesitYerleri) { kesitBilgi = C.mimariKesitYerleri(ents, bbDis, katlar.map(k => k.z)); hatlar = kesitBilgi.hatlar; } } catch (er) { console.error('kesit yerleri', er); }
-      if (!kes.length && (!hatlar || !hatlar.length)) hatlar = kesitHatlari(bb);
-      if (kes.length && hatlar && C.mimariOtoApi && C.mimariOtoApi.eksikKesitler) hatlar = C.mimariOtoApi.eksikKesitler(hatlar, kes.map(v => ({ a: v.a, b: v.b })), kesitBilgi ? kesitBilgi.mahaller : [], bbDis);
+      let hatlar = null;
+      if (tarif && tarif.kesitler) hatlar = kes.length ? [] : tarif.kesitler.map(k => ({ nm: k.nm, a: k.a, b: k.b, sp: k.sp, depth: k.depth, mahalAd: k.mahal })); // ünitenin kesit hatları; kullanıcının aldığı Mimari kesit varsa o kalır
+      else try { if (C.mimariKesitYerleri) { kesitBilgi = C.mimariKesitYerleri(ents, bbDis, katlar.map(k => k.z)); hatlar = kesitBilgi.hatlar; } } catch (er) { console.error('kesit yerleri', er); }
+      if (!tarif && !kes.length && (!hatlar || !hatlar.length)) hatlar = kesitHatlari(bb);
+      if (!tarif && kes.length && hatlar && C.mimariOtoApi && C.mimariOtoApi.eksikKesitler) hatlar = C.mimariOtoApi.eksikKesitler(hatlar, kes.map(v => ({ a: v.a, b: v.b })), kesitBilgi ? kesitBilgi.mahaller : [], bbDis);
       for (const h of hatlar || []) {
         let nm = h.nm; for (let c = 65; kul.has(nm) && c < 91; c++) nm = String.fromCharCode(c); kul.add(nm);
         const v = { id: 'G' + Date.now().toString(36) + nm, tip: 'kesit', kaynak: 'MIMARIPAFTA', ad: `${nm}-${nm} KESİTİ`, nm, a: h.a, b: h.b, sp: h.sp, depth: h.depth, yer: [X0, Yc], olcek: SC, gruplar: sGr };
         let n = 0; try { n = await G.kesitUret(v); } catch (er) { console.error('mimari kesit', er); }
-        if (!n) continue; if (h.mahaller) v.mahaller = h.mahaller; VL.push(v); kes.push(v); asagi(v.gv);
+        if (!n) continue; if (h.mahaller) v.mahaller = h.mahaller; VL.push(v); kes.push(v);
+        if (h.mahalAd && h.mahalAd.length) try { uniteKesitMahal(v, h.mahalAd); } catch (er) { console.error('kesit mahal adı', er); }
+        if (tarif) try { bantEtiketSadele(v.gv); } catch (er) { console.error('bant açıklaması', er); }
+        asagi(v.gv);
       }
     }
     try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
@@ -436,7 +495,7 @@
     // --- açılım tablosu (kodlu: DÖŞEMELER / DUVARLAR)
     let acGv = null, acV = null; try { if (C.acilimTablo && C.doc.ents.some(e => e.type === 'acilim')) { C.doc.set.sonKesitOlcek = SC; C.acilimTablo(true, { yerlestir: false }); const t = VL.find(v => v.tip === 'tablo' && v.unite === 'ACILIM'); acGv = t ? t.gv : null; acV = t || null; } } catch (er) { console.error('açılım tablosu', er); }
     // --- görünüşler
-    const gor = {}; for (const d of ['ON', 'ARKA', 'SAG', 'SOL']) gor[d] = gorunus({ kind: 'view', dir: d, hatch: 'YOK', dograma: true });
+    const gor = {}; if (!(tarif && tarif.gorunus === false)) for (const d of ['ON', 'ARKA', 'SAG', 'SOL']) gor[d] = gorunus({ kind: 'view', dir: d, hatch: 'YOK', dograma: true }); // ünite tarifi görünüş istemiyorsa (Çokal anaerobik paftası: yalnız plan ve kesitler) çizilmez
     for (const d in gor) if (gor[d]) baslikAlta(gor[d]);
     // --- mahal listesi (zemin kaplaması verilmiş odalar varsa; modelden canlı)
     let mahGv = null; try { if (C.mahalVerisi && C.T.mahaltablo && C.mahalVerisi().rooms.length) { mahGv = 'MIM_MAHAL_' + Date.now().toString(36); const e = C.add(C.newEnt('mahaltablo', { p: [X0, Yc, 0], dis: 'Mimari', layer: 'MAHAL_LISTESI', gv: mahGv, title: yapiAdi(u) })); delete e.sp; st.gvs.push(mahGv); asagi(mahGv); } } catch (er) { console.error('mahal listesi', er); }
@@ -444,7 +503,7 @@
     // --- ÇATI: plan (üstten görünüş + oluk, iniş borusu, eğim okları, akslar ve ölçüler), çatı kesiti (yalnız çatı ve çatı döşemesi), DETAY-A / DETAY-B (1/10)
     const catiR = { plan: null, kesit: null, detay: null };
     const cati = ents.find(e => e.type === 'cati');
-    { const gv = gorunus({ kind: 'view', dir: 'UST', hatch: 'YOK', title: 'ÇATI PLANI' }); catiR.plan = gv;
+    { const gv = tarif && tarif.ustGorunus === false ? null : gorunus({ kind: 'view', dir: 'UST', hatch: 'YOK', title: 'ÇATI PLANI' }); catiR.plan = gv;
       if (gv) { const W = sonW; try {
         if (cati) { let prs = []; try { prs = C.catiPlanCizim ? C.catiPlanCizim(cati) : C.T.cati && C.T.cati.prims ? C.T.cati.prims(cati) : (C.catiPlanSembol ? C.catiPlanSembol(cati) : []); } catch (er) { prs = C.catiPlanSembol ? C.catiPlanSembol(cati) : []; } for (const pr of prs) primEnt(pr, W, gv, 'GORUNEN_CATI'); } // Çokal İdari ÇATI PLANI: iskelet (aşık, mertek, dikme, kuşaklama) etiketli, eğim okları, oluk, iniş borusu
         if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, zmax + 1, ents);
@@ -520,7 +579,7 @@
       detay.dograma.map(d => d.gv), [...detay.korkuluk, ...detay.kapak].map(d => d.gv)], kes.concat(catiR.kesitler || []), st); } catch (er) { console.error('mimari bölge', er); }
     const denGv = [...planlar.map(p => p.gv), ...kes.map(v => v.gv), catiR.plan, ...(catiR.kesitler || []).map(v => v.gv)].filter(Boolean);
     for (const gv of denGv) { try { cakismaGider(gv); baslikAlta(gv); } catch (er) { console.error('çakışma giderme', er); } } // başlık en son: balonların, kesit işaretlerinin ve kayan ölçülerin altında (denetim 14.11.2026, Konya ±0.00 / −5.90 planı)
-    return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: yapiAdi(u), kesitBilgi, cakisma: olcuDenetle(denGv), kapsamBB: secim ? bb : null };
+    return { planlar, cati: catiR, kes, acGv, acV, gor, mahGv, detay, yapi: tarif && tarif.ad ? up(tarif.ad) : yapiAdi(u), tarif, kesitBilgi, cakisma: olcuDenetle(denGv), kapsamBB: secim ? bb : null };
   };
   /* görünüm gruplarını Mimari bölgesine taşı. satirlar: [[gv]]; kesitler: canlı kesitlerin yeri (v.yer ve canlı görünüm kaydı) de taşınır */
   const bolgeDuzenle = (satirlar, kesitler, st) => {
@@ -597,7 +656,8 @@
     const paf = []; paftaNo = 0; const kgt = os.kagit;
     const G = (b, grup) => { if (b) b.grup = grup; return b; };
     /* en az kâğıt (firma kuralı 14.11.2026): aynı tür görünümler bir arada, boşluklara öbür türler; çatı ayrı paftada (kullanıcı isteği), çatı detayları onun boşluğunda */
-    const ana = [...pl.map(b => G(b, 'KAT PLANLARI')), G(mah, 'KAT PLANLARI'), ...kes.map(b => G(b, 'KESİTLER')), G(sb(ileV(olc(r.acGv), r.acV)), 'KESİTLER'),
+    const planGr = (r.tarif && r.tarif.paftaAdi && r.tarif.paftaAdi.plan) || 'KAT PLANLARI'; // ünite paftasında "PLANLAR" (kat yok)
+    const ana = [...pl.map(b => G(b, planGr)), G(mah, planGr), ...kes.map(b => G(b, 'KESİTLER')), G(sb(ileV(olc(r.acGv), r.acV)), 'KESİTLER'),
       ...[gb.ON, gb.ARKA, gb.SAG, gb.SOL].map(b => G(b, 'GÖRÜNÜŞLER')), ...det(r.detay.dograma).map(b => G(b, 'KAPI VE PENCERE DETAYLARI')),
       ...det(r.detay.korkuluk).map(b => G(b, 'KORKULUK DETAYI')), ...det(r.detay.kapak).map(b => G(b, 'SAC KAPAK DETAYLARI'))];
     paf.push(...paftaKur('M', r.yapi, ana));

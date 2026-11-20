@@ -68,7 +68,12 @@
         C.add(C.newEnt('acilim', { a, p, lines: it.lines.slice(), tur: it.tur, side: 1, src: { k: m.nm, s: sm, z: za, unite: e.id }, dis: 'Mimari', layer: (C.ensureLayer('MALZEME_ACILIM', 7, 'CONTINUOUS', 18), 'MALZEME_ACILIM') })); n++; } }
     void ps; return n;
   };
-  if (C.malzemeAcilimOto) { const o0 = C.malzemeAcilimOto; C.malzemeAcilimOto = function (m) { const i0 = new Set(C.doc.ents.map(e => e.id)); let n = o0.apply(this, arguments) || 0; try { if (etkin()) n += uniteAcilim(m); } catch (er) { console.error('ünite açılımı', er); }
+  /* kendi açılımını veren ünitenin (T[tip].acilimlar) genel sondadan gelen tek satırlık "ünite adı" açılımı (ör. "ANAEROBİK HAVUZ") atılır: katmanları ünite verir (20.11.2026) */
+  const uniteAdiAcilim = e => { const ad = new Set(C.doc.ents.filter(x => T[x.type] && T[x.type].acilimlar && !x.gv).map(x => String(T[x.type].label || '').toLocaleLowerCase('tr-TR')).filter(Boolean)); if (!ad.size) return false;
+    const L = (e.lines || []).map(s => String(s).replace(/,\s*\d+(?:[.,]\d+)?\s*cm\s*$/, '').trim().toLocaleLowerCase('tr-TR')); return L.length > 0 && L.every(s => ad.has(s)); };
+  if (C.malzemeAcilimOto) { const o0 = C.malzemeAcilimOto; C.malzemeAcilimOto = function (m) { const i0 = new Set(C.doc.ents.map(e => e.id)); let n = o0.apply(this, arguments) || 0;
+    if (etkin()) try { const n0 = C.doc.ents.length; C.doc.ents = C.doc.ents.filter(e => !(e.type === 'acilim' && !i0.has(e.id) && uniteAdiAcilim(e))); n -= n0 - C.doc.ents.length; } catch (er) { console.error('ünite adı açılımı', er); }
+    try { if (etkin()) n += uniteAcilim(m); } catch (er) { console.error('ünite açılımı', er); }
     if (etkin()) try { const at = tekDuvarKodu(C.doc.ents.filter(e => e.type === 'acilim' && !i0.has(e.id))); if (at.size) { C.doc.ents = C.doc.ents.filter(e => !at.has(e.id)); n -= at.size; } } catch (er) { console.error('açılım tekilleme', er); } // aynı duvara tek kod
     return n; }; }
   /* açılım tablosunun içeriği: kullanılan kodlar, tür sırasıyla */

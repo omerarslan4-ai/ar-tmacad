@@ -31,7 +31,7 @@
   C.vpCizgiOlcegi = sc => K.vpCizgiOlcegi(sc) * ((C.doc && C.doc.set && +C.doc.set.ltscale) ? +C.doc.set.ltscale / ((+C.doc.set.anno || 50) / 1000) : 1);
   const MODEL = /^(INS_|ARI_|MEK_)|^(BETON|DUVAR|BORU|POMPA|VANA|SU|ARAZI|HARITA|SEVIYE)$/; // model ve genel çizim katmanları: ekranda kendi rengiyle kalır
   /* program katmanının ekrandaki özellikleri (kural yoksa null) */
-  const ekran = ad => { if (!ad || MODEL.test(ad)) return null; const h = K.esle(R(), ad); if (!h) return null; const t = R().katmanlar[h]; /* yalnız mimari kural katmanları (mekanik katmanların kuralı henüz yok) */ if (!t) return null; const o = K.ozellik(t); if (C.LT[LT_M(o.lt)]) o.lt = LT_M(o.lt); else if (!C.LT[o.lt]) o.lt = 'CONTINUOUS'; return o; };
+  const ekran = ad => { if (!ad || MODEL.test(ad)) return null; const h = K.esle(R(), ad); if (!h) return null; const t = K.tanim(R(), h); /* mimari kural katmanları + mimari paftada görünen öbür disiplin katmanları (digerKatman: Mekanik 0,25 · Mek_Yazi · Boru_Eksen · Sac_Kapak; 20.11.2026 — kesilen ekipman 0,50 çiziliyordu) */ if (!t) return null; const o = K.ozellik(t); if (C.LT[LT_M(o.lt)]) o.lt = LT_M(o.lt); else if (!C.LT[o.lt]) o.lt = 'CONTINUOUS'; return o; };
   const isle = (L, o) => { let d = false; if (L.color !== o.color) { L.color = o.color; d = true; } if (L.lt !== o.lt) { L.lt = o.lt; d = true; } if (o.lw >= 0 && L.lw !== o.lw) { L.lw = o.lw; d = true; } return d; };
   /* 1) yeni katman */
   { const e0 = C.ensureLayer; C.ensureLayer = function (name) { const yeni = C.doc && !C.doc.layers[name], L = e0.apply(this, arguments); try { if (yeni && L && etkin()) { const o = ekran(name); if (o) isle(L, o); } } catch (er) { } return L; }; }
@@ -39,6 +39,16 @@
   /* proje açılınca (Çokal stilinde) var olan mimari kural katmanlarına da uygulanır: önceki sürümle kaydedilmiş projede Mimari desenleri (_M) gelir */
   C.on && C.on('doc', () => setTimeout(() => { try { if (etkin() && C.cizimKuralUygula) C.cizimKuralUygula(); } catch (er) { } }, 0));
   C.cizimKuralUygula = () => { let n = 0; for (const L of Object.values(C.doc.layers)) { const o = ekran(L.name); if (o && isle(L, o)) n++; } return n; };
+  /* 1b) PAFTA ÇİZGİLERİNİN KALINLIĞI KATMANDAN (karar 3; kullanıcı 20.11.2026: "çizgi kalınlıkları proje standardına göre"): görünüm nesnelerinde (plan, kesit,
+     görünüş, detay — e.gv) çizginin kalınlığı, katmanının eşlendiği örnek katmandan gelir; ilkelin ya da nesnenin elle taşıdığı kalınlık (ölçü çizgisi 0,13 / 0,18,
+     kesit işareti 0,35, ekipman görünen kenarı 0,09 …) ekranda, SVG'de ve PDF'te de geçersizdir (AutoCAD çıktısı zaten böyleydi: K.ciktiUygula).
+     İstisna: ölçü tiki (_ArchTick, AutoCAD'de de kalın basılır) kendi kalınlığında kalır. Serbest katmanlar (antet …), eşlenmeyen katmanlar (statik, tesisat, elektrik)
+     ve model nesneleri (gv'siz) eskisi gibi. */
+  { const kal = new Map(), kuralKal = ad => { let v = kal.get(ad); if (v === undefined) { const h = K.esle(R(), ad), t = h ? K.tanim(R(), h) : null; v = t && !t.serbest && t.kal != null ? Math.round(t.kal * 100) : null; kal.set(ad, v); } return v; };
+    const w0 = C.entLw; C.kuralKalinlik = kuralKal;
+    C.entLw = function (e, primLw) {
+      if (e && e.gv && e.layer && etkin()) { const k = kuralKal(e.layer); if (k != null && !(e.type === 'dim' && primLw != null && primLw > k * 2)) return k; }
+      return w0.apply(this, arguments); }; }
   /* 2) AutoCAD çıktısı */
   C.cizimKuralCikti = ({ body, blocks, PSL, layers, usedLt, opts }) => {
     if (!etkin() || (opts && opts.grp && !/M[İI]MAR[İI]|GENEL/i.test(opts.grp))) return null; // statik, mekanik, elektrik dosyalarına dokunulmaz (kuralları henüz yok)
