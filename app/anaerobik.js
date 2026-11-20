@@ -27,7 +27,7 @@
     mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.06, pD: 0.20, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
-  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC']; // elle taşınan boru delikleri
+  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC', 'agC', 'ahC', 'agR', 'ahR', 'owR', 'ohR', 'bOw', 'dO']; // elle taşınan boru delikleri; açıklık başına ölçüler (yoksa ag × ah, ow × oh)
 
   /* yardımcılar (yerel 2B) */
   const arc = (cx, cy, r, a0, a1, n) => { const o = []; n = n || Math.max(6, Math.ceil(Math.abs(a1 - a0) / 6)); for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * RAD; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return o; };
@@ -87,6 +87,16 @@
     const Wo = n * 2 * q.Ro + (n + 1) * q.two;
     const zTop = q.zt, zW = zTop - q.fb, zB = zW - q.h, zS = zW - q.dAg, zH = zS + q.ah, zSp = zW - (q.dPe != null ? q.dPe : q.dAg), zHp = zSp + (q.oh != null ? q.oh : q.ah); // ağız ve pencere ayrı
     const G = { q, n, xc1, xc2, xR, Lo, Wo, yc, zTop, zW, zB, zS, zH, zSp, zHp, zF: zB - q.tb, b: q.Ro - q.tw / 2, parca: [], acik: [], kapak: [], boru: [], halka: [], kes: [] };
+    /* açıklık başına ölçü (her açıklık kendi debisiyle boyutlanır, 20.11.2026): üst kenar ortak (ağızlar zH, pencereler zHp), yükseklik ayrı.
+       Ağız türü: '' giriş (sol, ham su), 'R' RAS girişi (sağ, RAS halkası), 'C' çıkış (sağ, diğer halkalar). Yeni değer yoksa eski tek ölçü (ag × ah, ow × oh) */
+    const sec_ = (k, v0) => (q[k] != null && q[k] !== '' && isFinite(+q[k]) ? +q[k] : v0);
+    const agO = t => { const w = sec_('ag' + t, q.ag), h = sec_('ah' + t, q.ah); return { w, h, z0: zH - h, z1: zH }; };
+    const penO = i => { const R = n > 1 && i === 0, w = R ? sec_('owR', q.ow) : q.ow, h = R ? sec_('ohR', zHp - zSp) : zHp - zSp; return { w, h, z0: zHp - h, z1: zHp }; };
+    G.agizO = Array.from({ length: n }, (_, i) => ({ sol: agO(''), sag: agO(n > 1 && i === 0 ? 'R' : 'C') }));
+    G.penO = Array.from({ length: Math.max(0, n - 1) }, (_, i) => penO(i));
+    { const dO = sec_('dO', 0), z0 = dO > 0 ? zW - dO : zB; G.orifisO = { w: sec_('bOw', q.ag), h: q.bO, z0, z1: z0 + q.bO, taban: !(dO > 0) }; } // dO: orifis eşiği su yüzünden (yoksa / 0 → tabanda, eski çizimler)
+    const agMax = Math.max(...G.agizO.flatMap(a => [a.sol.w, a.sag.w])), penMax = G.penO.length ? Math.max(...G.penO.map(p => p.w)) : q.ow;
+    { const A = [...G.agizO.flatMap(a => [a.sol, a.sag]), ...G.penO]; G.acikAralik = [Math.max(...A.map(a => a.z0)), Math.min(...A.map(a => a.z1))]; } // bütün açıklıkların ortak yükseklik aralığı (kesit plan)
     const ada = (pts, k) => G.parca.push({ pts: ccw(pts), z0: zB, z1: zTop, k }); // bağımsız perdeler (orta duvar, yuvarlak perde)
     const kes = (pts, z0, z1, k) => G.kes.push({ pts, z0, z1, k }); // betondan çıkarılacak boşluk prizması
     const e1 = Math.sqrt(R2 * R2 - q.Ro * q.Ro), fi = Math.asin(q.Ro / R2) / RAD;
@@ -100,10 +110,10 @@
       G.halka.push({ i, yc: y, yon: s, ad: i === 0 && n > 1 ? 'RAS' : String(n > 1 ? i : 1) });
       for (const sol of [true, false]) {
         const xc = sol ? xc1 : xc2, sg = sol ? -1 : 1, xd = xc + sg * R2, xi = xc + sg * q.Ro;
-        const pts = rect(Math.min(xd, xi), y - q.ag / 2, Math.max(xd, xi), y + q.ag / 2);
-        G.acik.push({ k: 'agiz', pts, z0: zS, z1: zH, halka: i, yan: sol ? 'sol' : 'sag' });
-        kes(rect(Math.min(xd, xi) - dl, y - q.ag / 2, Math.max(xd, xi) + dl, y + q.ag / 2), zS, zH, 'agiz');
-        G.kapak.push({ k: 'agiz', a: [xd, y - q.ag / 2 - 0.1], b: [xd, y + q.ag / 2 + 0.1], halka: i, yan: sol ? 'sol' : 'sag', eb: `${(q.ag * 1000).toFixed(0)}×${(q.ah * 1000).toFixed(0)}` });
+        const A = G.agizO[i][sol ? 'sol' : 'sag'], pts = rect(Math.min(xd, xi), y - A.w / 2, Math.max(xd, xi), y + A.w / 2);
+        G.acik.push({ k: 'agiz', pts, z0: A.z0, z1: A.z1, halka: i, yan: sol ? 'sol' : 'sag' });
+        kes(rect(Math.min(xd, xi) - dl, y - A.w / 2, Math.max(xd, xi) + dl, y + A.w / 2), A.z0, A.z1, 'agiz');
+        G.kapak.push({ k: 'agiz', a: [xd, y - A.w / 2 - 0.1], b: [xd, y + A.w / 2 + 0.1], halka: i, yan: sol ? 'sol' : 'sag', eb: `${(A.w * 1000).toFixed(0)}×${(A.h * 1000).toFixed(0)}` });
       }
       const r = q.tw / 2;
       ada([...arc(xc2, y, r, -90, 90, 8), ...arc(xc1, y, r, 90, 270, 8)], 'orta');
@@ -113,23 +123,24 @@
     // ---- ortak duvarlarda orifis ve kapaklı pencere; köprü ----
     // yürüyüş yolu bastonun ucundan (yuvarlak uç dahil) kulvar / 2 sonra başlar (Çokal köprü 11,00 – 12,50)
     const xk0 = Math.max(xc1 + 0.5, ust ? xc2 - eB - q.tg / 2 : xc2 - eB - q.tg / 2 - aB - q.kb);
-    let xw1 = xk0 - q.kpA, xw0 = xw1 - q.ow, xo = xw0;
+    let xw1 = xk0 - q.kpA, xw0 = xw1 - penMax, xo = xw0; // pencereler köprü tarafında hizalı; en geniş pencereye göre
     if (xo < xc1) { const kay = xc1 + 0.3 - xo; xo += kay; xw0 += kay; xw1 += kay; }
     G.kopru = { x0: xk0, x1: xk0 + q.kb, z0: zTop, z1: zTop + q.kbT };
     for (let i = 0; i + 1 < n; i++) {
       const y0 = yc[i] + q.Ro, y1 = y0 + q.two;
-      G.acik.push({ k: 'pencere', pts: rect(xw0, y0, xw1, y1), z0: zSp, z1: zHp, arasi: [i, i + 1] });
-      kes(rect(xw0, y0 - dl, xw1, y1 + dl), zSp, zHp, 'pencere');
-      G.kapak.push({ k: 'pencere', a: [xw0, y1], b: [xw1, y1], arasi: [i, i + 1], eb: `${(q.ow * 1000).toFixed(0)}×${((zHp - zSp) * 1000).toFixed(0)}` });
+      const P = G.penO[i], x0 = xw1 - P.w; P.x0 = x0; P.x1 = xw1;
+      G.acik.push({ k: 'pencere', pts: rect(x0, y0, xw1, y1), z0: P.z0, z1: P.z1, arasi: [i, i + 1] });
+      kes(rect(x0, y0 - dl, xw1, y1 + dl), P.z0, P.z1, 'pencere');
+      G.kapak.push({ k: 'pencere', a: [x0, y1], b: [xw1, y1], arasi: [i, i + 1], eb: `${(P.w * 1000).toFixed(0)}×${(P.h * 1000).toFixed(0)}` });
     }
     // ---- beton duvarlar tek plan şekli: dış kabuk (halkalar + kanallar) eksi su hacimleri ----
-    const yb = yc[0] - q.ag / 2 - q.kp - q.tK, yt = yc[n - 1] + q.ag / 2 + q.kp + q.tK;
+    const yb = yc[0] - agMax / 2 - q.kp - q.tK, yt = yc[n - 1] + agMax / 2 + q.kp + q.tK;
     G.kanal = { yb, yt };
     const xo1 = xR + q.bC, rx = xR + q.bC / 2, gx = q.tK + q.bG / 2;
     // halkaların dış sınırı: sağda alttan üste, solda üstten alta (aralarda ortak duvar ucu düşey)
     const zR = [], zL = [];
     // ağız önünde düz yüz: kapak çerçevesi yuvarlak duvara değil düz yüze oturur (yüz eni = ağız + 2 × pD)
-    const wD = Math.min(2 * R2 - 0.1, q.ag + 2 * q.pD);
+    const wD = Math.min(2 * R2 - 0.1, agMax + 2 * q.pD);
     const duzle = (pts, xc, y0, sg) => {
       const yA = y0 - wD / 2, yB = y0 + wD / 2, xF = xc + sg * R2, xa = yy => xc + sg * Math.sqrt(Math.max(0, R2 * R2 - (yy - y0) ** 2));
       const art = pts.length > 1 && pts[pts.length - 1][1] > pts[0][1], [y1, y2] = art ? [yA, yB] : [yB, yA], o = []; let kondu = false;
@@ -154,13 +165,13 @@
     delik.push([[q.tK, yt - q.tK], ...kirp(zL, yt - q.tK, yb + q.tK), [q.tK, yb + q.tK]]); // giriş kanalı suyu
     const ysh = n > 1 ? yc[0] + q.Ro + q.two / 2 : null;
     if (n > 1) { // çıkış kanalı ara duvarla ikiye bölünür: alt RAS bölümü, üst çıkış bölümü
-      const ya = ysh - q.tK / 2, yb2 = ysh + q.tK / 2, g0 = xR + 0.20, g1 = g0 + q.ag;
+      const ya = ysh - q.tK / 2, yb2 = ysh + q.tK / 2, g0 = xR + 0.20, g1 = g0 + G.orifisO.w;
       // ara duvar boydan boya perde; tabanda kapaklı orifis (RAS bölümü ↔ çıkış bölümü)
       delik.push([...kirp(zR, yb + q.tK, ya), [xo1, ya], [xo1, yb + q.tK]]);
       delik.push([...kirp(zR, yb2, yt - q.tK), [xo1, yt - q.tK], [xo1, yb2]]);
-      G.acik.push({ k: 'orifis', pts: rect(g0, ya, g1, yb2), z0: zB, z1: zB + q.bO });
-      kes(rect(g0, ya - dl, g1, yb2 + dl), zB - 0.01, zB + q.bO, 'orifis');
-      G.kapak.push({ k: 'bolme', a: [g0 - 0.1, yb2], b: [g1 + 0.1, yb2], eb: `${(q.ag * 1000).toFixed(0)}×${(q.bO * 1000).toFixed(0)}` });
+      const O = G.orifisO; G.acik.push({ k: 'orifis', pts: rect(g0, ya, g1, yb2), z0: O.z0, z1: O.z1 });
+      kes(rect(g0, ya - dl, g1, yb2 + dl), O.z0 - (O.taban ? 0.01 : 0), O.z1, 'orifis');
+      G.kapak.push({ k: 'bolme', a: [g0 - 0.1, yb2], b: [g1 + 0.1, yb2], eb: `${(G.orifisO.w * 1000).toFixed(0)}×${(q.bO * 1000).toFixed(0)}` });
       G.ara = { y: ysh, g0, g1 };
     } else delik.push([...kirp(zR, yb + q.tK, yt - q.tK), [xo1, yt - q.tK], [xo1, yb + q.tK]]);
     G.bolge = { dis: ccw(dis), delik: delik.map(d => ccw(d).reverse()) }; // dış saat yönü tersi, delikler saat yönü
@@ -220,16 +231,17 @@
       out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw, F, tahrik });
     };
     for (let i = 0; i < n; i++) {
-      pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - q.kY, G.yc[i]], 0, G.zS, q.ag, q.ah); // giriş kanalından halkaya; düz yüze dayalı
-      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + q.kY, G.yc[i]], n > 1 && i === 0 ? 180 : 0, G.zS, q.ag, q.ah); // RAS halkasına giriş, diğerlerinde çıkış
+      const A = G.agizO[i]; // kapak açıklığın kendi ölçüsünde (açıklık kendi debisiyle boyutlanır)
+      pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - q.kY, G.yc[i]], 0, A.sol.z0, A.sol.w, A.sol.h); // giriş kanalından halkaya; düz yüze dayalı
+      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + q.kY, G.yc[i]], n > 1 && i === 0 ? 180 : 0, A.sag.z0, A.sag.w, A.sag.h); // RAS halkasına giriş, diğerlerinde çıkış
     }
     for (let i = 0; i + 1 < n; i++) { // ortak duvarda: pencere kapağı perdenin yüzünde
-      pen(`pen-pen-${i}`, `P/${LET[i]}`, [(G.pen.xw0 + G.pen.xw1) / 2, G.yc[i] + q.Ro - q.kY], 90, G.zSp, q.ow, G.zHp - G.zSp); // perde yüzüne monte (akışın geldiği yüz)
+      const P = G.penO[i]; pen(`pen-pen-${i}`, `P/${LET[i]}`, [(P.x0 + P.x1) / 2, G.yc[i] + q.Ro - q.kY], 90, P.z0, P.w, P.h); // perde yüzüne monte (akışın geldiği yüz)
       if (q.tahrik !== 'EL' && q.tahrik !== 'AKT') { // aynı perdedeki kapaklar tek tip: biri aktüatörlüyse ikisi de
         const ik = out.slice(-2); if (ik.some(x => x.tahrik === 'AKT')) ik.forEach(x => { x.tahrik = 'AKT'; });
       }
     }
-    if (G.ara) pen('pen-bolme', 'B', [(G.ara.g0 + G.ara.g1) / 2, G.ara.y - q.tK / 2 - q.kY], 90, G.zB, q.ag, q.bO); // ara duvarda tabandaki orifis kapağı, perdenin RAS yüzünde
+    if (G.ara) pen('pen-bolme', 'B', [(G.ara.g0 + G.ara.g1) / 2, G.ara.y - q.tK / 2 - q.kY], 90, G.orifisO.z0, G.orifisO.w, q.bO); // ara duvardaki orifis kapağı (su yüzüne yakın; eski çizimde tabanda), perdenin RAS yüzünde
     /* mikserler: yürüyüş yolunun uzun kısma bakan yüzünde, uzun kısma doğru akan koridorda (kılavuz direk köprü kenarında, vinçle köprüden alınır).
        Servis köprüsünde ceil(n/2), ikinci yürüyüş yolunda (halka başına 2 ve üzeri mikserde) kalanı */
     if (mx && mx.n) {
@@ -238,9 +250,17 @@
         if (!kp || !cnt) continue;
         const ust = H.yon === dir, xd = dir > 0 ? kp.x1 + 0.06 : kp.x0 - 0.06, x = xd + dir * (Lm / 2 + 0.12); // üst koridor akışı = yon; direk tabliye ön yüzünde
         for (let m = 0; m < cnt; m++) {
-          let y = ust ? H.yc + q.tw / 2 + G.b * (m + 0.5) / cnt : H.yc - q.tw / 2 - G.b * (m + 0.5) / cnt; // köprü bastonun üstündeyse direk baston ucunun önünde (ona da bağlanır)
+          /* tek mikserde eksen yönlendirme perdesinin ekseninde (yarıçap rg + tg/2; kullanıcı 20.11.2026: "mikser orta yönlendirme perdesinin tam ortasına"), çoklu mikserde koridor eşit bölünür */
+          const dy = cnt === 1 ? q.rg + q.tg / 2 : q.tw / 2 + G.b * (m + 0.5) / cnt;
+          let y = ust ? H.yc + dy : H.yc - dy; // köprü bastonun üstündeyse direk baston ucunun önünde (ona da bağlanır)
           for (const s of kp === G.kopru ? G.sahanlik : []) if (y > s.y0 - 0.12 && y < s.y1 + 0.12) y = y < (s.y0 + s.y1) / 2 ? s.y0 - 0.12 : s.y1 + 0.12; // direk kapak sahanlığına değmesin
-          out.push({ anahtar: `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`, tur: 'mikser', etiket: `${LET[k++]}`, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, model: mx.model || null, ad: mx.name, Hd: kp.z1 - G.zB, direk: [xd, y], vinc: [xd - dir * 0.36, y] });
+          const et = LET[k++], an = `mik-${H.i}-${dir > 0 ? 'k2' : 'k1'}-${m}`;
+          out.push({ anahtar: an, tur: 'mikser', etiket: et, p: [x, y], aci: dir > 0 ? 0 : 180, z: G.zB, D: mx.D, P: mx.P, rpm: mx.rpm, model: mx.model || null, ad: mx.name, Hd: kp.z1 - G.zB, direk: [xd, y], vinc: [xd - dir * 0.36, y] });
+          /* pergel vinç ayrı nesne (kullanıcı 20.11.2026: "kapaklar ayrı, mikser ayrı, pergel vinç ayrı"): tabliye üstünde, mikser ekseninde, mikserin 0,83 m gerisinde;
+             kol mikserin kılavuz rayına uzanır (üretici modeli: ray motorun 0,248 m gerisinde, genel gövde: 0,42 m) */
+          /* üretici modelli mikserde vincin kancası askı kolunun kaldırma noktasının ekseninde (mikser orijininin 0,24 m önü → vinçten 1,07 m; kullanıcı 20.11.2026) */
+          const L = mx.model ? 0.83 + 0.24 : 0.83 - 0.42;
+          out.push({ anahtar: an.replace('mik-', 'vinc-'), tur: 'vinc', etiket: et, p: [xd - dir * 0.36, y], aci: dir > 0 ? 0 : 180, z: kp.z1, L });
         }
       }
     }
@@ -290,52 +310,73 @@
     o = o || {}; const q = G.q, n = G.n, g = 9.81, Cd = o.Cd || 0.61, Ls = o.Ls || 2.0, QRS = n > 1 ? (+o.QRS || 0) : 0;
     // ıslak alan: açıklık eni × (mansap su yüzü − eşik), en çok açıklık yüksekliği (Çokal'da su 96,64 ağız üstü 96,75'in altında)
     const dh = (Qh, b, zd, z0, hA) => { const Q = Qh / 3600, A = b * Math.min(hA, Math.max(0.05, zd - z0)); return Math.pow(Q / (Cd * A), 2) / (2 * g); };
-    const hS = Qh => Math.pow(Qh / 3600 / (1.84 * Ls), 2 / 3), h0 = n > 1 ? 1 : 0, ag = (Q, zd) => dh(Q, q.ag, zd, G.zS, q.ah), pen = (Q, zd) => dh(Q, q.ow, zd, G.zSp, G.zHp - G.zSp);
+    const hS = Qh => Math.pow(Qh / 3600 / (1.84 * Ls), 2 / 3), h0 = n > 1 ? 1 : 0;
+    const ag = (Q, zd, A) => dh(Q, A.w, zd, A.z0, A.h), pen = (Q, zd, i) => { const P = G.penO[i]; return dh(Q, P.w, zd, P.z0, P.h); }; // her açıklık kendi ölçüsüyle
     const zRef = o.zRef != null ? +o.zRef : G.zW, Qx = +o.Qmax || 0, Qn = +o.Qmin || 0;
-    const zCmax = zRef - ag(Qx + QRS, zRef - 0.01), zCmin = zCmax - (hS(Qx + QRS) - hS(Qn + QRS));
+    const zCmax = zRef - ag(Qx + QRS, zRef - 0.01, G.agizO[n - 1].sag), zCmin = zCmax - (hS(Qx + QRS) - hS(Qn + QRS));
     const hal = (Q, zC) => {
-      const z = new Array(n); z[n - 1] = zC + ag(Q + QRS, zC);
-      for (let i = n - 2; i >= 0; i--) z[i] = z[i + 1] + pen((i === 0 && n > 1 ? QRS : QRS + Q), z[i + 1]);
-      const r = { cikis: zC, halka: z, giris: z[h0] + ag(Q, z[h0]) };
-      if (n > 1) r.ras = z[0] + ag(QRS, z[0]); // RAS bölümü; ara duvar orifisi normalde kapalı
+      const z = new Array(n); z[n - 1] = zC + ag(Q + QRS, zC, G.agizO[n - 1].sag);
+      for (let i = n - 2; i >= 0; i--) z[i] = z[i + 1] + pen((i === 0 && n > 1 ? QRS : QRS + Q), z[i + 1], i);
+      const r = { cikis: zC, halka: z, giris: z[h0] + ag(Q, z[h0], G.agizO[h0].sol) };
+      if (n > 1) r.ras = z[0] + ag(QRS, z[0], G.agizO[0].sag); // RAS bölümü; ara duvar orifisi normalde kapalı
       return r;
     };
     const maks = hal(Qx, zCmax), min = hal(Qn, zCmin), uyari = [];
     const enYuksek = Math.max(maks.giris, ...(maks.ras != null ? [maks.ras] : []), ...maks.halka);
     if (G.zTop - enYuksek < 0.30) uyari.push(`Maks. su kotu ${enYuksek.toFixed(2)}: duvar üstüne ${(G.zTop - enYuksek).toFixed(2)} m kalıyor (en az 0,30 m olmalı).`);
-    if (min.cikis < G.zS + 0.10) uyari.push(`Min. debide çıkış kanalı su kotu (${min.cikis.toFixed(2)}) ağız eşiğine (${G.zS.toFixed(2)}) çok yakın.`);
+    { const zc = G.agizO[n - 1].sag.z0; if (min.cikis < zc + 0.10) uyari.push(`Min. debide çıkış kanalı su kotu (${min.cikis.toFixed(2)}) çıkış ağzı eşiğine (${zc.toFixed(2)}) çok yakın.`); }
     return { maks, min, uyari, kabul: { Cd, Ls, QRS, zRef } };
   }
 
   /* ================= DEBİDEN BOYUTLANDIRMA (öneri kuralları; Çokal T-105 oranlarından) =================
      o: { Qd (m³/gün), Qmax, Qmin, QRS (m³/h; boşsa Çokal oranları), h (su derinliği; boşsa 4,5 m), n (3), t (temas süresi 0,75 sa),
-          v (pencere ve orifiste en çok hız 0,30 m/s), va (ağızda 0,50 m/s), vb (borularda 1,0 m/s), k (düz boy / halka iç eni, Çokal 11/3 ≈ 3,7) }
+          dh (açıklık / kapak başına izin verilen yük kaybı 0,05 m), Cd (0,61), v (kanal hızı 0,30 m/s), vb (borularda 1,0 m/s), k (düz boy / halka iç eni, Çokal 11/3 ≈ 3,7) }
      - Debiler: Q ort. = Qd/24, Q maks. = 1,9 × Q ort. (Çokal 275,83 / 145,83), Q min. = 0,5 × Q ort., RAS = %75 × Q maks.
      - Hacim = t × (Q ort. + RAS); halka iç yarıçapı, düz boy = k × halka iç eni olacak şekilde; kılavuz perde rg = 0,47 Ro (Çokal 0,70/1,50).
-     - Ağız, pencere, orifis: ıslak alan ≥ Q / v; ağız ve pencere üstü su yüzünden 0,11 m yukarıda (Çokal 96,75 / 96,64).
+     - Ağız, pencere, orifis (kullanıcı kararı 20.11.2026): her biri kendi geçireceği en büyük debiyle hidrolik olarak — batık orifis Q = Cd·A·√(2g·Δh),
+       ıslak alan ≥ Q / (Cd·√(2g·Δh)); debiler: giriş ağzı Q maks., RAS ağzı ve RAS → 1 penceresi Q_RAS, ham su halkaları arası pencere ve çıkış ağzı
+       Q maks. + Q_RAS, ara duvar orifisi Q_RAS. En küçük ölçüler Çokal'dan (ağız 0,60 × 1,00, pencere 1,50 × 1,00). Üst kenar su yüzünden 0,11 m yukarıda.
      - Borular PE100 SDR17, iç çap hızdan; delik = boru dış çapı. */
   const PE = [315, 355, 400, 450, 500, 560, 630, 710, 800, 900, 1000, 1200, 1400, 1600];
   const yukari = (v, s) => Math.ceil(v / s - 1e-9) * s;
   function boyutla(o) {
     o = o || {}; const n = o.n || 3, Qo = (+o.Qd || 0) / 24, Qx = +o.Qmax || 1.9 * Qo, Qn = +o.Qmin || 0.5 * Qo, QRS = +o.QRS || 0.75 * Qx;
-    const t = o.t || 0.75, h = o.h || 4.5, v = o.v || 0.30, va = o.va || 0.50, vb = o.vb || 1.0, k = o.k || 11 / 3, tw = DEF.tw, tg = DEF.tg, ust = 0.11;
+    const t = o.t || 0.75, h = o.h || 4.5, v = o.v || 0.30, vb = o.vb || 1.0, k = o.k || 11 / 3, tw = DEF.tw, tg = DEF.tg, ust = 0.11;
+    const Cd = o.Cd || 0.61, dhK = o.dh > 0 ? +o.dh : 0.05, vh = Cd * Math.sqrt(2 * 9.81 * dhK); // izin verilen kayıpta açıklıktaki hız (5 cm → 0,60 m/s)
     const V = t * (Qo + QRS), A = V / (h * n);
     const alan = (Ro, Ls) => { const rg = 0.47 * Ro; return Ls * (2 * Ro - tw) + Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg); };
     let a = 0.75, b = 15; for (let i = 0; i < 60; i++) { const m = (a + b) / 2; if (alan(m, k * 2 * m) < A) a = m; else b = m; }
     const Ro = +Math.max(1.5, yukari(b, 0.05)).toFixed(2), rg = +(Math.round(0.47 * Ro / 0.05) * 0.05).toFixed(2), Ls0 = (A - (Math.PI * Ro * Ro - Math.PI * ((rg + tg) ** 2 - rg * rg))) / (2 * Ro - tw);
     const Ls = +Math.max(2, yukari(Ls0, 0.10)).toFixed(2);
     // açıklık: en az genişlik / yükseklik (Çokal); önce genişlik büyür (en çok wMax), sonra yükseklik
-    const acik = (Qh, w0, wMax, h0, vv) => { const Ar = Qh / 3600 / (vv || v); let w = w0, hw = h0 - ust; if (w * hw < Ar) { w = Math.min(wMax, yukari(Ar / hw, 0.05)); if (w * hw < Ar) hw = Ar / w; } const hh = Math.min(h - 0.5, yukari(hw + ust, 0.05)); return { w: +w.toFixed(2), h: +hh.toFixed(2), d: +(hh - ust).toFixed(2), A: w * (hh - ust) }; };
-    const ag = acik(Qx + QRS, 0.60, Math.min(2.00, Ro), 1.0, va); // ağızda hız sınırı 0,50 m/s (onaylandı) // en büyük akış: son halkadan çıkış ağzı
-    const pe = acik(Qx + QRS, 1.50, Math.min(3.00, 2 * Ro - 0.6), 1.0);
-    const bO = Math.max(0.60, yukari(QRS / 3600 / v / ag.w, 0.05)); // ara duvar orifisi (RAS)
+    /* açıklık: önce en (w0 → wMax), sonra yükseklik — eşik su yüzünden en çok dMax (1,25 m; kullanıcı 20.11.2026: "savakların derinliği çok fazla"),
+       alan yine yetmezse en büyür (wGeo'ya kadar: halka iç eni − 0,60, en çok 6,00 m) */
+    const dMax = o.dMax > 0 ? +o.dMax : 1.25, hMax = Math.floor((Math.min(dMax, h - 0.5) + ust) / 0.05 + 1e-9) * 0.05, wGeo = Math.min(6.0, 2 * Ro - 0.6);
+    const acik = (Qh, w0, wMax, h0) => {
+      const Ar = Qh / 3600 / vh; let w = w0, hw = h0 - ust;
+      if (w * hw < Ar) { w = Math.min(wMax, yukari(Ar / hw, 0.05)); if (w * hw < Ar) hw = Ar / w; }
+      let hh = Math.min(hMax, yukari(hw + ust, 0.05)); const dd = hh - ust;
+      if (w * dd < Ar - 1e-9) w = Math.min(wGeo, yukari(Ar / dd, 0.05)); // derinlik sınırında: en büyür
+      return { w: +w.toFixed(2), h: +hh.toFixed(2), d: +dd.toFixed(2), A: w * dd };
+    };
+    const wA = Math.min(2.00, Ro), wP = Math.min(3.00, 2 * Ro - 0.6), R = n > 1;
+    const ag = acik(Qx, 0.60, wA, 1.0); // giriş ağzı (ham su; kapaklarla seçilen halkaya bütün Q maks.)
+    const agC = acik(Qx + QRS, 0.60, wA, 1.0); // çıkış ağzı (son halkadan çıkış kanalına)
+    const agR = R ? acik(QRS, 0.60, wA, 1.0) : agC; // RAS halkasına giriş ağzı
+    const pe = acik(Qx + QRS, 1.50, wP, 1.0); // ham su halkaları arası pencere
+    const peR = R ? acik(QRS, 1.50, wP, 1.0) : pe; // RAS → 1. halka penceresi
+    /* ara duvar orifisi (RAS): su yüzüne yakın — üstü su yüzünün 0,10 m altında, eşiği en çok dMax derinde; yükseklik yetmezse en büyür */
+    const oUst = 0.10, oHMax = Math.floor((Math.min(dMax, h - 0.5) - oUst) / 0.05 + 1e-9) * 0.05;
+    let bOw = agR.w, bO = Math.max(0.60, Math.min(oHMax, yukari(QRS / 3600 / vh / bOw, 0.05))); if (bOw * bO < QRS / 3600 / vh - 1e-9) bOw = yukari(QRS / 3600 / vh / bO, 0.05);
+    const dO = +(bO + oUst).toFixed(2);
     const boru = Qh => { const di = Math.sqrt(4 * Qh / 3600 / (Math.PI * vb)); const od = PE.find(d => d / 1000 * (1 - 2 / 17) >= di) || PE[PE.length - 1]; return od / 1000; };
     // kanallar açıklıkla birlikte büyür (Çokal: ağız 0,60 → giriş kanalı 0,80, çıkış kanalı 1,00; çıkışta ara duvar kapağı 0,20 içeride) ve kanal hızı ≤ v
     const dK = h; // kanal tabanı halka tabanıyla aynı
-    const bG = Math.max(0.80, yukari(ag.w + 0.20, 0.05), yukari((Qx / 3600) / (v * dK), 0.05)), bC = Math.max(1.00, yukari(ag.w + 0.40, 0.05), yukari(((Qx + QRS) / 3600) / (v * dK), 0.05));
-    const par = { n, h, Ro, rg, tg, tw, Ls, ag: ag.w, ah: ag.h, dAg: ag.d, ow: pe.w, oh: pe.h, dPe: pe.d, bO: +bO.toFixed(2), bG: +bG.toFixed(2), bC: +bC.toFixed(2), dG: boru(Qx), dR: boru(QRS), dC: boru(Qx + QRS) };
+    const bG = Math.max(0.80, yukari(ag.w + 0.20, 0.05), yukari((Qx / 3600) / (v * dK), 0.05)), bC = Math.max(1.00, yukari(Math.max(agC.w, agR.w, bOw) + 0.40, 0.05), yukari(((Qx + QRS) / 3600) / (v * dK), 0.05));
+    const par = { n, h, Ro, rg, tg, tw, Ls, ag: ag.w, ah: ag.h, dAg: ag.d, agC: agC.w, ahC: agC.h, agR: agR.w, ahR: agR.h, ow: pe.w, oh: pe.h, dPe: pe.d, owR: peR.w, ohR: peR.h,
+      bO: +bO.toFixed(2), bOw: +bOw.toFixed(2), dO, bG: +bG.toFixed(2), bC: +bC.toFixed(2), dG: boru(Qx), dR: boru(QRS), dC: boru(Qx + QRS) };
     const Ah = alan(Ro, Ls) - (Ls0 > 0 ? 0 : 0); // bilgi
-    return { par, debi: { Qort: Qo, Qmax: Qx, Qmin: Qn, QRS }, V, Vk: alan(Ro, Ls) * h * n, t: alan(Ro, Ls) * h * n / (Qo + QRS), hiz: { agiz: (Qx + QRS) / 3600 / ag.A, pencere: (Qx + QRS) / 3600 / pe.A }, Ah };
+    return { par, debi: { Qort: Qo, Qmax: Qx, Qmin: Qn, QRS }, V, Vk: alan(Ro, Ls) * h * n, t: alan(Ro, Ls) * h * n / (Qo + QRS), hiz: { giris: Qx / 3600 / ag.A, cikis: (Qx + QRS) / 3600 / agC.A, ras: QRS / 3600 / agR.A, pencere: (Qx + QRS) / 3600 / pe.A, pencereR: QRS / 3600 / peR.A }, dh: dhK, Ah };
   }
 
   /* ================= AKIŞ YOLU (3B canlandırma için) =================
@@ -471,8 +512,9 @@
       const cb = G.boru.find(b => b.k === 'cikis'); if (cb) out.push(T1(cb.p[0] + 0.3, cb.p[1], `Çıkış Ø${f0(cb.d * 1000)}`, rol('ekipYazi'), 'L'));
       out.push(T1(q.tK + q.bG / 2, (G.kanal.yb + G.kanal.yt) / 2, `Giriş kanalı ${f2(q.bG)}`, rol('yazi')), T1(G.xR + q.bC / 2, (G.kanal.yb + G.kanal.yt) / 2 + 1.2, `Çıkış kanalı ${f2(q.bC)}`, rol('yazi')));
       if (G.n > 1) out.push(T1(G.xR + q.bC / 2, G.yc[0], 'RAS girişi', rol('yazi')));
-      const o0 = G.acik.find(a => a.k === 'orifis'); if (o0) out.push(T1((G.ara.g0 + G.ara.g1) / 2, o0.pts[0][1] - 0.35, `Orifis ${f0(q.ag * 100)}×${f0(q.bO * 100)} (${kot(G.zB)})`, rol('yazi')));
-      out.push(T1(G.Lo / 2, -1.4, `Ağız ${f2(q.ag)}×${f2(q.ah)} m: ${kot(G.zS)} – ${kot(G.zH)} · su ${kot(G.zW)} · taban ${kot(G.zB)} · duvar üstü ${kot(G.zTop)}`, rol('yazi')));
+      const o0 = G.acik.find(a => a.k === 'orifis'); if (o0) out.push(T1((G.ara.g0 + G.ara.g1) / 2, o0.pts[0][1] - 0.35, `Orifis ${f0(G.orifisO.w * 100)}×${f0(q.bO * 100)} (${kot(G.orifisO.z0)})`, rol('yazi')));
+      const aO = G.agizO, aY = a => `${f2(a.w)}×${f2(a.h)}`, nH = G.n, agYazi = nH > 1 ? `Ağız giriş ${aY(aO[0].sol)}, RAS ${aY(aO[0].sag)}, çıkış ${aY(aO[nH - 1].sag)} m` : `Ağız giriş ${aY(aO[0].sol)}, çıkış ${aY(aO[0].sag)} m`;
+      out.push(T1(G.Lo / 2, -1.4, `${agYazi}: üst ${kot(G.zH)} · su ${kot(G.zW)} · taban ${kot(G.zB)} · duvar üstü ${kot(G.zTop)}`, rol('yazi')));
       // başlık
       out.push(TX(f.at(G.Lo / 2, G.Wo + h * 9, z), tH(5), `${e.code || ''} ${e.name || 'Anaerobik havuz'}`.trim(), rd, 'C', rol('baslik')));
       out.push(TX(f.at(G.Lo / 2, G.Wo + h * 5.5, z), h, `${G.n} halka · düz ${f2(q.Ls)} m · koridor ${f2(G.b)} m · su ${f2(q.h)} m · V = ${f0(G.V)} m³${mx ? ` · mikser ${G.n}×${mx.n} ${mx.name}` : ''} · ${f2(G.Lo)} × ${f2(G.Wo)} m`, rd, 'C', rol('yazi')));
@@ -536,8 +578,8 @@
   /* mikser parametreleri: 5,5 kW yavaş devirli mikser (programın seçimi ya da mikser hesabı) KSB AmaProp 2603 üretici modeliyle çizilir (app/mikser-ksb.js) */
   const mikserPar = y => {
     const k = y.model || (C.mikserModelBul && C.mikserModelBul(y)), Md = k && C.mikserModel && C.mikserModel[k];
-    if (Md) return { model: k, D: Md.D, P: Md.P, rpm: Md.rpm, hm: Md.hm(), Hd: mm(y.Hd) };
-    return { model: 'GENEL', D: mm(y.D), P: y.P, rpm: y.rpm, hm: Math.max(300, mm(y.D) / 2 + 250), Hd: mm(y.Hd) };
+    if (Md) return { model: k, D: Md.D, P: Md.P, rpm: Md.rpm, hm: Md.hm(), Hd: mm(y.Hd), vinc: 'YOK' }; // pergel vinç ayrı nesne (PV-…)
+    return { model: 'GENEL', D: mm(y.D), P: y.P, rpm: y.rpm, hm: Math.max(300, mm(y.D) / 2 + 250), Hd: mm(y.Hd), vinc: 'YOK' };
   };
   /* yerel ekipman yeri → çizim nesnesi özellikleri (dünya koordinatı) */
   function nesne(e, y) {
@@ -549,6 +591,8 @@
         : mikserPar(y));
       return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par, p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: y.tur === 'penstok' ? `SK-${un}${y.etiket}` : `Z-${un}/${y.etiket}`, layer: d.katman || C.doc.cur.layer } };
     }
+    if (y.tur === 'vinc') { const d = C.AILELER && C.AILELER.pergel_vinc; if (!d) return null; const t0 = d.tipler.find(t => t.p.model === 'jib') || d.tipler[0]; // kullanıcının seçtiği jib vinç modeli (20.11.2026)
+      return { type: 'aile', props: { fam: 'pergel_vinc', tip: t0.ad, tipU: t0.ad, par: Object.assign({}, t0.p, { L: mm(y.L) }), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: `PV-${un}/${y.etiket}`, layer: d.katman } }; }
     if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)
     if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } };
     return null;
@@ -563,7 +607,10 @@
     for (const y of yer) {
       const x = mevcut.get(y.anahtar), o = nesne(e, y); if (!o) continue;
       if (!x) { if (once.has(y.anahtar)) continue; const z = C.add(C.newEnt(o.type, Object.assign({}, o.props, { bag: e.id, anahtar: y.anahtar }))); delete z.sp; z.oto = imza(z); n++; continue; }
-      if (x.oto !== imza(x)) { el++; continue; } // elle taşınmış / değiştirilmiş
+      if (x.oto !== imza(x)) { // elle taşınmış / değiştirilmiş: yeri korunur
+        /* mikserde tip (üretici modeli, pervane, güç, devir) yine güncellenir — yalnız yeri elle (kullanıcı 20.11.2026: "bir mikser eskisi gibi kaldı") */
+        if (y.tur === 'mikser' && x.type === 'aile' && x.par) { const yp = o.props.par, ks = ['model', 'D', 'P', 'rpm', 'hm', 'Hd', 'vinc']; if (ks.some(k => x.par[k] !== yp[k])) { for (const k of ks) x.par[k] = yp[k]; delete x._c; delete x._g; delete x._q; if (C.touch) C.touch(x); g++; } }
+        el++; continue; }
       const eski = x.oto; Object.assign(x, o.props); delete x._c; delete x._g; delete x._q; x.oto = imza(x); if (x.oto !== eski) { g++; if (C.touch) C.touch(x); }
     }
     const sil = [...mevcut.values()].filter(x => !yeniK.has(x.anahtar) && x.oto === imza(x)); if (sil.length && C.remove) { C.remove(sil); s = sil.length; }
@@ -647,10 +694,10 @@
     if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
     if (kv.OLCU !== 'H' && C.anaerobikOlcu) C.anaerobikOlcu(e);
   });
-  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=KSB|OTO] (KSB: KSB AmaProp 2603, 5,5 kW)', async (I) => {
+  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli)', async (I) => {
     const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');
     if (!s.length) return C.warn('Çizimde anaerobik havuz yok (önce ANAEROBIK).');
-    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^KSB/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; } C.anaerobikEkipman(e); }
+    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^(KSB|55|5[.,]5)/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; } C.anaerobikEkipman(e); }
   });
 
   C.addCommand(['ANABORU', 'ANAEROBIKBORU'], 'Anaerobik havuzun boru deliklerini taşır: ANABORU [GIRIS|RAS|CIKIS] → yeni yer (duvar boyunca), çap, alt kotu; ANABORU BORUDAN → saha borularının uçlarına bağlar ve izler', async (I) => {
@@ -709,16 +756,16 @@
     for (const u of H.uyari) C.warn(u);
   });
 
-  C.addCommand(['ANABOYUT', 'ANAEROBIKBOYUT'], 'Anaerobik havuzu debiden boyutlandırır (halka, ağız, pencere, orifis, boru delikleri) ve çizimi günceller. ANABOYUT Q=20000 (m³/gün) [H=4.5 T=0.75 V=0.30 QMAX= QMIN= QRS= m³/h]', async (I) => {
+  C.addCommand(['ANABOYUT', 'ANAEROBIKBOYUT'], 'Anaerobik havuzu debiden boyutlandırır (halka, ağız, pencere, orifis, boru delikleri) ve çizimi günceller. ANABOYUT Q=20000 (m³/gün) [H=4.5 T=0.75 DH=0.05 (kapak başına kayıp, m) V=0.30 (kanal hızı) QMAX= QMIN= QRS= m³/h]', async (I) => {
     const kv = takeKV(); let e = (C.sel || []).find(x => x.type === 'anaerobik') || C.doc.ents.find(x => x.type === 'anaerobik'); if (!e) return C.warn('Çizimde anaerobik havuz yok.');
     let Qd = kv.Q != null ? C.num(kv.Q) : null; if (Qd == null) { const r = await I.num('Arıtma debisi (m³/gün)', 20000); if (typeof r !== 'number') return; Qd = r; }
-    const o = { Qd }; for (const [a, b] of [['H', 'h'], ['T', 't'], ['V', 'v'], ['QMAX', 'Qmax'], ['QMIN', 'Qmin'], ['QRS', 'QRS']]) if (kv[a] != null && isFinite(C.num(kv[a]))) o[b] = C.num(kv[a]);
+    const o = { Qd }; for (const [a, b] of [['H', 'h'], ['T', 't'], ['V', 'v'], ['DH', 'dh'], ['QMAX', 'Qmax'], ['QMIN', 'Qmin'], ['QRS', 'QRS']]) if (kv[a] != null && isFinite(C.num(kv[a]))) o[b] = C.num(kv[a]);
     const B = boyutla(o); Object.assign(e, B.par, { Qmax: B.debi.Qmax, Qmin: B.debi.Qmin, QRS: B.debi.QRS }); for (const k of ['gx', 'rx', 'yC']) delete e[k]; delete e._c; delete e._ag; delete e._mx;
     if (C.touch) C.touch(e); if (e.ekipman) C.anaerobikEkipman(e, true); if (e.suAnahtar) C.anaerobikSu(e); C.changed && C.changed();
     const f = v => (+v).toFixed(2).replace('.', ','), p = B.par, G = geo(e);
     C.log(`✓ Anaerobik ${Math.round(Qd)} m³/gün: Q ort. ${Math.round(B.debi.Qort)}, Q maks. ${Math.round(B.debi.Qmax)}, RAS ${Math.round(B.debi.QRS)} m³/h → V ${Math.round(B.Vk)} m³, temas ${f(B.t)} sa`);
     C.log(`  ${p.n} halka: iç eni ${f(2 * p.Ro)}, düz boy ${f(p.Ls)}, su ${f(p.h)} m → dış ölçü ${f(G.Lo)} × ${f(G.Wo)} m`);
-    C.log(`  Ağız ${f(p.ag)} × ${f(p.ah)} (v ${f(B.hiz.agiz)} m/s) · pencere ${f(p.ow)} × ${f(p.oh)} (v ${f(B.hiz.pencere)} m/s) · ara duvar orifisi ${f(p.ag)} × ${f(p.bO)} · borular Ø${Math.round(p.dG * 1000)} / Ø${Math.round(p.dR * 1000)} / Ø${Math.round(p.dC * 1000)}`);
+    C.log(`  Açıklıklar (her biri kendi debisiyle, kapak başına kayıp ${Math.round(B.dh * 100)} cm): giriş ağzı ${f(p.ag)} × ${f(p.ah)} (v ${f(B.hiz.giris)}) · çıkış ağzı ${f(p.agC)} × ${f(p.ahC)} (v ${f(B.hiz.cikis)})${p.n > 1 ? ` · RAS ağzı ${f(p.agR)} × ${f(p.ahR)} (v ${f(B.hiz.ras)}) · RAS penceresi ${f(p.owR)} × ${f(p.ohR)} (v ${f(B.hiz.pencereR)})` : ''} · pencere ${f(p.ow)} × ${f(p.oh)} (v ${f(B.hiz.pencere)} m/s) · ara duvar orifisi ${f(p.bOw)} × ${f(p.bO)} · borular Ø${Math.round(p.dG * 1000)} / Ø${Math.round(p.dR * 1000)} / Ø${Math.round(p.dC * 1000)}`);
   });
   /* mikser canlandırması: seçili halkanın ölçüleri ve yerleşen mikserler mikser hesabı penceresine aktarılır (akış parçacıkları orada) */
   C.addCommand(['ANAMIKSER', 'ANAEROBIKMIKSER'], 'Anaerobik havuzun bir halkasını mikser hesabı penceresinde açar: halka ölçüleri ve yerleşen mikserlerle akış canlandırması. ANAMIKSER [HALKA=0]', async (I) => {

@@ -182,7 +182,7 @@ td.num,th.num{text-align:right;white-space:nowrap}
             <option value="slow18">Yavaş devirli Ø1,8 m · 2,2 kW</option>
             <option value="mid75">Orta devirli Ø0,75 m · 4,0 kW</option>
             <option value="fast37">Hızlı devirli kompakt Ø0,37 m · 2,5 kW</option>
-            <option value="ksb2603">KSB AmaProp 2603 · Ø2,603 m · 5,5 kW · 45 d/dk</option>
+            <option value="ksb2603">Yavaş devirli Ø2,603 m · 5,5 kW · 45 d/dk (üretici modeli)</option>
           </select>
         </div>
         <p class="hint">Kütüphane değerleri tipik değerlerdir. Üretici föyündeki pervane çapı, mil gücü ve <b>itki (N)</b> değerini girin. İtki boş bırakılırsa momentum teorisinden tahmin edilir. Plandaki mikserleri sürükleyerek taşıyabilir, ok ucundaki tutamaçla döndürebilirsiniz.</p>
@@ -534,7 +534,7 @@ const LIB = {
   slow18: {name: "Yavaş devirli Ø1,8", D: 1.8, rpm: 55, P: 2.2},
   mid75:  {name: "Orta devirli Ø0,75", D: 0.75, rpm: 480, P: 4.0},
   fast37: {name: "Kompakt Ø0,37", D: 0.37, rpm: 1400, P: 2.5},
-  ksb2603: {name: "KSB AmaProp 2603", D: 2.603, rpm: 45, P: 5.5}, // üretici föyü (yavaş devirli, MA16M 4 kutup, SP190 X dişli); anaerobikte üretici modeliyle çizilir
+  ksb2603: {name: "Yavaş devirli Ø2,6 · 5,5 kW", D: 2.603, rpm: 45, P: 5.5}, // üretici föyü (yavaş devirli, MA16M 4 kutup, SP190 X dişli); anaerobikte üretici modeliyle çizilir
 };
 const PROC = {
   anoxic: {vTarget: 0.30, vDead: 0.15, pMin: 2, pMax: 8, label: "Anoksik / anaerobik havuz (aktif çamur)"},

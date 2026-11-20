@@ -386,6 +386,8 @@
     /* kesme kotunun üstünde kalan eleman (kesit planda yürüme yolu) görünmez, kodu da yazılmaz */
     for (const q of tarif.kodlar || []) { if (h != null && q.z0 != null && q.z0 >= h - 1e-6) continue; const a = W(q.a), duvar = q.tur === 'duvar', p = duvar ? [a[0] + (q.t || 0) / 2 + Ek.duvarTasma * k, a[1], 0] : [a[0] + Ek.dosemeYatay * k, a[1] + Ek.dosemeDik * k, 0];
       const e = C.add(C.newEnt('acilim', { a: [a[0], a[1], 0], p, lines: q.lines.slice(), tur: q.tur, side: 1, dis: 'Mimari', planKod: true, layer: kuralKatman('MALZEME_ACILIM'), gv })); if (e) delete e.sp; }
+    /* ekipman numaraları (Z-…, PV-…): Mek_Yazi, 2,5 mm; kesme kotunun üstündeki ekipmanınki yazılmaz (kesit planda pergel vinç) */
+    for (const q of tarif.ekipman || []) { if (h != null && q.z0 >= h - 1e-6) continue; const p = W(q.p), R = C.cizimKural && C.cizimKural.MIMARI, y = (R && R.yazi && R.yazi['Mek_Yazi']) || { stil: ['YZ'], mm: [2.5] }, t = C.add(C.newEnt('text', { p: [p[0], p[1], 0], h: C.annoH(y.mm[0]), s: q.ad, al: 'ML', st: y.stil[0], ann: false, layer: kuralKatman('Mek_Yazi'), gv })); /* yazı kuralı tablodan */ if (t) delete t.sp; }
     for (const d of tarif.planOlcu || []) { const c = JSON.parse(JSON.stringify(d)); for (const key of ['id', '_c', 'sp', 'oto', 'bag']) delete c[key]; for (const key of ['a', 'b', 'p', 'c']) if (Array.isArray(c[key])) c[key] = W(c[key]); c.gv = gv; const e = C.add(C.newEnt(c.type, c)); if (e) delete e.sp; }
   };
   /* ünite kesit planında kesilen betonun taraması (kullanıcı kararı 20.11.2026): dolu (SOLID), kural tablosunun `Solid` katmanında (açık gri 254),

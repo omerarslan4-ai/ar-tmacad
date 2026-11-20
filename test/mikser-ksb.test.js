@@ -50,5 +50,12 @@ t('katalog: KSB AmaProp 2603 yalnız anaerobikte aday, gücü sabit 5,5 kW; karu
   assert.strictEqual(a.k, s.k, 'bu halkada en az güç yine aynı tip (KSB gereğinden hızlı: ' + k.v.toFixed(2) + ' m/s)');
   assert.ok(k.v > 0.30, 'KSB hız hedefini sağlar');
 });
+/* kullanıcı kararı 20.11.2026: "projemizde hiçbir şekilde marka ve model yazmayacağız" — projeye yazılan metinlerde marka / model yok */
+t('projeye yazılan metinlerde marka ve model yok (yalnız ebat, güç, özellik)', () => {
+  const marka = /KSB|AmaProp|MA16M|SP190|NoriRoc/i, M = K.MODEL.ksb_amaprop_2603;
+  for (const k of ['ad', 'motor', 'disli']) assert.ok(!marka.test(M[k]), k + ': ' + M[k]);
+  assert.ok(/Ø2603/.test(M.ad), 'ebat yazılır');
+  assert.ok(!marka.test(globalThis.C.MIKSER_LIB.ksb2603.name), 'katalog adı: ' + globalThis.C.MIKSER_LIB.ksb2603.name);
+});
 
 console.log(String.fromCharCode(10) + n + ' test geçti.');

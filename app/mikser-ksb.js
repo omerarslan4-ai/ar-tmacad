@@ -11,7 +11,8 @@
 (function (C) {
   'use strict';
   const MODEL = {
-    ksb_amaprop_2603: { veri: '2603', ad: 'KSB AmaProp 2603', D: 2603, P: 5.5, rpm: 45, motor: 'MA16M, 4 kutup, IE3', disli: 'SP190 X', rayY: -248, tutucuY: -518 },
+    /* ad / motor / disli projede yazılan metinlerdir: marka ve model yazılmaz (kullanıcı kararı 20.11.2026), yalnız ebat ve özellik */
+    ksb_amaprop_2603: { veri: '2603', ad: 'Yavaş devirli dalgıç mikser Ø2603', D: 2603, P: 5.5, rpm: 45, motor: '4 kutuplu motor, IE3', disli: 'dişli kutulu', rayY: -248, tutucuY: -518, kancaY: 240 }, // kancaY: askı kolunun kaldırma noktası (modelde y 225–258, tepe z 2183)
   };
   const ARALIK = 50; // üst tutucunun tepesi tabliye üstünün bu kadar altında (mm)
 

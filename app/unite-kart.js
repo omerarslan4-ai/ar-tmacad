@@ -427,6 +427,7 @@
     pz: { ad: 'Duvar üstü — zeminden en az yükseklik', v: 0.65, birim: 'm' },
     tb: { ad: 'Taban plağı (radye) kalınlığı', v: 0.80, birim: 'm' },
     ras: { ad: 'Geri devir oranı (Q maks.\'a göre)', v: 0.75, birim: '' },
+    dhK: { ad: 'Kapak başına izin verilen yük kaybı (açıklıklar bundan)', v: 0.05, birim: 'm' }, // kullanıcı kararı 20.11.2026: açıklık kendi debisiyle hidrolik boyutlanır — 5 cm KABUL
   };
   /* debiden türeyen ölçüler (boyutla yoksa Çokal değerleri) */
   K.AN_TUREV = {
@@ -434,13 +435,21 @@
     rg: { ad: 'Yönlendirme perdesi iç yarıçapı', v: 0.70, birim: 'm' },
     bG: { ad: 'Giriş kanalı iç genişliği (sol)', v: 0.80, birim: 'm' },
     bC: { ad: 'Çıkış kanalı iç genişliği (sağ; RAS girişi ve çıkış)', v: 1.00, birim: 'm' },
-    ag: { ad: 'Halka giriş / çıkış ağzı eni (kapaklı)', v: 0.60, birim: 'm' },
-    ah: { ad: 'Ağız yüksekliği', v: 1.00, birim: 'm' },
-    dAg: { ad: 'Ağız eşiği — su yüzünden derinlik', v: 0.89, birim: 'm' },
-    ow: { ad: 'Halkalar arası pencere eni (kapaklı)', v: 1.50, birim: 'm' },
+    ag: { ad: 'Giriş ağzı eni (ham su, kapaklı; Q maks.)', v: 0.60, birim: 'm' },
+    ah: { ad: 'Giriş ağzı yüksekliği', v: 1.00, birim: 'm' },
+    dAg: { ad: 'Giriş ağzı eşiği — su yüzünden derinlik', v: 0.89, birim: 'm' },
+    agC: { ad: 'Çıkış ağzı eni (Q maks. + RAS)', v: 0.60, birim: 'm' },
+    ahC: { ad: 'Çıkış ağzı yüksekliği (üst kenar giriş ağzıyla aynı)', v: 1.00, birim: 'm' },
+    agR: { ad: 'RAS giriş ağzı eni (RAS)', v: 0.60, birim: 'm' },
+    ahR: { ad: 'RAS giriş ağzı yüksekliği', v: 1.00, birim: 'm' },
+    ow: { ad: 'Ham su halkaları arası pencere eni (Q maks. + RAS)', v: 1.50, birim: 'm' },
     oh: { ad: 'Pencere yüksekliği', v: 1.00, birim: 'm' },
     dPe: { ad: 'Pencere eşiği — su yüzünden derinlik', v: 0.89, birim: 'm' },
-    bO: { ad: 'Ara duvar orifisi yüksekliği (eni = ağız eni)', v: 0.60, birim: 'm' },
+    owR: { ad: 'RAS → 1. halka penceresi eni (RAS)', v: 1.50, birim: 'm' },
+    ohR: { ad: 'RAS penceresi yüksekliği (üst kenar ortak)', v: 1.00, birim: 'm' },
+    bO: { ad: 'Ara duvar orifisi yüksekliği (RAS)', v: 0.60, birim: 'm' },
+    bOw: { ad: 'Ara duvar orifisi eni', v: 0.60, birim: 'm' },
+    dO: { ad: 'Ara duvar orifisi eşiği — su yüzünden derinlik (0 = tabanda)', v: 0, birim: 'm' },
     dG: { ad: 'Giriş borusu dış çapı (öneri)', v: 0.355, birim: 'm' },
     dR: { ad: 'RAS borusu dış çapı (öneri)', v: 0.315, birim: 'm' },
     dC: { ad: 'Çıkış borusu dış çapı (öneri)', v: 0.50, birim: 'm' },
@@ -465,7 +474,7 @@
     const QRS = S.ras * Qm;
     // debiden türeyen ölçüler (ANABOYUT kuralları)
     let B = null;
-    if (ana && ana.boyutla && Qo > 0 && h > 0) { try { B = ana.boyutla({ n: nh, Qd: Qo * 24, Qmax: Qm || undefined, QRS: QRS || undefined, h }); } catch (er) { B = null; } }
+    if (ana && ana.boyutla && Qo > 0 && h > 0) { try { B = ana.boyutla({ n: nh, Qd: Qo * 24, Qmax: Qm || undefined, QRS: QRS || undefined, h, dh: S.dhK }); } catch (er) { B = null; } }
     for (const [k, s] of Object.entries(K.AN_TUREV)) S[k] = dz(k, s.ad, B && B.par[k] != null ? B.par[k] : s.v, s.birim, 'türetilen', B ? 'debiden (ANABOYUT kuralları)' : 'Çokal AAT T-105');
     ek('rol', 'Halkaların görevi', nh > 1 ? `1. halka: geri devir (RAS) · ${nh === 3 ? '2. ve 3.' : 'diğerleri'}: ham su (giriş kanalındaki kapaklarla seçilir)` : 'tek halka: ham su + geri devir', '', 'standart');
     ek('akis', 'Akış', nh > 1 ? 'giriş kanalı → kapaklı ağızlar → halkalar arası pencereler (RAS → 1 → 2) → çıkış kanalının üst bölümü' : 'giriş kanalı → halka → çıkış kanalı', '', 'standart');
@@ -512,7 +521,7 @@
     if (S.rg + S.tg > S.Ro - 0.3) uyari.push('Yönlendirme perdesi halka yarıçapına çok yakın; perde yarıçapını küçültün.');
     const yc = i => S.two + S.Ro + i * (2 * S.Ro + S.two);
     // çizim parametreleri (app/anaerobik.js varlığı). Su yüzü girilmişse duvar üstü kotu ve hava payı = duvar üstü − su yüzü (zemin belirleyince büyür)
-    const cizim = { mlib, n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
+    const cizim = { mlib, n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, agC: S.agC, ahC: S.ahC, agR: S.agR, ahR: S.ahR, owR: S.owR, ohR: S.ohR, bOw: S.bOw, dO: S.dO, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
     if (zs) Object.assign(cizim, { zt: r3(zu), fb: r3(zu - zs) });
     if (Qm) Object.assign(cizim, { Qmax: r3(Qm), Qmin: r3(Qo * 0.5), QRS: r3(QRS) });
     return {
@@ -834,7 +843,7 @@
         ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
         ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}
         ${sel('anGoz', 'Anaerobik halka', [['3', '3 halka (RAS + 2 ham su)'], ['1', 'Tek halka']], A.sec.anGoz || '3')}
-        ${sel('anMikser', 'Anaerobik mikser', [['OTO', 'Otomatik (en az güç)'], ['KSB', 'KSB AmaProp 2603 (5,5 kW)']], A.sec.anMikser || 'OTO')}
+        ${sel('anMikser', 'Anaerobik mikser', [['OTO', 'Otomatik (en az güç)'], ['KSB', 'Yavaş devirli Ø2,6 m, 5,5 kW (üretici modeli)']], A.sec.anMikser || 'OTO')}
         ${sel('dgYer', 'Dağıtma yapısı', [['AYRI', 'Ayrı yapı'], ['BITISIK', 'Havuz ucuna bitişik']], A.sec.dgYer || 'AYRI')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
@@ -909,7 +918,7 @@
       ['Kaba ızgara yapısı', 'Coarse screen structure'], ['İnce ızgara yapısı', 'Fine screen structure'], ['Kaba ve ince ızgara yapısı (aynı kanal)', 'Coarse and fine screen structure (common channel)'],
       ['Giriş terfi istasyonu', 'Inlet pumping station'], ['Kum ve yağ tutucu', 'Grit and grease chamber'], ['Debimetre', 'Flow meter'], ['Ön çökeltme', 'Primary clarifier'],
       ['Dağıtma yapısı (biyolojik havuzlar)', 'Distribution chamber (biological tanks)'], ['Dağıtma yapısı (son çökeltme)', 'Distribution chamber (final clarifiers)'],
-      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Anaerobik mikser', 'Anaerobic mixer'], ['Otomatik (en az güç)', 'Automatic (least power)'], ['KSB AmaProp 2603 (5,5 kW)', 'KSB AmaProp 2603 (5.5 kW)'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
+      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Anaerobik mikser', 'Anaerobic mixer'], ['Otomatik (en az güç)', 'Automatic (least power)'], ['Yavaş devirli Ø2,6 m, 5,5 kW (üretici modeli)', 'Slow-speed Ø2.6 m, 5.5 kW (manufacturer model)'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
       ['Disk filtre', 'Disc filter'], ['Filtre besleme pompaları', 'Filter feed pumps'], ['Basınçlı kum filtresi', 'Pressure sand filter'],
       ['Ultrafiltrasyon', 'Ultrafiltration'], ['UV dezenfeksiyon', 'UV disinfection'], ['Çıkış debimetresi', 'Outlet flow meter'],
       ['Klor temas tankı', 'Chlorine contact tank'], ['Temiz su deposu', 'Treated water tank'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],

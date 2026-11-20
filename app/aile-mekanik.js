@@ -21,7 +21,7 @@
     return { b2, e, wf2, wd2, Hf, H, pw, kt, dz, trz, yk: m(q.yk), yd: m(q.yd), D, r: m(q.mil) / 2, actH, ks, zA };
   };
   C.aileKaydet({
-    id: 'penstock_kanal', ad: 'Penstock — kanal tipi (duvar yuvalı)', kisaAd: 'PENSTOCK', kat: 'Kapak / vana', katman: 'MEK_KAPAK', renk: 4, ifc: 'IfcValve',
+    id: 'penstock_kanal', ad: 'Penstock — kanal tipi (duvar yuvalı)', kisaAd: 'PENSTOCK', kat: 'Kapak / vana', katman: 'MEK_KAPAK', renk: 5, ifc: 'IfcValve', // renk: paftadaki Mek_Kapak (20.11.2026)
     aciklama: 'Kanal içine, iki yan perdedeki yuvaya oturan yükselen milli kapak. Kanal genişliği B ve derinliği D kanala uydurulur; 5 metreye kadar tam şasi, daha derinde kısa şasi + uzatma mili (tahrik platformda); çerçeve, kapak, yuva ve mil ölçüleri formüllerle hesaplanır. Kaynak: PEN-A-KNL-1200-1400.',
     params: [
       { k: 'B', ad: 'Kanal (açıklık) genişliği', d: 1200, min: 300, max: 4000, grup: 'Açıklık' },
@@ -445,10 +445,10 @@
   const MDL = q => { const k = q && q.model, d = k && k !== 'GENEL' && C.mikserModel && C.mikserModel[k]; return d && d.var() ? d : null; };
   const mik = q => { const L = m(q.lm), ym = -L / 2 - 0.12; return { L, rb: m(q.rb), r: m(q.D) / 2, z: m(q.hm), ym, H: m(q.Hd), yv: ym - 0.06 - m(q.vg) }; }; // yv: pergel vinç direği (tabliyede)
   C.aileKaydet({
-    id: 'dalgic_mikser', ad: 'Dalgıç mikser — kılavuz direkli', kisaAd: 'MİKSER', kat: 'Mikser', katman: 'MEK_MIKSER', renk: 1, ifc: 'IfcFlowMovingDevice',
+    id: 'dalgic_mikser', ad: 'Dalgıç mikser — kılavuz direkli', kisaAd: 'MİKSER', kat: 'Mikser', katman: 'MEK_MIKSER', renk: 30, ifc: 'IfcFlowMovingDevice', // renk: paftadaki Mek_Mikser (20.11.2026)
     aciklama: 'Kılavuz direğe takılı dalgıç mikser. Pervane çapı, güç ve devir mikser hesabından gelir; direk yürüme yolu tabliyesinin ön yüzüne bağlanır, pergel vinç mikser ekseninde tabliyenin üstündedir.',
     params: [
-      { k: 'model', ad: 'Üretici modeli', d: 'GENEL', opts: [['GENEL', 'Genel (parametrik gövde)'], ['ksb_amaprop_2603', 'KSB AmaProp 2603 — Ø2603, 5,5 kW, 45 d/dk']], grup: 'Mikser' },
+      { k: 'model', ad: 'Üretici modeli', d: 'GENEL', opts: [['GENEL', 'Genel (parametrik gövde)'], ['ksb_amaprop_2603', 'Üretici modeli — yavaş devirli Ø2603, 5,5 kW, 45 d/dk']], grup: 'Mikser' },
       { k: 'D', ad: 'Pervane çapı', d: 370, min: 150, max: 3000, grup: 'Mikser' },
       { k: 'P', ad: 'Motor gücü', birim: 'kW', d: 2.5, grup: 'Mikser' },
       { k: 'rpm', ad: 'Devir', birim: 'd/dk', d: 1400, grup: 'Mikser' },
@@ -457,32 +457,33 @@
       { k: 'Hd', ad: 'Taban → yürüme yolu tabliyesi üstü', d: 3950, min: 500, max: 15000, grup: 'Yerleşim' },
       { k: 'vg', ad: 'Pergel vinç — tabliye ön yüzünden geride', d: 300, grup: 'Pergel vinç' },
       { k: 'vh', ad: 'Pergel vinç yüksekliği (tabliyeden)', d: 1800, grup: 'Pergel vinç' },
+      { k: 'vinc', ad: 'Pergel vinç', d: 'VAR', opts: [['VAR', 'Mikserle birlikte çiz'], ['YOK', 'Ayrı nesne (Pergel vinç ailesi, kendi numarasıyla)']], grup: 'Pergel vinç' },
       { k: 'rb', ad: 'Gövde yarıçapı', f: 'max(120, D*0.32)', grup: 'Hesaplanan' },
     ],
     tipler: [{ ad: 'MIK-K-370', p: { D: 370, P: 2.5, rpm: 1400, lm: 700, hm: 600, Hd: 3950, vg: 300, vh: 1800 } },
-      { ad: 'KSB-AMAPROP-2603', p: { model: 'ksb_amaprop_2603', D: 2603, P: 5.5, rpm: 45, lm: 700, hm: 1610, Hd: 5310, vg: 300, vh: 1800 } }],
-    etiket: q => `${MDL(q) ? MDL(q).ad + ' · ' : ''}Ø${q.D} · ${q.P} kW`,
+      { ad: 'MIK-Y-2603', p: { model: 'ksb_amaprop_2603', D: 2603, P: 5.5, rpm: 45, lm: 700, hm: 1610, Hd: 5310, vg: 300, vh: 1800 } }],
+    etiket: q => `Ø${q.D} · ${q.P} kW${MDL(q) ? ' · ' + q.rpm + ' d/dk' : ''}`, // marka / model yazılmaz
     etiketYer: q => [0, (MDL(q) ? MDL(q).pervaneY() : m(q.lm) / 2) + 0.55, 0],
-    liste: q => `${MDL(q) ? MDL(q).ad + ' (' + MDL(q).motor + ', dişli ' + MDL(q).disli + ') · ' : ''}Pervane Ø${q.D} mm · ${q.P} kW · ${q.rpm} d/dk · ${MDL(q) ? 'kılavuz ray + üst tutucu (tabliyeye bağlı)' : `kılavuz direk ${q.Hd} mm (tabliyeye bağlı)`} + pergel vinç`,
-    bilgi: q => `${MDL(q) ? MDL(q).ad + ' üretici modeli; ' : ''}Pervane Ø${q.D} mm, ${q.P} kW, ${q.rpm} d/dk; eksen tabandan ${MDL(q) ? MDL(q).hm() : q.hm} mm; ${MDL(q) ? 'kılavuz ray ayaktan tabliyeye, üst tutucu' : `kılavuz direk ${q.Hd} mm,`} tabliye ön yüzüne bağlı; pergel vinç tabliyede, mikser ekseninde`,
+    liste: q => `${MDL(q) ? MDL(q).ad + ' (' + MDL(q).motor + ', ' + MDL(q).disli + ') · ' : ''}Pervane Ø${q.D} mm · ${q.P} kW · ${q.rpm} d/dk · ${MDL(q) ? 'kılavuz ray + üst tutucu (tabliyeye bağlı)' : `kılavuz direk ${q.Hd} mm (tabliyeye bağlı)`}${q.vinc === 'YOK' ? '' : ' + pergel vinç'}`, // vinç ayrı nesneyse kendi satırında
+    bilgi: q => `${MDL(q) ? MDL(q).ad + '; ' : ''}Pervane Ø${q.D} mm, ${q.P} kW, ${q.rpm} d/dk; eksen tabandan ${MDL(q) ? MDL(q).hm() : q.hm} mm; ${MDL(q) ? 'kılavuz ray ayaktan tabliyeye, üst tutucu' : `kılavuz direk ${q.Hd} mm,`} tabliye ön yüzüne bağlı; pergel vinç tabliyede, mikser ekseninde`,
     plan: (q, g) => {
       const G = mik(q), Md = MDL(q);
       if (Md && Md.plan(q, g)) { // üretici modeli: gövde, ray, tutucu, pervane modelin izdüşümünden; pergel vinç kolu raya uzanır; akış oku pervanenin önünde
         const yr = Md.rayY / 1000, yp = Md.pervaneY();
-        g.daire([0, G.yv], 0.08, { lw: 25 }); g.cizgi([0, G.yv], [0, yr], { lw: 18, lt: 'DASHED' });
+        if (q.vinc !== 'YOK') { g.daire([0, G.yv], 0.08, { lw: 25 }); g.cizgi([0, G.yv], [0, yr], { lw: 18, lt: 'DASHED' }); }
         g.cizgi([0, yp + 0.3], [0, yp + 0.9], { lw: 25 }); g.cizgi([0, yp + 0.9], [0.08, yp + 0.75], { lw: 25 }); g.cizgi([0, yp + 0.9], [-0.08, yp + 0.75], { lw: 25 });
         return;
       }
       g.dik(-G.rb, -G.L / 2, G.rb, G.L / 2, { lw: 35 });
       g.dik(-G.r, G.L / 2 + 0.08, G.r, G.L / 2 + 0.14, { lw: 50 }); // pervane
       g.dik(-0.05, G.ym - 0.05, 0.05, G.ym + 0.05, { lw: 25 }); // kılavuz direk
-      g.daire([0, G.yv], 0.08, { lw: 25 }); g.cizgi([0, G.yv], [0, G.ym + 0.05], { lw: 18, lt: 'DASHED' }); // pergel vinç ve kolu
+      if (q.vinc !== 'YOK') { g.daire([0, G.yv], 0.08, { lw: 25 }); g.cizgi([0, G.yv], [0, G.ym + 0.05], { lw: 18, lt: 'DASHED' }); } // pergel vinç ve kolu (ayrı nesneyse çizilmez)
       g.cizgi([0, G.L / 2 + 0.3], [0, G.L / 2 + 0.9], { lw: 25 }); g.cizgi([0, G.L / 2 + 0.9], [0.08, G.L / 2 + 0.75], { lw: 25 }); g.cizgi([0, G.L / 2 + 0.9], [-0.08, G.L / 2 + 0.75], { lw: 25 });
     },
     mesh: (q, g, e) => {
       const G = mik(q), vt = G.H + m(q.vh), Md = MDL(q);
       if (Md && Md.mesh(q, g, e)) { // üretici modeli + parametrik pergel vinç (kol raya uzanır)
-        const yr = Md.rayY / 1000;
+        const yr = Md.rayY / 1000; if (q.vinc === 'YOK') return;
         g.silindir([0, G.yv, G.H], [0, G.yv, vt], 0.045, MCOL.davit, 12); g.kutu(-0.07, 0.07, G.yv - 0.07, G.yv + 0.07, G.H, G.H + 0.02, MCOL.davit);
         g.kutu(-0.03, 0.03, G.yv, yr + 0.03, vt - 0.06, vt, MCOL.davit); g.silindir([0, yr, vt - 0.06], [0, yr, G.H + 0.3], 0.008, MCOL.mast, 6);
         return;
@@ -493,10 +494,59 @@
       g.kutu(-0.05, 0.05, G.ym - 0.05, G.ym + 0.05, 0, G.H, MCOL.mast); // kılavuz direk: tabandan tabliye üstüne
       g.kutu(-0.04, 0.04, G.ym + 0.05, -G.L / 2, G.z - 0.04, G.z + 0.04, MCOL.mast); // gövde bağlantısı
       for (const zb of [G.H - 0.15, G.H - 0.45]) g.kutu(-0.08, 0.08, G.ym - 0.06, G.ym - 0.05, zb - 0.06, zb + 0.06, MCOL.mast); // tabliye ön yüzüne bağlantı plakaları
+      if (q.vinc === 'YOK') return; // pergel vinç ayrı nesne (pergel_vinc)
       g.silindir([0, G.yv, G.H], [0, G.yv, vt], 0.045, MCOL.davit, 12); // pergel vinç direği (tabliyede)
       g.kutu(-0.07, 0.07, G.yv - 0.07, G.yv + 0.07, G.H, G.H + 0.02, MCOL.davit); // taban plakası
       g.kutu(-0.03, 0.03, G.yv, G.ym + 0.08, vt - 0.06, vt, MCOL.davit); // kol: mikser ekseninde direğin üstüne
       g.silindir([0, G.ym + 0.05, vt - 0.06], [0, G.ym + 0.05, G.H + 0.3], 0.008, MCOL.mast, 6); // halat
+    },
+  });
+
+  /* ================= PERGEL VİNÇ (mikser bakım vinci; ayrı nesne, kendi numarası PV-…) =================
+     Kullanıcı kararı 20.11.2026: "kapaklar ayrı, mikser ayrı, pergel vinç ayrı" — kendi katmanı (MEK_PERGEL) ve numarası (PV-108/A: mikserle aynı harf).
+     Yerel: orijin direğin tabliye üstündeki ayağı, y = kolun uzandığı yön (mikserin kılavuz rayına), z = tabliye üstünden yukarı.
+     model 'jib': kullanıcının seçtiği jib vinç modeli (app/pergel-vinc-veri.js; SketchUp 3D Warehouse, araclar/pergel-vinc-uret.js) — gerçek ölçüsünde
+     (yükseklik 3,13 m, kol 2,67 m; halat arabası kol boyunca gider), kol mikser yönüne döner. Veri yoksa parametrik çizim. */
+  const VDEC = {};
+  const vb64 = s => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+  const vModel = q => { const k = q && q.model, V = k && k !== 'GENEL' && C.PERGEL_VINC_VERI && C.PERGEL_VINC_VERI[k]; if (!V) return null;
+    return VDEC[k] || (VDEC[k] = Object.assign({}, V, { parca: V.parca.map(p => Object.assign({}, p, { A: new Int16Array(vb64(p.v)), F: new Uint16Array(vb64(p.f)) })) })); };
+  /* kol boyu: kanca ekseni L'ye gelsin diye direğin dışındaki kısım (y > 200 mm) y yönünde ölçeklenir — kol kısalır / uzar, eğimi değişir
+     (kullanıcı 20.11.2026: "halatla kancasının ekseni mikserin kaldırma kancasının ekseniyle aynı olacak şekilde uzunluğunu veya açısını ayarla") */
+  const vKol = (V, q) => { const y0 = 200, ky = V.kanca ? V.kanca.y : V.uc, L = +q.L > 0 ? +q.L : ky, k = Math.max(0.2, (L - y0) / Math.max(1, ky - y0)); return y => (y > y0 ? y0 + (y - y0) * k : y); };
+  const vCerceve = e => { e = e || {}; const r = (+e.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), p = e.p || [0, 0, 0], z0 = +e.z || 0; return ([x, y, z]) => [p[0] + y * c - x * s, p[1] + y * s + x * c, z0 + (z || 0)]; };
+  C.aileKaydet({
+    id: 'pergel_vinc', ad: 'Pergel vinç — mikser bakım vinci (tabliye üstü)', kisaAd: 'PERGEL VİNÇ', kat: 'Mikser', katman: 'MEK_PERGEL', renk: 1, ifc: 'IfcTransportElement',
+    aciklama: 'Yürüme yolu tabliyesinin üstünde, mikser ekseninde döner kollu bakım vinci. Kol mikserin kılavuz rayının (direğinin) üstüne uzanır; mikser halatla raydan çekilir.',
+    params: [
+      { k: 'model', ad: 'Model', d: 'GENEL', opts: [['GENEL', 'Genel (parametrik direk ve kol)'], ['jib', 'Jib vinç modeli (3,13 m; kol kanca L\'ye göre ayarlanır)']], grup: 'Pergel vinç' },
+      { k: 'vh', ad: 'Direk yüksekliği (tabliyeden)', d: 1800, min: 800, max: 4000, grup: 'Pergel vinç' },
+      { k: 'L', ad: 'Kol erişimi (direkten halata / kancaya)', d: 600, min: 200, max: 3000, grup: 'Pergel vinç' },
+      { k: 'hh', ad: 'Halat ucu (tabliyeden)', d: 300, min: 0, max: 2000, grup: 'Pergel vinç' },
+    ],
+    tipler: [{ ad: 'PV-1800', p: { model: 'GENEL', vh: 1800, L: 600, hh: 300 } }, { ad: 'PV-JIB', p: { model: 'jib', vh: 3129, L: 2674, hh: 300 } }],
+    etiket: q => `Pergel vinç h=${vModel(q) ? vModel(q).H : q.vh}`,
+    etiketYer: q => [0.35, 0, 0],
+    liste: q => { const V = vModel(q); return `Pergel vinç (mikser bakımı${V ? ', jib vinç' : ''}) · direk ${V ? V.H : q.vh} mm · kol ${V ? V.uc : q.L} mm · tabliyeye ankrajlı`; },
+    bilgi: q => { const V = vModel(q); return `Direk ${V ? V.H : q.vh} mm, kol erişimi ${V ? V.uc : q.L} mm; tabliye üstünde, mikser ekseninde`; },
+    plan: (q, g) => {
+      const V = vModel(q);
+      if (V) { const ty = vKol(V, q); for (const p of V.parca) if (p.plan && p.plan.length >= 3) g.cok(p.plan.map(([x, y]) => [x / 1000, ty(y) / 1000]), true, { lw: 25 }); g.daire([0, m(q.L)], 0.03, { lw: 18 }); return; } // halat mikserin rayında
+      const L = m(q.L);
+      g.daire([0, 0], 0.08, { lw: 25 }); g.dik(-0.07, -0.07, 0.07, 0.07, { lw: 18 }); // direk ve taban plakası
+      g.dik(-0.03, 0, 0.03, L + 0.03, { lw: 25 }); g.daire([0, L], 0.03, { lw: 18 }); // kol ve halat
+    },
+    mesh: (q, g, e) => {
+      const vt = m(q.vh), L = m(q.L), V = vModel(q);
+      if (V) { // jib vinç modeli (gerçek ölçüsünde); halat kolun altından mikserin rayına
+        const out = g.out, W = vCerceve(e), ty = vKol(V, q);
+        for (const p of V.parca) { const v0 = out.v.length, A = p.A, F = p.F, col = p.renk || MCOL.davit; for (let i = 0; i < A.length; i += 3) out.v.push(W([A[i] / 1000, ty(A[i + 1]) / 1000, A[i + 2] / 1000])); for (let i = 0; i < F.length; i += 3) { out.f.push([v0 + F[i], v0 + F[i + 1], v0 + F[i + 2]]); out.fc.push(col); } }
+        return;
+      }
+      g.silindir([0, 0, 0], [0, 0, vt], 0.045, MCOL.davit, 12); // direk
+      g.kutu(-0.07, 0.07, -0.07, 0.07, 0, 0.02, MCOL.davit); // taban plakası
+      g.kutu(-0.03, 0.03, 0, L + 0.03, vt - 0.06, vt, MCOL.davit); // kol
+      g.silindir([0, L, vt - 0.06], [0, L, m(q.hh)], 0.008, MCOL.mast, 6); // halat
     },
   });
 })(window.C);

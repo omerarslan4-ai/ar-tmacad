@@ -167,18 +167,18 @@ t('hidrolik: Çokal debileriyle maks. ve min. su kotları', () => {
   assert.deepStrictEqual(H.uyari, []);
 });
 
-t('debiden boyutlandırma: Çokal debileriyle Çokal açıklıkları, 20.000 m³/gün hız ve temas süresi sınırları', () => {
+t('debiden boyutlandırma: Çokal debileriyle Çokal açıklıkları, 20.000 m³/gün kayıp (kapak başına 5 cm) ve temas süresi sınırları', () => {
   const { boyutla } = require('../app/anaerobik.js');
   const c = boyutla({ Qd: 145.83 * 24, Qmax: 275.83, QRS: 206.87, h: 3.14 }).par;
   yakin(c.Ro, 1.50, 'halka'); yakin(c.ag, 0.60, 'ağız eni'); yakin(c.ah, 1.00, 'ağız yüksekliği'); yakin(c.dAg, 0.89, 'ağız eşiği'); yakin(c.ow, 1.50, 'pencere eni'); yakin(c.oh, 1.00, 'pencere yüksekliği'); yakin(c.rg, 0.70, 'kılavuz perde'); yakin(c.bG, 0.80, 'giriş kanalı (Çokal)'); yakin(c.bC, 1.00, 'çıkış kanalı (Çokal)');
   const B = boyutla({ Qd: 20000 }), p = B.par, Q = (B.debi.Qmax + B.debi.QRS) / 3600;
-  assert.ok(B.t >= 0.5 && B.t <= 1.5, 'temas süresi ' + B.t); assert.ok(B.hiz.agiz <= 0.501 && B.hiz.pencere <= 0.301, 'açıklık hızları (ağız 0,50, pencere 0,30)');
+  assert.ok(B.t >= 0.5 && B.t <= 1.5, 'temas süresi ' + B.t); for (const [k, v] of Object.entries(B.hiz)) assert.ok(v <= 0.61 * Math.sqrt(2 * 9.81 * 0.05) + 1e-3, k + ' açıklığında kayıp ≤ 5 cm (v = Cd·√(2g·0,05) = 0,60 m/s): ' + v);
   assert.ok(Math.abs(p.Ls / (2 * p.Ro) - 11 / 3) < 0.3, 'Çokal oranı');
   for (const [d, q] of [[p.dG, B.debi.Qmax], [p.dR, B.debi.QRS], [p.dC, B.debi.Qmax + B.debi.QRS]]) assert.ok(q / 3600 / (Math.PI * (d * (1 - 2 / 17)) ** 2 / 4) <= 1.0001, 'boru hızı ≤ 1 m/s');
   assert.ok(p.ah <= p.h - 0.5 && p.ag <= p.Ro, 'açıklık sınırları');
   const G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, p)); assert.ok(G2.zS > G2.zB + 0.3, 'ağız eşiği tabandan yukarıda');
   assert.ok(G2.ara.g1 < G2.xR + p.bC - 0.1, 'ara duvar kapağı çıkış kanalının içinde'); assert.ok(p.bG >= p.ag + 0.2 - 1e-9, 'giriş kanalı ağızla büyür');
-  const B5 = boyutla({ Qd: 50000 }); assert.ok(B5.par.bC > p.bC - 1e-9 && B5.t >= 0.5 && B5.hiz.agiz <= 0.501, '50.000');
+  const B5 = boyutla({ Qd: 50000 }); assert.ok(B5.par.bC > p.bC - 1e-9 && B5.t >= 0.5 && B5.hiz.cikis <= 0.61 * Math.sqrt(2 * 9.81 * 0.05) + 1e-3, '50.000');
 });
 
 t('akış yolu: halkanın içinde kalır, yön halkanın dönüşüne uyar', () => {
@@ -201,7 +201,7 @@ t('kapaklar: ağız önünde düz yüz, her kapak açıldığı açıklığın �
     const ac = G0.acik, eb = a => [+(a.pts[2][0] - a.pts[0][0]).toFixed(3), +(a.pts[2][1] - a.pts[0][1]).toFixed(3), +(a.z1 - a.z0).toFixed(3)];
     for (const x of E.filter(y => y.tur === 'penstok')) {
       const H = +x.H.toFixed(3), B = +x.B.toFixed(3);
-      if (/pen-(sol|sag)/.test(x.anahtar)) { const a = ac.find(a => a.k === 'agiz' && a.halka === +x.anahtar.slice(-1)); assert.strictEqual(B, eb(a)[1]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'eşik'); }
+      if (/pen-(sol|sag)/.test(x.anahtar)) { const a = ac.find(a => a.k === 'agiz' && a.halka === +x.anahtar.slice(-1) && a.yan === x.anahtar.split('-')[1]); /* her ucun ağzı kendi ölçüsünde */ assert.strictEqual(B, eb(a)[1]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'eşik'); }
       if (/pen-pen/.test(x.anahtar)) { const a = ac.filter(a => a.k === 'pencere')[+x.anahtar.slice(-1)]; assert.strictEqual(B, eb(a)[0]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'pencere eşiği'); }
       if (x.anahtar === 'pen-bolme') { const a = ac.find(a => a.k === 'orifis'); assert.strictEqual(B, eb(a)[0]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'orifis tabanı'); }
     }
@@ -216,6 +216,37 @@ t('yürüyüş yolu açıklığa göre: dar kulvarda Çokal gibi, genişte basto
   const uc = G6.xc2 - G6.baston - q.tg / 2; yakin(G6.kopru.x0, uc, 'köprü baston ucundan başlar'); assert.ok(G6.kopru.x1 <= G6.xc2 + 1e-9, 'köprü baston üzerinde');
   yakin(G6.kopru2.x1 - G6.xc1, G6.xc2 - G6.kopru.x0, 'ikinci yol aynası (bastonun üstünde)');
   for (const x of ekipmanYer(G6, { n: 2, D: 2.5, P: 0.55, rpm: 40, name: 'K' }, 95).filter(y => y.tur === 'mikser')) assert.ok(x.direk[0] + 0.05 <= G6.kopru.x0 + 1e-9 || x.direk[0] - 0.05 >= G6.kopru2.x1 - 1e-9, 'direk baston ucunun önünde');
+});
+
+/* kullanıcı 20.11.2026: mikser ekseni yönlendirme perdesinin ekseninde (50 bin: koridor ortası 2,125 / perde ekseni 1,95 + 0,15 = 2,10 — 2,5 cm kayıklık vardı);
+   pergel vinç ayrı nesne, mikserle aynı harf (PV-…/A), tabliye üstünde, kolu mikserin rayına */
+t('mikser yönlendirme perdesinin ekseninde; her mikserin aynı harfli ayrı pergel vinci', () => {
+  const { ekipmanYer, boyutla } = require('../app/anaerobik.js');
+  const G5 = geo(Object.assign({ zt: 97.25, fb: 0.61, k2: 1 }, boyutla({ Qd: 50000 }).par)), q = G5.q;
+  for (const model of [null, 'ksb_amaprop_2603']) {
+    const E = ekipmanYer(G5, { n: 2, D: 2.603, P: 5.5, rpm: 45, model, name: 'K' }, 95), M = E.filter(x => x.tur === 'mikser'), V = E.filter(x => x.tur === 'vinc');
+    assert.strictEqual(M.length, 6); assert.strictEqual(V.length, M.length, 'her mikserin vinci');
+    for (const m of M) {
+      const H = G5.halka.find(h => Math.abs(h.yc - m.p[1]) < q.Ro); yakin(Math.abs(m.p[1] - H.yc), q.rg + q.tg / 2, 'mikser ekseni perde ekseninde', 1e-6);
+      const v = V.find(x => x.etiket === m.etiket); assert.ok(v, 'aynı harf'); yakin(v.p[1], m.p[1], 'aynı eksende', 1e-9); assert.strictEqual(v.aci, m.aci);
+      const kp = m.aci === 0 ? G5.kopru2 : G5.kopru; yakin(v.z, kp.z1, 'tabliye üstünde', 1e-9);
+      yakin(Math.abs(v.p[0] - m.p[0]), 0.83, 'vinç mikserin 0,83 m gerisinde', 1e-6); yakin(v.L, model ? 0.83 + 0.24 : 0.83 - 0.42, model ? 'kanca mikserin askı kolu ekseninde' : 'kol raya uzanır', 1e-9);
+    }
+  }
+});
+
+/* kullanıcı 20.11.2026: "savakların derinliği çok fazla; 1,00 ya da en çok 1,25 m olmalı" — her açıklığın eşiği su yüzünden ≤ 1,25 m, alan enden; orifis yüzeye yakın */
+t('açıklık eşikleri su yüzünden en çok 1,25 m; alan yetmezse en büyür; ara duvar orifisi yüzeye yakın', () => {
+  const { boyutla, hidrolik } = require('../app/anaerobik.js');
+  for (const [Qd, h] of [[3500, 3.14], [20000, 4.5], [50000, 4.5], [120000, 6]]) {
+    const B = boyutla({ Qd, h }), G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, B.par));
+    const A = [...G2.agizO.flatMap(a => [a.sol, a.sag]), ...G2.penO, G2.orifisO];
+    for (const a of A) assert.ok(G2.zW - a.z0 <= 1.25 + 1e-9, Qd + ': eşik derinliği ' + (G2.zW - a.z0));
+    assert.ok(!G2.orifisO.taban && G2.orifisO.z1 <= G2.zW - 0.1 + 1e-9, 'orifis su yüzünün 0,10 m altına kadar');
+    const H = hidrolik(G2, { Qmax: B.debi.Qmax, Qmin: B.debi.Qmin, QRS: B.debi.QRS }); assert.deepStrictEqual(H.uyari, [], Qd + ' hidrolik uyarı');
+  }
+  const B5 = boyutla({ Qd: 50000 }).par; yakin(B5.agC, 2.60, 'çıkış ağzı eni (derinlik sınırında en büyür)'); yakin(B5.ahC, 1.35, 'çıkış ağzı yüksekliği'); yakin(B5.dO, 1.00, 'orifis eşiği');
+  const eski = geo({ zt: 97.25, fb: 0.61, h: 3.14 }); assert.ok(eski.orifisO.taban && Math.abs(eski.orifisO.z0 - eski.zB) < 1e-9, 'eski çizimde orifis tabanda kalır');
 });
 
 console.log(`\n${n} test geçti.`);

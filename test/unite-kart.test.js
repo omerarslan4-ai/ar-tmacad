@@ -216,12 +216,16 @@ t('Çokal AAT T-105: anaerobik karusel halkaları, ayak izi, temas süresi ve ko
 
 /* GERÇEK PROJE: kullanıcının 50.000 m³/gün anaerobik havuzu (test-proje/Anaerobik-50bin-statik.aritma, ANABOYUT Q=50000 + statik kalınlıkları).
    Kart varsayılanlarıyla aynı havuz çıkmalı (kullanıcı kararı 20.11.2026). Debiler: Q ort. 2083,33, Q maks. 3958,33 m³/h, RAS %75. */
-t('50 bin m³/gün: kart, kullanıcının çizdiği havuzun ölçülerini verir', () => {
+/* açıklıklar 20.11.2026'dan beri her biri kendi debisiyle hidrolik (kapak başına 5 cm kayıp; kullanıcı kararı "kapaklar çok büyük"):
+   elle: giriş ağzı Q maks. 1,0995 m³/s → A ≥ 1,0995 / 0,6044 = 1,82 m² → 2,00 × (0,91 + 0,11 → 1,05); çıkış ağzı Q maks. + RAS 1,924 → 3,18 m² → eşik en çok 1,25 m (kullanıcı 20.11.2026: "savakların derinliği çok fazla"): yükseklik 1,35 (eşik 1,24), en 3,18 / 1,24 → 2,60;
+   RAS ağzı ve RAS penceresi 0,8247 → 1,36 m² → 1,55 × 1,00; ham su penceresi 1,924 → 3,00 × 1,20; orifis 1,36 / 1,55 → 0,90, su yüzüne yakın (eşik 0,90 + 0,10 = 1,00);
+   çıkış kanalı = çıkış ağzı + 0,40 = 3,00. Eski çizim: ağız 2,00 × 2,05, pencere 3,00 × 2,25, orifis 1,40 (tabanda). */
+t('50 bin m³/gün: kart, kullanıcının çizdiği havuzun ölçülerini verir (açıklıklar kendi debisiyle)', () => {
   const k = K.anaerobikKart('an', { N: 3, L: 1, W: 1, h: 4.5 }, { Qd: 50000, Qww: 3958.3333 }, {}, {}, KAR, ANA);
-  const cizim = { n: 3, Ls: 29.4, Ro: 4.1, tw: 0.35, two: 0.7, rg: 1.95, tg: 0.3, bG: 2.2, bC: 2.4, tK: 0.65, ag: 2, ah: 2.05, dAg: 1.94, ow: 3, oh: 2.25, dPe: 2.14, bO: 1.4, dG: 1.4, dR: 1.2, dC: 1.6, h: 4.5, tb: 0.8, kb: 1.5 };
+  const cizim = { n: 3, Ls: 29.4, Ro: 4.1, tw: 0.35, two: 0.7, rg: 1.95, tg: 0.3, bG: 2.2, bC: 3.0, tK: 0.65, ag: 2, ah: 1.05, dAg: 0.94, agC: 2.6, ahC: 1.35, agR: 1.55, ahR: 1.0, ow: 3, oh: 1.2, dPe: 1.09, owR: 1.55, ohR: 1.0, bO: 0.9, bOw: 1.55, dO: 1.0, dG: 1.4, dR: 1.2, dC: 1.6, h: 4.5, tb: 0.8, kb: 1.5 };
   for (const [a, v] of Object.entries(cizim)) yakin(k.cizim[a], v, a);
   assert.ok(Math.abs(p(k, 't').v - 0.75) < 0.01, 'temas süresi ≈ 0,75 sa'); assert.ok(p(k, 'Vk').v > 3770);
-  yakin(k.ayakIzi.boy, 0.65 + 2.2 + 2 * 0.7 + 2 * 4.1 + 29.4 + 2.4 + 0.65, 'boy'); yakin(k.ayakIzi.en, 3 * 8.2 + 4 * 0.7, 'en');
+  yakin(k.ayakIzi.boy, 0.65 + 2.2 + 2 * 0.7 + 2 * 4.1 + 29.4 + 3.0 + 0.65, 'boy (çıkış kanalı 3,00)'); yakin(k.ayakIzi.en, 3 * 8.2 + 4 * 0.7, 'en');
   // elle değişen değer korunur, ATV hacmi büyükse düz boy ondan
   const e = K.anaerobikKart('an', { N: 3, L: 1, W: 1, h: 4.5 }, { Qd: 50000, Qww: 3958.3333 }, { Ro: 4.0, two: 0.5 }, {}, KAR, ANA);
   yakin(e.cizim.Ro, 4.0, 'elle Ro'); assert.ok(e.cizim.Ls > 29.4 && Math.abs(p(e, 't').v - 0.75) < 0.02, 'halka daralınca düz boy uzar, temas süresi korunur'); yakin(e.cizim.two, 0.5, 'elle duvar'); assert.ok(p(e, 'Ro').deg);
@@ -246,7 +250,7 @@ t('anaerobik: düz boy hacimden; tek halka; zincirde mevcut kademe', () => {
 
 t('anaerobik mikser seçeneği: "KSB AmaProp 2603" seçilince kart ve çizim bu tipi kullanır (5,5 kW sabit); otomatikte eski seçim (kullanıcı 20.11.2026)', () => {
   const ks = K.anaerobikKart('an', { N: 1, L: 30, W: 27, h: 4.5 }, { Qd: 50000, Qww: 3000 }, {}, { anMikser: 'KSB' }, KAR), ot = K.anaerobikKart('an', { N: 1, L: 30, W: 27, h: 4.5 }, { Qd: 50000, Qww: 3000 }, {}, {}, KAR);
-  assert.ok(/KSB AmaProp 2603/.test(p(ks, 'mix').v) && /2 × .*11,0 kW/.test(p(ks, 'mix').v), p(ks, 'mix').v); assert.strictEqual(ks.cizim.mlib, 'ksb2603');
+  assert.ok(/Yavaş devirli Ø2,6/.test(p(ks, 'mix').v) && !/KSB|AmaProp/i.test(p(ks, 'mix').v) && /2 × .*11,0 kW/.test(p(ks, 'mix').v), p(ks, 'mix').v); assert.strictEqual(ks.cizim.mlib, 'ksb2603');
   assert.ok(!/KSB/.test(p(ot, 'mix').v), 'otomatikte KSB seçilmez: ' + p(ot, 'mix').v); assert.strictEqual(ot.cizim.mlib, null, 'eski havuzdaki seçim kartla temizlenir');
 });
 

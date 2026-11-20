@@ -34,20 +34,22 @@
     return null;
   };
   C.GORUNUM_SABLON = {
-    mimari: { ad: 'Mimari', BETON: 'N', MIMARI: 'N', MEKANIK: 'S', ELEKTRIK: 'G', DONATI: 'G' },
+    mimari: { ad: 'Mimari', BETON: 'N', MIMARI: 'N', MEKANIK: 'S', EKIPMAN: 'N', ELEKTRIK: 'G', DONATI: 'G' }, // EKIPMAN: ünite ekipmanı (mikser, pergel vinç, kapak) kendi renginde — kullanıcı 20.11.2026
     statik: { ad: 'Statik', BETON: 'N', DONATI: 'N', MIMARI: 'S', MEKANIK: 'G', ELEKTRIK: 'G' },
     mekanik: { ad: 'Mekanik', MEKANIK: 'N', BETON: 'S', MIMARI: 'S', ELEKTRIK: 'G', DONATI: 'G' },
     elektrik: { ad: 'Elektrik', ELEKTRIK: 'N', BETON: 'S', MIMARI: 'S', MEKANIK: 'S', DONATI: 'G' },
   };
   const sablonAd = g => { const s = C.up(String(g || '')); if (/MIMAR/.test(s)) return 'mimari'; if (/STAT|BETONARME|INSAAT/.test(s)) return 'statik'; if (/MEKAN/.test(s)) return 'mekanik'; if (/ELEKT/.test(s)) return 'elektrik'; return null; };
   C.gorunumSablonu = g => C.GORUNUM_SABLON[sablonAd(g)] || null;
+  /* ünite ekipmanı: şablonda EKIPMAN varsa (mimari) mekanik soluk kuralından ayrılır; yoksa MEKANIK sayılır (kullanıcı 20.11.2026: "mekanik ekipmanların rengini farklı yap") */
+  const EKIP = /MIKSER|PERGEL|MEK_KAPAK/;
   {
     const v0 = C.vpPrims;
     C.vpPrims = function (vp, cb) {
       const sk = vp && vp.disiplin ? C.gorunumSablonu(vp.disiplin) : null;
       if (!sk) return v0.call(this, vp, cb);
       return v0.call(this, vp, (e, pr) => {
-        const k = C.gorunumKategori(e), md = k ? (sk[k] || 'N') : 'N';
+        const k0 = C.gorunumKategori(e), k = k0 === 'MEKANIK' && sk.EKIPMAN && EKIP.test(C.up(String(e.layer || ''))) ? 'EKIPMAN' : k0, md = k ? (sk[k] || 'N') : 'N';
         if (md === 'G') return;
         if (md === 'S') pr = pr.map(p => Object.assign({}, p, { color: 8, lw: 9 }));
         cb(e, pr);

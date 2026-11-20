@@ -68,6 +68,7 @@
       'Mim_Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi20': { stil: ['YZ'], mm: [2, 2.5, 3] }, 'Yazi25': { stil: ['YZ'], mm: [2, 2.5, 3, 3.5, 4] }, /* 3,5: açılım kodu, 4: DÖŞEMELER / DUVARLAR başlığı */ 'YZ': { stil: ['YZ'], mm: [2, 2.5, 3] },
       'ZMN': { stil: ['YZ'], mm: [2.5] }, 'Kot': { stil: ['YZ'], mm: [2, 2.5, 3] }, /* 10-İdari Bina_R2: ZMN 12,5 birim (2,5 mm); KOT 10 (2 mm, en sık), 12,5 (2,5 mm), 1/20 detayda 6 (3 mm) */
       'Aks': { stil: ['ARIAL'], mm: [5] }, 'Kesit_Cizgisi': { stil: ['ARIAL'], mm: [5] },
+      'Mek_Yazi': { stil: ['YZ'], mm: [2.5] }, /* ekipman numaraları (Z-…, PV-…) — KABUL 20.11.2026, örnekte ölçülmedi */
       'MAHAL İSİM': { stil: ['ARIAL', 'TÜRKÇE'], mm: [3, 4] }, 'Yazi30': { stil: ['YZ'], mm: [4, 5] }, /* mahal adı 15 – 20 birim; başlık 20 (görünüş) – 25 (kesit, Blower) birim; başlık stili YZ (kullanıcı kararı 14.11.2026) */
     },
     olcu: {
@@ -166,6 +167,8 @@
     digerKatman: {
       'Mekanik': { renk: 94, tip: 'Continuous', kal: 0.25 }, 'Mek_Yazi': { renk: 31, tip: 'Continuous', kal: 0.25 }, 'Boru_Eksen': { renk: 242, tip: 'DASHDOT', kal: 0.15 },
       'Sac_Kapak': { renk: 251, tip: 'Continuous', kal: 0.15 }, 'Defpoints': { renk: 7, tip: 'Continuous', kal: null },
+      /* ünite ekipmanı ayrı renkte — kullanıcı kararı 20.11.2026 (örnekte yok): mikser turuncu (seçim), kapak mavi ve pergel vinç kırmızı (KABUL) */
+      'Mek_Mikser': { renk: 30, tip: 'Continuous', kal: 0.25 }, 'Mek_Kapak': { renk: 5, tip: 'Continuous', kal: 0.25 }, 'Mek_Pergel': { renk: 1, tip: 'Continuous', kal: 0.25 },
     },
     /* PROGRAM KATMANI → ÇİZİM KATMANI. Program içeride kendi katman adlarıyla çalışır (KESIT_PERDE, GORUNEN_DOSEME, KESIT_OLCU …);
        AutoCAD çıktısında ve ekrandaki renk / çizgi tipi / kalınlıkta örnek çizimlerin katmanı kullanılır. Sıra önemlidir: ilk uyan geçerlidir. null = eşleme yok. */
@@ -179,6 +182,7 @@
       [/^(KESIT_DUZLEMI|KAZI.*|STA_.*|STATIK.*|DONATI.*|MT_.*|AC_.*|SAHA_.*|PENCERE|DETAY|PAFTA_INDEKS)$/, null], // başka disiplinin ve programın kendi yardımcı katmanları (PENCERE: pafta penceresi çerçevesi)
       [/(^|_)OLCU$/, 'ÖL'], [/(^|_)KOT$/, 'Kot'], [/(^|_)AKS(_BLOK)?$/, 'Aks'], [/^KESIT_ISARET$/, 'Kesit_Cizgisi'],
       [/(^|_)(BORU_YAZI|POZ(_IST)?)$/, 'Mek_Yazi'], [/(^|_)EKSEN$/, 'Boru_Eksen'], [/^DETAY_KAPAK/, 'Sac_Kapak'],
+      [/(^|_)MIKSER(_|$)/, 'Mek_Mikser'], [/(^|_)MEK_KAPAK(_|$)/, 'Mek_Kapak'], [/(^|_)MEK_PERGEL(_|$)/, 'Mek_Pergel'], // 20.11.2026: ünite ekipmanı ayrı renkte
       [/(^|_)(MEK|BORU|POMPA|VANA|EKIPMAN|IZGARA|BLOWER|MIKSER|DIFUZOR)(_|$)/, 'Mekanik'],
       [/^(ZEMIN|SEVIYE)$/, 'ZMN'], [/^ARAZI$/, 'Toprak'],            // SEVIYE: kat seviyesi çizgisi ve yazısı — KABUL
       [/SU_TUTUCU_BANT/, 'Sututucu'],

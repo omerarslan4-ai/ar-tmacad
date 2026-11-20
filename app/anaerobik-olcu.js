@@ -35,16 +35,16 @@
     // ---- düz boy ve yarım daireler: son halkanın üst koridorunda, orta perdenin üstünde ----
     { const y = G.yc[n - 1] + q.tw / 2; Z.push({ grup: 'duzboy', yon: 'x', nok: tek([G.xc1 - q.Ro, G.xc1, G.xc2, G.xc2 + q.Ro]), t: r3(y), p: r3(y + Math.min(0.6, G.b * 0.25)) }); }
     // ---- kanal enleri ve duvarları: son halkanın ağzı hizasında (ağzın altından) ----
-    { const y = G.yc[n - 1], p = r3(y - q.ag / 2 - 0.45);
+    { const y = G.yc[n - 1], p = r3(y - Math.max(G.agizO[n - 1].sol.w, G.agizO[n - 1].sag.w) / 2 - 0.45); // açıklık başına ölçü (anaerobik.js G.agizO)
       Z.push({ grup: 'kanal', yon: 'x', nok: tek([0, q.tK, q.tK + q.bG, G.xc1 - q.Ro]), t: r3(y), p });
       Z.push({ grup: 'kanal', yon: 'x', nok: tek([G.xc2 + q.Ro, G.xR, xo1, G.Lo]), t: r3(y), p }); }
     // ---- kanal boyları ve ağızların yeri (kanal boyunca zincir); sağ kanalda ara duvar da ----
-    { const ag = []; for (let i = 0; i < n; i++) ag.push(G.yc[i] - q.ag / 2, G.yc[i] + q.ag / 2);
-      Z.push({ grup: 'agiz', yon: 'y', nok: tek([yb, yb + q.tK, ...ag, yt - q.tK, yt]), t: r3(q.tK + q.bG), p: r3(q.tK + q.bG * 0.35) });
+    { const ag = yan => { const o = []; for (let i = 0; i < n; i++) { const w = G.agizO[i][yan].w; o.push(G.yc[i] - w / 2, G.yc[i] + w / 2); } return o; }; // sol: giriş ağızları, sağ: RAS / çıkış ağızları
+      Z.push({ grup: 'agiz', yon: 'y', nok: tek([yb, yb + q.tK, ...ag('sol'), yt - q.tK, yt]), t: r3(q.tK + q.bG), p: r3(q.tK + q.bG * 0.35) });
       const ara = G.ara ? [G.ara.y - q.tK / 2, G.ara.y + q.tK / 2] : [];
-      Z.push({ grup: 'agiz', yon: 'y', nok: tek([yb, yb + q.tK, ...ag, ...ara, yt - q.tK, yt]), t: r3(G.xR), p: r3(G.xR + q.bC * 0.65) }); }
+      Z.push({ grup: 'agiz', yon: 'y', nok: tek([yb, yb + q.tK, ...ag('sag'), ...ara, yt - q.tK, yt]), t: r3(G.xR), p: r3(G.xR + q.bC * 0.65) }); }
     // ---- pencereler (halkalar arası duvar): eni ve yarım daire merkezinden yeri ----
-    for (let i = 0; i + 1 < n; i++) { const y0 = G.yc[i] + q.Ro; Z.push({ grup: 'pencere', yon: 'x', nok: tek([G.xc1, G.pen.xw0, G.pen.xw1]), t: r3(y0), p: r3(y0 - q.sahG - 0.35) }); }
+    for (let i = 0; i + 1 < n; i++) { const y0 = G.yc[i] + q.Ro; const P = (G.penO || [])[i] || { x0: G.pen.xw0, x1: G.pen.xw1 }; Z.push({ grup: 'pencere', yon: 'x', nok: tek([G.xc1, P.x0, P.x1]), t: r3(y0), p: r3(y0 - q.sahG - 0.35) }); }
     // ---- orifis (çıkış kanalı ara duvarı) ----
     if (G.ara) { const y = G.ara.y - q.tK / 2; Z.push({ grup: 'orifis', yon: 'x', nok: tek([G.xR, G.ara.g0, G.ara.g1, xo1]), t: r3(y), p: r3(y - 0.9) }); }
     // ---- servis köprüsü ve yürüyüş yolu: eni ve yarım daire merkezlerinden yeri (üst dış duvarın iç yüzünden) ----

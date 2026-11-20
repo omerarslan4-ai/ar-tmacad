@@ -32,7 +32,7 @@
      duvar üstünün en az 5 cm altında. Üst plan her zaman çıkar; bütün yapının üstünden bakar. */
   function planlar(G, o) {
     o = o || {}; const kh = o.kh == null ? 1.2 : +o.kh, pay = o.pay == null ? 0.2 : +o.pay, zYol = G.kopru.z1, alt = G.zF - 0.1, out = [];
-    const lo = Math.max(G.zS, G.zSp), hi = Math.min(G.zH, G.zHp), h1 = r3(Math.min(hi > lo + 0.05 ? (lo + hi) / 2 : (G.zS + G.zH) / 2, G.zTop - 0.05));
+    const lo = G.acikAralik ? G.acikAralik[0] : Math.max(G.zS, G.zSp), hi = G.acikAralik ? G.acikAralik[1] : Math.min(G.zH, G.zHp), h1 = r3(Math.min(hi > lo + 0.05 ? (lo + hi) / 2 : (G.zS + G.zH) / 2, G.zTop - 0.05));
     /* ağız ve pencerenin ortak aralığı (yoksa ağız) */ out.push({ ad: 'PLAN', baslik: `${f2(G.zB)} ve ${f2(zYol)} KOTLARI PLANI`, h: h1, depth: r3(h1 - alt), su: false, kesit: true });
     const e = o.ekipUst != null && isFinite(+o.ekipUst) ? +o.ekipUst + pay : -Infinity, h2 = r3(Math.max(zYol + kh, e));
     out.push({ ad: 'UST', baslik: 'ÜST PLAN', h: h2, depth: r3(h2 - alt), su: false });
@@ -45,7 +45,8 @@
     const xA = -uc, xB = G.Lo + uc, yA = Math.min(0, G.kanal.yb, G.kopru.y0) - uc, yB = Math.max(G.Wo, G.kanal.yt, G.kopru.y1) + uc;
     const mah = (i, x, y) => ({ ad: halkaAdi(G, i, kod), p: [r3(x), r3(y)], z: zM }), ustKor = i => G.yc[i] + q.tw / 2 + G.b / 2;
     // A-A: 1. ham su halkasında (tek halkada o halkada) orta perde yüzü ile ağız kenarının ortasından; bakış +y, derinlik üst dış duvarın dış yüzüne kadar
-    { const i = Math.min(1, n - 1), d = (q.tw / 2 + Math.max(q.tw / 2, q.ag / 2)) / 2, y = r3(G.yc[i] + (d > q.tw / 2 + 1e-6 ? d : q.tw / 2 + 0.05));
+    // wA: iki uçtaki ağızdan da geçsin diye dar olanın eni
+    { const i = Math.min(1, n - 1), wA = G.agizO ? Math.min(G.agizO[i].sol.w, G.agizO[i].sag.w) : q.ag, d = (q.tw / 2 + Math.max(q.tw / 2, wA / 2)) / 2, y = r3(G.yc[i] + (d > q.tw / 2 + 1e-6 ? d : q.tw / 2 + 0.05));
       const k = { nm: 'A', a: [r3(xA), y], b: [r3(xB), y], sp: [r3((xA + xB) / 2), r3(y + 1)], depth: r3(G.Wo - y), tarif: `boyuna; ${halkaAdi(G, i, kod)} halkasında orta perdenin yanından (ağızlardan geçer), bakış üst halkaya`, mahal: [mah(i, G.xc1 + q.Ls / 2, y)] };
       const c = G.boruYer && G.boruYer.cikis; if (c) k.kademe = { x: r3(G.xR + OLCU.ccOran * q.bC), y: r3(c.p[1]) }; // Çokal'daki kademe (çıkış borusu ekseni): bilgi, uygulanmıyor
       out.push(k); }
@@ -135,6 +136,19 @@
   /* havuza bağlı ekipmanın (aile nesneleri: kapak, mikser + pergel vinç) gerçek üst kotu — 3B ağdan */
   const ekipUst = e => { let z = -Infinity; for (const x of C.doc.ents) { if (x.bag !== e.id || x.type !== 'aile' || x.gv) continue; let t = null; try { t = C.entTris(x); } catch (er) { continue; } const P = t && t.pos; if (!P) continue; for (let i = 2; i < P.length; i += 3) if (P[i] > z) z = P[i]; } return isFinite(z) ? z : null; };
   C.anaerobikEkipUst = ekipUst;
+  /* planda ekipman numaraları (kullanıcı 20.11.2026: "mikserlerin ve pergel vinçlerin numaraları da gözüksün"): havuza bağlı mikser (Z-…) ve pergel vinç (PV-…);
+     yazı ekipmanın enine yanında (mikserde pervane yarıçapının dışında, vinçte direğin yanında), alt kotu kesme kotunun üstündeyse (kesit planda vinç) yazılmaz.
+     → [{ ad, p: [x, y] (dünya), z0 }] */
+  const ekipmanNo = e => {
+    const out = [];
+    for (const x of C.doc.ents) {
+      if (x.bag !== e.id || x.type !== 'aile' || !x.ad || (x.fam !== 'dalgic_mikser' && x.fam !== 'pergel_vinc')) continue;
+      const r = (+x.rot || 0) * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), p = x.p || [0, 0, 0], q = x.par || {};
+      const ox = x.fam === 'dalgic_mikser' ? (+q.D || 600) / 2000 + 0.25 : 0.25, oy = x.fam === 'dalgic_mikser' ? 0.9 : 0; // yerel: x enine, y itki
+      out.push({ ad: x.ad, p: [r3(p[0] + oy * c - ox * s), r3(p[1] + oy * s + ox * c)], z0: +x.z || 0, fam: x.fam });
+    }
+    return out;
+  };
 
   /* havuzun plan ölçüleri (anaerobik-olcu.js, oto: 'ANAOLCU'): geçerli açıklama ölçeğine göre yenilenir (MIMARIPAFTA pafta ölçeğiyle çağırır; ölçek eski hâline dönünce
      anaerobik-olcu.js kendiliğinden yeniler). Kullanıcı ölçüleri kaldırdıysa (ANAOLCU KALDIR) boş döner. */
@@ -154,6 +168,7 @@
       kodlar: R.kodlar.map(k => Object.assign({}, k, { a: W(k.a) })),
       planSinif: p => sinif(yerel(p)), // planda gövde çizgisinin sınıfı (dünya koordinatı): govde → Beton, tretuvar → Tretuvar, radye (toprak altı) → çizilmez
       planOlcu: olculer(e), // havuzun kendi plan ölçüleri (ANAOLCU): plana aynen taşınır
+      ekipman: ekipmanNo(e), // mikser ve pergel vinç numaraları (Z-…, PV-…): planda ekipmanın yanında
     };
   };
   if (typeof window !== 'undefined' && window.DIL) window.DIL.ekle('en', 'English', [

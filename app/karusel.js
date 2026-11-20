@@ -29,7 +29,7 @@
     mid75: { name: 'Orta devirli Ø0,75', D: 0.75, rpm: 480, P: 4.0 },
     fast37: { name: 'Kompakt Ø0,37', D: 0.37, rpm: 1400, P: 2.5 },
     /* üretici modelli (app/mikser-ksb.js): yalnız anaerobik havuzda, motor gücü sabit (kullanıcı kararı 20.11.2026) */
-    ksb2603: { name: 'KSB AmaProp 2603', D: 2.603, rpm: 45, P: 5.5, sabit: true, model: 'ksb_amaprop_2603', unite: ['anaerobik'] },
+    ksb2603: { name: 'Yavaş devirli Ø2,6 · 5,5 kW', D: 2.603, /* projede marka / model yazılmaz (20.11.2026) */ rpm: 45, P: 5.5, sabit: true, model: 'ksb_amaprop_2603', unite: ['anaerobik'] },
   };
   const MPAR = { rho: 1000, lam: 0.03, zTurnOval: 0.8, etaInst: 0.85, fm: 0.65, vTarget: 0.30, pMin: 1, pMax: 4 };
   const P_STD = [0.37, 0.55, 0.75, 1.1, 1.5, 2.2, 3.0, 4.0, 5.5, 7.5, 11, 15]; // standart motor güçleri (kW)
