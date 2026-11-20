@@ -177,8 +177,14 @@
 
   let changeTimer = null;
   C.rev = 0;
+  /* toplu değişim: uzun üretimlerde (MIMARIPAFTA …) her C.add / C.changed ekranı ve 'change' dinleyicilerini yeniden çalıştırıyordu
+     (40 bin nesnede çağrı başına ~9 ms, 10 bin çağrı → 86 sn; kullanıcı 20.11.2026: "paftaları hazırla dediğimde program kitleniyor").
+     C.toplu(fn) süresince yalnız C.rev artar; duvar önbelleği, 'change' ve 'changeIdle' sonunda bir kez çalışır. İç içe çağrılabilir. */
+  let topluDerin = 0, topluVar = false;
+  C.toplu = async fn => { topluDerin++; try { return await fn(); } finally { if (--topluDerin === 0 && topluVar) { topluVar = false; C.changed(); } } };
   C.changed = function () {
     C.rev++;
+    if (topluDerin > 0) { topluVar = true; return; }
     if (C.doc) for (const w of C.doc.ents) if (w.type === 'wall' && w._c) delete w._c; // duvar birleşimleri komşuya bağlı
     C.emit('change');
     if (changeTimer) clearTimeout(changeTimer);

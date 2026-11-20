@@ -779,7 +779,7 @@
       try { return w0.call(this, Object.assign({}, opts, dxfCizgiOlcegi(st.olcek))); } finally { for (const n of Object.keys(eski)) { if (eski[n]) C.LT[n] = eski[n]; else delete C.LT[n]; } } }; }
 
   C.addCommand(['MIMARIPAFTA', 'MIMARICIZ', 'MIMPAFTA'], 'Seçili yapının (seçim yoksa bütün modelin) mimari paftalarını "Mimari" grubuna hazırlar (Çokal R2 düzeni): ölçek bina ebatına göre (1/50; çok küçükse 1/25, A0\'a sığmazsa 1/100); kat planları ve mahal listesi; A-A / B-B / C-C kesitleri ve malzeme açılımı; görünüşler; çatı planı, çatı kesiti ve çatı detayları; kapı / pencere detayları (1/20); korkuluk ve sac kapak detayları. Antet: yüklediğiniz antet. Model değişince yeniden çalıştırın.', async () => {
-    const res = await MIMARIPAFTA(); if (!res) return;
+    const res = C.toplu ? await C.toplu(() => MIMARIPAFTA()) : await MIMARIPAFTA(); if (!res) return; // ekran yenilemesi sonda bir kez (core.js C.toplu)
     if (!res.paf.length) { C.warn('Mimari pafta üretilemedi (görünüş çıkmadı).'); return; }
     const L0 = res.paf[0]; C.layoutIdx = C.doc.layouts.indexOf(L0); C.grpCur = 'Mimari'; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60);
     const yeniKes = res.r.kes.filter(v => v.kaynak === 'MIMARIPAFTA').length, d = res.r.detay;
