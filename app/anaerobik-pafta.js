@@ -99,13 +99,20 @@
       if (G.kopru2) { const k2 = G.kopru2; K.push(kutu(k2.x0, k2.y0, k2.x1, k2.y1)); E.push(P((k2.x0 + k2.x1) / 2, G.yc[0] - q.tw / 2 - G.b / 2), sah(k2)); }
       for (const s of G.sahanlik || []) { K.push(kutu(s.x0, s.y0, k.x0, s.y1)); E.push(P(s.x0 + Math.min(0.25, (k.x0 - s.x0) / 4), s.y1 - Math.min(0.15, (s.y1 - s.y0) / 4))); }
       L.push({ ad: 'Servis köprüsü, yürüyüş yolu, kapak işletme sahanlığı ve merdiven sahanlığı döşemesi', tur: 'doseme', t: q.kbT, lines: [beton(q.kbT)], kutular: K, etiket: E, z0: k.z0, z1: k.z1 }); }
-    { const t = q.tre; // tretuvar (zemin kotunda, havuz çevresi) — KABUL: katmanları verilmedi, yalnız modeldeki kalınlık yazılır
-      L.push({ ad: 'Tretuvar', tur: 'doseme', t: q.treT, lines: [`Tretuvar, ${cm(q.treT)} cm`], kutular: [kutu(-t, yb - t, 0, yt + t), kutu(G.Lo, yb - t, G.Lo + t, yt + t), kutu(G.xc1, -t, G.xc2, 0), kutu(G.xc1, G.Wo, G.xc2, G.Wo + t),
+    { const t = q.tre; // tretuvar (zemin kotunda, havuz çevresi): kaplama seçildiyse katmanları (tretSatir), yoksa modeldeki kalınlık
+      L.push({ ad: 'Tretuvar', tur: 'doseme', t: q.treT, lines: tretSatir(q, o.tretKat), kutular: [kutu(-t, yb - t, 0, yt + t), kutu(G.Lo, yb - t, G.Lo + t, yt + t), kutu(G.xc1, -t, G.xc2, 0), kutu(G.xc1, G.Wo, G.xc2, G.Wo + t),
           kutu(-t, yb - t, G.xc1 - R2, yb), kutu(-t, yt, G.xc1 - R2, yt + t), kutu(G.xR, yb - t, G.Lo + t, yb), kutu(G.xR, yt, G.Lo + t, yt + t)], // yanlar, uzun kenarlar, kanal uçları
         etiket: [P(G.xc1 + 0.5 * q.Ls, -t / 2)], z0: r3(zg - q.treT), z1: r3(zg) }); }
     return L;
   }
 
+  /* tretuvar açılımı: kaplama seçildiyse (q.tretKap; katalog o.tretKat = tretuvar.js C.TRETUVAR_KAP) katmanlarıyla, yoksa eskisi gibi tek satır.
+     Katmanlar tretuvar.js ile aynı: kaplama (katalog kalınlığı) › harç / kum yatak 3 cm › C16/20 beton 10 cm › stabilize 15 cm; perdahlı betonda beton q.treT */
+  function tretSatir(q, kat) {
+    const kp = q.tretKap && kat && kat[q.tretKap]; if (!kp) return [`Tretuvar, ${cm(q.treT)} cm`];
+    if (q.tretKap === 'beton' || !kp.t) return [`${kp.ad}, ${cm(q.treT)} cm`, 'Stabilize dolgu, 15 cm'];
+    return [`${kp.ad}, ${kp.t} cm`, `${kp.yatak || 'Çimento harcı'}, 3 cm`, 'C16/20 beton, 10 cm', 'Stabilize dolgu, 15 cm'];
+  }
   /* PLANDA GÖVDE ÇİZGİLERİNİN SINIFI (Çokal planı ölçüldü: havuz duvarları ve köprü Beton katmanında — kalın, taramasız; tretuvar Tretuvar katmanında;
      radyenin duvar dışına taşan, toprak altında kalan kenarı çizilmemiş). → p (yerel [x, y]) → 'tretuvar' | 'radye' | 'govde' */
   function planSinif(G) {
@@ -125,7 +132,7 @@
     return { planlar: planlar(G, o), kesitler: kesitler(G, o), mahaller, kodlar, gorunus: false, ustGorunus: false, paftaAdi: { plan: 'PLANLAR', kesit: 'KESİTLER' } };
   }
 
-  const api = { planlar, kesitler, acilimlar, tarif, planSinif, halkaAdi, kodYaz, OLCU };
+  const api = { planlar, kesitler, acilimlar, tarif, planSinif, halkaAdi, kodYaz, OLCU, tretSatir };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C || !C.T || !C.T.anaerobik || !C.anaerobikGeo) return;
   C.anaerobikPaftaApi = api;
@@ -154,11 +161,11 @@
      anaerobik-olcu.js kendiliğinden yeniler). Kullanıcı ölçüleri kaldırdıysa (ANAOLCU KALDIR) boş döner. */
   const olculer = e => { if (e.olcu === false || !C.anaerobikOlcu) return []; try { C.anaerobikOlcu(e, true); } catch (er) { console.error('anaerobik ölçü', er); } return C.doc.ents.filter(x => x.oto === 'ANAOLCU' && x.bag === e.id && x.type === 'dim'); };
   /* kodlu açılım (acilim-kod.js uniteAcilim): kesitte kod etiketleri */
-  T.anaerobik.acilimlar = e => { const G = geo(e); return acilimlar(G, { zg: zemin(e, G) }); };
+  T.anaerobik.acilimlar = e => { const G = geo(e); return acilimlar(G, { zg: zemin(e, G), tretKat: C.TRETUVAR_KAP }); };
   /* MIMARIPAFTA tarifi — dünya koordinatında. o: { kh } */
   T.anaerobik.paftaTarifi = (e, o) => {
     const G = geo(e), f = C.frame(e.o, e.rot), W = p => { const w = f.at(p[0], p[1], 0); return [r3(w[0]), r3(w[1])]; };
-    const R = tarif(G, Object.assign({ kod: e.code, ekipUst: ekipUst(e), zg: zemin(e, G) }, o || {}));
+    const R = tarif(G, Object.assign({ kod: e.code, ekipUst: ekipUst(e), zg: zemin(e, G), tretKat: C.TRETUVAR_KAP }, o || {}));
     const rr = -(e.rot || 0) * Math.PI / 180, cs = Math.cos(rr), sn = Math.sin(rr), yerel = p => { const dx = p[0] - e.o[0], dy = p[1] - e.o[1]; return [dx * cs - dy * sn, dx * sn + dy * cs]; }, sinif = planSinif(G);
     return {
       unite: e.id, ad: `${kodYaz(e.code)} ${e.name || 'Anaerobik havuz'}`.trim(), gorunus: R.gorunus, ustGorunus: R.ustGorunus, paftaAdi: R.paftaAdi,

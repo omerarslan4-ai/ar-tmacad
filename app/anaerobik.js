@@ -27,7 +27,7 @@
     mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.06, pD: 0.20, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
-  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC', 'agC', 'ahC', 'agR', 'ahR', 'owR', 'ohR', 'bOw', 'dO']; // elle taşınan boru delikleri; açıklık başına ölçüler (yoksa ag × ah, ow × oh)
+  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC', 'agC', 'ahC', 'agR', 'ahR', 'owR', 'ohR', 'bOw', 'dO', 'tretKap', 'korkKm']; // tretKap: tretuvar kaplaması (tretuvar.js kataloğu), korkKm: korkuluk malzemesi (merdiven.js kataloğu) // elle taşınan boru delikleri; açıklık başına ölçüler (yoksa ag × ah, ow × oh)
 
   /* yardımcılar (yerel 2B) */
   const arc = (cx, cy, r, a0, a1, n) => { const o = []; n = n || Math.max(6, Math.ceil(Math.abs(a1 - a0) / 6)); for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * RAD; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return o; };
@@ -545,7 +545,8 @@
       { // tretuvar: zemin kotunda havuz çevresi
         const zg = zemin(e, G), uy = M.cross([0, 0, 1], f.ux), W = p => f.at(p[0], p[1], p[2]), Wn = n => [f.ux[0] * n[0] + uy[0] * n[1], f.ux[1] * n[0] + uy[1] * n[1], n[2]];
         const Kt = bolgeKati({ dis: G.tretuvar.dis, delik: [G.bolge.dis.slice().reverse()] }, zg - G.tretuvar.kal, zg);
-        out.push({ t: 'tri', v: Kt.v.map(W), vn: Kt.vn.map(Wn), f: Kt.f, edges3: Kt.e.map(ab => ab.map(W)), fc: Kt.f.map(() => [0.62, 0.62, 0.60]) });
+        const kp = e.tretKap && C.TRETUVAR_KAP && C.TRETUVAR_KAP[e.tretKap], tc = kp ? kp.col : [0.62, 0.62, 0.60]; // seçilen kaplamanın rengi
+        out.push({ t: 'tri', v: Kt.v.map(W), vn: Kt.vn.map(Wn), f: Kt.f, edges3: Kt.e.map(ab => ab.map(W)), fc: Kt.f.map(() => tc) });
       }
       return out;
     },
@@ -593,8 +594,8 @@
     }
     if (y.tur === 'vinc') { const d = C.AILELER && C.AILELER.pergel_vinc; if (!d) return null; const t0 = d.tipler.find(t => t.p.model === 'jib') || d.tipler[0]; // kullanıcının seçtiği jib vinç modeli (20.11.2026)
       return { type: 'aile', props: { fam: 'pergel_vinc', tip: t0.ad, tipU: t0.ad, par: Object.assign({}, t0.p, { L: mm(y.L) }), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: `PV-${un}/${y.etiket}`, layer: d.katman } }; }
-    if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)
-    if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } };
+    if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: e.korkKm || 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)
+    if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: e.korkKm || 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } }; // malzeme elle seçilir (kart / ANAEKIPMAN KORKULUK=)
     return null;
   }
   /* yerleştir / güncelle: programın koyduğu ve yerinde duran ekipman güncellenir; elle taşınan korunur; kullanıcının sildiği yeniden konmaz */
@@ -694,10 +695,12 @@
     if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
     if (kv.OLCU !== 'H' && C.anaerobikOlcu) C.anaerobikOlcu(e);
   });
-  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli)', async (I) => {
+  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli) [TRETUVAR=beton|parke|karo|tas|granit] [KORKULUK=galvaniz|paslanmaz|paslanmaz316|ctp_sari|…]', async (I) => {
     const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');
     if (!s.length) return C.warn('Çizimde anaerobik havuz yok (önce ANAEROBIK).');
-    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^(KSB|55|5[.,]5)/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; } C.anaerobikEkipman(e); }
+    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^(KSB|55|5[.,]5)/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; }
+      if (kv.TRETUVAR) { const k = String(kv.TRETUVAR).toLowerCase().replace('kilit', 'parke'); if (C.TRETUVAR_KAP && C.TRETUVAR_KAP[k]) e.tretKap = k; else if (/^(yok|oto|-)$/.test(k)) delete e.tretKap; else C.warn('Tretuvar kaplaması: ' + Object.keys(C.TRETUVAR_KAP || {}).join(' / ')); delete e._c; }
+      if (kv.KORKULUK) { const k = String(kv.KORKULUK).toLowerCase(); if (C.KORKULUK_KM && C.KORKULUK_KM[k]) e.korkKm = k; else C.warn('Korkuluk malzemesi: ' + Object.keys(C.KORKULUK_KM || {}).join(' / ')); } C.anaerobikEkipman(e); }
   });
 
   C.addCommand(['ANABORU', 'ANAEROBIKBORU'], 'Anaerobik havuzun boru deliklerini taşır: ANABORU [GIRIS|RAS|CIKIS] → yeni yer (duvar boyunca), çap, alt kotu; ANABORU BORUDAN → saha borularının uçlarına bağlar ve izler', async (I) => {

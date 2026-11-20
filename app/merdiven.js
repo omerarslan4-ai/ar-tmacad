@@ -14,6 +14,7 @@
   };
   const COL = { beton: [0.76, 0.76, 0.73], izg: [0.58, 0.60, 0.62], izgK: [0.50, 0.52, 0.54], ctp: [0.93, 0.72, 0.14], ctpK: [0.80, 0.60, 0.10], cel: [0.45, 0.47, 0.50] };
   const o_ = O => Object.entries(O).map(([k, v]) => [k, v[0]]);
+  C.KORKULUK_KM = KM; // korkuluk malzeme kataloğu: ünite yapıları (anaerobik havuz) buradan seçer
   /* ---------- kurala göre rıht / basamak ---------- */
   const rule = e => {
     const H = Math.abs((+e.z1 || 0) - (+e.z0 || 0)), hmax = cm(+e.hmax || 17.5), n = Math.max(2, Math.ceil(H / hmax - 1e-9)), h = H / n;

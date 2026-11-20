@@ -521,7 +521,7 @@
     if (S.rg + S.tg > S.Ro - 0.3) uyari.push('Yönlendirme perdesi halka yarıçapına çok yakın; perde yarıçapını küçültün.');
     const yc = i => S.two + S.Ro + i * (2 * S.Ro + S.two);
     // çizim parametreleri (app/anaerobik.js varlığı). Su yüzü girilmişse duvar üstü kotu ve hava payı = duvar üstü − su yüzü (zemin belirleyince büyür)
-    const cizim = { mlib, n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, agC: S.agC, ahC: S.ahC, agR: S.agR, ahR: S.ahR, owR: S.owR, ohR: S.ohR, bOw: S.bOw, dO: S.dO, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
+    const cizim = { mlib, tretKap: sec.anTret || null, korkKm: sec.anKork || 'galvaniz', n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, agC: S.agC, ahC: S.ahC, agR: S.agR, ahR: S.ahR, owR: S.owR, ohR: S.ohR, bOw: S.bOw, dO: S.dO, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
     if (zs) Object.assign(cizim, { zt: r3(zu), fb: r3(zu - zs) });
     if (Qm) Object.assign(cizim, { Qmax: r3(Qm), Qmin: r3(Qo * 0.5), QRS: r3(QRS) });
     return {
@@ -843,6 +843,8 @@
         ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
         ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}
         ${sel('anGoz', 'Anaerobik halka', [['3', '3 halka (RAS + 2 ham su)'], ['1', 'Tek halka']], A.sec.anGoz || '3')}
+        ${sel('anTret', 'Anaerobik tretuvar', [['', 'Belirtilmedi (tek satır)'], ...Object.entries((C && C.TRETUVAR_KAP) || {}).map(([k, v]) => [k, v.ad])], A.sec.anTret || '')}
+        ${sel('anKork', 'Anaerobik korkuluk', Object.entries((C && C.KORKULUK_KM) || { galvaniz: ['Sıcak daldırma galvaniz çelik'] }).map(([k, v]) => [k, v[0]]), A.sec.anKork || 'galvaniz')}
         ${sel('anMikser', 'Anaerobik mikser', [['OTO', 'Otomatik (en az güç)'], ['KSB', 'Yavaş devirli Ø2,6 m, 5,5 kW (üretici modeli)']], A.sec.anMikser || 'OTO')}
         ${sel('dgYer', 'Dağıtma yapısı', [['AYRI', 'Ayrı yapı'], ['BITISIK', 'Havuz ucuna bitişik']], A.sec.dgYer || 'AYRI')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
@@ -918,7 +920,7 @@
       ['Kaba ızgara yapısı', 'Coarse screen structure'], ['İnce ızgara yapısı', 'Fine screen structure'], ['Kaba ve ince ızgara yapısı (aynı kanal)', 'Coarse and fine screen structure (common channel)'],
       ['Giriş terfi istasyonu', 'Inlet pumping station'], ['Kum ve yağ tutucu', 'Grit and grease chamber'], ['Debimetre', 'Flow meter'], ['Ön çökeltme', 'Primary clarifier'],
       ['Dağıtma yapısı (biyolojik havuzlar)', 'Distribution chamber (biological tanks)'], ['Dağıtma yapısı (son çökeltme)', 'Distribution chamber (final clarifiers)'],
-      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Anaerobik mikser', 'Anaerobic mixer'], ['Otomatik (en az güç)', 'Automatic (least power)'], ['Yavaş devirli Ø2,6 m, 5,5 kW (üretici modeli)', 'Slow-speed Ø2.6 m, 5.5 kW (manufacturer model)'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
+      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Anaerobik mikser', 'Anaerobic mixer'], ['Anaerobik tretuvar', 'Anaerobic pavement'], ['Anaerobik korkuluk', 'Anaerobic railing'], ['Belirtilmedi (tek satır)', 'Not specified (single line)'], ['Otomatik (en az güç)', 'Automatic (least power)'], ['Yavaş devirli Ø2,6 m, 5,5 kW (üretici modeli)', 'Slow-speed Ø2.6 m, 5.5 kW (manufacturer model)'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
       ['Disk filtre', 'Disc filter'], ['Filtre besleme pompaları', 'Filter feed pumps'], ['Basınçlı kum filtresi', 'Pressure sand filter'],
       ['Ultrafiltrasyon', 'Ultrafiltration'], ['UV dezenfeksiyon', 'UV disinfection'], ['Çıkış debimetresi', 'Outlet flow meter'],
       ['Klor temas tankı', 'Chlorine contact tank'], ['Temiz su deposu', 'Treated water tank'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],

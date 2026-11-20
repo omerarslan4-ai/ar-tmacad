@@ -14,6 +14,7 @@
     granit: { ad: 'Granit plak', t: 3, col: [0.58, 0.57, 0.58], g: 0.6, yatak: 'Çimento harcı' },
     beton: { ad: 'Perdahlı beton (yüzey sertleştirici)', t: 0, col: [0.72, 0.72, 0.70], yatak: null },
   };
+  C.TRETUVAR_KAP = KAP; // kaplama kataloğu: ünite yapıları (anaerobik havuz) tretuvar kaplamasını buradan seçer
   const COL = { harc: [0.80, 0.78, 0.72], beton: [0.68, 0.68, 0.66], stab: [0.62, 0.55, 0.44], bord: [0.80, 0.80, 0.78], yatak: [0.66, 0.66, 0.64] };
   const o_ = O => Object.entries(O).map(([k, v]) => [k, v.ad]);
   /* kesitte katman ayrımı: üçgen rengi → katman (kaplama / harç / beton / stabilize / bordür / bordür yatağı) */
