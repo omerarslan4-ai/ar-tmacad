@@ -381,9 +381,9 @@
     c.T(0, y, sMm('baslik'), 'SEMBOLLER', 'L', 0, 2); y -= rh * 1.2;
     const sat = (cizim, yazi) => { cizim(4, y + h * 0.4); c.T(26, y, h, yazi, 'L', 0, 2); y -= rh; };
     sat((x, yy) => { c.B(x, yy - 2, 14, 5, 'k'); c.L(x, yy - 2, x + 14, yy + 3, 'i'); c.L(x, yy + 3, x + 14, yy - 2, 'i'); }, 'ANA DAĞITIM VE MOTOR BESLEME PANOLARI (MCC)');
-    sat((x, yy) => { const w = (UK().sembol || {}).lcu / 5; c.B(x + 5, yy - w / 2, w, w, 'i'); c.L(x + 5, yy - w / 2, x + 5 + w, yy + w / 2, 'i'); c.g.S.push([[x + 5, yy - w / 2], [x + 5 + w, yy - w / 2], [x + 5 + w, yy + w / 2]]); }, 'SAHA LOKAL KUMANDA PANOSU (LCU)');
-    sat((x, yy) => { const w = (UK().sembol || {}).jb / 5; c.B(x + 5.5, yy - w / 2, w, w, 'i'); }, 'JUNCTION BOX (JB)');
-    sat((x, yy) => { const r = (UK().sembol || {}).motorR / 5; const N = 20; for (let i = 0; i < N; i++) { const a0 = 2 * Math.PI * i / N, a1 = 2 * Math.PI * (i + 1) / N; c.L(x + 7 + r * Math.cos(a0), yy + r * Math.sin(a0), x + 7 + r * Math.cos(a1), yy + r * Math.sin(a1), 'i'); } c.T(x + 7, yy + 0.2, r * 0.62, 'M', 'BC', 0, 2); c.T(x + 7, yy - 0.3, r * 0.5, '3~', 'TC', 0, 2); }, 'ELEKTRİK MOTORU');
+    sat((x, yy) => { const w = ((UK().sembol || {}).lcu || 11.9) / 5; c.B(x + 5, yy - w / 2, w, w, 'i'); c.L(x + 5, yy - w / 2, x + 5 + w, yy + w / 2, 'i'); c.g.S.push([[x + 5, yy - w / 2], [x + 5 + w, yy - w / 2], [x + 5 + w, yy + w / 2]]); }, 'SAHA LOKAL KUMANDA PANOSU (LCU)');
+    sat((x, yy) => { const w = ((UK().sembol || {}).jb || 8) / 5; c.B(x + 5.5, yy - w / 2, w, w, 'i'); }, 'JUNCTION BOX (JB)');
+    sat((x, yy) => { const r = ((UK().sembol || {}).motorR || 15.6) / 5; const N = 20; for (let i = 0; i < N; i++) { const a0 = 2 * Math.PI * i / N, a1 = 2 * Math.PI * (i + 1) / N; c.L(x + 7 + r * Math.cos(a0), yy + r * Math.sin(a0), x + 7 + r * Math.cos(a1), yy + r * Math.sin(a1), 'i'); } c.T(x + 7, yy + 0.2, r * 0.62, 'M', 'BC', 0, 2); c.T(x + 7, yy - 0.3, r * 0.5, '3~', 'TC', 0, 2); }, 'ELEKTRİK MOTORU');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'gK'), 'GÜÇ KABLOLARI');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'kK'), 'KUMANDA KABLOLARI');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'gK2'), 'GÜÇ KABLOLARI 2. KADEME');
