@@ -1,8 +1,9 @@
 /* ArıtmaCAD — ANAEROBİK HAVUZUN MİMARİ PAFTA TARİFİ (kullanıcı kararı 20.11.2026; docs/tasarim-standartlari.md → Anaerobik havuz → Mimari paftalar)
    MIMARIPAFTA (app/mimari-pafta.js) seçili ünitenin T[tip].paftaTarifi(e) işlevi varsa plan kotlarını, kesit hatlarını ve mahal adlarını
    üniteden alır (binalarda ve kum tutucuda eskisi gibi mahallerden / kat kotlarından seçer). Bu dosya anaerobik havuzun tarifini verir:
-   - İki plan: (a) "<taban> ve <yürüme yolu> KOTLARI PLANI" (Çokal: "93.50 ve 97.45 KOTLARI PLANI") — yürüme yolunun plan kesme yüksekliği kadar
-     üstünden; (b) ÜST PLAN — en yüksek ekipmanın (pergel vinç) gerçek üst kotunun pay kadar üstünden. Planlarda su çizilmez.
+   - İki plan (kullanıcı 20.11.2026: "biri kesit plan, diğeri üstten plan"): (a) KESİT PLAN "<taban> ve <yürüme yolu> KOTLARI PLANI"
+     (Çokal: "93.50 ve 97.45 KOTLARI PLANI") — duvarları ağızların / pencerelerin ortasından keser (kesilen perde kalın, Çokal gibi taramasız; açıklıklar boşluk);
+     (b) ÜST PLAN — en yüksek ekipmanın (pergel vinç) gerçek üst kotunun pay kadar üstünden (ekipman yoksa yürüme yolunun 1,20 m üstünden). Planlarda su çizilmez.
    - Kesitler (3-Çokal_AAT_Anaerobik_R3.dwg planındaki kesit işaretlerinden ölçüldü; T-105 yerel koordinatı, m):
        A-A  y = 5,30 (aks D, 1. ham su halkasının orta perdesi; işaret perde ekseninde ama kesitte perde kesilmemiş, koridor ve su çizilmiş), bakış +y;
             çıkış kanalında (x = 16,63) çıkış borusu eksenine (y = 6,80) kademe yapıyor — programda kademeli kesit yok, düz alınır.
@@ -25,12 +26,16 @@
   const kodYaz = kod => String(kod || '').trim().replace(/^([A-Za-zÇĞİÖŞÜ]+)\s*(\d)/, '$1-$2');
   const halkaAdi = (G, i, kod) => (i === 0 && G.n > 1 ? 'RAS' : `${kodYaz(kod)}${kod ? '/' : ''}${G.n > 1 ? i : 1}`);
 
-  /* PLAN KOTLARI. o: { ekipUst: en yüksek ekipmanın üst kotu (yoksa üst plan çıkmaz), kh: plan kesme yüksekliği (1,20), pay: ekipman üstü pay (0,20) }
-     → [{ ad, baslik, h: kesme kotu, depth: bakış derinliği, su: false }] */
+  /* PLAN KOTLARI. o: { ekipUst: en yüksek ekipmanın üst kotu, kh: ekipman yokken üst planın yürüme yolu üstü yüksekliği (1,20), pay: ekipman üstü pay (0,20) }
+     → [{ ad, baslik, h: kesme kotu, depth: bakış derinliği, su: false, kesit: kesit plan mı }]
+     Kesit plan duvarları keser: kesme kotu giriş ağızlarıyla pencerelerin ortak yükseklik aralığının ortası (ortak aralık yoksa ağızların; Çokal 95,75–96,75 → 96,25),
+     duvar üstünün en az 5 cm altında. Üst plan her zaman çıkar; bütün yapının üstünden bakar. */
   function planlar(G, o) {
     o = o || {}; const kh = o.kh == null ? 1.2 : +o.kh, pay = o.pay == null ? 0.2 : +o.pay, zYol = G.kopru.z1, alt = G.zF - 0.1, out = [];
-    const h1 = r3(zYol + kh); out.push({ ad: 'PLAN', baslik: `${f2(G.zB)} ve ${f2(zYol)} KOTLARI PLANI`, h: h1, depth: r3(h1 - alt), su: false });
-    if (o.ekipUst != null && isFinite(+o.ekipUst) && +o.ekipUst + pay > h1 + 1e-6) { const h2 = r3(+o.ekipUst + pay); out.push({ ad: 'UST', baslik: 'ÜST PLAN', h: h2, depth: r3(h2 - alt), su: false }); }
+    const lo = Math.max(G.zS, G.zSp), hi = Math.min(G.zH, G.zHp), h1 = r3(Math.min(hi > lo + 0.05 ? (lo + hi) / 2 : (G.zS + G.zH) / 2, G.zTop - 0.05));
+    /* ağız ve pencerenin ortak aralığı (yoksa ağız) */ out.push({ ad: 'PLAN', baslik: `${f2(G.zB)} ve ${f2(zYol)} KOTLARI PLANI`, h: h1, depth: r3(h1 - alt), su: false, kesit: true });
+    const e = o.ekipUst != null && isFinite(+o.ekipUst) ? +o.ekipUst + pay : -Infinity, h2 = r3(Math.max(zYol + kh, e));
+    out.push({ ad: 'UST', baslik: 'ÜST PLAN', h: h2, depth: r3(h2 - alt), su: false });
     return out;
   }
 
@@ -110,11 +115,11 @@
   }
 
   /* BÜTÜN TARİF (yerel koordinat). o: { kod, ekipUst, kh, pay, zg }
-     → { planlar, kesitler, mahaller: [{ ad, p }] (plan), kodlar: [{ tur, lines, a: [x, y], t }] (plan kod etiketleri), gorunus: false, ustGorunus: false } */
+     → { planlar, kesitler, mahaller: [{ ad, p }] (plan), kodlar: [{ tur, lines, a: [x, y], t, z0 }] (plan kod etiketleri), gorunus: false, ustGorunus: false } */
   function tarif(G, o) {
     o = o || {}; const q = G.q;
     const mahaller = G.halka.map(H => ({ ad: halkaAdi(G, H.i, o.kod), p: [r3(G.xc1 + 0.30 * q.Ls), r3(H.yc + q.tw / 2 + G.b / 2)] }));
-    const kodlar = []; for (const it of acilimlar(G, o)) for (const a of it.etiket || []) kodlar.push({ tur: it.tur, lines: it.lines.slice(), a, t: it.t, ad: it.ad });
+    const kodlar = []; for (const it of acilimlar(G, o)) for (const a of it.etiket || []) kodlar.push({ tur: it.tur, lines: it.lines.slice(), a, t: it.t, ad: it.ad, z0: it.z0 }); // z0: kesit planda kesme kotunun üstündeki elemanın (yürüme yolu) kodu yazılmaz
     /* Çokal anaerobik paftasında görünüş ve çatı (üst görünüş) planı yok: yalnız plan ve kesitler */
     return { planlar: planlar(G, o), kesitler: kesitler(G, o), mahaller, kodlar, gorunus: false, ustGorunus: false, paftaAdi: { plan: 'PLANLAR', kesit: 'KESİTLER' } };
   }

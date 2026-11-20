@@ -18,16 +18,18 @@ const kodlar = (g, k) => { const L = P.acilimlar(g), kayit = {}, out = []; for (
   for (const it of L) { let var_ = false; for (let s = 0; s <= 1 && !var_; s += 0.0005) { const q = [k.a[0] + (k.b[0] - k.a[0]) * s, k.a[1] + (k.b[1] - k.a[1]) * s]; var_ = it.kutular.some(b => q[0] >= b[0] && q[0] <= b[2] && q[1] >= b[1] && q[1] <= b[3]); } if (var_) out.push(K.kodVer(kayit, it.tur, it.lines)); }
   return [...new Set(out)].sort(); };
 
-t('planlar: başlık havuzun kendi kotlarıyla, kesme kotu yürüme yolunun 1,20 m üstünde; planda su yok', () => {
+t('kesit plan: başlık havuzun kendi kotlarıyla, duvarları ağızların ortasından keser (duvar üstünün altında); planda su yok', () => {
   const L = P.planlar(G, { ekipUst: 99.25 });
-  assert.strictEqual(L.length, 2); assert.strictEqual(L[0].baslik, '92.14 ve 97.45 KOTLARI PLANI'); yakin(L[0].h, 98.65, 'plan kesme kotu');
+  assert.strictEqual(L.length, 2); assert.strictEqual(L[0].baslik, '92.14 ve 97.45 KOTLARI PLANI'); yakin(L[0].h, (94.70 + 96.75) / 2, 'kesit plan kesme kotu (ağız 94,70 – 96,75)');
+  assert.ok(L[0].h < G.zTop && L[0].h > G.zB, 'kesit plan duvarları keser'); assert.ok(L[0].h > G.zSp && L[0].h < G.zHp, 'pencere açıklıklarından da geçer');
+  yakin(P.planlar(Gc, {})[0].h, 96.25, 'Çokal: ağız 95,75 – 96,75 → 96,25'); assert.notStrictEqual(L[0].h, L[1].h, 'iki plan farklı kotlardan'); assert.strictEqual(L[0].kesit, true); { const g = A.geo(Object.assign({}, E50, { dPe: 1.0, oh: 1.2 })), h = P.planlar(g, {})[0].h; assert.ok(h > g.zS && h < g.zH && h > g.zSp && h < g.zHp, 'pencere başka yükseklikte: kesit plan ağızı da pencereyi de keser: ' + h); } assert.ok(!L[1].kesit, 'üst plan kesit plan değil');
   assert.strictEqual(L[0].su, false); assert.strictEqual(L[1].su, false);
   assert.strictEqual(P.planlar(Gc, {})[0].baslik, '93.50 ve 97.45 KOTLARI PLANI'); // Çokal başlığı
 });
-t('üst plan: kesme kotu en yüksek ekipmanın (pergel vinç) gerçek üst kotu + pay; ekipman yoksa ya da alçaksa üst plan yok', () => {
+t('üst plan: kesme kotu en yüksek ekipmanın (pergel vinç) gerçek üst kotu + pay; ekipman yoksa ya da alçaksa yürüme yolu + 1,20', () => {
   const L = P.planlar(G, { ekipUst: 99.25 }); assert.strictEqual(L[1].baslik, 'ÜST PLAN'); yakin(L[1].h, 99.45, 'üst plan kesme kotu (99,25 + 0,20)');
   yakin(P.planlar(G, { ekipUst: 100.1, pay: 0.3 })[1].h, 100.4, 'ekipman yükselince kesme kotu da yükselir');
-  assert.strictEqual(P.planlar(G, {}).length, 1); assert.strictEqual(P.planlar(G, { ekipUst: 98.0 }).length, 1);
+  for (const L2 of [P.planlar(G, {}), P.planlar(G, { ekipUst: 98.0 })]) { assert.strictEqual(L2.length, 2); yakin(L2[1].h, 97.45 + 1.2, 'ekipmansız üst plan'); assert.ok(L2[1].h > G.kopru.z1, 'üst plan yapının üstünden'); }
   assert.ok(L[1].depth > L[1].h - G.zB, 'derinlik tabana kadar');
 });
 t('50 bin: kesit yerleri havuz geometrisinden (A-A orta perdenin yanından, B-B sahanlığın solundan, C-C / D-D kanallardan)', () => {
@@ -96,4 +98,11 @@ t('planda gövde çizgilerinin sınıfı: duvar / köprü kalın (Beton), tretuv
   assert.strictEqual(S([0, 0.5]), 'radye'); assert.strictEqual(S([3, 0]), 'radye'); assert.strictEqual(S([44.9, 27.0]), 'radye');
   assert.strictEqual(S([20, -1]), 'tretuvar'); assert.strictEqual(S([-1, 13.7]), 'tretuvar');
 });
+t('kesit planda yalnız kesme kotunun altındaki elemanların kodu: yürüme yolu döşemesi üst planda', () => {
+  const R = P.tarif(G, { ekipUst: 99.25 }), h1 = R.planlar[0].h, h2 = R.planlar[1].h, gor = h => R.kodlar.filter(q => q.z0 < h).map(q => q.ad);
+  assert.ok(R.kodlar.every(q => isFinite(q.z0)), 'her kodun alt kotu var');
+  assert.ok(!gor(h1).some(a => /köprüsü/.test(a)), 'kesit planda köprü / yürüyüş yolu kodu yok'); assert.ok(gor(h1).includes('Radye / temel') && gor(h1).includes('Orta perde'));
+  assert.strictEqual(gor(h2).length, R.kodlar.length, 'üst planda bütün kodlar');
+});
+
 console.log(String.fromCharCode(10) + n + ' test geçti.');

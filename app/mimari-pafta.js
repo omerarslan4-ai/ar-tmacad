@@ -380,19 +380,20 @@
   const mahalYazi = () => { const R = C.cizimKural && C.cizimKural.MIMARI, y = (R && R.yazi && R.yazi['MAHAL İSİM']) || { stil: ['ARIAL'], mm: [3] }; return { st: y.stil[0], mm: y.mm[0] }; };
   const mahalKoy = (gv, p, ad) => { const y = mahalYazi(), e = C.add(C.newEnt('text', { p: [p[0], p[1], 0], h: C.annoH(y.mm), s: String(ad), al: 'MC', st: y.st, ann: false, layer: kuralKatman('MAHAL_ADI'), gv })); if (e) delete e.sp; return e; };
   /* planda: mahal (halka) adları, eleman kodları (DÖ01, DU01 …; açılım nesnesi → açılım tablosuna girer) ve ünitenin kendi plan ölçüleri */
-  const unitePlanEtiket = (gv, W, tarif) => {
+  const unitePlanEtiket = (gv, W, tarif, h) => {
     for (const m of tarif.mahaller || []) mahalKoy(gv, W(m.p), m.ad);
     const Ek = C.acilimEtiketKural ? C.acilimEtiketKural() : { duvarTasma: 4.5, dosemeDik: 12, dosemeYatay: 2.3 }, k = C.annoH(1);
-    for (const q of tarif.kodlar || []) { const a = W(q.a), duvar = q.tur === 'duvar', p = duvar ? [a[0] + (q.t || 0) / 2 + Ek.duvarTasma * k, a[1], 0] : [a[0] + Ek.dosemeYatay * k, a[1] + Ek.dosemeDik * k, 0];
+    /* kesme kotunun üstünde kalan eleman (kesit planda yürüme yolu) görünmez, kodu da yazılmaz */
+    for (const q of tarif.kodlar || []) { if (h != null && q.z0 != null && q.z0 >= h - 1e-6) continue; const a = W(q.a), duvar = q.tur === 'duvar', p = duvar ? [a[0] + (q.t || 0) / 2 + Ek.duvarTasma * k, a[1], 0] : [a[0] + Ek.dosemeYatay * k, a[1] + Ek.dosemeDik * k, 0];
       const e = C.add(C.newEnt('acilim', { a: [a[0], a[1], 0], p, lines: q.lines.slice(), tur: q.tur, side: 1, dis: 'Mimari', planKod: true, layer: kuralKatman('MALZEME_ACILIM'), gv })); if (e) delete e.sp; }
     for (const d of tarif.planOlcu || []) { const c = JSON.parse(JSON.stringify(d)); for (const key of ['id', '_c', 'sp', 'oto', 'bag']) delete c[key]; for (const key of ['a', 'b', 'p', 'c']) if (Array.isArray(c[key])) c[key] = W(c[key]); c.gv = gv; const e = C.add(C.newEnt(c.type, c)); if (e) delete e.sp; }
   };
   /* planda ünite gövdesinin görünen çizgileri (tarif.planSinif): Çokal ünite planlarında havuz duvarları ve köprü Beton katmanında (kalın, taramasız), tretuvar Tretuvar
      katmanında, radyenin toprak altında kalan kenarı çizilmez. Düz çizgi sınıf değiştirdiği yerde bölünür. Döner: katmanı değişen / bölünen nesne sayısı */
-  const uniteGovdeCizgi = (gv, W, tarif) => {
+  const uniteGovdeCizgi = (gv, W, tarif, kesitPlan) => { /* kesitPlan: duvarları kesen plan — kesilenler zaten kalın; kesimin altında görünen gövde kenarları ince (görünen) kalır */
     const u = C.byId(tarif.unite); if (!u || !tarif.planSinif || !C.secLk) return 0;
     const d = W([0, 0]), lk = C.secLk(u), son = '_GORUNEN_' + lk, S = p => tarif.planSinif([p[0] - d[0], p[1] - d[1]]);
-    const hedef = (ly, s) => (s === 'govde' ? kuralKatman(ly.slice(0, ly.length - son.length) + '_KESIT_' + lk) : s === 'tretuvar' ? kuralKatman(ly.slice(0, ly.length - lk.length) + 'TRETUVAR') : null);
+    const hedef = (ly, s) => (s === 'govde' ? kesitPlan ? ly : kuralKatman(ly.slice(0, ly.length - son.length) + '_KESIT_' + lk) : s === 'tretuvar' ? kuralKatman(ly.slice(0, ly.length - lk.length) + 'TRETUVAR') : null);
     const at = new Set(); let n = 0;
     const parca = (e, a, b) => { const L = Math.hypot(b[0] - a[0], b[1] - a[1]), N = Math.max(1, Math.ceil(L / 0.1)), P = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, 0], out = []; let cur = null;
       for (let i = 0; i < N; i++) { const s = S(P((i + 0.5) / N)); if (cur && cur.s === s) cur.t1 = (i + 1) / N; else out.push(cur = { s, t0: i / N, t1: (i + 1) / N }); }
@@ -452,9 +453,9 @@
     /* merdivenli katta plan ilk ara sahanlığın üstünden kesilir (planKesmeKotu); başlık yine kat kotu */
     const merd = ents.filter(e => e.type === 'merdiven' && C.merdivenGeom).map(e => { try { const Gm = C.merdivenGeom(e); return { z0: +Gm.z0, sahanliklar: (Gm.pieces || []).filter(p => p.kind === 'sah').map(p => +p.z) }; } catch (er) { return null; } }).filter(Boolean);
     katlar.forEach((k, i) => { const r = planKesmeKotu(k, merd, { ust: katlar[i + 1] ? katlar[i + 1].z : null }); if (r.sahanlik != null) { k.h = r.h; k.sahanlik = r.sahanlik; } });
-    if (tarif && tarif.planlar && tarif.planlar.length) katlar = tarif.planlar.map(p => ({ z: p.h, h: p.h, baslik: up(p.baslik), depth: p.depth, gizle: p.gizle, unite: true })); // ünitenin planları (kesme kotu ve başlık üniteden)
-    const planlar = katlar.map(k => { const gv = gorunus(Object.assign({ kind: 'plan', h: k.h, depth: k.depth || Math.max(1, k.h - zmin + 0.5), hatch: 'ANSI31', title: k.baslik, mek: false, poz: false, dograma: true }, k.gizle ? { ids: ents.filter(e => !k.gizle(e)).map(e => e.id) } : {})); if (!gv) return null;
-      if (k.unite) { const W = sonW; try { uniteGovdeCizgi(gv, W, tarif); unitePlanEtiket(gv, W, tarif); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, k.depth); baslikAlta(gv); asagi(gv); } catch (er) { console.error('ünite planı', er); } return { ad: k.baslik, gv, W }; }
+    if (tarif && tarif.planlar && tarif.planlar.length) katlar = tarif.planlar.map(p => ({ z: p.h, h: p.h, baslik: up(p.baslik), depth: p.depth, gizle: p.gizle, kesit: !!p.kesit, unite: true })); // ünitenin planları (kesme kotu ve başlık üniteden)
+    const planlar = katlar.map(k => { const gv = gorunus(Object.assign({ kind: 'plan', h: k.h, depth: k.depth || Math.max(1, k.h - zmin + 0.5), hatch: k.unite ? 'YOK' : 'ANSI31', /* ünite planı Çokal gibi taramasız: kesilen beton yalnız kalın çizgi */ title: k.baslik, mek: false, poz: false, dograma: true }, k.gizle ? { ids: ents.filter(e => !k.gizle(e)).map(e => e.id) } : {})); if (!gv) return null;
+      if (k.unite) { const W = sonW; try { uniteGovdeCizgi(gv, W, tarif, k.kesit); unitePlanEtiket(gv, W, tarif, k.h); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, k.depth); baslikAlta(gv); asagi(gv); } catch (er) { console.error('ünite planı', er); } return { ad: k.baslik, gv, W }; }
       /* kapı / pencere tip numaraları, akslar üzerinden ölçü sıraları (Çokal İdari planı), başlık balonların altına */
       const W = sonW; try { if (C.dogramaEtiketPlan) C.dogramaEtiketPlan(gv, W, k.h, ents, bbDis); if (C.mimariPlanOlcu) C.mimariPlanOlcu(gv, W, bbDis, k.h, ents); if (C.korkulukOkPlan) C.korkulukOkPlan(gv, W, k.h, ents, Math.max(1, k.h - zmin + 0.5)); if (C.yagmurOkPlan) C.yagmurOkPlan(gv, W, k.h, ents); if (C.lentoOkPlan) C.lentoOkPlan(gv, W, k.h, ents); baslikAlta(gv); asagi(gv); } catch (er) { console.error('plan ölçü / doğrama no', er); }
       return { ad: k.baslik, gv, W }; }).filter(Boolean);
