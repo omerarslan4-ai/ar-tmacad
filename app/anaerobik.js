@@ -110,9 +110,15 @@
       G.halka.push({ i, yc: y, yon: s, ad: i === 0 && n > 1 ? 'RAS' : String(n > 1 ? i : 1) });
       for (const sol of [true, false]) {
         const xc = sol ? xc1 : xc2, sg = sol ? -1 : 1, xd = xc + sg * R2, xi = xc + sg * q.Ro;
-        const A = G.agizO[i][sol ? 'sol' : 'sag'], pts = rect(Math.min(xd, xi), y - A.w / 2, Math.max(xd, xi), y + A.w / 2);
+        const A = G.agizO[i][sol ? 'sol' : 'sag'], ri0 = Math.max(q.Ro, A.w / 2 + 1e-3), yay0 = [];
+        for (let j = 0; j <= 12; j++) { const dy = -A.w / 2 + A.w * j / 12; yay0.push([xc + sg * Math.sqrt(ri0 * ri0 - dy * dy), y + dy]); }
+        const pts0 = [[xd, y - A.w / 2], ...yay0, [xd, y + A.w / 2]], pts = sg < 0 ? pts0 : pts0.reverse(); void xi; // planda kesikli açıklık çizgisi de yuvarlak iç yüze kadar
         G.acik.push({ k: 'agiz', pts, z0: A.z0, z1: A.z1, halka: i, yan: sol ? 'sol' : 'sag' });
-        kes(rect(Math.min(xd, xi) - dl, y - A.w / 2, Math.max(xd, xi) + dl, y + A.w / 2), A.z0, A.z1, 'agiz');
+        /* boşluk prizması yuvarlak iç yüzü izler: açıklığın kenarlarında perde ortadakinden kalın (iç yüz Ro yarıçaplı yay) — dikdörtgen
+           ortada iç yüze ulaşıp kenarlarda perdenin içinde kalıyordu (kullanıcı 20.11.2026: "savak deliği tam perdeyi delerek açılmamış") */
+        { const ri = Math.max(q.Ro - dl, A.w / 2 + 1e-3), m = 12, yay = [];
+          for (let j = 0; j <= m; j++) { const dy = -A.w / 2 + A.w * j / m; yay.push([xc + sg * Math.sqrt(ri * ri - dy * dy), y + dy]); }
+          const pk = [[xd + sg * dl, y - A.w / 2], ...yay, [xd + sg * dl, y + A.w / 2]]; kes(sg < 0 ? pk : pk.reverse(), A.z0, A.z1, 'agiz'); } // saat yönü tersine (rect gibi)
         G.kapak.push({ k: 'agiz', a: [xd, y - A.w / 2 - 0.1], b: [xd, y + A.w / 2 + 0.1], halka: i, yan: sol ? 'sol' : 'sag', eb: `${(A.w * 1000).toFixed(0)}×${(A.h * 1000).toFixed(0)}` });
       }
       const r = q.tw / 2;

@@ -198,7 +198,7 @@ t('kapaklar: ağız önünde düz yüz, her kapak açıldığı açıklığın �
       assert.ok(ys.length >= 2 && Math.max(...ys) - Math.min(...ys) >= q.ag + 0.17 - 1e-9, 'düz yüz çerçeveden geniş');
     }
     // ölçüler açıklıkla aynı
-    const ac = G0.acik, eb = a => [+(a.pts[2][0] - a.pts[0][0]).toFixed(3), +(a.pts[2][1] - a.pts[0][1]).toFixed(3), +(a.z1 - a.z0).toFixed(3)];
+    const ac = G0.acik, eb = a => { const xs = a.pts.map(p => p[0]), ys = a.pts.map(p => p[1]); return [+(Math.max(...xs) - Math.min(...xs)).toFixed(3), +(Math.max(...ys) - Math.min(...ys)).toFixed(3), +(a.z1 - a.z0).toFixed(3)]; }; // sınır kutusu (ağız yuvarlak iç yüzü izler)
     for (const x of E.filter(y => y.tur === 'penstok')) {
       const H = +x.H.toFixed(3), B = +x.B.toFixed(3);
       if (/pen-(sol|sag)/.test(x.anahtar)) { const a = ac.find(a => a.k === 'agiz' && a.halka === +x.anahtar.slice(-1) && a.yan === x.anahtar.split('-')[1]); /* her ucun ağzı kendi ölçüsünde */ assert.strictEqual(B, eb(a)[1]); assert.strictEqual(H, eb(a)[2]); yakin(x.z, a.z0, 'eşik'); }
@@ -289,6 +289,19 @@ t('savak açıklıklarının kapağı aşağı iner, su altındaki orifisinki yu
     assert.ok(K.filter(y => /pen-(sol|sag|pen)-/.test(y.anahtar)).every(y => y.acilis === 'ASAGI'), 'ağız ve pencere kapakları savak kapağı');
     if (G0.ara) assert.strictEqual(K.find(y => y.anahtar === 'pen-bolme').acilis, 'YUKARI', 'orifis kapağı yukarı açılır');
     const T = E.filter(y => y.tur === 'tretuvar'); assert.strictEqual(T.length, 1, 'tek tretuvar nesnesi'); assert.deepStrictEqual(T[0].pts, G0.bolge.dis.map(p => [p[0], p[1]]), 'havuzun dış perde yüzü'); assert.strictEqual(T[0].w, G0.q.tre);
+  }
+});
+
+/* kullanıcı 20.11.2026: "savak deliği tam perdeyi delerek açılmamış" — ağız boşluğu yuvarlak iç yüze kadar her yerde (kenarlarda perde daha kalın) */
+t('ağız boşluğu perdeyi kenarlarında da baştan sona deler (yuvarlak iç yüz)', () => {
+  const G = geo({ zt: 97.25, fb: 0.61, h: 3.14, ag: 2.0 }), q = G.q;
+  for (const k of G.kes.filter(k => k.k === 'agiz')) {
+    const ys = k.pts.map(p => p[1]), y0 = Math.min(...ys), y1 = Math.max(...ys), yc = (y0 + y1) / 2;
+    const xc = Math.abs(k.pts[0][0] - G.xc1) < Math.abs(k.pts[0][0] - G.xc2) ? G.xc1 : G.xc2;
+    for (const dy of [-(y1 - y0) / 2 + 1e-6, 0, (y1 - y0) / 2 - 1e-6]) { // iç yüzün bu satırdaki yeri
+      const xIc = Math.sqrt(q.Ro * q.Ro - dy * dy), xs = k.pts.filter(p => Math.abs(p[1] - (yc + dy)) < 0.2).map(p => Math.abs(p[0] - xc));
+      assert.ok(Math.min(...xs) < xIc, `boşluk iç yüze ulaşmalı (dy ${dy.toFixed(2)}: ${Math.min(...xs).toFixed(3)} < ${xIc.toFixed(3)})`);
+    }
   }
 });
 
