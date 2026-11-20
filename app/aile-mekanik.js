@@ -36,7 +36,7 @@
       { k: 'tr', ad: 'Ara traverse aralığı', d: 1550, min: 500, grup: 'Çerçeve' },
       { k: 'kt', ad: 'Kapak kalınlığı', d: 64, grup: 'Kapak ve tahrik' },
       { k: 'mil', ad: 'Mil çapı', d: 48, grup: 'Kapak ve tahrik' },
-      { k: 'tahrik', ad: 'Tahrik', d: 'AKT', opts: [['AKT', 'Elektrikli aktüatör (AUMA)'], ['EL', 'El çarkı']], grup: 'Kapak ve tahrik' },
+      { k: 'tahrik', ad: 'Tahrik', d: 'AKT', opts: [['AKT', 'Elektrikli aktüatör (çok turlu)'], ['EL', 'El çarkı']], grup: 'Kapak ve tahrik' },
       { k: 'konum', ad: 'Gösterim konumu', d: 'K', opts: [['K', 'Kapalı'], ['A', 'Tam açık']], grup: 'Kapak ve tahrik' },
       { k: 'acilis', ad: 'Açılış', d: 'YUKARI', opts: [['YUKARI', 'Yukarı açılır (orifis kapağı)'], ['ASAGI', 'Aşağı iner (savak kapağı — su üstünden savaklanır)']], grup: 'Kapak ve tahrik' }, // kullanıcı 20.11.2026
       { k: 'nervur', ad: 'Nervür (ara destek) yüzü', d: 'ON', opts: [['ON', 'Akış yönündeki yüz (+y)'], ['ARKA', 'Akışa karşı yüz (−y)']], grup: 'Kapak ve tahrik' }, // duvara monte kapakta nervürler suya bakan yüzde, duvar yüzü düz (kullanıcı 20.11.2026)
@@ -50,6 +50,9 @@
       { k: 'nTr', ad: 'Ara traverse (ara yatak) sayısı', birim: 'adet', f: q => kisaSasi(q) ? 0 : Math.max(0, Math.floor((q.D + q.ust - 150 - (2 * q.H + 200)) / q.tr)), grup: 'Hesaplanan' },
       { k: 'F', ad: 'Kapağa su kuvveti (tek taraflı)', birim: 'kN', f: q => { const b = q.B / 1000, h = q.H / 1000, w = q.hw / 1000; return w >= h ? 9.81 * b * h * (w - h / 2) : 9.81 * b * w * w / 2; }, fAcik: 'γw·B·H·(hw − H/2)', grup: 'Hesaplanan' },
       { k: 'G', ad: 'Yaklaşık ağırlık', birim: 'kg', f: q => { const Hf = (q.D + q.ust) / 1000, nT = Math.max(0, Math.floor((q.D + q.ust - 150 - (2 * q.H + 200)) / q.tr)); return Math.round(2 * Hf * 14 + (q.B + 2 * q.e - 15) / 1000 * q.H / 1000 * 75 + (nT + 1) * (q.B + 2 * q.e) / 1000 * 15 + 25 + (q.tahrik === 'AKT' ? 45 : 20) + (Hf - q.H / 1000 + 0.45) * 14); }, fAcik: 'çerçeve + kapak + traverse + mil + tahrik (yaklaşık)', grup: 'Hesaplanan' },
+      /* aktüatör: gerekli mil torku ve katalogdan seçilen boyun motor gücü (aktuator-katalog.js; kullanıcı 21.11.2026 — güç programda sabit tablodan) */
+      { k: 'Takt', ad: 'Gerekli mil torku', birim: 'Nm', f: q => { const A = typeof C !== 'undefined' && C && C.aktuator; return A ? Math.round(A.penstokTork({ B: q.B, H: q.H, hw: q.hw, G: q.G, mil: q.mil }).T) : 0; }, grup: 'Hesaplanan' },
+      { k: 'Pakt', ad: 'Aktüatör motor gücü (katalog)', birim: 'kW', f: q => { const A = typeof C !== 'undefined' && C && C.aktuator; if (q.tahrik !== 'AKT' || !A) return 0; const s = A.penstokAktuator({ B: q.B, H: q.H, hw: q.hw, G: q.G, mil: q.mil }); return s ? s.P : 0; }, grup: 'Hesaplanan' },
     ],
     tipler: [{ ad: 'PEN-A-KNL-1200-1400', p: { B: 1200, H: 1400, D: 5400, hw: 5400, e: 85, ust: 878, pw: 100, tr: 1550, kt: 64, mil: 48, tahrik: 'AKT', konum: 'K', yk: 125, yd: 200 } }],
     uydur: { gen: 'B', der: 'D', ek: (p, u) => { if (u.k) p.hw = Math.min(p.hw, p.D); } },

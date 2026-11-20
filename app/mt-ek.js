@@ -275,7 +275,7 @@
     if ((C.doc.layouts || []).some(L => L.mtPafta)) { E.queue = []; const s0 = E.scriptMode; try { E.queue = ['T']; E.scriptMode = true; await C.cmds.TESISATPAFTA.fn(I, C); } finally { E.queue = []; E.scriptMode = s0; } }
     C.log(`Pafta yazı boyutu ${v} punto (başlık ${f(v * 0.3528, 1)} mm; şema ve tablo yazıları aynı oranda). Plan içindeki cihaz ve mahal yazıları için sol paneldeki Çizim ayarları ▸ "Yazı yük. (mm)" kullanılır.`);
   });
-  C.addCommand(['TESISATPAFTA', 'MEKANIKPAFTA'], 'Mekanik paftalar (Mekanik grubu, otomatik): T = hepsi (çizilmiş sistemler), Y = ısı yalıtımı, I = ısıtma, S = soğutma, H = havalandırma, W = sıhhi tesisat. Ölçek bina ebatına göre (1/50; çok küçükse 1/25, A0\'a sığmazsa 1/100), görünümler en az kâğıtla paftalara; kat planları, kolon şeması / cihaz listesi ve 3B görünüş; pafta no MEK-01 …; yeniden çalıştırınca yenilenir (PAFTAELLE ile işaretli paftalar korunur).', async (I) => {
+  C.addCommand(['TESISATPAFTA'], 'Tesisat paftaları (bina tesisatı; Mekanik grubu, otomatik — MEKANIKPAFTA artık ünite mekanik paftasıdır, kullanıcı kararı 20.11.2026): T = hepsi (çizilmiş sistemler), Y = ısı yalıtımı, I = ısıtma, S = soğutma, H = havalandırma, W = sıhhi tesisat. Ölçek bina ebatına göre (1/50; çok küçükse 1/25, A0\'a sığmazsa 1/100), görünümler en az kâğıtla paftalara; kat planları, kolon şeması / cihaz listesi ve 3B görünüş; pafta no MEK-01 …; yeniden çalıştırınca yenilenir (PAFTAELLE ile işaretli paftalar korunur).', async (I) => {
     const k = await I.kw('Pafta', [['T', 'Hepsi (çizilmiş olan sistemler)'], ['Y', 'Isı yalıtımı (kesit planı + kesit + detay)'], ['I', 'Isıtma'], ['S', 'Soğutma'], ['H', 'Havalandırma'], ['W', 'Sıhhi tesisat (temiz su + pis su)']], 'T'); if (!k) return;
     const turler = k === 'I' ? ['isitma'] : k === 'S' ? ['sogutma'] : k === 'H' ? ['hava'] : k === 'W' ? ['sihhi'] : ['isitma', 'sogutma', 'hava', 'sihhi']; let son = null; const ad = [], korunan = [];
     C.undoStack.push(C.snapshot());
@@ -295,6 +295,6 @@
     { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Mekanik')) s.grups.push('Mekanik'); }
     MT.set().paftaOlcek = SC; C.changed(); C.emit && C.emit('layouts'); C.emit && C.emit('layers');
     try { C.layoutIdx = C.doc.layouts.indexOf(son); C.grpCur = 'Mekanik'; C.setView('layout'); C.emit('layouts'); setTimeout(() => { try { C.views.lay.zoomExtents(); } catch (er) { } }, 60); } catch (er) { }
-    C.log(`${ad.length} Mekanik pafta hazır, ölçek 1/${SC}${os.neden ? ` (${os.neden})` : ''}: ${ad.join(' · ')}. Sol alttaki Mekanik grubundan açılır; tesisat değişince Mekanik ▸ Mekanik paftalar ile yenileyin.`);
+    C.log(`${ad.length} Mekanik pafta hazır, ölçek 1/${SC}${os.neden ? ` (${os.neden})` : ''}: ${ad.join(' · ')}. Sol alttaki Mekanik grubundan açılır; tesisat değişince Mekanik ▸ Tesisat paftaları ile yenileyin.`);
   });
 })(typeof window !== 'undefined' ? (window.C = window.C || {}) : (globalThis.C = globalThis.C || {}));

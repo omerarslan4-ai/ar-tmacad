@@ -498,4 +498,18 @@
     ['Statik dengeden; dinamik katsayı ve yatay kuvvet uygulanmamıştır. Ağırlıklar kabuldür.', 'From static equilibrium; no dynamic factor or horizontal force applied. Weights are assumptions.'],
     ['Kreyn açıklığı # mm', 'Crane span # mm'], ['Raylar tıklanan yüzlerden # mm içeri alındı; yerleşim kotunu (zemin döşemesi) denetleyin.', 'Rails were set # mm in from the picked faces; check the placement level (floor slab).'], ['en büyük teker yükü # kN', 'maximum wheel load # kN'],
   ]);
+  /* ---------- Ünite mekanik paftaları (unite-mekanik.js, 20.11.2026) ve Tesisat paftaları adı ---------- */
+  window.DIL.ekle('en', 'English', [
+    ['Tesisat paftaları', 'Building services sheets'], ['Ünite mekanik paftaları', 'Unit mechanical sheets'], ['PLAN VE KESİTLER', 'PLANS AND SECTIONS'], ['LİSTELER', 'SCHEDULES'],
+    ['POZ NO', 'ITEM NO'], ['EKİPMAN KODU', 'EQUIPMENT TAG'], ['BİRİM GÜÇ (kW)', 'UNIT POWER (kW)'], ['ADET', 'QTY'], ['TOPLAM GÜÇ (kW)', 'TOTAL POWER (kW)'], ['KURULU TOPLAM GÜÇ', 'TOTAL INSTALLED POWER'], ['BORULAR', 'PIPES'],
+    ['Savak kapağı (penstok, aşağı açılır)', 'Weir penstock (downward opening)'], ['Kanal kapağı (penstok)', 'Channel penstock'], ['Dalgıç mikser (yavaş devirli)', 'Submersible mixer (low speed)'], ['Dalgıç mikser', 'Submersible mixer'],
+    ['Pergel vinç (mikser bakımı)', 'Jib crane (mixer maintenance)'], ['Betonarme merdiven', 'RC stair'], ['Çelik ızgaralı merdiven (galvaniz)', 'Steel grating stair (galvanised)'], ['CTP (FRP) merdiven', 'GRP (FRP) stair'], ['Korkuluk', 'Handrail'],
+    ['kanal derinliği # mm', 'channel depth # mm'], ['kısa şasi + uzatma mili', 'short frame + extension spindle'], ['tam şasi', 'full frame'], ['pervane Ø# mm', 'propeller Ø# mm'], ['# d/dk', '# rpm'],
+    ['4 kutuplu motor, IE3', '4-pole motor, IE3'], ['dişli kutulu', 'with gearbox'], ['kılavuz ray + üst tutucu (tabliyeye bağlı)', 'guide rail + top bracket (fixed to deck)'], ['kılavuz direk # mm (tabliyeye bağlı)', 'guide mast # mm (fixed to deck)'],
+    ['direk yüksekliği # mm', 'mast height # mm'], ['kol erişimi # mm', 'jib reach # mm'], ['döner kollu, tabliyeye ankrajlı', 'slewing jib, anchored to deck'], ['# rıht', '# risers'], ['korkuluk:', 'handrail:'], ['dikme aralığı # cm', 'post spacing # cm'], ['en # m', 'width # m'],
+    ['Sıcak daldırma galvaniz çelik', 'Hot-dip galvanised steel'],
+    ['"-": elle tahrikli / güçsüz ekipman ya da güç verisi henüz girilmemiş ekipman (kurulu güce katılmadı).', '"-": manually operated / unpowered equipment, or power data not yet entered (not included in installed power).'],
+    ['Poz numaraları plan ve kesitlerdeki balon numaralarıyla aynıdır. Marka / model belirtilmemiştir; eşdeğer ürün kullanılabilir.', 'Item numbers match the balloons on plans and sections. No make / model is specified; equivalent products may be used.'],
+    ['Mekanik paftası hazırlanacak üniteyi seçin (anaerobik havuz)', 'Select the unit for the mechanical sheets (anaerobic tank)'],
+  ]);
 })();

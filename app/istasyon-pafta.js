@@ -38,18 +38,19 @@
   const sar = (s, h, w) => { const out = []; let cur = ''; for (const wd of String(s).split(' ')) { const t = (cur + ' ' + wd).trim(); if (cur && tw_(t, h) > w) { out.push(cur); cur = wd; } else cur = t; } if (cur) out.push(cur); return out.length ? out : ['']; };
 
   /* tablo: cols [{t, w, al}], rows [[...]] — üstten aşağı; döner: yükseklik */
+  /* o: { h (satır yazısı), hb (sütun başlığı), hBas (tablo başlığı; varsayılan 2,8), lyT / lyB / lyY (çizgi, başlık, yazı katmanı) } — ünite mekanik paftası (unite-mekanik.js) kural tablosundaki boyları verir */
   const tablo = (D, x0, yTop, baslik, cols, rows, o = {}) => {
-    const h = o.h || 2.0, hb = o.hb || 2.0, pad = 1.2, X = [x0]; cols.forEach(c => X.push(X[X.length - 1] + c.w)); const xE = X[X.length - 1];
-    let y = yTop; D.L([x0, y], [xE, y]); D.TX([(x0 + xE) / 2, y - 5.2], baslik, 2.8, 'C', 'PFT_BASLIK'); y -= 7.5; D.L([x0, y], [xE, y]);
+    const h = o.h || 2.0, hb = o.hb || 2.0, hBas = o.hBas || 2.8, pad = 1.2, X = [x0]; cols.forEach(c => X.push(X[X.length - 1] + c.w)); const xE = X[X.length - 1];
+    let y = yTop; D.L([x0, y], [xE, y]); D.TX([(x0 + xE) / 2, y - 5.2 - Math.max(0, hBas - 2.8) / 2], baslik, hBas, 'C', o.lyB || 'PFT_BASLIK'); y -= 7.5 + Math.max(0, hBas - 2.8); D.L([x0, y], [xE, y]); const yB = y;
     const hl = cols.map(c => sar(c.t, hb, c.w - 2 * pad)), hh = Math.max(...hl.map(l => l.length)) * hb * 1.45 + 2.5;
-    hl.forEach((ls, i) => ls.forEach((s, k) => D.TX([(X[i] + X[i + 1]) / 2, y - 2.2 - hb - k * hb * 1.45], s, hb, 'C', 'PFT_TABLO')));
+    hl.forEach((ls, i) => ls.forEach((s, k) => D.TX([(X[i] + X[i + 1]) / 2, y - 2.2 - hb - k * hb * 1.45], s, hb, 'C', o.lyY || 'PFT_TABLO')));
     y -= hh; D.L([x0, y], [xE, y]); const yH = y;
     for (const r of rows) {
       const ls = r.map((v, i) => sar(v, h, cols[i].w - 2 * pad)), rh = Math.max(1, ...ls.map(l => l.length)) * h * 1.45 + 2.6;
-      ls.forEach((l, i) => l.forEach((s, k) => { const al = cols[i].al || 'C'; D.TX([al === 'L' ? X[i] + pad : (X[i] + X[i + 1]) / 2, y - 1.5 - h - k * h * 1.45], s, h, al, 'PFT_TABLO'); }));
+      ls.forEach((l, i) => l.forEach((s, k) => { const al = cols[i].al || 'C'; D.TX([al === 'L' ? X[i] + pad : al === 'R' ? X[i + 1] - pad : (X[i] + X[i + 1]) / 2, y - 1.5 - h - k * h * 1.45], s, h, al, o.lyY || 'PFT_TABLO'); }));
       y -= rh; D.L([x0, y], [xE, y]);
     }
-    for (const x of X) D.L([x, yTop - 7.5], [x, y]); D.L([x0, yTop], [x0, yTop - 7.5]); D.L([xE, yTop], [xE, yTop - 7.5]); void yH;
+    for (const x of X) D.L([x, yB], [x, y]); D.L([x0, yTop], [x0, yB]); D.L([xE, yTop], [xE, yB]); void yH;
     return { h: yTop - y, w: xE - x0 };
   };
   /* tabloyu kendi bloğu olarak üret (sol alt köşe 0,0) */
@@ -113,17 +114,19 @@
     st.gvs = []; st.kesitler = [];
   };
   const extOf = (gv, sc) => { const ents = C.doc.ents.filter(e => e.gv === gv); for (const e of ents) delete e._c; const bb = C.withAnno ? C.withAnno(sc, () => C.extents(ents)) : C.extents(ents); for (const e of ents) delete e._c; return bb; };
-  const kesitAl = async (nm, a, b, sp, depth, yer) => {
+  /* o (ünite mekanik paftası için; istasyonda boş): { kv: ['GIZLI=E', 'POZ=H'] KESITAL seçenekleri, onek: görünüm grubu öneki, acilim: false (malzeme açılımı yok),
+     durum: false (istasyon durumuna yazılmaz) } */
+  const kesitAl = async (nm, a, b, sp, depth, yer, o = {}) => {
     const once = new Set(C.doc.ents.map(e => e.id)), q0 = C.cmd.queue, def = C.cmds.SECTION || C.cmds.KESITAL;
-    C.cmd.queue = [`${a[0]},${a[1]}`, `${b[0]},${b[1]}`, `${sp[0]},${sp[1]}`, String(depth), nm, `${yer[0]},${yer[1]}`];
+    C.cmd.queue = [...(o.kv || []), `${a[0]},${a[1]}`, `${b[0]},${b[1]}`, `${sp[0]},${sp[1]}`, String(depth), nm, `${yer[0]},${yer[1]}`];
     try { await def.fn(C.I, C); } finally { C.cmd.queue = q0 || []; }
-    const gv = 'IST_KESIT_' + nm + '_' + Date.now().toString(36), yeni = C.doc.ents.filter(e => !once.has(e.id));
+    const gv = (o.onek || 'IST_KESIT_') + nm + '_' + Date.now().toString(36), yeni = C.doc.ents.filter(e => !once.has(e.id));
     for (const e of yeni) { delete e.sp; delete e.sv2; delete e._c; if (e.type === 'kesitisaret') { e.istPafta = true; continue; } e.gv = gv; }
     C.doc.ents = C.doc.ents.filter(e => !(e.gv === gv && e.type === 'pozno')); // poz balonları istasyon numaralamasıyla yeniden konur
     const km = (C.doc.set.kesitMeta || {})[nm];
-    if (km && C.malzemeAcilimOto) { const o2 = new Set(C.doc.ents.map(e => e.id)); try { C.malzemeAcilimOto(Object.assign({ nm }, km)); } catch (er) { console.error('malzeme açılımı', er); } for (const e of C.doc.ents) if (!o2.has(e.id)) { e.gv = gv; e.dis = 'Mimari'; delete e.sp; } acilimDuzen(gv, km); }
-    durum().kesitler.push(nm);
-    return { gv, km, n: yeni.length };
+    if (o.acilim !== false && km && C.malzemeAcilimOto) { const o2 = new Set(C.doc.ents.map(e => e.id)); try { C.malzemeAcilimOto(Object.assign({ nm }, km)); } catch (er) { console.error('malzeme açılımı', er); } for (const e of C.doc.ents) if (!o2.has(e.id)) { e.gv = gv; e.dis = 'Mimari'; delete e.sp; } acilimDuzen(gv, km); }
+    if (o.durum !== false) durum().kesitler.push(nm);
+    return { gv, km, n: yeni.length, yeni };
   };
 
   /* kesit açılımlarını kesitin iki yanında, ölçü ve kotların dışında, üst üste binmeden sırala */
@@ -207,13 +210,16 @@
     return items;
   };
 
-  /* poz balonları: görünüşe dönüştürülmüş noktalar (W) */
-  const balonlar = (items, gv, W, filtre) => {
-    const used = [], kon = []; let n = 0;
+  /* poz balonları: görünüşe dönüştürülmüş noktalar (W). items: [{ poz, yerler: [{ p, e }] }].
+     o (ünite mekanik paftası; istasyonda boş): { her: true → her yere balon (yoksa görünümde her poz bir kez), ayni: (q, it) → aynı yer anahtarı (bir kez konur),
+     used: önceden dolu engel listesi (ekipman yazıları; pozno.js biçimi { p, q }), layer } */
+  const balonlar = (items, gv, W, filtre, o = {}) => {
+    const used = o.used || [], kon = [], ayni = new Set(); let n = 0;
     for (const it of items) for (const y of it.yerler) {
       if (filtre && !filtre(y.p)) continue; const q = W(y.p); if (!q) continue;
-      if (kon.some(k => k.n === it.poz)) continue; kon.push({ n: it.poz, q });
-      if (C.pozBalon) { C.pozBalon([q[0], q[1], 0], it.poz, y.e ? y.e.id : null, { gv, layer: 'MEK_POZ_IST', auto: true }, used); n++; }
+      if (o.her) { const k = o.ayni ? o.ayni(q, it) : null; if (k != null) { if (ayni.has(k)) continue; ayni.add(k); } }
+      else { if (kon.some(k => k.n === it.poz)) continue; kon.push({ n: it.poz, q }); }
+      if (C.pozBalon) { C.pozBalon([q[0], q[1], 0], it.poz, y.e ? y.e.id : null, { gv, layer: o.layer || 'MEK_POZ_IST', auto: true }, used); n++; }
     }
     return n;
   };
@@ -466,6 +472,8 @@
   C.istasyonPaftalari = uret;
   /* MIMARIPAFTA (mimari-pafta.js) çelik / sac kapak detayları için: kapak planı (1/20), kenar detayı (1/5), katmanlar, açılım düzeni */
   C.kapakDetay = { plani: kapakPlani, kenar: kenarDetay, katmanlar, acilimDuzen };
+  /* ünite mekanik paftası (unite-mekanik.js MEKANIKPAFTA) için ortak araçlar: kâğıt çizimi ve tablo (mm), modelden kesit, poz balonları, pencere bloğu */
+  C.mekPaftaArac = { yeniCizim, tablo, tabloBlok, kaydir1, sar, tw: tw_, balonlar, kesitAl, vpBlok, extOf };
   C.addCommand(['ISTASYONPAFTA', 'ISTPAFTA', 'MIMARIMEKANIKPAFTA'], 'Pompa istasyonu (3B) için mimari ve mekanik paftaları üretir: planlar, A-A / B-B kesitleri, akslar, malzeme açılımları, mahal listesi, kapak detayları; mekanik poz numaraları, ekipman, boru – ek parça ve vana listeleri. Yeniden çalıştırınca modelden günceller.', async (I) => {
     const on = olcekOner(), oS = String(on.olcek), elle = C.doc.set.istOlcekElle && C.doc.set.istOlcek ? String(C.doc.set.istOlcek) : null;
     const sec = [['50', '1/50'], ['25', '1/25'], ['100', '1/100']].map(([v, t]) => [v, v === oS ? `${t} (önerilen — firma kuralı: ${on.neden || 'bina ebatına göre'})` : t]);

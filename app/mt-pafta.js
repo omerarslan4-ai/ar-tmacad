@@ -77,7 +77,7 @@
 
   /* ======================= KOMUTLAR ======================= */
   C.addCommand(['MEKANIKDXF', 'MEKANIKPAFTADXF', 'MEKDXF'], 'Mekanik paftalarını AutoCAD için DXF olarak kaydeder: her pafta bir Layout sekmesi (antet ve ölçekli pencereleriyle), çizimler model alanında. Seçtiğiniz klasöre yazar; yanına DWG-YAP.bat koyar.', () => {
-    if (!(C.doc.layouts || []).some(L => L.grp === 'Mekanik')) { C.warn('Mekanik paftası yok: önce Mekanik sekmesinden "Mekanik paftalar"ı çalıştırın.'); return; }
+    if (!(C.doc.layouts || []).some(L => L.grp === 'Mekanik')) { C.warn('Mekanik paftası yok: önce Mekanik sekmesinden "Tesisat paftaları"nı ya da "Ünite mekanik paftaları"nı çalıştırın.'); return; }
     return C.exportGroups(['Mekanik']);
   }, { noUndo: true });
   C.addCommand(['MEKPAFTALISTESI', 'MEKANIKPAFTALISTESI'], 'Mekanik pafta listesi: Mekanik grubundaki paftalar — SIRA NO, PAFTA NO, PAFTA ADI, ÖLÇEK; paftalardan canlı tablo ya da Excel (CSV).', async (I) => {
@@ -98,7 +98,7 @@
   const paneller = () => {
     const var_ = b => !!(C.cmds && C.cmds[b.cmd.split(' ')[0]]);
     return [
-      ['Pafta', [B('TESISATPAFTA T', 'Mekanik paftalar', 'print'), B('MEKANIKDXF', 'Paftaları DXF kaydet', 'sheet'), B('DISIPLINDXF', 'Disiplin DXF dosyaları (her biri ayrı)', 'sheet'), s('BOLGEDUZENLE', 'Bölgeleri düzenle', 'array'), s('MEKPAFTALISTESI', 'Pafta listesi', 'table'), s('PAFTAELLE', 'Elle düzeltildi (koru)', 'prop'), s('TESISATCIKTI', 'Çıktı al (PDF)', 'print'), s('TESISATYAZI', 'Yazı boyutu', 'prop'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
+      ['Pafta', [B('TESISATPAFTA T', 'Tesisat paftaları', 'print'), B('MEKANIKPAFTA', 'Ünite mekanik paftaları', 'print'), B('MEKANIKDXF', 'Paftaları DXF kaydet', 'sheet'), B('DISIPLINDXF', 'Disiplin DXF dosyaları (her biri ayrı)', 'sheet'), s('BOLGEDUZENLE', 'Bölgeleri düzenle', 'array'), s('MEKPAFTALISTESI', 'Pafta listesi', 'table'), s('PAFTAELLE', 'Elle düzeltildi (koru)', 'prop'), s('TESISATCIKTI', 'Çıktı al (PDF)', 'print'), s('TESISATYAZI', 'Yazı boyutu', 'prop'), s('PERSPEKTIFPAFTA', '3B görünüş', 'iso')]],
       ['Sistem paftaları', [s('TESISATPAFTA Y', 'Isı yalıtımı', 'prop'), s('TESISATPAFTA I', 'Isıtma', 'prop'), s('TESISATPAFTA S', 'Soğutma', 'prop'), s('TESISATPAFTA H', 'Havalandırma', 'prop'), s('TESISATPAFTA W', 'Sıhhi tesisat', 'prop')]],
       ['Şema ve tablolar', [s('KOLONSEMASI', 'Kolon şeması', 'prop'), s('SOGUTMASEMASI', 'Soğutma şeması', 'prop'), s('ISIMERKEZISEMA', 'Akış şeması', 'pump'), s('ISIYALITIMDETAY', 'Yalıtım detayı', 'prop'), s('MEKTABLO', 'Ekipman tabloları', 'table')]],
       ['Denetim', [s('CAKISMA', 'Çakışma denetimi', 'prop'), s('DELIKAC', 'Geçiş delikleri', 'prop')]],
