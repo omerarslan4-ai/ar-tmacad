@@ -397,14 +397,15 @@
   const kot = z => (C.fmtKot ? C.fmtKot(z) : f2(z));
   const unum = e => (String(e.code || '').match(/\d+/) || ['1xx'])[0];
   const mix = (e, G) => { // halka başına mikser (mikser programının itki dengesi)
-    const key = [G.b, G.q.tw, G.q.Ls, G.q.h].join('|');
-    if (!e._mx || e._mx.key !== key) e._mx = { key, r: C.mikserSec ? C.mikserSec({ b: G.b, tw: G.q.tw, Ls: G.q.Ls, H: G.q.h, n0: 0, unite: 'anaerobik' }) : null };
+    const key = [G.b, G.q.tw, G.q.Ls, G.q.h, e.mlib || ''].join('|'); // e.mlib: zorunlu mikser tipi (ünite kartı "Anaerobik mikser" / ANAEKIPMAN MIKSER=KSB)
+    if (!e._mx || e._mx.key !== key) e._mx = { key, r: C.mikserSec ? C.mikserSec({ b: G.b, tw: G.q.tw, Ls: G.q.Ls, H: G.q.h, n0: 0, unite: 'anaerobik', lib: e.mlib || undefined }) : null };
     return e._mx.r;
   };
   /* mikser sayısı ve tipi: önce mikser hesabı penceresinin sonucu (aynı halka için yapılmışsa: koridor ve düz boy tutuyorsa),
      yoksa programın aynı yöntemle otomatik seçimi. Hesap sonucu projeye (e.mikser) yazılır, dosyayla birlikte saklanır. */
   const tutar = (t, G) => t && Math.abs(+t.b - G.b) < 0.15 && Math.abs(+t.Ls - G.q.Ls) <= Math.max(1, 0.15 * G.q.Ls);
   const mixKaynak = (e, G) => {
+    if (e.mlib) { const r = mix(e, G); if (r) return Object.assign({ kaynak: 'seçilen tip' }, r); } // tip elle seçildiyse (KSB AmaProp 2603) mikser hesabı sonucunun önüne geçer
     let S = null; try { S = JSON.parse(localStorage.getItem('mixer-analysis-v1') || 'null'); } catch (er) { S = null; }
     if (S && S.tank && S.tank.type !== 'rect' && S.tank.type !== 'circ' && Array.isArray(S.mixers) && S.mixers.length && tutar(S.tank, G)) {
       const m0 = S.mixers[0], yeni = { n: S.mixers.length, D: +m0.D, P: +m0.P, rpm: +m0.rpm, name: `Ø${String(m0.D).replace('.', ',')} m, ${String(m0.P).replace('.', ',')} kW`, kaynak: 'Mikser hesabı', b: +S.tank.b, Ls: +S.tank.Ls };
@@ -646,10 +647,10 @@
     if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
     if (kv.OLCU !== 'H' && C.anaerobikOlcu) C.anaerobikOlcu(e);
   });
-  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT]', async (I) => {
+  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=KSB|OTO] (KSB: KSB AmaProp 2603, 5,5 kW)', async (I) => {
     const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');
     if (!s.length) return C.warn('Çizimde anaerobik havuz yok (önce ANAEROBIK).');
-    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; C.anaerobikEkipman(e); }
+    for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^KSB/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; } C.anaerobikEkipman(e); }
   });
 
   C.addCommand(['ANABORU', 'ANAEROBIKBORU'], 'Anaerobik havuzun boru deliklerini taşır: ANABORU [GIRIS|RAS|CIKIS] → yeni yer (duvar boyunca), çap, alt kotu; ANABORU BORUDAN → saha borularının uçlarına bağlar ve izler', async (I) => {

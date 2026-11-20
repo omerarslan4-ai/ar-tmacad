@@ -244,6 +244,12 @@ t('anaerobik: düz boy hacimden; tek halka; zincirde mevcut kademe', () => {
   assert.ok(kisa.uyari.some(u => u.includes('Temas süresi')));
 });
 
+t('anaerobik mikser seçeneği: "KSB AmaProp 2603" seçilince kart ve çizim bu tipi kullanır (5,5 kW sabit); otomatikte eski seçim (kullanıcı 20.11.2026)', () => {
+  const ks = K.anaerobikKart('an', { N: 1, L: 30, W: 27, h: 4.5 }, { Qd: 50000, Qww: 3000 }, {}, { anMikser: 'KSB' }, KAR), ot = K.anaerobikKart('an', { N: 1, L: 30, W: 27, h: 4.5 }, { Qd: 50000, Qww: 3000 }, {}, {}, KAR);
+  assert.ok(/KSB AmaProp 2603/.test(p(ks, 'mix').v) && /2 × .*11,0 kW/.test(p(ks, 'mix').v), p(ks, 'mix').v); assert.strictEqual(ks.cizim.mlib, 'ksb2603');
+  assert.ok(!/KSB/.test(p(ot, 'mix').v), 'otomatikte KSB seçilmez: ' + p(ot, 'mix').v); assert.strictEqual(ot.cizim.mlib, null, 'eski havuzdaki seçim kartla temizlenir');
+});
+
 t('biyolojik havuz: Zeytinli T107 hacmi verilince şablonun düz uzunluğu (135 m) geri bulunur', () => {
   const Gz = KAR.geo(Object.assign({}, KAR.DEF));
   const k = K.bioKart('bio', { N: 4, h: 6.45, L: Gz.V / (4 * 6.45), W: 1 }, { sistemAd: 'Simultane DN' }, {}, KAR);

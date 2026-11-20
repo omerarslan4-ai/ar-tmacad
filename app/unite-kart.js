@@ -459,7 +459,7 @@
     const Qo = ek('Qo', 'Ortalama debi (mevcut kademe)', (+debi.Qd || 0) / 24, 'm³/h', 'hesap');
     const Qm = ek('Qm', 'En büyük debi (mevcut kademe)', +debi.Qww || 0, 'm³/h', 'hesap');
     // seçenek ve standart
-    const nh = sec.anGoz === '1' ? 1 : 3;
+    const nh = sec.anGoz === '1' ? 1 : 3, mlib = sec.anMikser === 'KSB' ? 'ksb2603' : null; // mlib: zorunlu mikser tipi (KSB AmaProp 2603, kullanıcı kararı 20.11.2026)
     ek('nh', 'Halka sayısı', nh, 'adet', 'standart', { not: 'Seçenek: üstteki "Anaerobik halka"' });
     const S = {}; for (const [k, s] of Object.entries(K.STD_AN)) S[k] = dz(k, s.ad, s.v, s.birim, 'standart', k === 'ras' ? null : '50.000 m³/gün örneği');
     const QRS = S.ras * Qm;
@@ -488,9 +488,9 @@
     // mikser (karusel modülünün mikser seçimi)
     if (kar && kar.geo && Ls > 0 && h > 0) {
       try {
-        const G = kar.geo({ N: nh, Ls, h, Ro: S.Ro, tw: S.tw, two: S.two, rg: S.rg, tg: S.tg, fb: S.hp, tb: S.tb, nMix: 0, ara: [0, 0, 0, 0, 0] });
+        const G = kar.geo({ N: nh, Ls, h, Ro: S.Ro, tw: S.tw, two: S.two, rg: S.rg, tg: S.tg, fb: S.hp, tb: S.tb, nMix: 0, ara: [0, 0, 0, 0, 0], mlib: mlib || undefined });
         if (G.mix) {
-          ek('mix', 'Mikser (halka başına)', `${G.mix.n} × ${G.mix.name}, ${(G.mix.n * G.mix.P).toFixed(1).replace('.', ',')} kW, hız ${(+G.mix.v).toFixed(2).replace('.', ',')} m/s`, '', 'katalog', { not: 'Mikser programının itki dengesiyle seçildi' });
+          ek('mix', 'Mikser (halka başına)', `${G.mix.n} × ${G.mix.name}, ${(G.mix.n * G.mix.P).toFixed(1).replace('.', ',')} kW, hız ${(+G.mix.v).toFixed(2).replace('.', ',')} m/s`, '', 'katalog', { not: mlib ? 'Seçenek: üstteki "Anaerobik mikser" (adet itki dengesinden)' : 'Mikser programının itki dengesiyle seçildi' });
           if (G.mix.ok === false) uyari.push('Uygun mikser bulunamadı; koridor dar ya da hız hedefi tutmuyor.');
         }
       } catch (e) { }
@@ -512,7 +512,7 @@
     if (S.rg + S.tg > S.Ro - 0.3) uyari.push('Yönlendirme perdesi halka yarıçapına çok yakın; perde yarıçapını küçültün.');
     const yc = i => S.two + S.Ro + i * (2 * S.Ro + S.two);
     // çizim parametreleri (app/anaerobik.js varlığı). Su yüzü girilmişse duvar üstü kotu ve hava payı = duvar üstü − su yüzü (zemin belirleyince büyür)
-    const cizim = { n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
+    const cizim = { mlib, n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
     if (zs) Object.assign(cizim, { zt: r3(zu), fb: r3(zu - zs) });
     if (Qm) Object.assign(cizim, { Qmax: r3(Qm), Qmin: r3(Qo * 0.5), QRS: r3(QRS) });
     return {
@@ -834,6 +834,7 @@
         ${sel('blowerKum', 'Kum tutucu blowerı', [['ANA', 'Ana blower binasında'], ['AYRI', 'Yanında küçük binada']], A.sec.blowerKum || 'ANA')}
         ${sel('terfiYer', 'Terfi yerleşimi', [['BITISIK', 'Izgara ve kum tutucuya bitişik'], ['AYRI', 'Ayrı yapı']], A.sec.terfiYer || 'BITISIK')}
         ${sel('anGoz', 'Anaerobik halka', [['3', '3 halka (RAS + 2 ham su)'], ['1', 'Tek halka']], A.sec.anGoz || '3')}
+        ${sel('anMikser', 'Anaerobik mikser', [['OTO', 'Otomatik (en az güç)'], ['KSB', 'KSB AmaProp 2603 (5,5 kW)']], A.sec.anMikser || 'OTO')}
         ${sel('dgYer', 'Dağıtma yapısı', [['AYRI', 'Ayrı yapı'], ['BITISIK', 'Havuz ucuna bitişik']], A.sec.dgYer || 'AYRI')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>
         ${Z.uyari.length ? `<div class="hint" style="color:#e0a030;margin-top:6px">${Z.uyari.map(esc).join('<br>')}</div>` : ''}`;
@@ -908,7 +909,7 @@
       ['Kaba ızgara yapısı', 'Coarse screen structure'], ['İnce ızgara yapısı', 'Fine screen structure'], ['Kaba ve ince ızgara yapısı (aynı kanal)', 'Coarse and fine screen structure (common channel)'],
       ['Giriş terfi istasyonu', 'Inlet pumping station'], ['Kum ve yağ tutucu', 'Grit and grease chamber'], ['Debimetre', 'Flow meter'], ['Ön çökeltme', 'Primary clarifier'],
       ['Dağıtma yapısı (biyolojik havuzlar)', 'Distribution chamber (biological tanks)'], ['Dağıtma yapısı (son çökeltme)', 'Distribution chamber (final clarifiers)'],
-      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
+      ['Anaerobik havuz', 'Anaerobic tank'], ['Anaerobik halka', 'Anaerobic loops'], ['Çiz', 'Draw'], ['3 halka (RAS + 2 ham su)', '3 loops (RAS + 2 raw water)'], ['Tek halka', 'Single loop'], ['Anaerobik mikser', 'Anaerobic mixer'], ['Otomatik (en az güç)', 'Automatic (least power)'], ['KSB AmaProp 2603 (5,5 kW)', 'KSB AmaProp 2603 (5.5 kW)'], ['Biyolojik havuz', 'Biological tank'], ['Son çökeltme', 'Final clarifier'], ['Dezenfeksiyon ve çıkış yapısı', 'Disinfection and outlet structure'],
       ['Disk filtre', 'Disc filter'], ['Filtre besleme pompaları', 'Filter feed pumps'], ['Basınçlı kum filtresi', 'Pressure sand filter'],
       ['Ultrafiltrasyon', 'Ultrafiltration'], ['UV dezenfeksiyon', 'UV disinfection'], ['Çıkış debimetresi', 'Outlet flow meter'],
       ['Klor temas tankı', 'Chlorine contact tank'], ['Temiz su deposu', 'Treated water tank'], ['Çamur yoğunlaştırma', 'Sludge thickening'], ['Çamur depolama / stabilizasyon', 'Sludge storage / stabilisation'],
