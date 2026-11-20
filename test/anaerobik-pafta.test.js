@@ -95,7 +95,8 @@ t('planda kod etiketleri: bütün döşeme / temel ve duvar kodları elemanın �
 t('planda gövde çizgilerinin sınıfı: duvar / köprü kalın (Beton), tretuvar ayrı, radyenin toprak altındaki kenarı çizilmez', () => {
   const S = P.planSinif(G);
   assert.strictEqual(S([22, 0]), 'govde'); assert.strictEqual(S([0, 13.7]), 'govde'); assert.strictEqual(S([20, 13.7]), 'govde');
-  assert.strictEqual(S([0, 0.5]), 'radye'); assert.strictEqual(S([3, 0]), 'radye'); assert.strictEqual(S([44.9, 27.0]), 'radye');
+  /* radye 20.11.2026'dan beri perdelerin dış çizgisini ampatmanlı izler (dikdörtgen değil): toprak altındaki kenarı yine çizilmez */
+  const Rp = G.taban.pts; for (const k of [0, Math.floor(Rp.length / 3), Math.floor(2 * Rp.length / 3)]) assert.strictEqual(S(Rp[k]), 'radye', 'radye kenarı ' + Rp[k]);
   assert.strictEqual(S([20, -1]), 'tretuvar'); assert.strictEqual(S([-1, 13.7]), 'tretuvar');
 });
 t('kesit planda yalnız kesme kotunun altındaki elemanların kodu: yürüme yolu döşemesi üst planda', () => {

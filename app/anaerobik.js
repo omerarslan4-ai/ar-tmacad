@@ -198,7 +198,18 @@
       yol('kanal-sag', [[xiR(yb + m, yc[0]), yb + m], [Lo - m, yb + m], [Lo - m, yt - m], [xiR(yt - m, yc[n - 1]), yt - m]]);
       if (G.ara) yol('ara', [[xc2 + e1, G.ara.y], [Lo - m, G.ara.y]]);
       G.bantlar = B; }
-    G.taban = { pts: rect(0, 0, Lo, Wo), z0: G.zF, z1: zB };
+    /* DIŞ ÇİZGİNİN ÖTELENMİŞİ (kullanıcı 20.11.2026: "tretuvar ve temel tamamen geometriyi takip etsin"): halkaların açıkta kalan yarım daire uçları R2 + dH yarıçaplı yay,
+       uzun yanlar dH, kanalların dış yüzleri dK dışarıda; yay ile kanal kenarı kesiştiği yerde birleşir (havuz büyüyünce de çizginin içinde kalmaz). Saat yönü tersi. */
+    const disOtele = (dH, dK) => {
+      const R = R2 + dH, y0 = yc[0], yN = yc[n - 1], ybk = G.kanal.yb - dK, ytk = G.kanal.yt + dK, D = Math.PI / 180;
+      const aci = (cy, y) => Math.asin(Math.max(-1, Math.min(1, (y - cy) / R))) / D;
+      const yay = (cx, cy, a0, a1) => { const o = [], k = Math.max(2, Math.ceil(Math.abs(a1 - a0) / 3)); for (let i = 0; i <= k; i++) { const a = (a0 + (a1 - a0) * i / k) * D; o.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]); } return o; };
+      const ta = aci(y0, ybk), tb = aci(yN, ytk);
+      return [...yay(xc2, y0, -90, ta), [Lo + dK, ybk], [Lo + dK, ytk], ...yay(xc2, yN, tb, 90), ...yay(xc1, yN, 90, 180 - tb), [-dK, ytk], [-dK, ybk], ...yay(xc1, y0, 180 - ta, 270)];
+    };
+    G.disOtele = disOtele;
+    /* radye (temel): perdelerin dış çizgisini ampatmanlı izler — ampatman perde kalınlığı kadar (halkalarda dış duvar two, kanallarda kanal duvarı tK) */
+    G.taban = { pts: disOtele(q.two, q.tK), z0: G.zF, z1: zB };
     // hacim (halka alanı × h × n) — karusel.js ile aynı formül
     const ring = Math.PI * ((q.rg + q.tg) ** 2 - q.rg ** 2);
     G.Ahalka = q.Ls * 2 * q.Ro - q.Ls * q.tw + Math.PI * q.Ro * q.Ro - ring;
@@ -214,9 +225,8 @@
     // döşemede kapak yarıkları: kapak çerçevesi (açıklık + 2 × 85 mm yuva gömmesi) + her yanda 5 cm; akış yönünde 0,30 m (çerçeve, kapak ve kaburgalar geçer)
     const yarik = (xm, B, ym) => { const w = B + 2 * q.yE + 2 * q.yP; return rect(xm - w / 2, ym - q.yD / 2, xm + w / 2, ym + q.yD / 2); };
     for (let i = 0; i + 1 < n; i++) { const y0 = yc[i] + q.Ro, y1 = y0 + q.two, ym = y0 - q.kY; const P = G.penO[i]; G.sahanlik.push({ x0: xw0 - q.sahX, x1: xk0, y0: y0 - q.sahG, y1: y1 + q.sahE, z0: zTop, z1: zTop + q.kbT, yarik: [yarik((P.x0 + P.x1) / 2, P.w, ym)] }); } // döşeme yarığı pencerenin kendi kapağına göre (kapak büyüyüp küçülünce kendiliğinden; kullanıcı 20.11.2026)
-    // tretuvar (zemin kotunda, havuz çevresinde): kanallar boyunca dar, halkalar boyunca geniş, aralarda pahlı
-    const t = q.tre, xa = Math.max(0, xc1 - R2 - t), xb = Math.min(Lo, xc2 + R2 + t * 0.6);
-    G.tretuvar = { dis: [[-t, yb - t], [xa, yb - t], [xc1, -t], [xc2, -t], [xb, yb - t], [Lo + t, yb - t], [Lo + t, yt + t], [xb, yt + t], [xc2, Wo + t], [xc1, Wo + t], [xa, yt + t], [-t, yt + t]], kal: q.treT };
+    // tretuvar (zemin kotunda, havuz çevresinde): dış perde yüzünden her yerde tre genişliğinde, yuvarlak uçlarda yay (kullanıcı 20.11.2026)
+    G.tretuvar = { dis: disOtele(q.tre, q.tre), kal: q.treT };
     return G;
   }
 

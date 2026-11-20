@@ -262,4 +262,22 @@ t('kapaklar: nervürler suya bakan yüzde, düz yüz duvara oturur (bütün kapa
   }
 });
 
+/* kullanıcı 20.11.2026: "tretuvarlar ebada göre genişlesin; yuvarlak kesimde havuz büyüyünce duvarın içinde kalıyor; temel perdelerin şekline göre ampatmanlı, ampatman perde kalınlığı kadar" */
+t('tretuvar ve radye dış çizgiyi izler: tretuvar her yerde tre, radye ampatmanı halkada dış duvar, kanalda kanal duvarı kalınlığı (büyüyen halkada da)', () => {
+  const { boyutla } = require('../app/anaerobik.js');
+  const ic = (p, h) => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  const sd = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy; let s = l ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l : 0; s = Math.max(0, Math.min(1, s)); return Math.hypot(p[0] - a[0] - s * dx, p[1] - a[1] - s * dy); };
+  const uz = (p, Q) => Math.min(...Q.map((a, i) => sd(p, a, Q[(i + 1) % Q.length])));
+  const p50 = boyutla({ Qd: 50000 }).par;
+  for (const par of [{}, p50, Object.assign({}, p50, { Ro: 6.0, two: 0.8 })]) {
+    const G2 = geo(Object.assign({ zt: 97.25, fb: 0.61 }, par)), q = G2.q, D = G2.bolge.dis, T = G2.tretuvar.dis, R = G2.taban.pts, M = [G2.Lo / 2, G2.Wo / 2];
+    const icer = (p, P) => ic([p[0] + (M[0] - p[0]) * 1e-4, p[1] + (M[1] - p[1]) * 1e-4], P);
+    assert.ok(D.every(p => icer(p, T) && icer(p, R)), 'dış çizgi tretuvarın ve radyenin içinde (Ro ' + q.Ro + ')');
+    const tg = Math.min(...D.map(p => uz(p, T))); yakin(tg, q.tre, 'tretuvar her yerde ' + q.tre + ' (Ro ' + q.Ro + ')', 0.005);
+    /* halkaların açıkta kalan yay ortası (uzun yanın ucu) ve kanal dış yüzü: ampatman kendi perdesi kadar */
+    yakin(uz([G2.xc2, -0], R) , q.two, 'uzun yanda ampatman = dış duvar', 0.005); yakin(uz([G2.Lo, (G2.kanal.yb + G2.kanal.yt) / 2], R), q.tK, 'kanalda ampatman = kanal duvarı', 0.005);
+    const yr = G2.yc[0] - (q.Ro + q.two) * Math.SQRT1_2, xr = G2.xc2 + (q.Ro + q.two) * Math.SQRT1_2; if (yr < G2.kanal.yb) yakin(uz([xr, yr], T), q.tre, 'yuvarlak uçta tretuvar = tre', 0.01);
+  }
+});
+
 console.log(`\n${n} test geçti.`);
