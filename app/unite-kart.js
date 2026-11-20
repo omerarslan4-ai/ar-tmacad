@@ -521,7 +521,7 @@
     if (S.rg + S.tg > S.Ro - 0.3) uyari.push('Yönlendirme perdesi halka yarıçapına çok yakın; perde yarıçapını küçültün.');
     const yc = i => S.two + S.Ro + i * (2 * S.Ro + S.two);
     // çizim parametreleri (app/anaerobik.js varlığı). Su yüzü girilmişse duvar üstü kotu ve hava payı = duvar üstü − su yüzü (zemin belirleyince büyür)
-    const cizim = { mlib, tretKap: sec.anTret || null, korkKm: sec.anKork || 'galvaniz', n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, agC: S.agC, ahC: S.ahC, agR: S.agR, ahR: S.ahR, owR: S.owR, ohR: S.ohR, bOw: S.bOw, dO: S.dO, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
+    const cizim = { mlib, tretKap: sec.anTret || null, korkKm: sec.anKork || 'galvaniz', vincTahrik: sec.anVinc || 'MANUEL', n: nh, Ls, h, Ro: S.Ro, rg: S.rg, tg: S.tg, tw: S.tw, two: S.two, tK: S.tK, bG: S.bG, bC: S.bC, ag: S.ag, ah: S.ah, dAg: S.dAg, agC: S.agC, ahC: S.ahC, agR: S.agR, ahR: S.ahR, owR: S.owR, ohR: S.ohR, bOw: S.bOw, dO: S.dO, ow: S.ow, oh: S.oh, dPe: S.dPe, bO: S.bO, dG: S.dG, dR: S.dR, dC: S.dC, kb: S.kb, tb: S.tb, fb: S.hp };
     if (zs) Object.assign(cizim, { zt: r3(zu), fb: r3(zu - zs) });
     if (Qm) Object.assign(cizim, { Qmax: r3(Qm), Qmin: r3(Qo * 0.5), QRS: r3(QRS) });
     return {
@@ -845,6 +845,7 @@
         ${sel('anGoz', 'Anaerobik halka', [['3', '3 halka (RAS + 2 ham su)'], ['1', 'Tek halka']], A.sec.anGoz || '3')}
         ${sel('anTret', 'Anaerobik tretuvar', [['', 'Belirtilmedi (tek satır)'], ...Object.entries((C && C.TRETUVAR_KAP) || {}).map(([k, v]) => [k, v.ad])], A.sec.anTret || '')}
         ${sel('anKork', 'Anaerobik korkuluk', Object.entries((C && C.KORKULUK_KM) || { galvaniz: ['Sıcak daldırma galvaniz çelik'] }).map(([k, v]) => [k, v[0]]), A.sec.anKork || 'galvaniz')}
+        ${sel('anVinc', 'Anaerobik pergel vinç', [['MANUEL', 'Manuel (elle zincirli palanga)'], ['ELEKTRIKLI', 'Elektrikli zincirli palanga']], A.sec.anVinc || 'MANUEL')}
         ${sel('anMikser', 'Anaerobik mikser', [['OTO', 'Otomatik (en az güç)'], ['KSB', 'Yavaş devirli Ø2,6 m, 5,5 kW (üretici modeli)']], A.sec.anMikser || 'OTO')}
         ${sel('dgYer', 'Dağıtma yapısı', [['AYRI', 'Ayrı yapı'], ['BITISIK', 'Havuz ucuna bitişik']], A.sec.dgYer || 'AYRI')}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px 0;margin-top:6px">${sel('nihai', 'Nihai kademe (ön arıtma)', kOpt, kd.iN)}${sel('mevcut', 'Mevcut kademe (havuzlar)', kOpt, kd.iM)}</div>

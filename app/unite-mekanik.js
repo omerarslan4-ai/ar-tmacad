@@ -34,19 +34,22 @@
       const AK = akt && ctx.aktuator ? ctx.aktuator(q) : null, Pa = akt && +q.Pakt > 0 ? +q.Pakt : AK ? AK.P : null;
       return { grup: 'kapak', anahtar: ['kapak', B, H, D, akt ? 'AKT' : 'EL', asagi ? 'A' : 'Y', kisa ? 'K' : 'T'].join('|'), kod,
         tanim: asagi ? 'Savak kapağı (penstok, aşağı açılır)' : 'Kanal kapağı (penstok)',
-        oz: [`B×H ${B}×${H} mm`, `kanal derinliği ${D} mm`, kisa ? 'kısa şasi + uzatma mili' : 'tam şasi', akt ? (AK ? `elektrikli aktüatör ${AK.boy} (ISO 5210 ${AK.flans}, ${AK.Tmin}-${AK.Tmax} Nm, ${AK.devir} d/dk)` : 'elektrikli aktüatör') : 'el çarkı'].join(' · '),
+        oz: [`B×H ${B}×${H} mm`, `kanal derinliği ${D} mm`, +q.G > 0 ? `≈ ${Math.round(+q.G)} kg` : '', kisa ? 'kısa şasi + uzatma mili' : 'tam şasi', akt ? (AK ? `elektrikli aktüatör ${AK.boy} (ISO 5210 ${AK.flans}, ${AK.Tmin}-${AK.Tmax} Nm, ${AK.devir} d/dk)` : 'elektrikli aktüatör') : 'el çarkı'].filter(Boolean).join(' · '),
         P: Pa, gucYok: !akt, veriYok: akt && Pa == null, miktar: 1, birim: 'adet' };
     }
     if (e.type === 'aile' && e.fam === 'dalgic_mikser') {
       const Md = q.model && q.model !== 'GENEL' && ctx.mikserModel ? ctx.mikserModel(q.model) : null, P = +q.P > 0 ? +q.P : null;
       return { grup: 'mikser', anahtar: ['mikser', q.model || 'GENEL', mm(q.D), P, mm(q.rpm)].join('|'), kod, tanim: Md ? 'Dalgıç mikser (yavaş devirli)' : 'Dalgıç mikser',
-        oz: [`pervane Ø${mm(q.D)} mm`, `${mm(q.rpm)} d/dk`, Md ? temiz([Md.motor, Md.disli].filter(Boolean).join(', ')) : '', Md ? 'kılavuz ray + üst tutucu (tabliyeye bağlı)' : `kılavuz direk ${mm(q.Hd)} mm (tabliyeye bağlı)`].filter(Boolean).join(' · '),
+        oz: [`pervane Ø${mm(q.D)} mm`, `${mm(q.rpm)} d/dk`, Md ? temiz([Md.motor, Md.disli].filter(Boolean).join(', ')) : '', +q.Gmk > 0 ? `≈ ${Math.round(+q.Gmk)} kg` : '', Md ? 'kılavuz ray + üst tutucu (tabliyeye bağlı)' : `kılavuz direk ${mm(q.Hd)} mm (tabliyeye bağlı)`].filter(Boolean).join(' · '),
         P, veriYok: P == null, miktar: 1, birim: 'adet' };
     }
     if (e.type === 'aile' && e.fam === 'pergel_vinc') {
       const V = ctx.vincModel ? ctx.vincModel(q) : null, H = V ? mm(V.H) : mm(q.vh), L = mm(q.L);
-      return { grup: 'vinc', anahtar: ['vinc', q.model || 'GENEL', H, L].join('|'), kod, tanim: 'Pergel vinç (mikser bakımı)',
-        oz: [`direk yüksekliği ${H} mm`, `kol erişimi ${L} mm`, 'döner kollu, tabliyeye ankrajlı'].join(' · '), P: null, veriYok: true, miktar: 1, birim: 'adet' }; // güç ve kaldırma kapasitesi ailede yok (SORU)
+      /* kapasite kaldırılan en ağır yükten (mikser ağırlığı × 1,25 → standart kapasite), tahrik ünite kartından (kullanıcı 21.11.2026) */
+      const elk = q.tahrik === 'ELEKTRIKLI', kap = +q.kap > 0 ? +q.kap : null, Pv = elk && +q.Pv > 0 ? +q.Pv : null;
+      return { grup: 'vinc', anahtar: ['vinc', q.model || 'GENEL', H, L, kap || 0, elk ? 'E' : 'M'].join('|'), kod, tanim: 'Pergel vinç (mikser bakımı)',
+        oz: [kap ? `kaldırma kapasitesi ${kap} kg` : '', elk ? 'elektrikli zincirli palanga' : 'manuel zincirli palanga', `direk yüksekliği ${H} mm`, `kol erişimi ${L} mm`, 'döner kollu, tabliyeye ankrajlı'].filter(Boolean).join(' · '),
+        P: Pv, gucYok: !elk, veriYok: elk && Pv == null, miktar: 1, birim: 'adet' };
     }
     if (e.type === 'merdiven') {
       const H = Math.abs((+e.z1 || 0) - (+e.z0 || 0)), w = +e.w || 1, hm = (+e.hmax || 17.5) / 100, n = Math.max(2, Math.ceil(H / hm - 1e-9)), km = e.km ? (ctx.korkulukAd ? ctx.korkulukAd(e.km) : e.km) : '';
@@ -84,7 +87,7 @@
   const SUTUN = [{ t: 'POZ NO', w: 13 }, { t: 'EKİPMAN KODU', w: 44, al: 'L' }, { t: 'TANIM', w: 46, al: 'L' }, { t: 'ÖZELLİKLER', w: 112, al: 'L' }, { t: 'BİRİM GÜÇ (kW)', w: 20 }, { t: 'ADET', w: 16 }, { t: 'TOPLAM GÜÇ (kW)', w: 22 }];
   /* tablo yazısı pafta yazı stilinin (YZ) karakterleriyle: '·', '×', '–' bu stilde yok, başka yazı tipiyle çiziliyordu
      (kullanıcı 21.11.2026: "özellikler tablosundaki yazı karakterlerini diğerleri ile aynı yap") */
-  const sade = v => String(v).replace(/\s*·\s*/g, ', ').replace(/×/g, 'x').replace(/–/g, '-');
+  const sade = v => String(v).replace(/\s*·\s*/g, ', ').replace(/×/g, 'x').replace(/–/g, '-').replace(/≈\s*/g, 'yakl. ');
   function tabloSatirlari(satirlar) {
     const tire = '–', rows = (satirlar || []).map(r => [String(r.poz), r.kodlar.join(', ') || tire, r.tanim, r.oz || tire, r.P != null ? sayi(r.P) : tire, r.birim === 'm' ? `${sayi(r.adet, 1)} m` : String(r.adet), r.toplamP != null ? sayi(r.toplamP) : tire]);
     const T = kuruluGuc(satirlar); rows.push(['', '', 'KURULU TOPLAM GÜÇ', '', '', '', sayi(T.kW)]);

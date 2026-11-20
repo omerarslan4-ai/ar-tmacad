@@ -511,5 +511,11 @@
     ['"-": elle tahrikli / güçsüz ekipman ya da güç verisi henüz girilmemiş ekipman (kurulu güce katılmadı).', '"-": manually operated / unpowered equipment, or power data not yet entered (not included in installed power).'],
     ['Poz numaraları plan ve kesitlerdeki balon numaralarıyla aynıdır. Marka / model belirtilmemiştir; eşdeğer ürün kullanılabilir.', 'Item numbers match the balloons on plans and sections. No make / model is specified; equivalent products may be used.'],
     ['Mekanik paftası hazırlanacak üniteyi seçin (anaerobik havuz)', 'Select the unit for the mechanical sheets (anaerobic tank)'],
+    /* pergel vinç tahriki ve kapasite, aktüatör alanları (21.11.2026) */
+    ['Anaerobik pergel vinç', 'Anaerobic tank jib crane'], ['Manuel (elle zincirli palanga)', 'Manual (hand chain hoist)'], ['Elektrikli zincirli palanga', 'Electric chain hoist'],
+    ['Kaldırılacak en ağır yük', 'Heaviest load to lift'], ['Kaldırma kapasitesi', 'Lifting capacity'], ['Palanga motor gücü', 'Hoist motor power'],
+    ['Mikser ağırlığı (0: tahmin)', 'Mixer weight (0: estimate)'], ['Mikser ağırlığı (listede)', 'Mixer weight (schedule)'],
+    ['kaldırma kapasitesi # kg', 'lifting capacity # kg'], ['manuel zincirli palanga', 'manual chain hoist'], ['elektrikli zincirli palanga', 'electric chain hoist'], ['yakl. # kg', 'approx. # kg'], ['el çarkı', 'handwheel'],
+    ['Gerekli mil torku', 'Required stem torque'], ['Aktüatör motor gücü (katalog)', 'Actuator motor power (catalogue)'], ['Elektrikli aktüatör (çok turlu)', 'Electric actuator (multi-turn)'],
   ]);
 })();

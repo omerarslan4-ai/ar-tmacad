@@ -1,4 +1,4 @@
-/* ArıtmaCAD — ELEKTRİKLİ AKTÜATÖR KATALOĞU (çok turlu, aç-kapa görevi, 3 fazlı 400 V / 50 Hz, S2-15 dk)
+/* ArıtmaCAD — ELEKTRİKLİ AKTÜATÖR VE PERGEL VİNÇ KATALOĞU (çok turlu, aç-kapa görevi, 3 fazlı 400 V / 50 Hz, S2-15 dk)
    Kapak (penstok), vana vb. yükselen milli ekipmanın aktüatör boyunu ve motor gücünü programın kendisi seçsin diye sabit tablo
    (kullanıcı 21.11.2026: "katalog tablosundaki güç değerleri programda sabit olsun ki diğer işlerde de program otomatik bulabilsin").
    Kaynak: üretici teknik föyü "Multi-turn actuators for open-close duty with 3-phase AC motor" (Y004.785, baskı 1.23) ve
@@ -47,7 +47,18 @@
   /* penstok için tek adım: kapak verisinden aktüatör */
   const penstokAktuator = o => { const r = penstokTork(o), s = sec(r.T, { devir: o.devir, mil: o.mil }); return s ? Object.assign(s, { F: r.F, Fw: r.Fw }) : null; };
 
-  const API = { DEVIR, KATALOG, KABUL, adim, penstokTork, sec, penstokAktuator };
+  /* ---- PERGEL VİNÇ (mikser bakımı): kaldırılan yük → kapasite; elektrikli palangada motor gücü (kullanıcı 21.11.2026: "vinç kapasitesini ağırlığa göre
+     belirleyelim; elektrikli mi manuel mi ünite kartında biz seçelim") ---- */
+  const VINC_KAP = [250, 500, 1000, 2000, 3200]; // kg — standart kaldırma kapasiteleri
+  /* KABUL (onay bekliyor): elektrikli zincirli palanga motor gücü (kW), kaldırma ≈ 4–8 m/dk; üretici föyüyle doğrulanacak */
+  const PALANGA_KW = { 250: 0.37, 500: 0.75, 1000: 1.5, 2000: 3.0, 3200: 4.5 };
+  const VINC_EMNIYET = 1.25; // dinamik / askı payı (KABUL)
+  /* mikser ağırlığı (kg): verilmişse o; yoksa KABUL tahmini 40 + 30·P(kW) + 40·D(m) — üretici föyünde ağırlık yok (Ø2,6 m / 5,5 kW → ≈ 310 kg) */
+  const mikserAgirlik = o => { if (+o.kg > 0) return +o.kg; const D = +o.D > 50 ? +o.D / 1000 : +o.D || 0; return Math.round(40 + 30 * (+o.P || 0) + 40 * D); };
+  const vincKapasite = yuk => { const g = (+yuk || 0) * VINC_EMNIYET; return VINC_KAP.find(k => k >= g) || null; };
+  const palangaGuc = kap => (kap && PALANGA_KW[kap] != null ? PALANGA_KW[kap] : null);
+
+  const API = { DEVIR, KATALOG, KABUL, adim, penstokTork, sec, penstokAktuator, VINC_KAP, PALANGA_KW, VINC_EMNIYET, mikserAgirlik, vincKapasite, palangaGuc };
   if (C) C.aktuator = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window.C : null);

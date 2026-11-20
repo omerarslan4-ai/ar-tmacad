@@ -27,7 +27,7 @@
     mw: 1.00, mb: 0.25, mh: 0.19, sahE: 0.30, tre: 1.00, treT: 0.15, xm: 2.0, tahrik: 'OTO', akA: 1.0, akF: 10, sahX: 0.40, kpA: 0.20, bO: 0.60, kY: 0.06, pD: 0.20, sahG: 0.45, k2: 0, yE: 0.085, yP: 0.05, yD: 0.30,
   };
 
-  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC', 'agC', 'ahC', 'agR', 'ahR', 'owR', 'ohR', 'bOw', 'dO', 'tretKap', 'korkKm']; // tretKap: tretuvar kaplaması (tretuvar.js kataloğu), korkKm: korkuluk malzemesi (merdiven.js kataloğu) // elle taşınan boru delikleri; açıklık başına ölçüler (yoksa ag × ah, ow × oh)
+  const PAR = [...Object.keys(DEF), 'gx', 'rx', 'yC', 'hG', 'hR', 'hC', 'agC', 'ahC', 'agR', 'ahR', 'owR', 'ohR', 'bOw', 'dO', 'tretKap', 'korkKm', 'vincTahrik']; /* vincTahrik: pergel vinç MANUEL / ELEKTRIKLI (ünite kartı, kullanıcı 21.11.2026) */ // tretKap: tretuvar kaplaması (tretuvar.js kataloğu), korkKm: korkuluk malzemesi (merdiven.js kataloğu) // elle taşınan boru delikleri; açıklık başına ölçüler (yoksa ag × ah, ow × oh)
 
   /* yardımcılar (yerel 2B) */
   const arc = (cx, cy, r, a0, a1, n) => { const o = []; n = n || Math.max(6, Math.ceil(Math.abs(a1 - a0) / 6)); for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * RAD; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return o; };
@@ -277,7 +277,7 @@
              kol mikserin kılavuz rayına uzanır (üretici modeli: ray motorun 0,248 m gerisinde, genel gövde: 0,42 m) */
           /* üretici modelli mikserde vincin kancası askı kolunun kaldırma noktasının ekseninde (mikser orijininin 0,24 m önü → vinçten 1,07 m; kullanıcı 20.11.2026) */
           const L = mx.model ? 0.83 + 0.24 : 0.83 - 0.42;
-          out.push({ anahtar: an.replace('mik-', 'vinc-'), tur: 'vinc', etiket: et, p: [xd - dir * 0.36, y], aci: dir > 0 ? 0 : 180, z: kp.z1, L });
+          out.push({ anahtar: an.replace('mik-', 'vinc-'), tur: 'vinc', etiket: et, p: [xd - dir * 0.36, y], aci: dir > 0 ? 0 : 180, z: kp.z1, L, yuk: aktK() ? aktK().mikserAgirlik({ D: mx.D, P: mx.P }) : 300 }); /* yük: mikser ağırlığı → vinç kapasitesi (aile) */
         }
       }
     }
@@ -412,6 +412,8 @@
     return [x, y];
   }
 
+  /* aktüatör / vinç kataloğu (aktuator-katalog.js): tarayıcıda C.aktuator, Node testinde require */
+  const aktK = () => (C && C.aktuator) || (typeof require !== 'undefined' ? (() => { try { return require('./aktuator-katalog.js'); } catch (er) { return null; } })() : null);
   if (typeof module !== 'undefined' && module.exports) module.exports = { geo, DEF, ucgenle, bolgeKati, ekipmanYer, hidrolik, boyutla, akisNokta };
   if (!C) return;
   C.ANAEROBIK_DEF = DEF;
@@ -618,7 +620,7 @@
     }
     if (y.tur === 'tretuvar') return { type: 'tretuvar', props: { pts: y.pts.map(W2), w: y.w, egim: 2, zg: r3(zemin(e, geo(e))), h: 0, kap: e.tretKap || 'beton', tk: 0, th: 3, tb: e.tretKap && e.tretKap !== 'beton' ? 10 : Math.round(geo(e).q.treT * 100), ts: 15, bw: 10, bh: 30, bc: 0, by: 10, derz: 2, layer: 'INS_TRETUVAR' } }; // İnşaat tretuvarı (kaplama · yatak · beton · stabilize · bordür)
     if (y.tur === 'vinc') { const d = C.AILELER && C.AILELER.pergel_vinc; if (!d) return null; const t0 = d.tipler.find(t => t.p.model === 'jib') || d.tipler[0]; // kullanıcının seçtiği jib vinç modeli (20.11.2026)
-      return { type: 'aile', props: { fam: 'pergel_vinc', tip: t0.ad, tipU: t0.ad, par: Object.assign({}, t0.p, { L: mm(y.L) }), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: `PV-${un}/${y.etiket}`, layer: d.katman } }; }
+      return { type: 'aile', props: { fam: 'pergel_vinc', tip: t0.ad, tipU: t0.ad, par: Object.assign({}, t0.p, { L: mm(y.L), tahrik: e.vincTahrik === 'ELEKTRIKLI' ? 'ELEKTRIKLI' : 'MANUEL', yuk: Math.round(y.yuk || 300) }), p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: `PV-${un}/${y.etiket}`, layer: d.katman } }; }
     if (y.tur === 'merdiven') return { type: 'merdiven', props: { pts: y.pts.map(W2), z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, b: y.b * 100, tip: 'beton', kork: y.kork || 'sol', km: e.korkKm || 'galvaniz', kh: 110, dik: 150, tk: 'E', hiza: 'O', uz: 30, us: 'E', usL: Math.round(y.usL * 100), usW: Math.round(y.w * 100), usKork: 'H', as: 'H', sah: 0, nos: 0, t: Math.round(y.t * 100), rk: 'H' } }; // plaklı betonarme; üst sahanlık merdivenin parçası (plağı merdiven plağına bağlı)
     if (y.tur === 'korkuluk') return { type: 'korkuluk', props: { pts: y.pts.map(p => [...W2(p), y.z]), km: e.korkKm || 'galvaniz', kh: 110, dik: 150, tk: 'E', kapali: false } }; // malzeme elle seçilir (kart / ANAEKIPMAN KORKULUK=)
     return null;
@@ -635,6 +637,8 @@
       if (!x) { if (once.has(y.anahtar)) { silinmis.push(o.props.ad || y.anahtar); continue; } const z = C.add(C.newEnt(o.type, Object.assign({}, o.props, { bag: e.id, anahtar: y.anahtar }))); delete z.sp; z.oto = imza(z); n++; continue; }
       if (x.oto !== imza(x)) { // elle taşınmış / değiştirilmiş: yeri korunur
         /* mikserde tip (üretici modeli, pervane, güç, devir) yine güncellenir — yalnız yeri elle (kullanıcı 20.11.2026: "bir mikser eskisi gibi kaldı") */
+        /* pergel vinçte tahrik (ünite kartı) ve yük yine güncellenir — yalnız yeri elle (kullanıcı 21.11.2026) */
+        if (y.tur === 'vinc' && x.type === 'aile' && x.par) { const yp = o.props.par; if (x.par.tahrik !== yp.tahrik || x.par.yuk !== yp.yuk) { x.par.tahrik = yp.tahrik; x.par.yuk = yp.yuk; delete x._c; delete x._g; delete x._q; if (C.touch) C.touch(x); g++; } }
         if (y.tur === 'mikser' && x.type === 'aile' && x.par) { const yp = o.props.par, ks = ['model', 'D', 'P', 'rpm', 'hm', 'Hd', 'vinc']; if (ks.some(k => x.par[k] !== yp[k])) { for (const k of ks) x.par[k] = yp[k]; delete x._c; delete x._g; delete x._q; if (C.touch) C.touch(x); g++; } }
         el++; continue; }
       const eski = x.oto; Object.assign(x, o.props); delete x._c; delete x._g; delete x._q; x.oto = imza(x); if (x.oto !== eski) { g++; if (C.touch) C.touch(x); }
@@ -721,13 +725,14 @@
     if (kv.EKIPMAN !== 'H') C.anaerobikEkipman(e);
     if (kv.OLCU !== 'H' && C.anaerobikOlcu) C.anaerobikOlcu(e);
   });
-  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli) [TRETUVAR=beton|parke|karo|tas|granit] [KORKULUK=galvaniz|paslanmaz|paslanmaz316|ctp_sari|…] [GERIGETIR] (silinen ekipmanı yeniden koyar)', async (I) => {
+  C.addCommand(['ANAEKIPMAN', 'ANAEROBIKEKIPMAN'], 'Anaerobik havuzun penstok, mikser, merdiven ve korkuluklarını yerleştirir / günceller (elle taşınanlar korunur). ANAEKIPMAN [TAHRIK=EL|AKT] [MIKSER=55|OTO] (55: yavaş devirli Ø2,6 m, 5,5 kW üretici modeli) [TRETUVAR=beton|parke|karo|tas|granit] [KORKULUK=galvaniz|paslanmaz|paslanmaz316|ctp_sari|…] [VINC=MANUEL|ELEKTRIKLI] (pergel vinç tahriki) [GERIGETIR] (silinen ekipmanı yeniden koyar)', async (I) => {
     const kv = takeKV(); let s = (C.sel || []).filter(x => x.type === 'anaerobik'); if (!s.length) s = C.doc.ents.filter(x => x.type === 'anaerobik');
     const geriGetir = kv.GERIGETIR != null || C.cmd.queue.some(t => /^GER[İI]GET[İI]R$/i.test(t)); C.cmd.queue = C.cmd.queue.filter(t => !/^GER[İI]GET[İI]R$/i.test(t)); // silinen ekipmanı yeniden koy
     if (geriGetir) for (const e of s) delete e.ekAnahtar;
     if (!s.length) return C.warn('Çizimde anaerobik havuz yok (önce ANAEROBIK).');
     for (const e of s) { if (kv.TAHRIK) e.tahrik = C.up(kv.TAHRIK) === 'AKT' ? 'AKT' : 'EL'; if (kv.MIKSER) { if (/^(KSB|55|5[.,]5)/.test(C.up(kv.MIKSER))) e.mlib = 'ksb2603'; else delete e.mlib; delete e._mx; }
       if (kv.TRETUVAR) { const k = String(kv.TRETUVAR).toLowerCase().replace('kilit', 'parke'); if (C.TRETUVAR_KAP && C.TRETUVAR_KAP[k]) e.tretKap = k; else if (/^(yok|oto|-)$/.test(k)) delete e.tretKap; else C.warn('Tretuvar kaplaması: ' + Object.keys(C.TRETUVAR_KAP || {}).join(' / ')); delete e._c; }
+      if (kv.VINC) { const k = String(kv.VINC).toUpperCase(); if (/^(E|ELK|ELEKTRIKLI)$/.test(k)) e.vincTahrik = 'ELEKTRIKLI'; else if (/^(M|MAN|MANUEL|EL)$/.test(k)) e.vincTahrik = 'MANUEL'; else C.warn('Pergel vinç: VINC=MANUEL | ELEKTRIKLI'); }
       if (kv.KORKULUK) { const k = String(kv.KORKULUK).toLowerCase(); if (C.KORKULUK_KM && C.KORKULUK_KM[k]) e.korkKm = k; else C.warn('Korkuluk malzemesi: ' + Object.keys(C.KORKULUK_KM || {}).join(' / ')); } C.anaerobikEkipman(e); }
   });
 

@@ -16,7 +16,7 @@ const mm = v => Math.round(v * 1000), un = '108';
 const ents = Y.map((y, i) => {
   if (y.tur === 'penstok') return { id: 'k' + i, type: 'aile', fam: 'penstock_kanal', ad: `SK-${un}${y.etiket}`, par: { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.tahrik, acilis: y.acilis, sasi: 'OTO' } };
   if (y.tur === 'mikser') return { id: 'm' + i, type: 'aile', fam: 'dalgic_mikser', ad: `Z-${un}/${y.etiket}`, par: { model: 'ksb_amaprop_2603', D: 2603, P: 5.5, rpm: 45, Hd: mm(y.Hd), hm: 1610 } };
-  if (y.tur === 'vinc') return { id: 'v' + i, type: 'aile', fam: 'pergel_vinc', ad: `PV-${un}/${y.etiket}`, par: { model: 'jib', vh: 3129, L: mm(y.L), hh: 300 } };
+  if (y.tur === 'vinc') return { id: 'v' + i, type: 'aile', fam: 'pergel_vinc', ad: `PV-${un}/${y.etiket}`, par: { model: 'jib', vh: 3129, L: mm(y.L), hh: 300, tahrik: 'MANUEL', yuk: y.yuk, kap: require('../app/aktuator-katalog.js').vincKapasite(y.yuk) } };
   if (y.tur === 'merdiven') return { id: 'r' + i, type: 'merdiven', pts: y.pts, z0: y.z0, z1: y.z1, w: y.w, hmax: y.hmax * 100, tip: 'beton', km: 'galvaniz' };
   if (y.tur === 'korkuluk') return { id: 'c' + i, type: 'korkuluk', pts: y.pts.map(p => [p[0], p[1], y.z]), km: 'galvaniz', kh: 110, dik: 150 };
   if (y.tur === 'tretuvar') return { id: 't' + i, type: 'tretuvar', pts: y.pts, w: y.w };
@@ -43,7 +43,11 @@ t('aynı tip / ölçü / güç aynı poz: 6 mikser tek poz (adet 6, 5,5 kW → 3
   assert.strictEqual(S[0].grup, 'kapak');
   const mk = S.filter(r => r.grup === 'mikser'); assert.strictEqual(mk.length, 1); assert.strictEqual(mk[0].adet, 6); assert.strictEqual(mk[0].P, 5.5); assert.strictEqual(mk[0].toplamP, 33);
   assert.deepStrictEqual(mk[0].kodlar, ['Z-108/A', 'Z-108/B', 'Z-108/C', 'Z-108/D', 'Z-108/E', 'Z-108/F']);
-  const vn = S.filter(r => r.grup === 'vinc'); assert.strictEqual(vn.length, 1, 'aynı jib vinç'); assert.strictEqual(vn[0].adet, 6); assert.strictEqual(vn[0].P, null); assert.ok(vn[0].veriYok, 'güç verisi yok');
+  const vn = S.filter(r => r.grup === 'vinc'); assert.strictEqual(vn.length, 1, 'aynı jib vinç'); assert.strictEqual(vn[0].adet, 6); assert.strictEqual(vn[0].P, null); assert.ok(vn[0].gucYok, 'manuel vinçte güç yok');
+  /* kullanıcı 21.11.2026: kapasite mikser ağırlığından (Ø2,6 m / 5,5 kW ≈ 309 kg × 1,25 → 500 kg), elektrikli seçilirse palanga gücü katalogdan */
+  assert.ok(/kaldırma kapasitesi 500 kg/.test(vn[0].oz) && /manuel/.test(vn[0].oz), vn[0].oz);
+  const ve = U.kalem({ type: 'aile', fam: 'pergel_vinc', ad: 'PV-108/A', par: { model: 'jib', vh: 3129, L: 1070, tahrik: 'ELEKTRIKLI', yuk: 309, kap: 500, Pv: 0.75 } }, ctx);
+  assert.strictEqual(ve.P, 0.75); assert.ok(/elektrikli/.test(ve.oz));
   const kp = S.filter(r => r.grup === 'kapak'); assert.strictEqual(kp.reduce((s, r) => s + r.adet, 0), 9, 'kapak pozlarının adet toplamı');
   for (const r of kp) assert.strictEqual(r.kodlar.length, r.adet, 'pozdaki her kapağın kodu yazılır');
   assert.ok(kp.every(r => /^SK-108[GCPB]/.test(r.kodlar[0])), 'kapak kodları anaerobik.js biçiminde');

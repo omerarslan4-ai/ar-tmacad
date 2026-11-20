@@ -26,4 +26,10 @@ t('50 bin anaerobik kapakları: boy ve güç (Çorlu E-BP kapak motorları 0,37 
   assert.strictEqual(A.sec(5000), null, 'katalog yetmezse null');
 });
 
+t('pergel vinç: mikser ağırlığından kapasite, elektrikli palanga gücü (kullanıcı 21.11.2026)', () => {
+  assert.strictEqual(A.mikserAgirlik({ D: 2.603, P: 5.5 }), 309); assert.strictEqual(A.mikserAgirlik({ D: 2603, P: 5.5 }), 309, 'mm de olur'); assert.strictEqual(A.mikserAgirlik({ kg: 280, D: 2.6, P: 5.5 }), 280, 'girilen ağırlık');
+  assert.strictEqual(A.vincKapasite(309), 500); assert.strictEqual(A.vincKapasite(150), 250); assert.strictEqual(A.vincKapasite(900), 2000);
+  assert.strictEqual(A.palangaGuc(500), 0.75); assert.strictEqual(A.palangaGuc(null), null);
+});
+
 console.log(String.fromCharCode(10) + n + ' test geçti.');
