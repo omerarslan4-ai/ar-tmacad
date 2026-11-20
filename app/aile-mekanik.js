@@ -38,6 +38,7 @@
       { k: 'mil', ad: 'Mil çapı', d: 48, grup: 'Kapak ve tahrik' },
       { k: 'tahrik', ad: 'Tahrik', d: 'AKT', opts: [['AKT', 'Elektrikli aktüatör (AUMA)'], ['EL', 'El çarkı']], grup: 'Kapak ve tahrik' },
       { k: 'konum', ad: 'Gösterim konumu', d: 'K', opts: [['K', 'Kapalı'], ['A', 'Tam açık']], grup: 'Kapak ve tahrik' },
+      { k: 'nervur', ad: 'Nervür (ara destek) yüzü', d: 'ON', opts: [['ON', 'Akış yönündeki yüz (+y)'], ['ARKA', 'Akışa karşı yüz (−y)']], grup: 'Kapak ve tahrik' }, // duvara monte kapakta nervürler suya bakan yüzde, duvar yüzü düz (kullanıcı 20.11.2026)
       { k: 'yk', ad: 'Perde yuvası ek genişliği (her yan)', d: 125, grup: 'İnşaat (yuva)' },
       { k: 'yd', ad: 'Perde yuvası derinliği (akış yönü)', d: 200, grup: 'İnşaat (yuva)' },
       { k: 'Wf', ad: 'Çerçeve genişliği', f: 'B+2*e', grup: 'Hesaplanan' },
@@ -80,8 +81,9 @@
       for (const s of [-1, 1]) g.kutu(s * (G.b2 - 0.015), s * G.wf2, -G.pw / 2, G.pw / 2, 0, G.Hf, COL.frame); // yan kılavuzlar
       g.kutu(-G.wf2, G.wf2, -G.pw / 2, G.pw / 2, 0, 0.03, COL.frame); // eşik
       g.kutu(-G.wd2, G.wd2, -G.kt / 2, G.kt / 2, G.dz, G.dz + G.H, COL.door); // kapak
-      const nR = Math.max(2, Math.round(G.H / 0.35)); for (let k = 1; k < nR; k++) { const z = G.dz + G.H * k / nR; g.kutu(-G.wd2 + 0.02, G.wd2 - 0.02, G.kt / 2, G.kt / 2 + 0.05, z - 0.025, z + 0.025, COL.rib); }
-      g.kutu(-0.03, 0.03, G.kt / 2, G.kt / 2 + 0.05, G.dz, G.dz + G.H, COL.rib);
+      const ny0 = q.nervur === 'ARKA' ? -G.kt / 2 - 0.05 : G.kt / 2, ny1 = ny0 + 0.05; // nervür yüzü: ON +y, ARKA −y (duvara bakan yüz düz kalır)
+      const nR = Math.max(2, Math.round(G.H / 0.35)); for (let k = 1; k < nR; k++) { const z = G.dz + G.H * k / nR; g.kutu(-G.wd2 + 0.02, G.wd2 - 0.02, ny0, ny1, z - 0.025, z + 0.025, COL.rib); }
+      g.kutu(-0.03, 0.03, ny0, ny1, G.dz, G.dz + G.H, COL.rib);
       for (const z of G.trz) { g.kutu(-G.wf2, G.wf2, -0.06, 0.06, z, z + 0.10, COL.beam); g.kutu(-0.06, 0.06, -0.08, 0.08, z - 0.04, z + 0.14, COL.gear); }
       g.kutu(-(G.wf2 + 0.05), G.wf2 + 0.05, -0.11, 0.11, G.Hf, G.Hf + 0.15, COL.beam); // boyunduruk
       if (G.ks) { g.kutu(-0.20, 0.20, -0.20, 0.20, G.D, G.D + 0.03, COL.beam); g.kutu(-0.10, 0.10, -0.10, 0.10, G.D + 0.03, G.D + 0.15, COL.beam); } // zemin ayağı
@@ -107,7 +109,7 @@
     },
     yan: (q, g) => { // yandan (u = y akış, v = z)
       const G = pen(q), top = G.zA + 0.15 + G.actH;
-      g.dik(-G.pw / 2, 0, G.pw / 2, G.Hf, { lw: 35 }); g.dik(-G.kt / 2, G.dz, G.kt / 2, G.dz + G.H, { lw: 35 }); g.dik(G.kt / 2, G.dz, G.kt / 2 + 0.05, G.dz + G.H, { lw: 13 });
+      g.dik(-G.pw / 2, 0, G.pw / 2, G.Hf, { lw: 35 }); g.dik(-G.kt / 2, G.dz, G.kt / 2, G.dz + G.H, { lw: 35 }); { const ny0 = q.nervur === 'ARKA' ? -G.kt / 2 - 0.05 : G.kt / 2; g.dik(ny0, G.dz, ny0 + 0.05, G.dz + G.H, { lw: 13 }); } // nervürler
       g.dik(-G.yd / 2, -0.1, G.yd / 2, G.D, { lt: 'HIDDEN', lw: 13 });
       for (const z of G.trz) g.dik(-0.06, z, 0.06, z + 0.10);
       g.dik(-0.11, G.Hf, 0.11, G.Hf + 0.15, { lw: 35 }); if (G.ks) { g.dik(-0.20, G.D, 0.20, G.D + 0.03, { lw: 25 }); g.dik(-0.10, G.D + 0.03, 0.10, G.D + 0.15, { lw: 25 }); } g.cizgi([-G.r, G.dz + G.H], [-G.r, top + 0.15]); g.cizgi([G.r, G.dz + G.H], [G.r, top + 0.15]);

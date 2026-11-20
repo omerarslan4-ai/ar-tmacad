@@ -93,7 +93,11 @@
         this.flushB();
         ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dsh || []);
         switch (k) {
-          case 'S': { if (pr.maske) ctx.fillStyle = this.dark ? '#1b1f24' : '#ffffff'; /* yazı maskesi: arka plan rengiyle (elektrik etiketleri, 15.11.2026) */ ctx.beginPath(); pr.pts.forEach((p, i) => { const q = this.w2s(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill(); break; }
+          case 'S': { if (pr.maske) ctx.fillStyle = this.dark ? '#1b1f24' : '#ffffff'; /* yazı maskesi: arka plan rengiyle (elektrik etiketleri, 15.11.2026) */ ctx.beginPath();
+            if (pr.tris && pr.tris.length && pr.pts.length > 4) { /* delikli dolu tarama: köşe listesi tek çokgen değil (halkalar ardışık) — üçgenlerle; dikiş görünmesin diye aynı renkle ince kontur (kullanıcı 20.11.2026: "tarama bu şekilde olmuş") */
+              const S = pr.pts.map(p => this.w2s(p)); for (const t of pr.tris) { const a = S[t[0]], b = S[t[1]], c = S[t[2]]; ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.closePath(); }
+              ctx.fill(); const lw0 = ctx.lineWidth, ss0 = ctx.strokeStyle; ctx.lineWidth = 0.6; ctx.strokeStyle = ctx.fillStyle; ctx.stroke(); ctx.lineWidth = lw0; ctx.strokeStyle = ss0; break; }
+            pr.pts.forEach((p, i) => { const q = this.w2s(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill(); break; }
           case 'X': { const q = this.w2s(pr.p); ctx.fillRect(q[0] - 1.5, q[1] - 1.5, 3, 3); break; }
           case 'T': { C.drawTextCanvas(ctx, pr, { w2s: q => this.w2s(q), s: this.s, rot: this.rot }); break; }
         }

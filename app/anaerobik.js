@@ -225,15 +225,16 @@
   function ekipmanYer(G, mx, zg) {
     const q = G.q, n = G.n, R2 = q.Ro + q.two, out = [], zK = G.kopru.z1;
     /* tahrik: zorla (EL / AKT) ya da kural (OTO): kapak alanı > akA m² ya da su kuvveti > akF kN ise elektrikli aktüatör */
-    const pen = (anahtar, etiket, p, aci, z0, B, H) => {
+    /* duvarY: duvarın kapağa göre yerel y yönü (+1 akış yönünde, −1 arkada) — nervürler duvarın karşısına (kullanıcı 20.11.2026: duvara takılan yüz düz) */
+    const pen = (anahtar, etiket, p, aci, z0, B, H, duvarY = 1) => {
       const hw = Math.max(0, G.zW - z0), F = hw >= H ? 9.81 * B * H * (hw - H / 2) : 9.81 * B * hw * hw / 2;
       const tahrik = q.tahrik === 'EL' || q.tahrik === 'AKT' ? q.tahrik : (B * H > q.akA + 1e-9 || F > q.akF + 1e-9 ? 'AKT' : 'EL');
-      out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw, F, tahrik });
+      out.push({ anahtar, tur: 'penstok', etiket, p, aci, z: z0, B, H, D: G.zTop - z0, hw, F, tahrik, nervur: duvarY > 0 ? 'ARKA' : 'ON' });
     };
     for (let i = 0; i < n; i++) {
       const A = G.agizO[i]; // kapak açıklığın kendi ölçüsünde (açıklık kendi debisiyle boyutlanır)
       pen(`pen-sol-${i}`, `G/${LET[i]}`, [G.xc1 - R2 - q.kY, G.yc[i]], 0, A.sol.z0, A.sol.w, A.sol.h); // giriş kanalından halkaya; düz yüze dayalı
-      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + q.kY, G.yc[i]], n > 1 && i === 0 ? 180 : 0, A.sag.z0, A.sag.w, A.sag.h); // RAS halkasına giriş, diğerlerinde çıkış
+      pen(`pen-sag-${i}`, `C/${LET[i]}`, [G.xc2 + R2 + q.kY, G.yc[i]], n > 1 && i === 0 ? 180 : 0, A.sag.z0, A.sag.w, A.sag.h, n > 1 && i === 0 ? 1 : -1); // RAS halkasına giriş (duvar akış yönünde), diğerlerinde çıkış (duvar arkada)
     }
     for (let i = 0; i + 1 < n; i++) { // ortak duvarda: pencere kapağı perdenin yüzünde
       const P = G.penO[i]; pen(`pen-pen-${i}`, `P/${LET[i]}`, [(P.x0 + P.x1) / 2, G.yc[i] + q.Ro - q.kY], 90, P.z0, P.w, P.h); // perde yüzüne monte (akışın geldiği yüz)
@@ -588,7 +589,7 @@
     if (y.tur === 'penstok' || y.tur === 'mikser') {
       const fam = y.tur === 'penstok' ? 'penstock_kanal' : 'dalgic_mikser', d = C.AILELER && C.AILELER[fam]; if (!d) return null;
       const t0 = d.tipler && d.tipler[0], par = Object.assign({}, t0 ? t0.p : {}, y.tur === 'penstok'
-        ? { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.tahrik, konum: 'K' }
+        ? { B: mm(y.B), H: mm(y.H), D: mm(y.D), hw: mm(y.hw), tahrik: y.tahrik, konum: 'K', nervur: y.nervur || 'ON' }
         : mikserPar(y));
       return { type: 'aile', props: { fam, tip: t0 ? t0.ad : null, tipU: t0 ? t0.ad : null, par, p: [...W2(y.p), 0], rot: (e.rot || 0) + y.aci, z: y.z, ad: y.tur === 'penstok' ? `SK-${un}${y.etiket}` : `Z-${un}/${y.etiket}`, layer: d.katman || C.doc.cur.layer } };
     }

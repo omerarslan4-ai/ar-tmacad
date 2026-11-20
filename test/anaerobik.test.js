@@ -249,4 +249,17 @@ t('açıklık eşikleri su yüzünden en çok 1,25 m; alan yetmezse en büyür; 
   const eski = geo({ zt: 97.25, fb: 0.61, h: 3.14 }); assert.ok(eski.orifisO.taban && Math.abs(eski.orifisO.z0 - eski.zB) < 1e-9, 'eski çizimde orifis tabanda kalır');
 });
 
+/* kullanıcı 20.11.2026: "kapakların su ile temas eden dış yüzü ara destekli, duvara takılan yüzü düz; tüm çizimlerde" — nervür tarafı suda, düz taraf betonda */
+t('kapaklar: nervürler suya bakan yüzde, düz yüz duvara oturur (bütün kapaklar, Çokal ve 50 bin)', () => {
+  const { ekipmanYer, boyutla } = require('../app/anaerobik.js');
+  const ic = (p, h) => { let c = false; for (let i = 0, j = h.length - 1; i < h.length; j = i++) { const a = h[i], b = h[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; };
+  for (const G0 of [G, geo(Object.assign({ zt: 97.25, fb: 0.61 }, boyutla({ Qd: 50000 }).par))]) {
+    const beton = p => ic(p, G0.bolge.dis) && !G0.bolge.delik.some(h => ic(p, h)), K = ekipmanYer(G0, null, 95).filter(y => y.tur === 'penstok');
+    assert.ok(K.length >= 6);
+    for (const y of K) { const r = y.aci * Math.PI / 180, s = y.nervur === 'ARKA' ? -1 : 1, ly = [Math.cos(r), Math.sin(r)];
+      assert.ok(!beton([y.p[0] + ly[0] * s * 0.25, y.p[1] + ly[1] * s * 0.25]), y.anahtar + ': nervür tarafı suda');
+      assert.ok(beton([y.p[0] - ly[0] * s * 0.25, y.p[1] - ly[1] * s * 0.25]), y.anahtar + ': düz taraf duvarda'); }
+  }
+});
+
 console.log(`\n${n} test geçti.`);
