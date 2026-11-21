@@ -175,6 +175,6 @@ Semboller ve yazılar `EYAZI`, topraklama `TOPILET`, ışık / priz linyeleri `E
 Kablo etiketi ve ekipman kodu / gücü **2** (KABYAZI 10) · JB / LCU etiketi **1,5** (7,5) · tava etiketi **2** · lejant ve notlar **3** · paftadaki MCC yönü yazısı **4** · tablo (galv. boru) **2,5** (12,38).
 
 ### Örnekte birbirini tutmayanlar (kullanıcıya soruldu / sorulacak)
-- Mikserlerde MCC-1'den lokal panoya **güç kablosu yok** (yalnız KK-LK-1, GK-2, KK-2). Program örnekteki gibi çizer; sorulacak: MCC → LCU güç kablosu (GK-1/<kod>) eklensin mi?
+- Mikserlerde MCC-1'den lokal panoya **güç kablosu yok** (yalnız KK-LK-1, GK-2, KK-2). Kullanıcı kararı 21.11.2026: "örnekte yoksa ekleme" — MCC → LCU güç kablosu (GK-1/<kod>) eklenmez, program örnekteki gibi çizer.
 - BHAK tek hat şemasında toplam **7400 W** yazıyor, çıkışların toplamı 2 × 600 + 2 × 3000 = **7200 W**. Program çıkışları toplar.
 - Örnek paftada LCU etiketlerinden ikisi `LCU-K-200A`, JB etiketleri çoğunlukla `JB-K-200/A` (kopyala-yapıştır); program her ekipmana kendi kodunu yazar (LCU-<kod>, JB-<kod>).
