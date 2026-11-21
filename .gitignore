@@ -6,6 +6,7 @@ test-proje/
 node_modules/
 *.bak
 Thumbs.db
+ErrorReports/
 # Claude: ajan tanımları (.claude/agents) takip edilir; kişisel / geçici ayarlar edilmez
 .claude/*
 !.claude/agents/

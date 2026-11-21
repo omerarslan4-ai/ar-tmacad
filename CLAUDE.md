@@ -33,6 +33,14 @@ Atıksu arıtma tesisi ve terfi istasyonu tasarımı için tarayıcıda çalış
 - Kod stili: mevcut dosyalardaki gibi (IIFE, `'use strict'`, kısa yardımcılar, Türkçe yorum, dosya başında modülün ne yaptığını anlatan blok yorum).
 - Her anlamlı adımdan sonra git commit at; mesajı Türkçe ve kısa yaz. Kullanıcı istemeden push yapma.
 
+## Ortak geliştirme
+Program iki kişi tarafından, ayrı bilgisayarlarda geliştirilir; ortak kopya kapalı bir GitHub deposudur (`origin`). Ayrıntı: `docs/ortak-gelistirme.md`.
+- İşe başlarken ve göndermeden önce ortak kopyadaki değişiklikleri al (`git pull`). Çakışma çıkarsa iki tarafın işini de koruyarak çöz; emin olmadığın yeri kullanıcıya sor.
+- Kullanıcı "gönder" demeden push yapma. Göndermeden önce bütün testler geçmeli. Zorla gönderme (`--force`) yapma.
+- Birkaç gün sürecek işi ayrı dalda yap; bitince `main`'e birleştir.
+- Kalıcı karar ve firma kurallarını kişisel hafızaya değil `docs/` altına ve bu dosyaya yaz; hafıza öbür bilgisayara geçmez.
+- Müşteri proje dosyalarını, parola ve anahtarları depoya ekleme.
+
 ## Doğrulama
 - Hesap ve geometri mantığını arayüzden ayrı, saf fonksiyonlar olarak yaz ki Node ile denenebilsin.
 - Yeni saf mantık için `test/` altına Node ile çalışan küçük testler ekle (`node test/<ad>.test.js`); gerçek bir projenin sayılarıyla karşılaştır.
