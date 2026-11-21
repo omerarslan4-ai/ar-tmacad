@@ -111,4 +111,11 @@ t('Rapor: her motorun In ve kesit hesabı, kablo boyu "genel kablolamada", BHAK;
   for (const m of MS) assert.ok(h.includes(m.kod)); assert.ok(h.includes('10,74'), '5,5 kW In'); assert.ok(h.includes('16,77'), 'gerekli Iz = 1,25 · In / 0,80'); assert.ok(h.includes('genel kablolamada')); assert.ok(h.includes('GK-1/BHAK')); assert.ok(h.includes('aydınlık düzeyi hesabı yapılmamıştır'));
 });
 
+t('Hesapla ayrımı: mahal ya da havuza bağlı olmayan duvar bina sayılır; havuzun kendi perdesi, temel ve görünüm kopyası sayılmaz', () => {
+  const H = new Set([1]); assert.strictEqual(E.binaVarMi([{ type: 'anaerobik', id: 1 }], H), false);
+  assert.strictEqual(E.binaVarMi([{ type: 'mtmahal' }], H), true);
+  assert.strictEqual(E.binaVarMi([{ type: 'perde', pts: [[0, 0], [5, 0]] }], H), true, 'mahali henüz bulunmamış bina');
+  assert.strictEqual(E.binaVarMi([{ type: 'perde', bag: 1, pts: [[0, 0], [5, 0]] }, { type: 'perde', temel: true, pts: [[0, 0], [5, 0]] }, { type: 'perde', gv: 'x', pts: [[0, 0], [5, 0]] }], H), false);
+});
+
 console.log(`\n${n} test geçti.`);

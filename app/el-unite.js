@@ -146,7 +146,7 @@
     let h = '<h2>' + e(ad) + '</h2>' + H3('1. Motorlar ve güç kablosu kesiti') + Pp('In = P / (√3 · ' + KAT.U + ' · cosφ · η), cosφ = ' + vir(KAT.cos) + ', η = ' + vir(KAT.eta) + '. ' + tr('Koşul') + ': Iz · ' + vir(KAT.grup) + ' ≥ ' + vir(KAT.emn) + ' · In.');
     h += tb(['Ekipman', 'Tür', 'P (kW)', 'In (A)', 'Gerekli Iz (A)', 'Kesit', 'Iz (A)', 'Sonuç'], M0.map(m => { const q = kesitSec(m.In); return [m.kod, tr({ mikser: 'Mikser', kapak: 'Kapak aktüatörü', vinc: 'Pergel vinç', motor: 'Motor' }[m.tur] || m.tur), m.P != null ? vir(m.P) : '-', m.P != null ? vir(m.In) : '-', m.P != null ? vir(q.gerekli) : '-', cins(4, m.S), vir(q.Iz, 1), m.P == null ? tr('güç verisi yok') : q.Iz >= q.gerekli ? tr('uygun') : tr('uygun değil')]; }));
     const kW = M0.reduce((t, m) => t + (m.P || 0), 0); h += '<p><b>' + e(tr('Kurulu motor gücü')) + ': ' + vir(kW) + ' kW</b></p>' + H3('2. Kablo listesi');
-    h += tb(LISTE_SUTUN.map(c => c.t), listeSatirlari(K0)) + Pp(tr('Gerilim düşümü kablo boyuyla yapılır; boylar genel kablolamada belirlenecek.')) + H3('3. Kablo tavası');
+    h += tb(LISTE_SUTUN.map(c => c.t), listeSatirlari(K0).map(r => r.map((v, i) => (i === r.length - 1 ? tr(v) : v)))) + Pp(tr('Gerilim düşümü kablo boyuyla yapılır; boylar genel kablolamada belirlenecek.')) + H3('3. Kablo tavası');
     h += tb(['Tava', 'Kablo kesit alanı (mm²)', 'Doluluk (100x60 mm)'], (d.tava || []).filter(Boolean).map(t => [t.ad, vir(t.A, 0), '%' + vir(t.dolu * 100, 0)]));
     if (B) { h += H3('4. BHAK anahtar kutusu') + Pp(tr('Kurulu güç') + ' ' + B.kurulu + ' W · Ik = ' + vir(B.Ik) + ' A · ' + tr('ana şalter') + ' 3x' + B.In + ' A · ' + B.kod + ' ' + B.kablo + ' (Iz ' + B.Iz + ' A)'); h += tb(['Çıkış', 'Açıklama', 'Sigorta', 'Kablo', 'Güç (W)'], B.cik.map(c => [c.no, tr(c.aciklama), (c.faz === 3 ? '3x' : '') + c.In + ' A', c.kablo || '-', c.W || '-'])); }
     h += H3('5. Aydınlatma') + Pp((d.arm || 0) + ' x ' + (d.armKod || '') + '. ' + tr('Armatür aralığı örnek projeden alınmıştır; aydınlık düzeyi hesabı yapılmamıştır.'));
@@ -154,7 +154,9 @@
     return h;
   }
 
-  const api = { raporBolum, KAT, NYY_HAVA, NYY_TOPRAK, SIGORTA, akim, kesitSec, cins, motorlar, kablolar, kabloListesi, BORU_TABLO, boruSec, disCap, tavaSec, bhak, armaturYerleri, linyeSay, otele, alan, cevre, cubukYerleri, yapiTuru, etiketSatir, LISTE_SUTUN, listeSatirlari, vir };
+  const binaVarMi = (ents, havuzId) => (ents || []).some(e => !e.gv && (e.type === 'mtmahal' || (e.type === 'perde' && !e.temel && (e.pts || []).length > 1 && !(e.bag != null && havuzId && havuzId.has(e.bag)))));
+
+  const api = { binaVarMi, raporBolum, KAT, NYY_HAVA, NYY_TOPRAK, SIGORTA, akim, kesitSec, cins, motorlar, kablolar, kabloListesi, BORU_TABLO, boruSec, disCap, tavaSec, bhak, armaturYerleri, linyeSay, otele, alan, cevre, cubukYerleri, yapiTuru, etiketSatir, LISTE_SUTUN, listeSatirlari, vir };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C || !C.addCommand || !C.T || !C.prim) return;
   C.elUniteApi = api;
@@ -510,7 +512,8 @@
     { tur: 'ayd', ad: 'AYDINLATMA VE PRİZ TESİSATI PLANI', sys: ['ayd', 'priz'], kind: ['arm', 'bhak', 'prizp'] },
   ];
   const up = s => String(s || '').toLocaleUpperCase('tr');
-  const temizle = u => { const st = durum(), s = st[u.id] || {}; const gs = new Set(s.gvs || []); C.doc.ents = C.doc.ents.filter(e => !(e.gv && gs.has(e.gv))); C.doc.layouts = (C.doc.layouts || []).filter(L => L.elUnite !== u.id); s.gvs = []; st[u.id] = s; return s; };
+  const temizle = u => { const st = durum(), s0 = st[u.id] || {}, L0 = C.doc.layouts || [], elle = L0.filter(L => L.elUnite === u.id && L.elle), kal = new Set(elle.flatMap(L => (L.vps || []).map(v => v.gvOnly).filter(Boolean))), gs = new Set((s0.gvs || []).filter(g => !kal.has(g)));
+    C.doc.ents = C.doc.ents.filter(e => !(e.gv && gs.has(e.gv))); C.doc.layouts = L0.filter(L => L.elUnite !== u.id || L.elle); s0.gvs = [...kal]; s0.korunan = [...new Set(elle.map(L => String(L.elUniteParca || '').split('_')[0]))]; st[u.id] = s0; return s0; };
   const semaEnt = (gv, p, g, tur) => ekle('elsema', { p: [p[0], p[1], 0], g, tur, gv, layer: 'EYAZI' });
   /* elsema çizgi stilleri: kablo lejantı için katman renginde çizgi (gK güç, kK kumanda, 2 = kesikli) — elsema yalnız k/i/b/t/h bilir; ek stiller burada */
   { const t0 = T.elsema; if (t0 && !t0._eluSar) { const p0 = t0.prims; t0.prims = e => { const g = e.g || {}; const ek = (g.L || []).filter(l => /^[gk]K2?$/.test(l[4]));
@@ -537,6 +540,7 @@
       const elE = C.doc.ents.filter(e => !e.gv && e.elu === u.id && (e.type === 'eluc' || e.type === 'eluh'));
       const d = durum()[u.id] || {};
       for (const PF of PAF) {
+        if ((st.korunan || []).includes(PF.tur)) continue; /* elle düzeltildi: bu pafta yeniden üretilmez */
         const place = [X0, Yc - (bb[3] - bb[1]) - 2], ref = [bb[0], bb[1]], dx = place[0] - ref[0], dy = place[1] - ref[1], Wp = q => [q[0] + dx, q[1] + dy];
         const res = C.makeView({ kind: 'plan', h: pl ? pl.h : (+u.zt || 0) + 1.2, depth: pl ? pl.depth : 8, place, ref, ids: ents.filter(e => !(pl && pl.gizle && pl.gizle(e))).map(e => e.id), hatch: 'YOK', title: `${PF.ad}`, mek: true, poz: false, dograma: false });
         if (!res) continue; st.gvs.push(res.gv);
@@ -575,11 +579,12 @@
       try { if (C.bolgeDuzenle) C.bolgeDuzenle({ sessiz: true }); } catch (er) { console.error('bölge düzeni', er); }
       { const s = C.doc.set; s.grups = s.grups || ['Mimari', 'Mekanik', 'Statik', 'Elektrik', 'Genel']; if (!s.grups.includes('Elektrik')) s.grups.push('Elektrik'); }
       Object.assign(st, { olcek: SC });
+      if ((st.korunan || []).length) C.log(`${yapi}: elle düzeltilmiş olarak işaretli paftalar korundu (işareti kaldırmak için paftayı açıp PAFTAELLE).`);
       return { paf, R, olcek: SC, yapi };
     } finally { C.doc.set.anno = anno0; }
   };
   /* Elektrik pafta numaraları: bina paftaları (el-pafta.js, L.elPafta) ELK-01 …; ünite paftaları onlardan sonra */
-  const numarala = () => { const L0 = C.doc.layouts || []; let i = L0.filter(x => x.elPafta).length; for (const x of L0) if (x.elUnite) x.f = Object.assign({}, x.f || {}, { no: 'ELK-' + String(++i).padStart(2, '0') }); };
+  const numarala = () => { const L0 = C.doc.layouts || []; let i = L0.filter(x => x.elPafta).length; const sr = x => ['guc', 'top', 'ayd'].indexOf(String(x.elUniteParca || '').split('_')[0]); /* elle korunan pafta başa geçse de sıra 001-002-003 */ for (const x of L0.filter(q => q.elUnite).map((q, i) => [q, i]).sort((a, b) => (String(a[0].elUnite) === String(b[0].elUnite) ? sr(a[0]) - sr(b[0]) : 0) || a[1] - b[1]).map(q => q[0])) x.f = Object.assign({}, x.f || {}, { no: 'ELK-' + String(++i).padStart(2, '0') }); };
   C.elUniteNumarala = numarala;
   const numSar = () => { const E = C.EL; if (!E || !E.paftaNumarala || E._euSar) return; const f0 = E.paftaNumarala; E.paftaNumarala = function () { const r = f0.apply(this, arguments); try { numarala(); } catch (er) { console.error(er); } return r; }; E._euSar = true; };
 
@@ -594,13 +599,15 @@
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>' + bas + '</title><style>body{font:13px/1.5 Arial,sans-serif;color:#111;background:#fff;max-width:1000px;margin:24px auto;padding:0 20px}h2{border-bottom:1px solid #999}table{border-collapse:collapse;width:100%;margin:6px 0 12px}th,td{border:1px solid #999;padding:3px 6px;text-align:left}th{background:#eee}</style></head><body><h1>' + bas + '</h1>' + L0.map(u => raporBolum(((u.code || '') + ' ' + (u.name || '')).trim(), st[u.id], tr)).join('') + '</body></html>';
     const w = window.open('', 'el_rapor_havuz'); if (!w) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' })); a.download = (C.doc.set.name || 'Proje') + '_havuz_elektrik_raporu.html'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 1000); C.warn('Açılır pencere engellendi — rapor HTML olarak indirildi.'); return true; } w.document.open(); w.document.write(html); w.document.close(); return true; };
   C.elUniteRapor = raporAc;
-  const havuzlariHesapla = async () => { numSar(); const H = C.doc.ents.filter(havuzMu), son = [];
-    for (const u of H) { if (!C.doc.ents.some(x => x.bag === u.id && x.type === 'aile')) C.warn((u.code || '') + ' ünitesinde yerleşmiş mekanik ekipman yok (önce ekipman: ANAEKIPMAN). Paftalar motorsuz hazırlanıyor.'); const r = C.toplu ? await C.toplu(() => uret(u)) : await uret(u); if (r) son.push(r); }
+  { const E0 = C.EL; if (E0 && E0.raporAc && !E0._eluRapor) { const f0 = E0.raporAc; E0._eluRapor = true; E0.raporAc = function () { if (!(E0.durum && E0.durum()) && raporAc()) return true; return f0.apply(this, arguments); }; } }
+  const hesapHavuz = () => C.doc.ents.filter(e => havuzMu(e) && tarifli(e));
+  const havuzlariHesapla = async () => { numSar(); const H = hesapHavuz(), son = [];
+    for (const u of H) { if (!C.doc.ents.some(x => x.bag === u.id && x.type === 'aile')) { C.warn((u.code || '') + ' ünitesinde yerleşmiş mekanik ekipman yok: elektrik hesaplanmadı (önce ANAEKIPMAN).'); continue; } const r = C.toplu ? await C.toplu(() => uret(u)) : await uret(u); if (r) son.push(r); }
     if (!son.length) return son; C.changed(); C.emit('layouts');
     for (const r of son) { const kW = r.R.MS.reduce((t, m) => t + (m.P || 0), 0); C.log('HESAPLA — ' + r.yapi + ': ' + r.R.MS.length + ' motor (' + vir(kW) + ' kW), ' + r.R.KL.length + ' kablo, ' + r.R.ARM.length + ' armatür, BHAK ' + Math.round(r.R.BH.kurulu) + ' W (3x' + r.R.BH.In + 'A, ' + r.R.BH.kablo + ')' + (r.R.TR ? ', topraklama R = ' + vir(r.R.TR.R) + ' Ω' : '') + '; ' + r.paf.length + ' pafta.'); }
     const L0 = son[0].paf[0]; if (L0) { C.layoutIdx = C.doc.layouts.indexOf(L0); C.grpCur = 'Elektrik'; C.setView('layout'); C.emit('layouts'); } raporAc(); return son; };
   /* el-pafta.js komutları sarılır: bina varsa eskisi gibi çalışır, havuzlar ayrıca hesaplanır; yalnız havuz varsa bina akışına hiç girilmez */
-  for (const ad of ['ELEKTRIKHESAPLA', 'ELHESAPLA', 'ELEKTRIKHESAP']) { const d = C.cmds && C.cmds[ad]; if (!d || d._eluSar) continue; const f0 = d.fn; d._eluSar = true; d.fn = async function (I) { const H = C.doc.ents.some(havuzMu), bina = C.doc.ents.some(e => e.type === 'mtmahal'); if (!H || bina) await f0.call(this, I); if (H) await havuzlariHesapla(); }; }
+  for (const ad of ['ELEKTRIKHESAPLA', 'ELHESAPLA', 'ELEKTRIKHESAP']) { const d = C.cmds && C.cmds[ad]; if (!d || d._eluSar) continue; const f0 = d.fn; d._eluSar = true; d.fn = async function (I) { const Hs = hesapHavuz(), H = Hs.length > 0, bina = binaVarMi(C.doc.ents, new Set(Hs.map(e => e.id))); if (!H || bina) await f0.call(this, I); if (H) await havuzlariHesapla(); }; }
   for (const ad of ['ELEKTRIKRAPOR', 'ELRAPOR']) { const d = C.cmds && C.cmds[ad]; if (!d || d._eluSar) continue; const f0 = d.fn; d._eluSar = true; d.fn = async function (I) { const bina = !!(C.EL.durum && C.EL.durum()), hv = raporAc(); if (bina || !hv) return f0.call(this, I); }; }
 
   C.addCommand(['ELUNITEPAFTA', 'ELEKTRIKUNITE', 'ELHAVUZPAFTA'], 'Seçili havuzun (proses ünitesi; önce anaerobik havuz) elektrik projesini Çorlu E-BP düzeninde "Elektrik" grubuna hazırlar: 1) güç, kumanda, enstrüman kablo ve tava planı (motorlar mekanik ekipman listesinden; JB, LCU, kablo tavası, GK / KK / KK-LK kabloları, kesit motor gücünden; kablo boyları genel kablolamada), 2) topraklama planı (halka şerit, çubuklar, TB-1, bara detayı, hesap), 3) aydınlatma ve priz tesisatı planı (korkuluğa monte LED etanş armatür, BHAK tek hat şeması, priz panosu, montaj detayı). Elektrik nesneleri 3B modelde de görünür. İçinde yaşam olan yapılar için: ELEKTRIKPAFTA.', async (I) => {
@@ -621,6 +628,6 @@
     C.changed(); C.log(`${x.code || x.name || x.type}: elektrik yapı türü ${yapiTuru(x) === 'havuz' ? 'HAVUZ (E-BP düzeni, ELUNITEPAFTA)' : 'YAŞAM ALANI (E-BB düzeni, ELEKTRIKPAFTA)'}${x.elYapi ? '' : ' (kendiliğinden)'}.`);
   });
   C.addCommand(['ELUNITESIL'], 'Seçili havuzun ünite elektrik nesnelerini (kablo, tava, armatür, topraklama) ve elektrik paftalarını siler.', async (I) => {
-    const u = await secHavuz(I, 'Havuzu seçin'); if (!u) return; sil_(u); temizle(u); numarala(); C.changed(); C.emit('layouts'); C.log('Ünite elektrik nesneleri ve paftaları silindi.');
+    const u = await secHavuz(I, 'Havuzu seçin'); if (!u) return; sil_(u); const k = temizle(u); durum()[u.id] = { gvs: k.gvs }; numarala(); C.changed(); C.emit('layouts'); C.log('Ünite elektrik nesneleri ve paftaları silindi.' + (k.korunan.length ? ' Elle düzeltilmiş paftalar korundu.' : ''));
   });
 })(typeof window !== 'undefined' ? window.C : null);
