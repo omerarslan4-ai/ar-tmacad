@@ -73,6 +73,17 @@ t('tablo satırları: 7 sütun, güç yoksa "–", son satır KURULU TOPLAM GÜ�
 
 t('borular bölümü şimdilik boş (saha borulaması bağlanınca dolacak)', () => { assert.deepStrictEqual(U.boruSatirlari(), []); });
 
+t('malzeme (kullanıcı 21.11.2026): parametre yoksa (eski proje) varsayılan; özelliklerde yazılır; farklı malzeme ayrı poz', () => {
+  const kp = S.find(r => r.grup === 'kapak'), vn = S.find(r => r.grup === 'vinc');
+  assert.ok(/çerçeve, kapak levhası ve nervür AISI 316L/.test(kp.oz) && /mil AISI 316\b/.test(kp.oz) && /conta EPDM/.test(kp.oz) && /ankraj A4 paslanmaz kimyasal dübel/.test(kp.oz), kp.oz);
+  assert.ok(/direk ve kol sıcak daldırma galvaniz S235JR çelik/.test(vn.oz) && /ankraj bulonu sıcak daldırma galvaniz/.test(vn.oz), vn.oz);
+  const e0 = ents.find(e => e.fam === 'penstock_kanal'), e1 = Object.assign({}, e0, { id: 'x', par: Object.assign({}, e0.par, { mlz: '304L' }) });
+  const a = U.kalem(e0, ctx), b = U.kalem(e1, ctx); assert.notStrictEqual(a.anahtar, b.anahtar); assert.ok(/AISI 304L/.test(b.oz));
+  const v0 = ents.find(e => e.fam === 'pergel_vinc'), v1 = Object.assign({}, v0, { par: Object.assign({}, v0.par, { mlz: '304', bulon: 'A4' }) });
+  assert.notStrictEqual(U.kalem(v0, ctx).anahtar, U.kalem(v1, ctx).anahtar); assert.ok(/AISI 304 paslanmaz çelik/.test(U.kalem(v1, ctx).oz));
+  assert.strictEqual(U.mlzK('kapak', 'YOK'), '316L', 'bilinmeyen değer → varsayılan');
+});
+
 console.log('\n50 bin anaerobik — MEKANİK EKİPMAN LİSTESİ:');
 for (const r of TB.rows) console.log('  ' + r.map(s => String(s)).join(' | '));
 console.log(`\n${n} test geçti.`);
