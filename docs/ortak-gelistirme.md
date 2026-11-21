@@ -4,7 +4,7 @@ Bu belge, programı iki kişinin (Ömer Bey ve arkadaşı) ayrı bilgisayarlarda
 
 ## Düzen nasıl çalışır
 
-- Programın **ortak kopyası** internette, yalnız ikinizin görebildiği kapalı bir GitHub deposunda durur.
+- Programın **ortak kopyası** internette, yalnız ikinizin görebildiği kapalı bir GitHub deposunda durur: `https://github.com/omerarslan4-ai/ar-tmacad`
 - Herkesin bilgisayarında programın **kendi kopyası** vardır (`C:\AritmaCAD`). Orada çalışır, dener, beğenince ortak kopyaya gönderir.
 - Ortak kopyaya giren her değişikliğin kimin, ne zaman, ne için yaptığı kayıtlıdır; bozulan bir şey eski hâline döndürülebilir.
 - Büyük dosyalar (şablonlar, yedekler, 3B çıktılar, deneme projeleri) ortak depoya **girmez**; ayrı bir bulut klasörüyle paylaşılır (aşağıda).
@@ -16,10 +16,10 @@ Bu belge, programı iki kişinin (Ömer Bey ve arkadaşı) ayrı bilgisayarlarda
    - **Git for Windows** — git-scm.com
    - **Node.js (LTS)** — nodejs.org (testleri çalıştırmak için)
    - **Claude masaüstü uygulaması** — claude.ai/download (kendi Claude hesabınla giriş yap)
-3. Programı indir. Başlat menüsünden "PowerShell" aç ve şunu yaz (adres, Ömer Bey'in sana göndereceği depo adresidir):
+3. Programı indir. Başlat menüsünden "PowerShell" aç ve şunu yaz:
 
    ```powershell
-   git clone https://github.com/<kullanici>/AritmaCAD.git C:\AritmaCAD
+   git clone https://github.com/omerarslan4-ai/ar-tmacad.git C:\AritmaCAD
    ```
 
    İlk seferde bir tarayıcı penceresi açılıp GitHub girişi ister; giriş yap. Bir daha sormaz.
