@@ -280,7 +280,8 @@
       'ELK_KUMANDA': { renk: 3, tip: 'Continuous', kal: 0.25, ne: 'Kumanda, lokal kumanda ve enstrüman kabloları (E-BP 001 KAB2)' },
       'ELK_GUC2': { renk: 5, tip: 'HIDDEN', kal: 0.25, ne: 'Güç kabloları 2. kademe (lokal pano → motor)' },
       'ELK_KUMANDA2': { renk: 3, tip: 'HIDDEN', kal: 0.25, ne: 'Kumanda kabloları 2. kademe' },
-      'ELK_TAVA': { renk: 7, tip: 'Continuous', kal: 0.35, ne: 'Kablo tavası (örnekte sarı; firma: sarı yok)' },
+      'ELK_TAVA': { renk: 7, tip: 'Continuous', kal: 0.35, ne: 'AG kablo tavası (örnekte sarı; firma: sarı yok)' },
+      'ELK_TAVA_Z': { renk: 3, tip: 'HIDDEN', kal: 0.35, ne: 'Zayıf akım kablo tavası (AG tavasının altında, planda kesikli)' },
       'ANTET': { renk: 7, tip: 'Continuous', kal: 0.25, ne: 'Antet', serbest: true },
     },
     esAd: { 'ELKYAZI': 'EYAZI', 'ELK YAZI': 'EYAZI', 'E-YAZI': 'EYAZI', 'TLFPRIZ': 'EYAZI', 'YNGTLFYAZI': 'EYAZI', 'Topraklama': 'TOPILET' },
@@ -307,6 +308,7 @@
       direkH: 3.50,          // m, 3" galvaniz boru direğin korkuluk tabanından yüksekliği (montaj detayı 3500)
       tavaAlt: 0.82,         // m, kablo tavasının perde üst kotundan aşağısı (örnek: perde üstü +37,32, tava EL +36,50)
       tavaAra: 0.20,         // m, iki tavalı güzergâhta tavalar arası (örnek EL +36,70 / +36,50)
+      tavaEn: [100, 150, 200, 300, 400, 500, 600], tavaH: 60, tavaDoluluk: 0.40, // gerçek tava ölçüleri mm (kullanıcı 21.11.2026)
       armaturKod: 'U-LED36W', // örnekte U-2x40W floresan; firma: LED
     },
     /* PROGRAM KATMANI → ÇİZİM KATMANI (elektrik modülü doğrudan bu adlarla çizer) */

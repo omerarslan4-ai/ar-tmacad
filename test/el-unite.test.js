@@ -38,9 +38,12 @@ t('Çorlu "GALV. BORULARDAN GEÇEN KABLOLAR" tablosu birebir; 10x1.5 → 1" (kab
   assert.strictEqual(E.boruSec('3x1.5 mm² NYY'), '3/4"'); assert.strictEqual(E.boruSec('4x2.5 mm² NYY'), '1"'); assert.strictEqual(E.boruSec('4x6 mm² NYY'), '1 1/4"'); assert.strictEqual(E.boruSec('10x1.5 mm² NYY'), '1"');
 });
 
-t('Kablo tavası: az kablo 100mm, kalabalık güzergâh 2x100mm (örnekteki adlar)', () => {
-  assert.strictEqual(E.tavaSec(['4x2.5 mm² NYY', '10x1.5 mm² NYY']).ad, '100mm KABLO TAVASI');
-  assert.strictEqual(E.tavaSec(Array(12).fill('4x2.5 mm² NYY').concat(Array(12).fill('10x1.5 mm² NYY'))).ad, '2x100mm KABLO TAVASI');
+t('Kablo tavası gerçek ölçüde: katalog genişliği, H 60, doluluk ≤ %40; AG ve zayıf akım ayrı', () => {
+  assert.strictEqual(E.tavaOlcu(['4x2.5 mm² NYY']).ad, '100x60 mm');
+  const b = E.tavaOlcu(Array(30).fill('4x2.5 mm² NYY')); assert.strictEqual(b.w, 200); assert.ok(b.dolu <= 0.40);
+  const c = E.tavaOlcu(Array(100).fill('4x2.5 mm² NYY')); assert.ok(c.n === 2 && c.w <= 600 && c.dolu <= 0.40, '600 mm yetmezse paralel tava');
+  const L = E.kablolar({ kod: 'Z-1', tur: 'mikser', P: 5.5, S: 2.5 }).concat(E.kablolar(E.enstrumanlar('101', 1)[0])), T = E.tavaSec(L);
+  assert.strictEqual(L.filter(k => E.hatSinif(k) === 'ag').length, 1, 'yalnız GK AG tavasında'); assert.ok(T.ag && T.zayif); assert.ok(T.zayif.A > T.ag.A);
 });
 
 t('Çorlu E-BP 003 BHAK tek hat şeması: 2 ışık (600 W) + 2 priz panosu (3000 W) → 3x50A, GK-1/BHAK 4x6mm2 NYY; çıkış sırası 01–06', () => {
@@ -63,6 +66,12 @@ t('Topraklama halkası: dış çizginin 0,50 m dışı; çubuklar köşelerde (�
   const C4 = E.cubukYerleri(R, 4); assert.strictEqual(C4.length, 4);
   assert.ok(C4.some(p => p[0] === -0.5 && p[1] === -0.5) && C4.some(p => p[0] === 10.5 && p[1] === 6.5));
   assert.strictEqual(E.cubukYerleri(R, 6).length, 6);
+});
+
+t('Çorlu ORP düzeni: halka başına redoks metre, PLC-1/<kod>-1 3x1.5 NYY ve -2 3x1.5 LIYCY, zayıf akım tavasında', () => {
+  const O = E.enstrumanlar('101', 3); assert.deepStrictEqual(O.map(x => x.kod), ['ORP-101/A', 'ORP-101/B', 'ORP-101/C']);
+  const K0 = E.kablolar(O[0]); assert.deepStrictEqual(K0.map(k => [k.kod, k.cins, k.nereden]), [['PLC-1/ORP-101/A-1', '3x1.5 mm² NYY', 'PLC-1'], ['PLC-1/ORP-101/A-2', '3x1.5 mm² LIYCY', 'PLC-1']]);
+  assert.ok(K0.every(k => E.hatSinif(k) === 'zayif' && k.boy === null));
 });
 
 t('Yapı türü: havuz tipi üniteler kendiliğinden havuz, bina yaşam alanı; elle seçim önce gelir', () => {
@@ -107,8 +116,8 @@ t('50 bin: kablo listesi — mikser başına 3, kapak başına 2, vinç başına
 });
 
 t('Rapor: her motorun In ve kesit hesabı, kablo boyu "genel kablolamada", BHAK; aydınlık hesabı yapılmadığı açık yazılır', () => {
-  const KL = E.kabloListesi(MS), h = E.raporBolum('T-108', { motor: MS, kablo: KL, tava: [E.tavaSec(KL.map(k => k.cins))], bhak: E.bhak({ isik: [216], priz: [3000] }), arm: 6, armKod: 'U-LED36W' });
-  for (const m of MS) assert.ok(h.includes(m.kod)); assert.ok(h.includes('10,74'), '5,5 kW In'); assert.ok(h.includes('16,77'), 'gerekli Iz = 1,25 · In / 0,80'); assert.ok(h.includes('genel kablolamada')); assert.ok(h.includes('GK-1/BHAK')); assert.ok(h.includes('aydınlık düzeyi hesabı yapılmamıştır'));
+  const KL = E.kabloListesi(MS), h = E.raporBolum('T-108', { motor: MS, kablo: KL, tava: [E.tavaSec(KL)], enstruman: E.enstrumanlar('108', 3), bhak: E.bhak({ isik: [216], priz: [3000] }), arm: 6, armKod: 'U-LED36W' });
+  for (const m of MS) assert.ok(h.includes(m.kod)); assert.ok(h.includes('ORP-108/A') && h.includes('LIYCY')); assert.ok(h.includes('Zayıf akım')); assert.ok(h.includes('10,74'), '5,5 kW In'); assert.ok(h.includes('16,77'), 'gerekli Iz = 1,25 · In / 0,80'); assert.ok(h.includes('genel kablolamada')); assert.ok(h.includes('GK-1/BHAK')); assert.ok(h.includes('aydınlık düzeyi hesabı yapılmamıştır'));
 });
 
 t('Hesapla ayrımı: mahal ya da havuza bağlı olmayan duvar bina sayılır; havuzun kendi perdesi, temel ve görünüm kopyası sayılmaz', () => {

@@ -57,6 +57,7 @@
   function kablolar(m) {
     const k = m.kod, G = cins(4, m.S || 2.5), L = [];
     const kb = (kod, tur, cins_, nereden, nereye) => L.push({ kod, tur, cins: cins_, nereden, nereye, boy: null, ekipman: k, P: m.P, In: m.In });
+    if (m.tur === 'enstruman') { kb(`PLC-1/${k}-1`, 'enst', cins(3, 1.5), 'PLC-1', k); kb(`PLC-1/${k}-2`, 'enst', cins(3, 1.5, 'LIYCY'), 'PLC-1', k); return L; }
     if (m.tur === 'mikser') { kb(`KK-LK-1/${k}`, 'lk', cins(10, 1.5), 'MCC-1', `LCU-${k}`); kb(`GK-2/${k}`, 'guc2', G, `LCU-${k}`, k); kb(`KK-2/${k}`, 'kum2', cins(3, 1.5), `LCU-${k}`, k); }
     else if (m.tur === 'vinc') kb(`GK-1/${k}`, 'guc', G, 'MCC-1', k);
     else { kb(`GK-1/${k}`, 'guc', G, 'MCC-1', k); kb(`KK-1/${k}`, 'kum', cins(10, 1.5), 'MCC-1', k); }
@@ -71,9 +72,15 @@
   const boruSec = c => { const q = nS(c); if (!q) return null; return BORU_ESLE[`${q.n}x${nok(q.S)}`] || (q.n * q.S <= 6 ? '3/4"' : q.n * q.S <= 24 ? '1"' : q.n * q.S <= 64 ? '1 1/4"' : '1 1/2"'); };
   /* kablo dış çapı (mm) yaklaşık: 7 + 2,2·√(n·S) — tava doluluğu için (kabul; 4x2.5 ≈ 14, 10x1.5 ≈ 15,5, 3x1.5 ≈ 11,7) */
   const disCap = c => { const q = nS(c); return q ? 7 + 2.2 * Math.sqrt(q.n * q.S) : 12; };
-  /* tava: 100 × 60 mm, doluluk ≤ %40; aşarsa iki tava (örnek: 100mm / 2x100mm KABLO TAVASI) */
-  const tavaSec = cinsler => { const A = (cinsler || []).reduce((s, c) => s + Math.PI / 4 * Math.pow(disCap(c), 2), 0), dolu = A / (100 * 60), n = Math.max(1, Math.ceil(dolu / 0.4 - 1e-9));
-    return { n, dolu, A, ad: n === 1 ? '100mm KABLO TAVASI' : `${n}x100mm KABLO TAVASI` }; };
+  /* gerçek tava ölçüsü (kullanıcı 21.11.2026): katalog genişliği, H = 60 mm, doluluk ≤ %40; 600 mm yetmezse paralel tava */
+  const TAVA = { en: [100, 150, 200, 300, 400, 500, 600], h: 60, dol: 0.40 };
+  const tavaOlcu = cinsler => { const A = (cinsler || []).reduce((t, c) => t + Math.PI / 4 * Math.pow(disCap(c), 2), 0), mx = TAVA.en[TAVA.en.length - 1], n = Math.max(1, Math.ceil(A / (mx * TAVA.h * TAVA.dol) - 1e-9)), g = A / n / (TAVA.h * TAVA.dol), w = TAVA.en.find(x => x >= g - 1e-9) || mx;
+    return { w, h: TAVA.h, n, A, dolu: A / (n * w * TAVA.h), ad: `${n > 1 ? n + 'x' : ''}${w}x${TAVA.h} mm` }; };
+  /* hat sınıfı: GK → AG; kumanda ve enstrüman → zayıf akım (KABUL, onay bekliyor) */
+  const hatSinif = k => (/^guc/.test(k.tur) ? 'ag' : 'zayif');
+  const tavaSec = L => ({ ag: (L || []).some(k => hatSinif(k) === 'ag') ? tavaOlcu(L.filter(k => hatSinif(k) === 'ag').map(k => k.cins)) : null, zayif: (L || []).some(k => hatSinif(k) === 'zayif') ? tavaOlcu(L.filter(k => hatSinif(k) === 'zayif').map(k => k.cins)) : null });
+  /* enstrümanlar: halka başına bir redoks metre (Çorlu ORP-200A/B/C) */
+  const enstrumanlar = (un, n) => Array.from({ length: Math.max(0, n | 0) }, (_, i) => ({ kod: `ORP-${un}/${String.fromCharCode(65 + i)}`, tur: 'enstruman', P: null, In: 0, S: 1.5, tanim: 'Redoks metre (ORP)' }));
 
   /* BHAK anahtar kutusu (E-BP 003 tek hat şeması): ışık linyeleri 10A 3x2.5 NYY, priz panosu beslemeleri 3x40A 4x4 NYY (3000 W), yedekler (10A, 3x40A);
      ana şalter: kurulu akımın 1,25 katı ve en büyük çıkıştan bir kademe büyük; besleme GK-1/BHAK NYY (toprakta) Iz ≥ ana şalter, en az 4 mm² (örnek 3x50A, 4x6mm2 NYY) */
@@ -143,14 +150,18 @@
     tr = tr || (x => x); const e = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const tb = (b, R) => `<table><tr>${b.map(x => `<th>${e(tr(x))}</th>`).join('')}</tr>${R.map(r => `<tr>${r.map(x => `<td>${e(x)}</td>`).join('')}</tr>`).join('')}</table>`, M0 = d.motor || [], K0 = d.kablo || [], B = d.bhak, T0 = d.topraklama;
     const H3 = t => '<h3>' + e(tr(t)) + '</h3>', Pp = t => '<p>' + e(t) + '</p>';
-    let h = '<h2>' + e(ad) + '</h2>' + H3('1. Motorlar ve güç kablosu kesiti') + Pp('In = P / (√3 · ' + KAT.U + ' · cosφ · η), cosφ = ' + vir(KAT.cos) + ', η = ' + vir(KAT.eta) + '. ' + tr('Koşul') + ': Iz · ' + vir(KAT.grup) + ' ≥ ' + vir(KAT.emn) + ' · In.');
+    let no = 0; const NB = t => '<h3>' + (++no) + '. ' + e(tr(t)) + '</h3>';
+    let h = '<h2>' + e(ad) + '</h2>' + NB('Motorlar ve güç kablosu kesiti') + Pp('In = P / (√3 · ' + KAT.U + ' · cosφ · η), cosφ = ' + vir(KAT.cos) + ', η = ' + vir(KAT.eta) + '. ' + tr('Koşul') + ': Iz · ' + vir(KAT.grup) + ' ≥ ' + vir(KAT.emn) + ' · In.');
     h += tb(['Ekipman', 'Tür', 'P (kW)', 'In (A)', 'Gerekli Iz (A)', 'Kesit', 'Iz (A)', 'Sonuç'], M0.map(m => { const q = kesitSec(m.In); return [m.kod, tr({ mikser: 'Mikser', kapak: 'Kapak aktüatörü', vinc: 'Pergel vinç', motor: 'Motor' }[m.tur] || m.tur), m.P != null ? vir(m.P) : '-', m.P != null ? vir(m.In) : '-', m.P != null ? vir(q.gerekli) : '-', cins(4, m.S), vir(q.Iz, 1), m.P == null ? tr('güç verisi yok') : q.Iz >= q.gerekli ? tr('uygun') : tr('uygun değil')]; }));
-    const kW = M0.reduce((t, m) => t + (m.P || 0), 0); h += '<p><b>' + e(tr('Kurulu motor gücü')) + ': ' + vir(kW) + ' kW</b></p>' + H3('2. Kablo listesi');
-    h += tb(LISTE_SUTUN.map(c => c.t), listeSatirlari(K0).map(r => r.map((v, i) => (i === r.length - 1 ? tr(v) : v)))) + Pp(tr('Gerilim düşümü kablo boyuyla yapılır; boylar genel kablolamada belirlenecek.')) + H3('3. Kablo tavası');
-    h += tb(['Tava', 'Kablo kesit alanı (mm²)', 'Doluluk (100x60 mm)'], (d.tava || []).filter(Boolean).map(t => [t.ad, vir(t.A, 0), '%' + vir(t.dolu * 100, 0)]));
-    if (B) { h += H3('4. BHAK anahtar kutusu') + Pp(tr('Kurulu güç') + ' ' + B.kurulu + ' W · Ik = ' + vir(B.Ik) + ' A · ' + tr('ana şalter') + ' 3x' + B.In + ' A · ' + B.kod + ' ' + B.kablo + ' (Iz ' + B.Iz + ' A)'); h += tb(['Çıkış', 'Açıklama', 'Sigorta', 'Kablo', 'Güç (W)'], B.cik.map(c => [c.no, tr(c.aciklama), (c.faz === 3 ? '3x' : '') + c.In + ' A', c.kablo || '-', c.W || '-'])); }
-    if (d.arm) h += H3('5. Aydınlatma') + Pp((d.arm || 0) + ' x ' + (d.armKod || '') + '. ' + tr('Armatür aralığı örnek projeden alınmıştır; aydınlık düzeyi hesabı yapılmamıştır.'));
-    if (T0) h += H3(B || d.arm ? '6. Topraklama' : '4. Topraklama') + tb(['ρ (Ωm)', 'D (m)', 'Rh (Ω)', 'Rç (Ω)', 'Çubuk', 'R (Ω)', 'Dokunma (V)', 'Şerit (m)', 'Sonuç'], [[vir(T0.rho, 0), vir(T0.D), vir(T0.Rh), vir(T0.Rc1), T0.cubuk, vir(T0.R), vir(T0.dokunma), vir(T0.serit, 0), T0.uygun ? tr('uygun') : tr('uygun değil')]]);
+    const kW = M0.reduce((t, m) => t + (m.P || 0), 0); h += '<p><b>' + e(tr('Kurulu motor gücü')) + ': ' + vir(kW) + ' kW</b></p>';
+    if ((d.enstruman || []).length) h += NB('Enstrümanlar') + tb(['Kod', 'Tanım', 'Besleme kablosu', 'Sinyal kablosu'], d.enstruman.map(x => { const q = kablolar(x); return [x.kod, tr(x.tanim), q[0].kod + ' · ' + q[0].cins, q[1].kod + ' · ' + q[1].cins]; }));
+    h += NB('Kablo listesi');
+    h += tb(LISTE_SUTUN.map(c => c.t), listeSatirlari(K0).map(r => r.map((v, i) => (i === r.length - 1 ? tr(v) : v)))) + Pp(tr('Gerilim düşümü kablo boyuyla yapılır; boylar genel kablolamada belirlenecek.')) + NB('Kablo tavası') + Pp(tr('AG ve zayıf akım hatları ayrı tavadan gider; doluluk en çok %40.'));
+    h += tb(['Yürüme yolu', 'Hat', 'Tava (GxY)', 'Kablo kesit alanı (mm²)', 'Doluluk'], (d.tava || []).flatMap((t, i) => [['ag', 'AG'], ['zayif', 'Zayıf akım']].filter(q => t && t[q[0]]).map(q => [i + 1, tr(q[1]), t[q[0]].ad, vir(t[q[0]].A, 0), '%' + vir(t[q[0]].dolu * 100, 0)])));
+    if (d.metraj) { h += NB('Tava metrajı ve ek parçalar') + tb(['Malzeme', 'Özellik', 'Birim', 'Miktar'], d.metraj.parcalar.map(x => [tr(x.ad), x.oz, x.birim, x.miktar]).concat(((d.boruMet || {}).boru || []).map(q => [tr('Galvaniz boru (branş)'), q.boru, 'm', vir(q.L)]))); }
+    if (B) { h += NB('BHAK anahtar kutusu') + Pp(tr('Kurulu güç') + ' ' + B.kurulu + ' W · Ik = ' + vir(B.Ik) + ' A · ' + tr('ana şalter') + ' 3x' + B.In + ' A · ' + B.kod + ' ' + B.kablo + ' (Iz ' + B.Iz + ' A)'); h += tb(['Çıkış', 'Açıklama', 'Sigorta', 'Kablo', 'Güç (W)'], B.cik.map(c => [c.no, tr(c.aciklama), (c.faz === 3 ? '3x' : '') + c.In + ' A', c.kablo || '-', c.W || '-'])); }
+    if (d.arm) h += NB('Aydınlatma') + Pp((d.arm || 0) + ' x ' + (d.armKod || '') + '. ' + tr('Armatür aralığı örnek projeden alınmıştır; aydınlık düzeyi hesabı yapılmamıştır.'));
+    if (T0) h += NB('Topraklama') + tb(['ρ (Ωm)', 'D (m)', 'Rh (Ω)', 'Rç (Ω)', 'Çubuk', 'R (Ω)', 'Dokunma (V)', 'Şerit (m)', 'Sonuç'], [[vir(T0.rho, 0), vir(T0.D), vir(T0.Rh), vir(T0.Rc1), T0.cubuk, vir(T0.R), vir(T0.dokunma), vir(T0.serit, 0), T0.uygun ? tr('uygun') : tr('uygun değil')]]);
     return h;
   }
 
@@ -158,7 +169,7 @@
   const aydinlatmaVar = set => !!(set && set.elUniteAyd === true);
   const binaVarMi = (ents, havuzId) => (ents || []).some(e => !e.gv && (e.type === 'mtmahal' || (e.type === 'perde' && !e.temel && (e.pts || []).length > 1 && !(e.bag != null && havuzId && havuzId.has(e.bag)))));
 
-  const api = { aydinlatmaVar, binaVarMi, raporBolum, KAT, NYY_HAVA, NYY_TOPRAK, SIGORTA, akim, kesitSec, cins, motorlar, kablolar, kabloListesi, BORU_TABLO, boruSec, disCap, tavaSec, bhak, armaturYerleri, linyeSay, otele, alan, cevre, cubukYerleri, yapiTuru, etiketSatir, LISTE_SUTUN, listeSatirlari, vir };
+  const api = { TAVA, tavaOlcu, hatSinif, enstrumanlar, aydinlatmaVar, binaVarMi, raporBolum, KAT, NYY_HAVA, NYY_TOPRAK, SIGORTA, akim, kesitSec, cins, motorlar, kablolar, kabloListesi, BORU_TABLO, boruSec, disCap, tavaSec, bhak, armaturYerleri, linyeSay, otele, alan, cevre, cubukYerleri, yapiTuru, etiketSatir, LISTE_SUTUN, listeSatirlari, vir };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C || !C.addCommand || !C.T || !C.prim) return;
   C.elUniteApi = api;
@@ -181,6 +192,7 @@
     motor: e => { const r = sb('motorR'), c = e.p, out = [CI([c[0], c[1], 0], r), TX([c[0], c[1] + r * 0.12, 0], r * 0.62, 'M', 0, 'BC', { color: YR(), st: 'AAAA' }), TX([c[0], c[1] - r * 0.08, 0], r * 0.5, '3~', 0, 'TC', { color: YR(), st: 'AAAA' })];
       const h = h_('kod'); out.push(yz([c[0] + r * 1.25, c[1] + h * 0.3, 0], h, e.kod || '', 0, 'BL')); if (e.P != null) out.push(yz([c[0] + r * 1.25, c[1] - h * 0.3, 0], h, `${vir(e.P)} kW`, 0, 'TL'));
       return out; },
+    orp: e => { const r = sb('motorR'), c = e.p, h = h_('kod'); return [CI([c[0], c[1], 0], r), TX([c[0], c[1], 0], r * 0.55, 'ORP', 0, 'MC', { color: YR(), st: 'AAAA' }), yz([c[0] + r * 1.25, c[1], 0], h, e.kod || '', 0, 'ML')]; },
     jb: e => { const w = sb('jb'), K = kutu(e.p, w, w, e.ang), h = h_('kutu'); return [P(K.pts, true), yz([e.p[0] - w * 0.8, e.p[1] + w * 0.3, 0], h, `JB-${e.kod}`, 0, 'BR')]; }, /* etiket yatay (örnekte 7,5 birim, 1,5 mm) */
     lcu: e => { const w = sb('lcu'), K = kutu(e.p, w, w, e.ang), h = h_('kutu'); return [P(K.pts, true), L(K.pts[0], K.pts[2]), S([K.pts[0], K.pts[1], K.pts[2]]), yz([e.p[0] + w * 0.8, e.p[1] - w * 0.3, 0], h, `LCU-${e.kod}`, 0, 'TL')]; },
     arm: e => { /* korkuluğa monte etanş armatür (E-BP 003 sembolü): direk kolu + üçgen başlık; yanında armatür kodu, linye no */
@@ -196,7 +208,7 @@
     tb: e => { const w = sb('bara'), hh = w * 0.24, K = kutu(e.p, w, hh, e.ang), h = h_('kod'); return [S(K.pts), P(K.pts, true), yz(K.q(0, hh / 2 + h * 0.6), h, e.kod || 'TB-1', okunur(e.ang || 0), 'BC')]; },
     mcc: e => { /* MCC yönü: ok + yazı (yeri ve boy genel kablolamada) */
       const a = e.ang || 0, u = [Math.cos(a), Math.sin(a)], n = [-u[1], u[0]], c = e.p, h = h_('mcc'), q = (s, o) => [c[0] + u[0] * s + n[0] * o, c[1] + u[1] * s + n[1] * o, 0], k = h * 0.9;
-      return [S([q(0, 0), q(-k * 1.6, k * 0.6), q(-k * 1.6, -k * 0.6)]), yz(q(k * 0.6, h * 0.15), h, e.kod || 'MCC-1 PANOSUNA', okunur(a), 'BL'), yz(q(k * 0.6, -h * 0.35), h * 0.5, '(yeri ve kablo boyları genel yerleşim / genel kablolamada)', okunur(a), 'TL')]; },
+      const ters = u[0] < -1e-6, sg = ters ? -1 : 1; return [S([q(0, 0), q(-k * 1.6, k * 0.6), q(-k * 1.6, -k * 0.6)]), yz(q(k * 0.6, sg * h * 0.15), h, e.kod || 'MCC-1 PANOSUNA', okunur(a), ters ? 'BR' : 'BL'), yz(q(k * 0.6, -sg * h * 0.35), h * 0.5, '(yeri ve kablo boyları genel yerleşim / genel kablolamada)', okunur(a), ters ? 'TR' : 'TL')]; },
     etk: e => { /* kablo etiketi bloğu: satırlar alt alta, ilk satırın altı çizili; ok ucu q'dan eğik çizgi + yatay çizgi (örnek) */
       const h = h_('kablo'), sat = e.satir || [], c = e.p, gap = h * 1.55, w = Math.max(1, ...sat.map(s => String(s).length)) * h * 0.62, out = [];
       sat.forEach((s, i) => out.push(yz([c[0], c[1] - i * gap, 0], h, s, 0, 'BL')));
@@ -204,7 +216,7 @@
       if (e.q) out.push(L([e.q[0], e.q[1], 0], [c[0] - h * 0.3, yA, 0]));
       return out; },
   };
-  const AD = { motor: 'Elektrik motoru', jb: 'Junction box', lcu: 'Saha lokal kumanda panosu', arm: 'Korkuluğa monte LED etanş armatür', bhak: 'Etanş anahtar kutusu (BHAK)', prizp: '3 fazlı priz panosu', te: 'Topraklama çubuğu', tb: 'Topraklama barası', mcc: 'MCC yönü', etk: 'Kablo etiketi' };
+  const AD = { orp: 'Redoks metre (ORP)', motor: 'Elektrik motoru', jb: 'Junction box', lcu: 'Saha lokal kumanda panosu', arm: 'Korkuluğa monte LED etanş armatür', bhak: 'Etanş anahtar kutusu (BHAK)', prizp: '3 fazlı priz panosu', te: 'Topraklama çubuğu', tb: 'Topraklama barası', mcc: 'MCC yönü', etk: 'Kablo etiketi' };
   const yeniYazi = s => String(s);
   T.eluc = {
     label: 'Ünite elektrik elemanı',
@@ -216,11 +228,11 @@
   T.eluh = {
     label: 'Ünite elektrik hattı',
     prims: e => { const out = [], pts = (e.pts || []).map(p => [p[0], p[1], 0]); if (pts.length < 2) return out;
-      if (e.sys === 'tava') { const w = 0.1 * (e.n || 1), h = h_('tava');
-        for (const o of [-w / 2, w / 2]) out.push(P(ofsetCizgi(pts, o), false));
+      if (e.sys === 'tava') { const w = (+e.w || 100) / 1000, nn = e.n || 1, h = h_('tava'), yan = e.sinif === 'zayif' ? -1 : 1;
+        for (let k = 0; k < nn; k++) { const c0 = (k - (nn - 1) / 2) * (w + 0.05); for (const o of [c0 - w / 2, c0 + w / 2]) out.push(P(ofsetCizgi(pts, o), false)); }
         let bi = 1, bl = 0; for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (l > bl) { bl = l; bi = i; } }
-        const a = pts[bi - 1], b = pts[bi], ang = okunur(Math.atan2(b[1] - a[1], b[0] - a[0])), nx = -Math.sin(ang), ny = Math.cos(ang), m = [(a[0] + b[0]) / 2 + nx * (w / 2 + h * 2.4), (a[1] + b[1]) / 2 + ny * (w / 2 + h * 2.4), 0];
-        out.push(yz(m, h, e.kod || ((e.n || 1) > 1 ? `${e.n}x100mm KABLO TAVASI` : '100mm KABLO TAVASI'), ang, 'BC'), yz([m[0] - nx * h * 1.5, m[1] - ny * h * 1.5, 0], h, e.el || '', ang, 'BC'));
+        const a = pts[bi - 1], b = pts[bi], ang = okunur(Math.atan2(b[1] - a[1], b[0] - a[0])), nx = -Math.sin(ang), ny = Math.cos(ang), t0 = yan > 0 ? 0.42 : 0.58, of = yan * (nn * w / 2 + h * (yan > 0 ? 2.4 : 1)), m = [a[0] + (b[0] - a[0]) * t0 + nx * of, a[1] + (b[1] - a[1]) * t0 + ny * of, 0];
+        out.push(yz(m, h, e.kod || '', ang, 'BC'), yz([m[0] - nx * h * 1.5, m[1] - ny * h * 1.5, 0], h, e.el || '', ang, 'BC'));
         return mask(out); }
       out.push(P(pts, false));
       if ((e.sys === 'top' || e.sys === 'ayd' || e.sys === 'priz' || e.sys === 'bag') && e.cins) { let bi = 1, bl = 0; for (let i = 1; i < pts.length; i++) { const l = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (l > bl) { bl = l; bi = i; } }
@@ -242,6 +254,7 @@
   const mesh = fn => e => { if (e.gv) return []; const I = ins(); if (!I || !G3()) return []; const out = I.newMesh(); try { fn(e, out); } catch (er) { console.error(er); return []; } return out.v.length ? [out] : []; };
   T.eluc.mesh = mesh((e, out) => { const { eksen, bx, sil } = G3(), z = +e.z || 0, F = eksen(e.p, e.ang || 0, e.on || null);
     switch (e.kind) {
+      case 'orp': bx(out, F, -0.1, 0.1, -0.06, 0.06, z + 0.9, z + 1.15, GRI); sil(out, [e.p[0], e.p[1], z - 2], [0, 0, 1], 0.02, 2.9, GALV, 10); break;
       case 'jb': bx(out, F, -0.08, 0.08, -0.05, 0.05, z + 0.5, z + 0.66, GRI); break;
       case 'lcu': sil(out, [e.p[0], e.p[1], z], [0, 0, 1], 0.03, 0.8, GALV, 10); bx(out, F, -0.2, 0.2, -0.1, 0.1, z + 0.8, z + 1.3, GRI); bx(out, F, -0.05, 0.05, 0.1, 0.105, z + 1.0, z + 1.1, [0.85, 0.15, 0.12]); break;
       case 'arm': { const n = e.on || F.n; sil(out, [e.p[0], e.p[1], z], [0, 0, 1], 0.044, +e.H || 3.5, GALV, 12); const Fa = eksen([e.p[0] + n[0] * 0.15, e.p[1] + n[1] * 0.15], e.ang || 0, null); bx(out, Fa, -0.635, 0.635, -0.045, 0.045, z + (+e.H || 3.5) - 0.02, z + (+e.H || 3.5) + 0.06, GRI); bx(out, Fa, -0.6, 0.6, -0.035, 0.035, z + (+e.H || 3.5) - 0.025, z + (+e.H || 3.5) - 0.02, ISIK); break; }
@@ -252,7 +265,7 @@
     } });
   T.eluh.mesh = mesh((e, out) => { const { eksen, bx, sil } = G3(), z = +e.z || 0, pts = e.pts || [];
     for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (l < 0.01) continue; const ang = Math.atan2(b[1] - a[1], b[0] - a[0]), F = eksen([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], ang, null);
-      if (e.sys === 'tava') { const w = 0.1, nn = e.n || 1; for (let k = 0; k < nn; k++) { const zk = z + k * ((UK().tavaAra) || 0.2); bx(out, F, -l / 2, l / 2, -w / 2, w / 2, zk, zk + 0.003, GALV); bx(out, F, -l / 2, l / 2, -w / 2, -w / 2 + 0.002, zk, zk + 0.06, GALV); bx(out, F, -l / 2, l / 2, w / 2 - 0.002, w / 2, zk, zk + 0.06, GALV); } }
+      if (e.sys === 'tava') { const w = (+e.w || 100) / 1000, hT = (+e.h || 60) / 1000, nn = e.n || 1; for (let k = 0; k < nn; k++) { const c0 = (k - (nn - 1) / 2) * (w + 0.05), o0 = c0 - w / 2, o1 = c0 + w / 2; bx(out, F, -l / 2, l / 2, o0, o1, z, z + 0.003, GALV); bx(out, F, -l / 2, l / 2, o0, o0 + 0.002, z, z + hT, GALV); bx(out, F, -l / 2, l / 2, o1 - 0.002, o1, z, z + hT, GALV); } }
       else if (e.sys === 'top' || e.sys === 'bag') bx(out, F, -l / 2 - 0.004, l / 2 + 0.004, -0.015, 0.015, z, z + 0.0035, e.sys === 'bag' ? BAK : GALV);
       else { const col = /^kum|^lk|^enst/.test(e.sys) ? YESIL : e.sys === 'ayd' || e.sys === 'priz' ? [0.25, 0.65, 0.9] : MAVI; sil(out, [a[0], a[1], z + 0.02], [(b[0] - a[0]) / l, (b[1] - a[1]) / l, 0], 0.008, l, col, 8); } } });
 
@@ -283,7 +296,7 @@
   }
 
   function yerlestir(u) {
-    sil_(u); for (const k of Object.values(LY)) lay(k); lay('EYAZI');
+    sil_(u); for (const k of Object.values(LY)) lay(k); lay('EYAZI'); lay('ELK_TAVA_Z');
     const ctx = ctxOf(), U = C.uniteMekanikApi, E = ekipman(u);
     const kal = U ? E.map(x => { const k = U.kalem(x, ctx); if (k) { k.e = x; k.kod = x.ad || k.kod; } return k; }).filter(Boolean) : [];
     const MS = motorlar(kal), byKod = new Map(kal.map(k => [k.kod, k.e]));
@@ -329,22 +342,31 @@
         etk.push({ hedef: [(tn.q[0] + p[0]) / 2, (tn.q[1] + p[1]) / 2], satir: KB.flatMap(etiketSatir), yon, tn });
       }
     }
-    /* --- tavalar (kablo sayısına göre 100mm / 2x100mm); MCC ucunda bütün kablolar */
-    for (const t of tavalar) { const ts = tavaSec(t.kablolar.map(k => k.cins)); t.sec = ts;
-      ekle('eluh', { sys: 'tava', pts: [t.A, t.B], z: zTava, n: ts.n, kod: ts.ad, el: ts.n > 1 ? `${elYaz(zTava + (UK().tavaAra || 0.2))} ${elYaz(zTava)}` : elYaz(zTava), elu: u.id, layer: LY.tava }); }
+    /* --- enstrümanlar: her halkaya bir redoks metre (yürüme yolunun karşı yüzünde, koridor ortasında) */
+    const ENS = []; try { const G = C.anaerobikGeo ? C.anaerobikGeo(u) : null, fr = C.frame ? C.frame(u.o, u.rot) : null; if (G && fr && G.halka) { const un = (String(u.code || '').match(/\d+/) || ['000'])[0], q = G.q, L1 = enstrumanlar(un, G.halka.length);
+      G.halka.forEach((H, i) => { const m = L1[i], w = fr.at(G.kopru.x1 + 0.45, H.yc - (H.yon || 1) * (q.tw / 2 + G.b / 2), 0), p = [w[0], w[1]], tn = tavaNokta(p); if (!tn) return; const KB = kablolar(m); ENS.push(m); KL.push(...KB); tn.t.kablolar.push(...KB);
+        ekle('eluc', { kind: 'orp', p, kod: m.kod, z: zYol, elu: u.id, layer: 'EYAZI' });
+        KB.forEach((k, j) => { const o = [tn.uu[0] * (j - 0.5) * 0.05 * sp, tn.uu[1] * (j - 0.5) * 0.05 * sp], A0 = [tn.q[0] + o[0], tn.q[1] + o[1]], d = proj(p, A0, tn.uu); ekle('eluh', { sys: 'enst', pts: Math.abs(d) < 0.02 ? [A0, p] : [A0, [A0[0] + tn.uu[0] * d, A0[1] + tn.uu[1] * d], p], z: zTava, kod: k.kod, cins: k.cins, boy: null, elu: u.id, layer: LY.enst }); });
+        etk.push({ hedef: [(tn.q[0] + p[0]) / 2, (tn.q[1] + p[1]) / 2], satir: KB.flatMap(etiketSatir), yon: proj(p, tn.q, [-tn.uu[1], tn.uu[0]]) >= 0 ? 1 : -1, tn }); }); } } catch (er) { console.error('enstrüman', er); }
+    if (!ENS.length) uyar.push('Redoks metre yerleştirilemedi (halka bilgisi yok).');
+    /* --- tavalar: gerçek ölçü, AG (üstte) ve zayıf akım (altta) ayrı */
+    const zAG = zTava + (UK().tavaAra || 0.2);
+    for (const t of tavalar) { const ts = tavaSec(t.kablolar); t.sec = ts;
+      if (ts.ag) ekle('eluh', { sys: 'tava', sinif: 'ag', pts: [t.A, t.B], z: zAG, n: ts.ag.n, w: ts.ag.w, h: ts.ag.h, kod: `AG KABLO TAVASI ${ts.ag.ad}`, el: elYaz(zAG), elu: u.id, layer: LY.tava });
+      if (ts.zayif) ekle('eluh', { sys: 'tava', sinif: 'zayif', pts: [t.A, t.B], z: zTava, n: ts.zayif.n, w: ts.zayif.w, h: ts.zayif.h, kod: `ZAYIF AKIM TAVASI ${ts.zayif.ad}`, el: elYaz(zTava), elu: u.id, layer: 'ELK_TAVA_Z' }); }
     for (const t of tavalar) { if (!t.kablolar.length) continue; const KLt = t.kablolar;
       const yol = [t.uc]; if (t.mTop) yol.push([t.mTop[0], t.mTop[1]]); if (t.mBot) yol.push([t.mBot[0], t.mBot[1]]);
       const dr = yol.length > 1 ? [yol[yol.length - 1][0] - yol[yol.length - 2][0], yol[yol.length - 1][1] - yol[yol.length - 2][1]] : [1, 0], dl = Math.hypot(...dr) || 1, uc = [yol[yol.length - 1][0] + dr[0] / dl * 1.5, yol[yol.length - 1][1] + dr[1] / dl * 1.5]; yol.push(uc);
-      const nG = KLt.filter(k => /^guc/.test(k.tur)).length, nK = KLt.length - nG;
-      ekle('eluh', { sys: 'mcc', pts: yol, z: zTava, kod: 'MCC-1', cins: `${nG} güç + ${nK} kumanda kablosu`, boy: null, elu: u.id, layer: LY.mcc });
+      const nG = KLt.filter(k => hatSinif(k) === 'ag').length, nK = KLt.length - nG;
+      ekle('eluh', { sys: 'mcc', pts: yol, z: zTava, kod: 'MCC-1', cins: `${nG} AG + ${nK} zayıf akım kablosu`, boy: null, elu: u.id, layer: LY.mcc });
       ekle('eluc', { kind: 'mcc', p: [uc[0] + dr[0] / dl * 0.2 * sp, uc[1] + dr[1] / dl * 0.2 * sp], ang: Math.atan2(dr[1], dr[0]), kod: 'MCC-1 PANOSUNA', z: zZemin, elu: u.id, layer: 'EYAZI' });
     }
     /* --- etiketler: hedef noktasının yanında, birbirine değmeyen yer (açgözlü) */
-    { const h = C.annoH(mmU('kablo')), kutular = [];
+    { const h = C.annoH(mmU('kablo')), r0 = sb('motorR'), kutular = C.doc.ents.filter(e => !e.gv && e.elu === u.id && e.type === 'eluc' && /^(motor|orp|jb|lcu)$/.test(e.kind)).map(e => { const w = String(e.kod || '').length * h * 0.62 + r0 * 1.4; return [e.p[0] - r0 - (e.kind === 'jb' ? w : 0), e.p[1] - r0, e.p[0] + r0 + (e.kind === 'jb' ? 0 : w), e.p[1] + r0]; });
       const cak = b => kutular.some(k => !(b[2] < k[0] || b[0] > k[2] || b[3] < k[1] || b[1] > k[3]));
       for (const g of etk) { const w = Math.max(...g.satir.map(s => s.length)) * h * 0.62, hh = g.satir.length * h * 1.55; let yer = null;
         const n = [-(g.tn.uu[1]), g.tn.uu[0]];
-        for (let k = 0; k < 40 && !yer; k++) { const s = (k % 2 ? -1 : 1) * Math.ceil(k / 2) * hh * 0.6, ofs = 1.2 * sp + (k > 20 ? 1.5 * sp : 0); const c = [g.hedef[0] + g.tn.uu[0] * (s + 0.6 * sp) + n[0] * g.yon * ofs * 0.3, g.hedef[1] + g.tn.uu[1] * (s + 0.6 * sp) + n[1] * g.yon * ofs * 0.3];
+        for (let k = 0; k < 120 && !yer; k++) { const s = (k % 2 ? -1 : 1) * Math.ceil(k / 2) * hh * 0.6, ofs = (1.2 + Math.floor(k / 20) * 3) * sp; const c = [g.hedef[0] + g.tn.uu[0] * (s + 0.6 * sp) + n[0] * g.yon * ofs * 0.3, g.hedef[1] + g.tn.uu[1] * (s + 0.6 * sp) + n[1] * g.yon * ofs * 0.3];
           const b = [c[0] - h * 0.4, c[1] - hh, c[0] + w, c[1] + h * 1.2]; if (!cak(b)) { yer = c; kutular.push(b); } }
         if (!yer) { yer = [g.hedef[0] + 1, g.hedef[1] + 1]; }
         ekle('eluc', { kind: 'etk', p: yer, q: g.hedef, satir: g.satir, z: zYol, elu: u.id, layer: 'EYAZI' }); } }
@@ -391,7 +413,13 @@
       ekle('eluh', { sys: 'priz', pts: [...g, kose, p], z: a.z + 0.5, kod: `PP-${i + 1}`, cins: '4x4 NYY', elu: u.id, layer: LY.priz }); return p; });
     BH = bhak({ isik: linyeler.map(L1 => L1.S1.length * Warm), priz: PRZ.map(() => 3000), yedek: 2 });
     }
-    const st = durum(); st[u.id] = Object.assign(st[u.id] || {}, { t: Date.now(), motor: MS, kablo: KL, bhak: BH, topraklama: TR, arm: ARM.length, armKod, tava: tavalar.map(t => t.sec), zTava, uyar });
+    /* tava metrajı, ek parçalar, kablo döşeme açılımı, branş boruları (el-tava.js) */
+    const hatKab = (t, q) => t.kablolar.filter(k => hatSinif(k) === q).map(k => ({ kod: k.kod, cins: k.cins, d: disCap(k.cins) }));
+    const tavaHat = tavalar.flatMap((t, i) => ['ag', 'zayif'].filter(q => t.sec && t.sec[q]).map(q => Object.assign({ yol: i + 1, sinif: q, L: Math.round(Math.hypot(t.B[0] - t.A[0], t.B[1] - t.A[1]) * 100) / 100, nKablo: hatKab(t, q).length }, t.sec[q])));
+    const doseme = tavalar.map((t, i) => { const o = { yol: i + 1 }; for (const q of ['ag', 'zayif']) o[q] = t.sec && t.sec[q] ? { w: t.sec[q].w, h: t.sec[q].h, kablolar: hatKab(t, q) } : null; return o; });
+    const brans = C.doc.ents.filter(e => !e.gv && e.elu === u.id && e.type === 'eluh' && /^(guc2?|kum2?|lk|enst)$/.test(e.sys)).map(e => { const P0 = e.pts, top = (i0) => { let l = 0; for (let i = i0 + 1; i < P0.length; i++) l += Math.hypot(P0[i][0] - P0[i - 1][0], P0[i][1] - P0[i - 1][1]); return l; }; return { boru: boruSec(e.cins), L: Math.round(top(/2$/.test(e.sys) ? 0 : P0.length - 2) * 100) / 100 }; }); /* tava boyunca giden parça boruya girmez */
+    const TV = C.elTavaApi, metraj = TV ? TV.tavaMetraj(tavaHat) : null, boruMet = TV ? TV.boruMetraj(brans) : null;
+    const st = durum(); st[u.id] = Object.assign(st[u.id] || {}, { metraj, boruMet, doseme, t: Date.now(), motor: MS, enstruman: ENS, kablo: KL, bhak: BH, topraklama: TR, arm: ARM.length, armKod, tava: tavalar.map(t => t.sec), zTava, uyar });
     return { MS, KL, BH, TR, ARM, uyar, tavalar };
   }
 
@@ -411,7 +439,9 @@
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'kK'), 'KUMANDA KABLOLARI');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'gK2'), 'GÜÇ KABLOLARI 2. KADEME');
     sat((x, yy) => c.L(x, yy, x + 18, yy, 'kK2'), 'KUMANDA KABLOLARI 2. KADEME');
-    sat((x, yy) => { c.L(x, yy - 1, x + 18, yy - 1, 'k'); c.L(x, yy + 1, x + 18, yy + 1, 'k'); }, '100mm KABLO TAVASI (EL: tava alt kotu)');
+    sat((x, yy) => { const r = ((UK().sembol || {}).motorR || 15.6) / 5, N = 20; for (let i = 0; i < N; i++) { const a0 = 2 * Math.PI * i / N, a1 = 2 * Math.PI * (i + 1) / N; c.L(x + 7 + r * Math.cos(a0), yy + r * Math.sin(a0), x + 7 + r * Math.cos(a1), yy + r * Math.sin(a1), 'i'); } c.T(x + 7, yy - r * 0.25, r * 0.5, 'ORP', 'MC', 0, 2); }, 'REDOKS METRE (ORP)');
+    sat((x, yy) => { c.L(x, yy - 1, x + 18, yy - 1, 'k'); c.L(x, yy + 1, x + 18, yy + 1, 'k'); }, 'AG KABLO TAVASI (GxY mm, EL: tava alt kotu)');
+    sat((x, yy) => { c.L(x, yy - 1, x + 18, yy - 1, 'kK2'); c.L(x, yy + 1, x + 18, yy + 1, 'kK2'); }, 'ZAYIF AKIM KABLO TAVASI (AG TAVASININ ALTINDA)');
     y -= rh * 0.4;
     /* kablo etiketi açıklaması (örnekteki gibi) */
     const ac = (kod, satirlar) => { const x0 = 6, hk = sMm('kablo'); c.T(x0, y, hk, kod, 'L', 0, 2); const xs = [x0 + 1, x0 + 4.2, x0 + 8.2, x0 + 13]; let yy = y - rh * 0.9;
@@ -428,7 +458,8 @@
     ['3- TEKNİK ÜNİTELERE AÇIKTAN GEÇİRİLECEK KUVVET KABLOLARI, KABLO CİNSİNE UYGUN ÇAPTA'], ['GALVANİZLİ BORULAR İÇİNDEN ÇEKİLECEKTİR.', 1],
     ['4- KABLO KESİTLERİ MOTOR GÜCÜNDEN AKIM TAŞIMA KOŞULUYLA SEÇİLMİŞTİR'], ['(cosφ 0,85, verim 0,87, tava gruplama 0,80, 1,25 In).', 1],
     ['MCC PANOSUNUN YERİ VE KABLO BOYLARI GENEL YERLEŞİM VE GENEL KABLOLAMADA BELİRLENECEK;', 1], ['GERİLİM DÜŞÜMÜ KONTROLÜ BOYLARLA BİRLİKTE YAPILACAKTIR.', 1],
-    ['5- MARKA / MODEL BELİRTİLMEMİŞTİR; EŞDEĞER ÜRÜN KULLANILABİLİR.']];
+    ['5- MARKA / MODEL BELİRTİLMEMİŞTİR; EŞDEĞER ÜRÜN KULLANILABİLİR.'],
+    ['6- AG VE ZAYIF AKIM (KUMANDA, ENSTRÜMAN) KABLOLARI AYRI TAVALARDAN GEÇİRİLECEKTİR;'], ['TAVA ÖLÇÜLERİ KABLO KESİTİNE GÖRE, DOLULUK EN ÇOK %40 ALINARAK SEÇİLMİŞTİR.', 1]];
   const NOT2 = [['1- HAVUZ ÇEVRESİNE 30x3.5 GALVANİZLİ ŞERİT İLE HALKA TOPRAKLAYICI, TEMELE'], ['30x3.5 GALVANİZLİ ŞERİT İLE TEMEL TOPRAKLAMASI YAPILACAKTIR.', 1],
     ['2- KÖŞELERE BAKIR KILIFLI ÇELİK TOPRAKLAMA ÇUBUĞU (Ø20, L=3 m) ÇAKILACAK,'], ['ŞERİDE ÇAPRAZ KLEMENSLE BAĞLANACAKTIR.', 1],
     ['3- KABLO TAVALARI, KORKULUKLAR, LOKAL PANOLAR VE ELEKTRİKLİ EKİPMANLAR EN AZ'], ['16 mm² Cu İLETKENLE TB-1 TOPRAKLAMA BARASINA BAĞLANACAKTIR.', 1]];
@@ -511,7 +542,8 @@
 
   /* ======================= PAFTALAR ======================= */
   const PAF = [
-    { tur: 'guc', ad: 'GÜÇ, KUMANDA, ENSTRÜMAN KABLO VE TAVA PLANI', sys: ['tava', 'guc', 'kum', 'lk', 'guc2', 'kum2', 'enst', 'mcc'], kind: ['motor', 'jb', 'lcu', 'mcc', 'etk'] },
+    { tur: 'guc', ad: 'GÜÇ, KUMANDA, ENSTRÜMAN KABLO VE TAVA PLANI', sys: ['tava', 'guc', 'kum', 'lk', 'guc2', 'kum2', 'enst', 'mcc'], kind: ['motor', 'orp', 'jb', 'lcu', 'mcc', 'etk'] },
+    { tur: 'tav', ad: 'KABLO TAVASI DETAYLARI VE METRAJ', sys: [], kind: [], detay: true },
     { tur: 'top', ad: 'TOPRAKLAMA PLANI', sys: ['top', 'bag'], kind: ['te', 'tb'] },
     { tur: 'ayd', ad: 'AYDINLATMA VE PRİZ TESİSATI PLANI', sys: ['ayd', 'priz'], kind: ['arm', 'bhak', 'prizp'] },
   ];
@@ -534,10 +566,10 @@
 
   const uret = async (u) => {
     const A = C.mekPaftaArac, Ap = C.mimariPaftaApi; if (!A || !Ap || !C.makeView) { C.warn('Pafta modülleri yüklenmemiş (istasyon-pafta.js / mimari-pafta.js).'); return null; }
-    const R = yerlestir(u);
     const ids = [u.id, ...C.doc.ents.filter(x => x.bag === u.id && !x.gv && x.type !== 'su').map(x => x.id)], idSet = new Set(ids), ents = C.doc.ents.filter(x => idSet.has(x.id));
     const SC = olcekBul(ents), anno0 = C.doc.set.anno; C.doc.set.anno = SC;
     try {
+      const R = yerlestir(u); /* yazı ve etiket kutuları pafta ölçeğinde */
       let tarif = null; try { tarif = tarifli(u) ? C.T[u.type].paftaTarifi(u, { kh: 1.2 }) : null; } catch (er) { console.error('ünite pafta tarifi', er); }
       const pl = tarif && tarif.planlar && tarif.planlar.length ? (tarif.planlar.find(p => !p.kesit) || tarif.planlar[tarif.planlar.length - 1]) : null;
       const st = temizle(u), bb = C.extents(ents), tum = C.extents(C.doc.ents.filter(e => e.type !== 'sheet')) || bb; const X0 = tum[2] + 40; let Yc = tum[3];
@@ -548,30 +580,49 @@
         if (PF.tur === 'ayd' && !aydinlatmaVar(C.doc.set)) continue;
         if ((st.korunan || []).includes(PF.tur)) continue; /* elle düzeltildi: bu pafta yeniden üretilmez */
         const place = [X0, Yc - (bb[3] - bb[1]) - 2], ref = [bb[0], bb[1]], dx = place[0] - ref[0], dy = place[1] - ref[1], Wp = q => [q[0] + dx, q[1] + dy];
-        const res = C.makeView({ kind: 'plan', h: pl ? pl.h : (+u.zt || 0) + 1.2, depth: pl ? pl.depth : 8, place, ref, ids: ents.filter(e => !(pl && pl.gizle && pl.gizle(e))).map(e => e.id), hatch: 'YOK', title: `${PF.ad}`, mek: true, poz: false, dograma: false });
-        if (!res) continue; st.gvs.push(res.gv);
+        const res = PF.detay ? { gv: null } : C.makeView({ kind: 'plan', h: pl ? pl.h : (+u.zt || 0) + 1.2, depth: pl ? pl.depth : 8, place, ref, ids: ents.filter(e => !(pl && pl.gizle && pl.gizle(e))).map(e => e.id), hatch: 'YOK', title: `${PF.ad}`, mek: true, poz: false, dograma: false });
+        if (!res) continue; if (res.gv) st.gvs.push(res.gv);
         /* elektrik nesnelerinin pafta kopyaları (ötelenmiş; açıklama ölçeği pencereden) */
         for (const e of elE) { if (!(e.type === 'eluh' ? PF.sys.includes(e.sys) : PF.kind.includes(e.kind))) continue;
           const c = JSON.parse(JSON.stringify(e)); for (const k of ['id', '_c', 'sp']) delete c[k]; c.gv = res.gv;
           if (c.p) c.p = Wp(c.p); if (c.q) c.q = Wp(c.q); if (c.pts) c.pts = c.pts.map(Wp); const x = C.add(C.newEnt(c.type, c)); if (x) delete x.sp; }
         /* başlık en alta (mimari düzen) */
         { const g = C.doc.ents.filter(e => e.gv === res.gv); g.forEach(e => { delete e._c; }); const b = C.extents(g.filter(e => e.type !== 'baslik')); if (b) for (const e of g) if (e.type === 'baslik') { e.ay = b[1]; e.dmm = 11; e.p = [e.p[0], b[1] - 11 * C.annoH(1), 0]; delete e._c; } }
+        /* güç paftasında kesitler (mekanik ünite paftası gibi): tavalar kesit düzleminde gerçek ölçüde */
+        const kesitGv = []; if (PF.tur === 'guc' && tarif) { let yK = (() => { const b = C.extents(C.doc.ents.filter(e => e.gv === res.gv)); return b ? b[1] - 12 : Yc - 20; })(); const harf = 'ABCDEFGHIJ';
+          for (const [ki, k] of (tarif.kesitler || []).entries()) { const ic = 'V' + harf[ki % 10]; let r = null; try { r = await A.kesitAl(ic, k.a, k.b, k.sp, k.depth, [X0, yK], { kv: ['GIZLI=E', 'POZ=H'], onek: 'UELK_KESIT_', acilim: false, durum: false }); } catch (er) { console.error('elektrik kesiti', er); } if (!r || !r.n) continue; st.gvs.push(r.gv); kesitGv.push(r.gv);
+            const isr = new Set((r.yeni || []).filter(e => e.type === 'kesitisaret').map(e => e.id)); if (isr.size) C.doc.ents = C.doc.ents.filter(e => !isr.has(e.id));
+            for (const e of C.doc.ents) if (e.gv === r.gv && (e.type === 'baslik' || e.type === 'text') && String(e.s || '').startsWith(`${ic}-${ic} `)) { e.s = `${k.nm}-${k.nm} ` + String(e.s).slice(2 * ic.length + 2); delete e._c; }
+            const km = r.km; if (C.doc.set.kesitMeta) delete C.doc.set.kesitMeta[ic];
+            if (km) { const hY = C.annoH(mmU('kablo')); for (const t of elE.filter(e => e.type === 'eluh' && e.sys === 'tava')) { const a = t.pts[0], b = t.pts[1], da = (a[0] - km.a[0]) * km.n[0] + (a[1] - km.a[1]) * km.n[1], db = (b[0] - km.a[0]) * km.n[0] + (b[1] - km.a[1]) * km.n[1]; if (da * db > 0 || Math.abs(da - db) < 1e-6) continue; const q = da / (da - db), x = a[0] + (b[0] - a[0]) * q, y = a[1] + (b[1] - a[1]) * q, c = (x - km.a[0]) * km.u[0] + (y - km.a[1]) * km.u[1]; if (c < km.ub[0] || c > km.ub[2]) continue;
+                const w = (t.n || 1) * (+t.w || 100) / 1000, hT = (+t.h || 60) / 1000, x0 = km.q0[0] + c - w / 2, z0 = km.q0[1] + t.z, ly = t.layer, ad = String(t.kod || ''); const ek = C.add(C.newEnt('pline', { pts: [[x0, z0 + hT, 0], [x0, z0, 0], [x0 + w, z0, 0], [x0 + w, z0 + hT, 0]], closed: false, layer: ly, gv: r.gv })); if (ek) delete ek.sp; const ty = C.add(C.newEnt('text', { p: [x0 + w + hY * 0.6, z0, 0], h: hY, s: ad + ' ' + (t.el || ''), al: 'L', ann: false, st: 'AAAA', color: YR(), layer: 'EYAZI', gv: r.gv })); if (ty) delete ty.sp; } }
+            /* plandaki kesit işareti çizgiye çevrilir (MIMARIPAFTA kesit harflerini kullanılmış saymasın; mekanik ünite paftasıyla aynı) */
+            try { const a = Wp(k.a), b = Wp(k.b), sp = Wp(k.sp), u0 = [b[0] - a[0], b[1] - a[1]], l = Math.hypot(u0[0], u0[1]) || 1; let n = [-u0[1] / l, u0[0] / l]; if ((sp[0] - a[0]) * n[0] + (sp[1] - a[1]) * n[1] < 0) n = [-n[0], -n[1]]; const mk = C.makeSectionMark ? C.makeSectionMark([a[0], a[1], 0], [b[0], b[1], 0], [n[0], n[1], 0], k.nm, res.gv) : null;
+              if (mk) { delete mk._c; const Pr = C.prims(mk) || []; C.doc.ents = C.doc.ents.filter(e => e !== mk); const P3 = q => [q[0], q[1], 0]; for (const pr of Pr) { const b0 = Object.assign({ gv: res.gv, layer: mk.layer || 'KESIT_ISARET' }, pr.lw ? { lw: pr.lw } : {}, pr.color != null ? { color: pr.color } : {}, pr.lt ? { lt: pr.lt } : {}); let x = null; if (pr.k === 'L') x = C.newEnt('line', Object.assign(b0, { a: P3(pr.a), b: P3(pr.b) })); else if (pr.k === 'P') x = C.newEnt('pline', Object.assign(b0, { pts: pr.pts.map(P3), closed: !!pr.c })); else if (pr.k === 'C') x = C.newEnt('circle', Object.assign(b0, { c: P3(pr.c), r: pr.r })); else if (pr.k === 'S' && C.T.solid) x = C.newEnt('solid', Object.assign(b0, { pts: pr.pts.map(P3) })); else if (pr.k === 'T') x = C.newEnt('text', Object.assign(b0, { p: P3(pr.p), h: pr.h, s: pr.s, rot: (pr.rot || 0) * 180 / Math.PI, al: pr.al || 'MC', ann: false }, pr.st ? { st: pr.st } : {})); if (x) { const y2 = C.add(x); if (y2) delete y2.sp; } } } } catch (er) { console.error('kesit işareti', er); }
+            { const b = C.extents(C.doc.ents.filter(e => e.gv === r.gv)); if (b) yK = b[1] - 12; } } }
         /* tablolar / lejant / notlar / detaylar (kâğıt mm → elsema) */
-        const gvT = `ELU_${PF.tur}_` + Date.now().toString(36); st.gvs.push(gvT); const bloklar = [];
+        const gvT = `ELU_${PF.tur}_` + Date.now().toString(36), gvTs = [], bloklar = [];
         const gs = [];
         if (PF.tur === 'guc') { gs.push(['lej1', lejant1(d)]); gs.push(['boru', tablo('GALV. BORULARDAN GEÇEN KABLOLAR', [{ t: 'BORU', w: 22 }, { t: 'KABLO (mm2 NYY-LIYCY)', w: 62 }], BORU_TABLO.map(r => [r[0], r[1]]))]);
           if ((d.kablo || []).length) gs.push(['liste', tablo(`${yapi} — KABLO LİSTESİ`, LISTE_SUTUN, listeSatirlari(d.kablo), { h: 2.2 })]); }
+        if (PF.tur === 'tav') { const TV = C.elTavaApi, Mt = d.metraj; if (TV && Mt) {
+          const sTop = [...Mt.satir.map(x => [String(x.yol), TV.SINIF[x.sinif] || x.sinif, x.olcu, String(x.n), vir(x.L), vir(x.toplam), String(x.parca), String(x.nKablo), '%' + vir(x.dolu * 100, 0)]), ['', '', '', '', 'TOPLAM', vir(Mt.toplamM), String(Mt.satir.reduce((t, x) => t + x.parca, 0)), '', '']];
+          gs.push(['tav-metraj', tablo('TAVA ÖLÇÜ VE METRAJ LİSTESİ', [{ t: 'YOL', w: 12 }, { t: 'HAT', w: 24 }, { t: 'GxY (mm)', w: 22 }, { t: 'SIRA', w: 12 }, { t: 'BOY (m)', w: 18 }, { t: 'TOPLAM (m)', w: 22 }, { t: '3 m PARÇA', w: 20 }, { t: 'KABLO', w: 15 }, { t: 'DOLULUK', w: 18 }], sTop, { h: 2.2 })]);
+          const sEk = Mt.parcalar.map(x => [String(x.poz), x.ad, x.oz, x.birim, String(x.miktar)]), B0 = d.boruMet; let pz = sEk.length; if (B0) { for (const q of B0.boru) sEk.push([String(++pz), 'Galvaniz boru (branş)', q.boru, 'm', vir(q.L)]); if (B0.adaptor) sEk.push([String(++pz), 'Tava çıkış adaptörü', 'boru çapına uygun', 'adet', String(B0.adaptor)]); if (B0.kelepce) sEk.push([String(++pz), 'Boru kelepçesi', 'galvaniz, 1,5 m aralıkla', 'adet', String(B0.kelepce)]); }
+          gs.push(['tav-ek', tablo('KULLANILAN EK PARÇALAR LİSTESİ', [{ t: 'POZ', w: 11 }, { t: 'MALZEME', w: 52, al: 'L' }, { t: 'ÖZELLİK', w: 62, al: 'L' }, { t: 'BİRİM', w: 14 }, { t: 'MİKTAR', w: 18 }], sEk, { h: 2.2 })]);
+          for (const q of d.doseme || []) gs.push(['det-doseme', TV.detayDoseme(Object.assign({ ara: UK().tavaAra || 0.2 }, q))]);
+          const q0 = (d.doseme || [])[0] || {}; gs.push(['det-ek', TV.detayEk()], ['det-konsol', TV.detayKonsol({ wAg: q0.ag && q0.ag.w, wZ: q0.zayif && q0.zayif.w, ag: q0.ag ? q0.ag.w + 'x' + q0.ag.h : '', zayif: q0.zayif ? q0.zayif.w + 'x' + q0.zayif.h : '' })], ['det-cikis', TV.detayCikis()]); } }
         if (PF.tur === 'top') { gs.push(['lej2', lejant2()]); try { if (EL().detayBara) gs.push(['det-bara', EL().detayBara({ ad: 'TB-1' })]); } catch (er) { console.error(er); } try { if (d.topraklama && EL().tabloTopraklama) gs.push(['tbl-top', EL().tabloTopraklama(d.topraklama)]); } catch (er) { console.error(er); } gs.push(['not2', notlar2(d.topraklama)]); }
         if (PF.tur === 'ayd') { gs.push(['lej3', lejant3(d.armKod || 'U-LED36W')]); if (d.bhak) gs.push(['tekhat', tekHat(d.bhak)]); gs.push(['det-arm', detayArmatur(d.armKod || 'U-LED36W', UK().direkH)]); if (d.bhak) gs.push(['not3', notlar3(d)]); }
         let yy = 0; const xT = place[0] + (bb[2] - bb[0]) + 6;
-        for (const [tur, g] of gs) { if (!g) continue; const gb = gKutu(g); if (!gb) continue; const p = [xT - gb[0] * kf, Yc + yy - gb[3] * kf]; semaEnt(gvT, p, g, tur); yy -= (gb[3] - gb[1]) * kf + 8 * kf; }
+        for (const [tur, g] of gs) { if (!g) continue; const gb = gKutu(g); if (!gb) continue; const p = [xT - gb[0] * kf, Yc + yy - gb[3] * kf]; const gI = `${gvT}_${gvTs.length}`; gvTs.push(gI); st.gvs.push(gI); semaEnt(gI, p, g, tur); yy -= (gb[3] - gb[1]) * kf + 8 * kf; }
         const blok = (gv, ana) => { const b = A.vpBlok(gv, SC, 'Elektrik'); if (b) { b.sc = SC; if (ana) b.ana = true; } return b; };
-        bloklar.push(blok(res.gv, true)); bloklar.push(blok(gvT, false));
+        if (res.gv) bloklar.push(blok(res.gv, true)); for (const g of kesitGv) bloklar.push(blok(g, true)); for (const g of gvTs) bloklar.push(blok(g, false));
         /* pafta: en az kâğıt (mimari altyapısı) */
         const bl = bloklar.filter(b => b && b.w > 0 && b.h > 0); if (bl.length) {
           const byId = new Map(bl.map(b => [b.gv, b])), Y = Ap.enAzKagit(bl.map(b => ({ id: b.gv, w: b.w, h: b.h, grup: PF.ad })), { antetW: C.antetGen ? C.antetGen() : 0 }), n = Y.paftalar.length;
           Y.paftalar.forEach((P2, i) => { const adN = PF.ad + (n > 1 ? ` (${i + 1}/${n})` : '');
-            const gp = C.grpCur; C.grpCur = 'Elektrik'; const Ly = C.newLayout(`ELEKTRİK — ${yapi} — ${adN}`, P2.kagit, 'L'); C.grpCur = gp;
+            const gp = C.grpCur; C.grpCur = 'Elektrik'; const Ly = C.newLayout(`ELEKTRİK ALTYAPI — ${yapi} — ${adN}`, P2.kagit, 'L'); C.grpCur = gp;
             Object.assign(Ly, { grp: 'Elektrik', elUnite: u.id, elUniteParca: PF.tur + '_' + i, disPafta: 'Elektrik', size: 'OZEL', pw: P2.pw, ph: P2.ph, orient: 'L', noTitle: false, margin: Object.assign({}, Ap.PAFTA_R2.kenar), antetSutun: P2.antet, kagit: P2.kagit });
             Ly.f = Object.assign(Ly.f || {}, { proje: (Ly.f && Ly.f.proje) || C.doc.set.name || '', baslik: `${yapi} — ${adN}` });
             Ly.vps = P2.ids.map(id => { const b = byId.get(id), q = P2.yer[id]; return Object.assign({ x: q[0], y: q[1], w: b.w, h: b.h, cx: (b.bb[0] + b.bb[2]) / 2, cy: (b.bb[1] + b.bb[3]) / 2, scale: b.sc, gvOnly: b.gv, frame: { on: false }, lock: true, disiplin: 'Elektrik' }, b.ana ? { ana: true } : {}); });
@@ -579,7 +630,7 @@
             if (P2.tasan.length) C.warn(`${Ly.name}: ${P2.tasan.length} çizim pafta yüksekliğine (${P2.ph} mm) sığmıyor; paftada kırpılır.`);
             paf.push(Ly); });
         }
-        { const b = C.extents(C.doc.ents.filter(e => e.gv === res.gv || e.gv === gvT)); if (b) Yc = b[1] - 12; }
+        { const b = C.extents(C.doc.ents.filter(e => (res.gv && e.gv === res.gv) || gvTs.includes(e.gv) || kesitGv.includes(e.gv))); if (b) Yc = b[1] - 12; }
       }
       numarala();
       try { if (C.bolgeDuzenle) C.bolgeDuzenle({ sessiz: true }); } catch (er) { console.error('bölge düzeni', er); }
@@ -590,7 +641,7 @@
     } finally { C.doc.set.anno = anno0; }
   };
   /* Elektrik pafta numaraları: bina paftaları (el-pafta.js, L.elPafta) ELK-01 …; ünite paftaları onlardan sonra */
-  const numarala = () => { const L0 = C.doc.layouts || [], T0 = ['guc', 'top', 'ayd'], U0 = [...new Set(L0.filter(q => q.elUnite).map(q => q.elUnite))]; let i = L0.filter(x => x.elPafta).length;
+  const numarala = () => { const L0 = C.doc.layouts || [], T0 = ['guc', 'tav', 'top', 'ayd'], U0 = [...new Set(L0.filter(q => q.elUnite).map(q => q.elUnite))]; let i = L0.filter(x => x.elPafta).length;
     const P0 = q => +String(q.elUniteParca || '').split('_')[1] || 0; for (const x of L0.filter(q => q.elUnite).slice().sort((a, b) => (U0.indexOf(a.elUnite) - U0.indexOf(b.elUnite)) || (T0.indexOf(turOf(a)) - T0.indexOf(turOf(b))) || (P0(a) - P0(b)))) x.f = Object.assign({}, x.f || {}, { no: 'ELK-' + String(++i).padStart(2, '0') }); };
   C.elUniteNumarala = numarala;
   const numSar = () => { const E = C.EL; if (!E || !E.paftaNumarala || E._euSar) return; const f0 = E.paftaNumarala; E.paftaNumarala = function () { const r = f0.apply(this, arguments); try { numarala(); } catch (er) { console.error(er); } return r; }; E._euSar = true; };
@@ -617,7 +668,7 @@
   for (const ad of ['ELEKTRIKHESAPLA', 'ELHESAPLA', 'ELEKTRIKHESAP']) { const d = C.cmds && C.cmds[ad]; if (!d || d._eluSar) continue; const f0 = d.fn; d._eluSar = true; d.fn = async function (I) { const Hs = hesapHavuz(), H = Hs.length > 0, bina = binaVarMi(C.doc.ents, new Set(Hs.map(e => e.id))); if (!H || bina) await f0.call(this, I); if (H) await havuzlariHesapla(); }; }
   /* ELEKTRIKRAPOR komutu EL.raporAc'ı çağırır: sarmalayıcı yukarıda */
 
-  C.addCommand(['ELUNITEPAFTA', 'ELEKTRIKUNITE', 'ELHAVUZPAFTA'], 'Seçili havuzun (proses ünitesi; önce anaerobik havuz) elektrik projesini Çorlu E-BP düzeninde "Elektrik" grubuna hazırlar: 1) güç, kumanda, enstrüman kablo ve tava planı (motorlar mekanik ekipman listesinden; JB, LCU, kablo tavası, GK / KK / KK-LK kabloları, kesit motor gücünden; kablo boyları genel kablolamada), 2) topraklama planı (halka şerit, çubuklar, TB-1, bara detayı, hesap). Aydınlatma, priz ve anahtar kutusu proje ayarıdır, kapalı başlar (ELUNITEAYD ile açılırsa 3. pafta eklenir). Elektrik nesneleri 3B modelde de görünür. İçinde yaşam olan yapılar için: ELEKTRIKPAFTA.', async (I) => {
+  C.addCommand(['ELUNITEPAFTA', 'ALTYAPIELEKTRIK', 'ELEKTRIKUNITE', 'ELHAVUZPAFTA'], 'Seçili havuzun (proses ünitesi; önce anaerobik havuz) elektrik projesini Çorlu E-BP düzeninde "Elektrik" grubuna hazırlar: 1) güç, kumanda, enstrüman kablo ve tava planı (motorlar mekanik ekipman listesinden; JB, LCU, kablo tavası, GK / KK / KK-LK kabloları, kesit motor gücünden; kablo boyları genel kablolamada), 2) topraklama planı (halka şerit, çubuklar, TB-1, bara detayı, hesap). Aydınlatma, priz ve anahtar kutusu proje ayarıdır, kapalı başlar (ELUNITEAYD ile açılırsa 3. pafta eklenir). Elektrik nesneleri 3B modelde de görünür. İçinde yaşam olan yapılar için: ELEKTRIKPAFTA.', async (I) => {
     numSar();
     const u = await secHavuz(I, 'Elektrik paftası hazırlanacak havuzu seçin (anaerobik havuz)');
     if (!u) { C.warn('Havuz türünde ünite seçilmedi (şimdilik pafta tarifi olan anaerobik havuz). İçinde yaşam olan yapılar (bekçi binası vb.) için: ELEKTRIKPAFTA. Yapı türünü değiştirmek için: ELYAPITURU.'); return; }
@@ -630,7 +681,7 @@
   });
   C.addCommand(['ELYAPITURU', 'YAPITURU'], 'Seçili yapının elektrik projesi türünü seçer: HAVUZ (proses ünitesi; Çorlu E-BP düzeni, ELUNITEPAFTA) ya da YASAM (içinde yaşam olan yapı; bekçi binası E-BB düzeni, ELEKTRIKPAFTA). ELYAPITURU [HAVUZ|YASAM|OTO]', async (I) => {
     const s = (C.sel && C.sel.length) ? C.sel : await I.sel('Yapıyı seçin'); const x = (s || []).find(e => !e.gv); if (!x) return;
-    const a = await I.kw('Elektrik yapı türü', [['H', 'Havuz / proses ünitesi (E-BP)'], ['Y', 'Yaşam alanı (E-BB)'], ['O', 'Kendiliğinden']], yapiTuru(x) === 'havuz' ? 'Y' : 'H'); if (!a) return;
+    const a = await I.kw('Elektrik yapı türü', [['H', 'Altyapı: havuz / proses ünitesi (E-BP)'], ['Y', 'Üstyapı: içinde yaşam olan yapı (E-BB)'], ['O', 'Kendiliğinden']], yapiTuru(x) === 'havuz' ? 'Y' : 'H'); if (!a) return;
     if (a === 'H') x.elYapi = 'havuz'; else if (a === 'Y') x.elYapi = 'yasam'; else delete x.elYapi;
     C.changed(); C.log(`${x.code || x.name || x.type}: elektrik yapı türü ${yapiTuru(x) === 'havuz' ? 'HAVUZ (E-BP düzeni, ELUNITEPAFTA)' : 'YAŞAM ALANI (E-BB düzeni, ELEKTRIKPAFTA)'}${x.elYapi ? '' : ' (kendiliğinden)'}.`);
   });

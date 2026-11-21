@@ -129,6 +129,10 @@ Bina (yaşam alanı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler
 
 **Kullanıcı kararı 21.11.2026:** bu projede havuzlarda aydınlatma, priz ve anahtar kutusu yoktur; E-BP 003 karşılığı pafta üretilmez (`ELUNITEAYD` ile açılabilir, kapalı başlar).
 
+**Kullanıcı kararları 21.11.2026:** üstyapı (E-BB) ve altyapı (E-BP) mekanikteki gibi ayrı; altyapı güç paftasında plan + kesitler. Tava gerçek ölçüde (100…600 x 60 mm, doluluk ≤ %40), AG (`ELK_TAVA`, üstte) ve zayıf akım (`ELK_TAVA_Z`, altta, planda kesikli) ayrı; kumanda kabloları zayıf akım tavasında (kabul). Her halkaya bir redoks metre (ORP; sembol daire R 15,6 cm, içinde `ORP`), kabloları PLC-1/<kod>-1 3x1.5 NYY ve PLC-1/<kod>-2 3x1.5 LIYCY.
+
+**Tava detay paftası (21.11.2026, `app/el-tava.js`):** tava ölçü ve metraj listesi, ek parça listesi, kablo döşeme açılımı, tava ek bağlantısı, konsol montajı, tavadan ekipmana çıkış. Kabuller: parça 3 m, konsol 1,5 m, ek takımı 2 levha + 8 M6, konsola 2 M10, boru kelepçesi 1,5 m. Kablo dış çapı yaklaşık 7 + 2,2·√(n·S) mm.
+
 ### Örnekteki düzen (birebir alınanlar)
 - **Kablo kodu** `<tür>-<pano>/<ekipman kodu>`: `GK` güç, `KK` kumanda, `KK-LK` lokal kumanda; pano no 1 = MCC-1, 2 = 2. kademe (lokal panodan motora). Etiket iki satır: kod, altında `4x2.5 mm² NYY <boy> mt`; ekipmandan eğik çizgi + yazının altını çizen yatay çizgiyle çıkar.
 - **Kapak motoru** (örnekte MK-200/n, 0,37 kW): `GK-1/<kod>` 4x2.5 mm² NYY + `KK-1/<kod>` 10x1.5 mm² NYY, ikisi de MCC-1'den.
@@ -156,7 +160,8 @@ Bina (yaşam alanı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler
 | `ELK_KUMANDA` | 3 | Continuous | 0,25 | Kumanda / lokal kumanda / enstrüman kabloları | `KAB2` (3) |
 | `ELK_GUC2` | 5 | HIDDEN | 0,25 | 2. kademe güç kabloları | lejant (kesikli) |
 | `ELK_KUMANDA2` | 3 | HIDDEN | 0,25 | 2. kademe kumanda kabloları | lejant (kesikli) |
-| `ELK_TAVA` | 7 | Continuous | 0,35 | Kablo tavası | `Elektrik` (2 → 7) |
+| `ELK_TAVA` | 7 | Continuous | 0,35 | AG kablo tavası | `Elektrik` (2 → 7) |
+| `ELK_TAVA_Z` | 3 | HIDDEN | 0,35 | Zayıf akım kablo tavası (AG tavasının altında) | kabul |
 Semboller ve yazılar `EYAZI`, topraklama `TOPILET`, ışık / priz linyeleri `EHAT` (§2).
 
 ### Yazı (kâğıt mm, örnekten)
