@@ -118,4 +118,10 @@ t('Hesapla ayrımı: mahal ya da havuza bağlı olmayan duvar bina sayılır; ha
   assert.strictEqual(E.binaVarMi([{ type: 'perde', bag: 1, pts: [[0, 0], [5, 0]] }, { type: 'perde', temel: true, pts: [[0, 0], [5, 0]] }, { type: 'perde', gv: 'x', pts: [[0, 0], [5, 0]] }], H), false);
 });
 
+t('Aydınlatma, priz ve anahtar kapalı başlar; raporda BHAK ve aydınlatma bölümü çıkmaz, topraklama 4. bölüm olur', () => {
+  assert.strictEqual(E.aydinlatmaVar({}), false); assert.strictEqual(E.aydinlatmaVar({ elUniteAyd: true }), true);
+  const h = E.raporBolum('T-108', { motor: MS, kablo: E.kabloListesi(MS), tava: [], bhak: null, arm: 0, topraklama: { rho: 100, D: 20, Rh: 3, Rc1: 30, cubuk: 4, R: 2, dokunma: 0.06, serit: 90, uygun: true } });
+  assert.ok(!h.includes('BHAK') && !h.includes('Aydınlatma')); assert.ok(h.includes('4. Topraklama'));
+});
+
 console.log(`\n${n} test geçti.`);

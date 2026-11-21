@@ -127,6 +127,8 @@ Kaynak: Çorlu AAT T-200 A/B/C BİO-P ANAEROBİK HAVUZU, `(31) ÇRL E-BP 001` g�
 `(33) … 003` aydınlatma ve priz tesisatı planı — 21.11.2026'da ölçüldü (birim cm, ölçek 1/50; 10 birim yazı = 2 mm). Program: `app/el-unite.js` (ELUNITEPAFTA).
 Bina (yaşam alanı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler bu düzende üç pafta alır.
 
+**Kullanıcı kararı 21.11.2026:** bu projede havuzlarda aydınlatma, priz ve anahtar kutusu yoktur; E-BP 003 karşılığı pafta üretilmez (`ELUNITEAYD` ile açılabilir, kapalı başlar).
+
 ### Örnekteki düzen (birebir alınanlar)
 - **Kablo kodu** `<tür>-<pano>/<ekipman kodu>`: `GK` güç, `KK` kumanda, `KK-LK` lokal kumanda; pano no 1 = MCC-1, 2 = 2. kademe (lokal panodan motora). Etiket iki satır: kod, altında `4x2.5 mm² NYY <boy> mt`; ekipmandan eğik çizgi + yazının altını çizen yatay çizgiyle çıkar.
 - **Kapak motoru** (örnekte MK-200/n, 0,37 kW): `GK-1/<kod>` 4x2.5 mm² NYY + `KK-1/<kod>` 10x1.5 mm² NYY, ikisi de MCC-1'den.

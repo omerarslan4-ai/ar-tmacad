@@ -257,7 +257,7 @@
       ['Hat', [B('ELHAT', 'Hat çiz', 'prop'), s('ELHAT L', 'Aydınlatma linyesi', 'prop'), s('ELHAT P', 'Priz linyesi', 'prop'), s('ELHAT T', 'Topraklama', 'prop'), s('ELHAT Y', 'Yangın alarm', 'prop')]],
       ['Hesap ve rapor', [B('ELEKTRIKRAPOR', 'Rapor', 'calc'), s('ELEKTRIK', 'Aydınlatma hesabı', 'calc')]],
       ['Pafta', [B('ELEKTRIKPAFTA T', 'Elektrik paftaları', 'print'), s('ELEKTRIKPAFTA A', 'Aydınlatma ve priz', 'prop'), s('ELEKTRIKPAFTA P', 'Topraklama', 'prop'), s('ELEKTRIKPAFTA Z', 'Telefon ve yangın', 'prop'), s('ELPAFTALISTESI', 'Pafta listesi', 'table'), s('PAFTAELLE', 'Elle düzeltildi (koru)', 'prop'), s('BOLGEDUZENLE', 'Bölgeleri düzenle', 'array')]],
-      ['Havuz (proses ünitesi)', [B('ELUNITEPAFTA', 'Havuz elektrik paftaları', 'print'), s('ELYAPITURU', 'Yapı türü (havuz / yaşam)', 'prop'), s('ELUNITESIL', 'Havuz elektriğini sil', 'prop')]],
+      ['Havuz (proses ünitesi)', [B('ELUNITEPAFTA', 'Havuz elektrik paftaları', 'print'), s('ELYAPITURU', 'Yapı türü (havuz / yaşam)', 'prop'), s('ELUNITEAYD', 'Aydınlatma / priz (var / yok)', 'prop'), s('ELUNITESIL', 'Havuz elektriğini sil', 'prop')]],
       ['Çıktı', [B('ELEKTRIKCIKTI', 'Çıktı al (PDF)', 'print'), B('ELEKTRIKDXF', 'Paftaları DXF kaydet', 'sheet'), s('DISIPLINDXF', 'Disiplin DXF dosyaları', 'sheet')]],
       ['3B', [B('ELEKTRIK3B', '3B elektrik görünümü', 'iso'), s('PERSPEKTIFPAFTA', '3B görünüş paftaya', 'iso')]],
       ['Antet ve stil', [s('ANTET YUKLE', 'Antet yükle', 'sheet'), s('PAFTASTIL', 'Pafta stili', 'prop')]]].map(([a, bs]) => [a, bs.filter(var_)]).filter(p => p[1].length); };
