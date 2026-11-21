@@ -281,6 +281,7 @@
       'ELK_GUC2': { renk: 5, tip: 'HIDDEN', kal: 0.25, ne: 'Güç kabloları 2. kademe (lokal pano → motor)' },
       'ELK_KUMANDA2': { renk: 3, tip: 'HIDDEN', kal: 0.25, ne: 'Kumanda kabloları 2. kademe' },
       'ELK_TAVA': { renk: 7, tip: 'Continuous', kal: 0.35, ne: 'AG kablo tavası (örnekte sarı; firma: sarı yok)' },
+      'ELK_BACA': { renk: 1, tip: 'Continuous', kal: 0.25, ne: 'Kablo bacası ve kablo galerisi (E-BP 001 RÖGAR)' },
       'ELK_TAVA_Z': { renk: 3, tip: 'HIDDEN', kal: 0.35, ne: 'Zayıf akım kablo tavası (AG tavasının altında, planda kesikli)' },
       'ANTET': { renk: 7, tip: 'Continuous', kal: 0.25, ne: 'Antet', serbest: true },
     },
@@ -306,8 +307,9 @@
       sembol: { motorR: 15.6, lcu: 11.9, jb: 8, armaturBoy: 67, armaturEn: 9, bhak: 16, prizPano: 20, cubukR: 10, bara: 40 },
       armaturAralik: 4.80,   // m, korkuluğa monte etanş armatür aralığı (003'te ölçüldü)
       direkH: 3.50,          // m, 3" galvaniz boru direğin korkuluk tabanından yüksekliği (montaj detayı 3500)
-      tavaAlt: 0.82,         // m, kablo tavasının perde üst kotundan aşağısı (örnek: perde üstü +37,32, tava EL +36,50)
+      tavaAlt: -0.02,        // m, zayıf akım tavası perde üst kotunun 2 cm üstünde: yürüme yolu döşeme kenarında, ara perdelerin üstünden geçer (kullanıcı 21.11.2026; örnekte 0,82 m altta idi)
       tavaAra: 0.20,         // m, iki tavalı güzergâhta tavalar arası (örnek EL +36,70 / +36,50)
+      baca: { dis: 1.00, ic: 0.80, h: 1.20 }, galeri: { w: 1.50, h: 2.00 }, // m; baca planı Çorlu rogar bloğundan, derinlik ve galeri ölçüleri kabul
       tavaEn: [100, 150, 200, 300, 400, 500, 600], tavaH: 60, tavaDoluluk: 0.40, // gerçek tava ölçüleri mm (kullanıcı 21.11.2026)
       armaturKod: 'U-LED36W', // örnekte U-2x40W floresan; firma: LED
     },

@@ -29,6 +29,28 @@ t('Paralel tavada kablolar iki tavaya bölünür, numaralar tam', () => {
   const K = Array.from({ length: 20 }, (_, i) => ({ kod: 'K' + i, cins: '4x2.5', d: 14 })), g = T.detayDoseme({ yol: 1, ag: { w: 100, h: 60, n: 2, kablolar: K }, zayif: null });
   assert.ok(g.T.some(x => x[3] === '2x100x60' || /AG KABLO TAVASI 2x100x60 mm/.test(x[3]))); assert.strictEqual(g.T.filter(x => /^\d+  K\d+/.test(x[3])).length, 20);
 });
+t('Kablo girişi: varsayılan baca, seçilince galeri; yer tava ucu hizasında yapı kenarının dışında', () => {
+  assert.strictEqual(T.kabloGiris({}), 'baca'); assert.strictEqual(T.kabloGiris({ elKabloGiris: 'galeri' }), 'galeri');
+  const G = T.girisYeri([5, 8], [0, 1], [[0, 0], [10, 0], [10, 10], [0, 10]], 0.7); assert.deepStrictEqual(G.kenar, [5, 10]); assert.deepStrictEqual(G.merkez, [5, 10.7]);
+  for (const x of ['baca', 'galeri']) { const g = T.detayGiris(x); assert.ok(g.L.length > 8 && g.L.every(l => l.slice(0, 4).every(Number.isFinite))); assert.ok(g.T.some(q => new RegExp(x === 'baca' ? 'KABLO BACASI' : 'KABLO GALERİSİ').test(q[3]))); }
+  assert.ok(T.detayGiris('baca', { dis: 1, ic: 0.8 }).T.some(q => /100x100 cm \(İÇ 80x80\)/.test(q[3])), 'Çorlu baca ölçüsü');
+});
+t('Giriş genel yerleşimden gelen tarafta: en yakın kenar, yön hedefe; tavalar çevreden kısa yoldan bağlanır', () => {
+  const D = [[0, 0], [10, 0], [10, 6], [0, 6]], H = T.hedefGiris([15, 2], D, 0.7);
+  assert.deepStrictEqual(H.kenar, [10, 2]); assert.deepStrictEqual(H.yon, [1, 0]); assert.deepStrictEqual(H.merkez, [10.7, 2]);
+  assert.deepStrictEqual(T.hedefGiris([10, 2], D, 0.5).yon.map(v => Math.round(v) + 0), [1, 0], 'nokta kenardaysa dışa');
+  assert.deepStrictEqual(T.cevreYol(D, [2, 6], [10, 2]), [[2, 6], [10, 6], [10, 2]], 'üst kenardan sağ kenara kısa yol');
+  assert.deepStrictEqual(T.cevreYol(D, [2, 0], [8, 0]), [[2, 0], [8, 0]], 'aynı kenarda düz');
+  assert.deepStrictEqual(T.cevreYol(D, [1, 0], [0, 3]), [[1, 0], [0, 0], [0, 3]], 'geri yön kısa ise geriden');
+});
+t('Lokal pano: Otomatik-0-Manuel, Start, Stop, lambalar, prensip şeması, 10 damar', () => {
+  const g = T.detayLCU(), y = g.T.map(x => String(x[3])); for (const a of ['OTOMATİK', 'MANUEL', '0', 'START', 'STOP', 'ÇALIŞIYOR', 'ARIZA', 'K1']) assert.ok(y.includes(a), a);
+  assert.strictEqual(T.LCU_DAMAR.length, 10); assert.ok(g.L.every(l => l.slice(0, 4).every(Number.isFinite)));
+});
+t('Tava yürüyüş yolunun kenarında: sahanlık çıkıntısı kenar sayılmaz, ekipmanı az olan kenar seçilir', () => {
+  const a = { u: [0, 1], n: [1, 0], c: [0, 10] }, P = [[-1, 0], [1, 0], [1, 20], [-1, 20], [-1, 12], [-3, 12], [-3, 10], [-1, 10], [-1, 0]], K0 = T.yolKenar(P, a);
+  assert.deepStrictEqual(K0, { oA: -1, oB: 1 }); assert.deepStrictEqual(T.yolKenar(P, { u: [0, 1], n: [1, 0], c: [-2, 10] }), { oA: 1, oB: 3 }, 'merkez sahanlığa kaysa da iki uzun kenar'); assert.deepStrictEqual(T.tavaYani(K0, [-1.5, -1.6, 1.4]), { o: 1, sg: 1, oDiger: -1 }); assert.deepStrictEqual(T.tavaYani(K0, [1.5, 1.6, -1.4]), { o: -1, sg: -1, oDiger: 1 });
+});
 t('Detaylar çiziliyor, sayılar geçerli', () => {
   const o = { yol: 1, ag: { w: 100, h: 60, kablolar: [{ kod: 'GK-1/Z', cins: '4x2.5 mm² NYY', d: 14 }] }, zayif: { w: 200, h: 60, kablolar: [{ kod: 'KK-1/Z', cins: '10x1.5 mm² NYY', d: 15.5 }] } };
   for (const g of [T.detayDoseme(o), T.detayEk(), T.detayKonsol({ wAg: 100, wZ: 200 }), T.detayCikis()]) { assert.ok(g.L.length > 5 && g.T.length > 1); assert.ok(g.L.every(l => l.slice(0, 4).every(Number.isFinite))); assert.ok(g.T.every(x => Number.isFinite(x[0]) && Number.isFinite(x[1]))); }

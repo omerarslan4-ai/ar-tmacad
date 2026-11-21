@@ -43,6 +43,32 @@
     const ust = out.reduce((t, k) => Math.max(t, k.y + k.r), 0); return { yer: out, ust, sigdi: ust <= h + 1e-9 };
   }
 
+  /* yürüme yolunun iki uzun kenarı: eksene paralel korkuluk parçalarında en uzun toplam boylu iki hat (sahanlık çıkıntıları sayılmaz). a: { u, n, c } */
+  function yolKenar(pts, a) { const m = new Map(); for (let i = 1; i < (pts || []).length; i++) { const P = pts[i - 1], Q = pts[i], dx = Q[0] - P[0], dy = Q[1] - P[1], l = Math.hypot(dx, dy); if (l < 1e-6 || Math.abs(dx * a.u[0] + dy * a.u[1]) / l < 0.98) continue; const o = Math.round(((P[0] + Q[0]) / 2 - a.c[0]) * a.n[0] * 100 + ((P[1] + Q[1]) / 2 - a.c[1]) * a.n[1] * 100) / 100; m.set(o, (m.get(o) || 0) + l); }
+    const iki = [...m].sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]); if (iki.length < 2) return { oA: null, oB: null }; return { oA: Math.min(...iki), oB: Math.max(...iki) }; } /* eksen merkezi sahanlıkla kayabilir: işarete değil, boya bakılır */
+  /* tavanın gideceği kenar: dışında (1,2 m) ekipmanı az olan; eşitse + kenar → { o, sg, oDiger } */
+  function tavaYani(K, ekipO, bant = 1.2) { const say = (o, sg) => (ekipO || []).filter(x => sg * (x - o) > -0.05 && sg * (x - o) <= bant).length, nA = say(K.oA, -1), nB = say(K.oB, 1); return nA < nB ? { o: K.oA, sg: -1, oDiger: K.oB } : { o: K.oB, sg: 1, oDiger: K.oA }; }
+
+  /* kablo girişi: 'baca' (varsayılan) | 'galeri' */
+  const kabloGiris = set => (set && set.elKabloGiris === 'galeri' ? 'galeri' : 'baca');
+  /* tava ucundan dışa (yon: birim) giden ışının yapı dış çizgisini (kapalı çokgen) son kestiği nokta; kesmezse uç. pay: kenardan dışarı uzaklık → { kenar, merkez } */
+  function girisYeri(uc, yon, dis, pay = 0.7) {
+    let tMax = null; const n = (dis || []).length;
+    for (let i = 0; i < n; i++) { const a = dis[i], b = dis[(i + 1) % n], ex = b[0] - a[0], ey = b[1] - a[1], de = yon[0] * ey - yon[1] * ex; if (Math.abs(de) < 1e-9) continue; const ax = a[0] - uc[0], ay = a[1] - uc[1], t = (ax * ey - ay * ex) / de, q = (ax * yon[1] - ay * yon[0]) / de; if (t >= -1e-9 && q >= -1e-9 && q <= 1 + 1e-9 && (tMax == null || t > tMax)) tMax = t; }
+    const t = tMax == null ? 0 : tMax, kenar = [uc[0] + yon[0] * t, uc[1] + yon[1] * t]; return { kenar, merkez: [kenar[0] + yon[0] * pay, kenar[1] + yon[1] * pay] };
+  }
+
+  /* genel yerleşimden gelen hattın noktası (hedef) → yapı kenarında en yakın giriş; yon: kenardan hedefe (birim) */
+  function kenarNokta(q, dis) { let b = null, bd = Infinity, bi = 0, bt = 0; const n = (dis || []).length; for (let i = 0; i < n; i++) { const a = dis[i], c = dis[(i + 1) % n], l2 = (c[0] - a[0]) ** 2 + (c[1] - a[1]) ** 2 || 1, t = Math.max(0, Math.min(1, ((q[0] - a[0]) * (c[0] - a[0]) + (q[1] - a[1]) * (c[1] - a[1])) / l2)), r = [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t], d = Math.hypot(q[0] - r[0], q[1] - r[1]); if (d < bd - 1e-9) { bd = d; b = r; bi = i; bt = t; } } return { p: b, i: bi, t: bt, d: bd }; }
+  function hedefGiris(hedef, dis, pay = 0.7) { const K = kenarNokta(hedef, dis); if (!K.p) return null; let y = [hedef[0] - K.p[0], hedef[1] - K.p[1]], l = Math.hypot(y[0], y[1]);
+    if (l < 1e-6) { const a = dis[K.i], c = dis[(K.i + 1) % dis.length], A2 = dis.reduce((t, p, i) => { const q = dis[(i + 1) % dis.length]; return t + p[0] * q[1] - q[0] * p[1]; }, 0), sg = A2 > 0 ? 1 : -1; y = [sg * (c[1] - a[1]), -sg * (c[0] - a[0])]; l = Math.hypot(y[0], y[1]) || 1; }
+    const yon = [y[0] / l, y[1] / l]; return { kenar: K.p, yon, merkez: [K.p[0] + yon[0] * pay, K.p[1] + yon[1] * pay] }; }
+  /* çokgen çevresinde a'dan b'ye kısa yol (a ve b dahil) */
+  function cevreYol(dis, a, b) { const n = (dis || []).length; if (n < 3) return [a, b]; const A = kenarNokta(a, dis), B = kenarNokta(b, dis), boy = P => P.reduce((t, p, i) => (i ? t + Math.hypot(p[0] - P[i - 1][0], p[1] - P[i - 1][1]) : 0), 0), ileri = [a], geri = [a];
+    if (A.i === B.i && B.t >= A.t) ileri.push(b); else { for (let i = (A.i + 1) % n, k = 0; k < n; i = (i + 1) % n, k++) { ileri.push(dis[i]); if (i === B.i) break; } ileri.push(b); }
+    if (A.i === B.i && B.t <= A.t) geri.push(b); else { for (let i = A.i, k = 0; k < n; i = (i - 1 + n) % n, k++) { geri.push(dis[i]); if (i === (B.i + 1) % n) break; } geri.push(b); }
+    return boy(ileri) <= boy(geri) ? ileri : geri; }
+
   /* ---------- çizim yardımcıları ---------- */
   const yM = k => { const G = (typeof window !== 'undefined' ? window.C : globalThis.C) || {}, t = G.cizimKural && G.cizimKural.ELEKTRIK && G.cizimKural.ELEKTRIK.yaziMm; return (t && t[k]) || 2.4; };
   const yeni = () => { const c = EL._cizer(); c.g.S = c.g.S || []; return c; };
@@ -79,10 +105,13 @@
   }
   /* KONSOL MONTAJI: perde, M10 ankraj, AG ve zayıf akım tavaları (0,20 m), yürüme yolu döşemesi */
   function detayKonsol(o = {}) {
-    const c = yeni(), wA = Math.min(60, ((o.wAg || 200) * 0.18)), wZ = Math.min(60, ((o.wZ || 200) * 0.18)), yZ = 0, yA = 36; duvar(c, 0, -14, 72); c.L(0, 66, 72, 66, 'k'); c.L(0, 70, 72, 70, 'k'); c.T(74, 67, yM('detay'), 'YÜRÜME YOLU DÖŞEMESİ', 'L', 0, 2);
-    const kat = (y, w, s) => { c.L(0, y - 2, w + 6, y - 2, 'k'); c.L(0, y, w + 6, y, 'k'); c.L(w + 6, y, w + 6, y - 2, 'k'); c.L(0, y - 8, 0 + w * 0.55, y - 2, 'i'); c.L(3, y, 3, y + 11, 'k'); c.L(3, y, 3 + w, y, 'k'); c.L(3 + w, y, 3 + w, y + 11, 'k'); for (const q of [y - 5, y + 4 - 9]) c.L(-7, q, 4, q, 'k'); ok(c, 3 + w, y + 7, 78, y + 12, s); };
-    kat(yA, wA, `AG KABLO TAVASI ${o.ag || ''}`.trim()); kat(yZ, wZ, `ZAYIF AKIM TAVASI ${o.zayif || ''}`.trim()); olc(c, 66, yZ, yA, String(Math.round((o.ara || 0.2) * 1000)));
-    ok(c, -5, yZ - 5, -22, yZ - 12, '2 x M10 ANKRAJ'); ok(c, 12, yZ - 2, 40, yZ - 13, 'DUVAR KONSOLU (ARALIK 1,5 m)'); baslik(c, 75, 'TAVA KONSOL MONTAJ DETAYI'); return c.g;
+    const c = yeni(), wA = Math.min(46, (o.wAg || 200) * 0.18), wZ = Math.min(46, (o.wZ || 200) * 0.18), yZ = 6, yA = 42;
+    c.B(-56, 30, 56, 12, 'k'); for (let x = -52; x < -2; x += 5) c.L(x, 30, x + 4, 42, 'h'); c.T(-30, 45, yM('detay'), 'YÜRÜME YOLU (SERBEST)', 'MC', 0, 2); c.L(-56, 0, -8, 0, 'h'); c.B(-50, -12, 12, 42, 'k');
+    c.L(-5, 42, -5, 74, 'k'); c.L(-8, 74, -2, 74, 'k'); c.L(-5, 58, 0, 58, 'i'); ok(c, -5, 66, -24, 66, 'KORKULUK');
+    c.B(0, -2, 2.4, 62, 'k'); for (const q of [33, 39]) c.L(-7, q, 3, q, 'k');
+    const kat = (y, w, ad) => { c.L(2.4, y - 2, 8 + w, y - 2, 'k'); c.L(2.4, y, 8 + w, y, 'k'); c.L(8 + w, y, 8 + w, y - 2, 'k'); c.L(5, y, 5, y + 11, 'k'); c.L(5, y, 5 + w, y, 'k'); c.L(5 + w, y, 5 + w, y + 11, 'k'); ok(c, 5 + w, y + 7, 66, y + 12, ad); };
+    kat(yA, wA, `AG KABLO TAVASI ${o.ag || ''}`.trim()); kat(yZ, wZ, `ZAYIF AKIM TAVASI ${o.zayif || ''}`.trim()); olc(c, 58, yZ, yA, String(Math.round((o.ara || 0.2) * 1000)));
+    ok(c, -3, 36, -24, 18, '2 x M10 ANKRAJ (DÖŞEME KENARI)'); ok(c, 1, 22, 26, 2, 'GALVANİZ DİKME VE KONSOL (ARALIK 1,5 m)'); baslik(c, 78, 'TAVA KONSOL MONTAJ DETAYI'); return c.g;
   }
   /* TAVADAN EKİPMANA ÇIKIŞ: tava, çıkış adaptörü, galvaniz boru, kelepçe, JB ve motor kablosu */
   function detayCikis() {
@@ -93,7 +122,40 @@
     baslik(c, 52, 'TAVADAN EKİPMANA KABLO ÇIKIŞ DETAYI'); return c.g;
   }
 
-  const api = { KB, SINIF, tavaMetraj, boruMetraj, dosemeDizilim, detayDoseme, detayEk, detayKonsol, detayCikis, yv };
+  /* kablo girişi kesiti: tava ucu, düşey iniş, kablo bacası + PVC boru ya da kablo galerisi */
+  function detayGiris(tur, o = {}) {
+    const c = yeni(), baca = tur !== 'galeri'; duvar(c, 0, -30, 34); c.L(0, 0, 100, 0, 'k'); c.T(102, -0.8, yM('detay'), 'ZEMİN', 'L', 0, 2); c.L(0, 24, 22, 24, 'k'); c.L(0, 22, 22, 22, 'i'); c.L(3, 24, 3, 31, 'k'); c.L(22, 24, 22, 31, 'k');
+    c.L(22, 27, 44, 27, 'k'); c.L(22, 25, 42, 25, 'k'); c.L(44, 27, 44, -8, 'k'); c.L(42, 25, 42, -8, 'k');
+    ok(c, 12, 28, 8, 44, 'KABLO TAVASI'); ok(c, 44, 15, 62, 28, 'GALVANİZ BORU İÇİNDE İNİŞ'); ok(c, 0, 8, -6, 18, 'YAPI GİRİŞİ (YÖN GENEL YERLEŞİMDEN)');
+    if (baca) { c.B(30, -24, 32, 24, 'k'); c.B(33, -21, 26, 21, 'i'); c.L(28, 0, 64, 0, 'b'); c.L(62, -12, 96, -12, 'k'); c.L(62, -16, 96, -16, 'k'); olc(c, 26, -24, 0, String(Math.round((o.h || 1.2) * 1000))); ok(c, 56, -6, 72, 12, `KABLO BACASI ${Math.round((o.dis || 1) * 100)}x${Math.round((o.dis || 1) * 100)} cm (İÇ ${Math.round((o.ic || 0.8) * 100)}x${Math.round((o.ic || 0.8) * 100)})`); ok(c, 84, -14, 90, -26, '4xØ100 PVC BORU (MCC YÖNÜ)'); baslik(c, 50, 'KABLO BACASI GİRİŞ DETAYI'); }
+    else { c.B(28, -34, 68, 30, 'k'); c.L(32, -14, 44, -14, 'k'); c.L(32, -22, 44, -22, 'k'); c.L(44, -8, 44, -14, 'k'); olc(c, 24, -34, -4, String(Math.round((o.h || 2) * 1000))); ok(c, 70, -18, 78, 12, 'KABLO GALERİSİ (GENEL YERLEŞİME GÖRE)'); ok(c, 38, -22, 60, -29, 'GALERİ TAVALARI'); baslik(c, 50, 'KABLO GALERİSİ GİRİŞ DETAYI'); }
+    return c.g;
+  }
+
+  /* LOKAL KUMANDA PANOSU (LCU): ön görünüş, kumanda prensip şeması, KK-LK-1 10x1.5 damar tablosu. Güç kontaktörü MCC'de (kabul) */
+  const LCU_DAMAR = [[1, 'KUMANDA FAZI (L)'], [2, 'NÖTR (N)'], [3, 'OTOMATİK KONUM SİNYALİ'], [4, 'MANUEL KONUM SİNYALİ'], [5, 'START'], [6, 'STOP'], [7, 'ÇALIŞIYOR LAMBASI'], [8, 'ARIZA LAMBASI'], [9, 'YEDEK'], [10, 'YEDEK']];
+  function detayLCU() {
+    const c = yeni(), h = yM('detay'), W = 64, H = 80, kk = (x, y, r, ad) => { daire(c, x, y, r, 'k'); daire(c, x, y, r * 0.65); c.T(x, y - r - h - 0.8, h * 0.85, ad, 'MC', 0, 2); };
+    c.B(0, 0, W, H, 'k'); c.B(3, 3, W - 6, H - 6, 'i'); c.B(16, H - 13, 32, 7, 'i'); c.T(32, H - 11.2, h, 'LCU-<EKİPMAN>', 'MC', 0, 2);
+    daire(c, 32, 50, 7, 'k'); c.L(32, 50, 27, 55, 'k'); c.T(32, 59, h * 0.9, '0', 'MC', 0, 2); c.T(23, 53, h * 0.85, 'OTOMATİK', 'R', 0, 2); c.T(41, 53, h * 0.85, 'MANUEL', 'L', 0, 2);
+    kk(20, 30, 5, 'START'); kk(44, 30, 5, 'STOP'); kk(20, 13, 3.2, 'ÇALIŞIYOR'); kk(44, 13, 3.2, 'ARIZA');
+    c.L(0, -4, W, -4, 'h'); c.T(W / 2, -8, yM('olcu'), '400', 'MC', 0, 2); c.L(-4, 0, -4, H, 'h'); c.T(-6, H / 2, yM('olcu'), '500', 'MC', Math.PI / 2, 2); c.T(0, -13, h, 'GÖVDE 400x500x200 mm, IP65', 'L', 0, 2);
+    /* kumanda prensip şeması */
+    const x0 = 86, x1 = 176, y = i => H - 8 - i * 17; c.L(x0, H, x0, y(3) - 4, 'k'); c.L(x1, H, x1, y(3) - 4, 'k'); c.T(x0, H + 2, h, 'L', 'MC', 0, 2); c.T(x1, H + 2, h, 'N', 'MC', 0, 2);
+    const ct = (x, yy, ad, kap) => { c.L(x, yy, x + 3, yy, 'i'); c.L(x + 3, yy, x + 11, yy + (kap ? -1.8 : 3), 'k'); if (kap) c.L(x + 11, yy + 1.5, x + 11, yy - 2.5, 'i'); c.L(x + 11, yy, x + 14, yy, 'i'); c.T(x + 7, yy + 4.5, h * 0.72, ad, 'MC', 0, 2); };
+    const yuk = (yy, ad, x) => { c.L(x, yy, x1 - 11, yy, 'i'); c.B(x1 - 11, yy - 2.5, 7, 5, 'k'); c.L(x1 - 4, yy, x1, yy, 'i'); c.T(x1 - 7.5, yy + 4, h * 0.72, ad, 'MC', 0, 2); };
+    ct(x0, y(0), 'STOP', true); ct(x0 + 14, y(0), 'A-0-M: M'); ct(x0 + 28, y(0), 'START'); yuk(y(0), 'K1', x0 + 42);
+    c.L(x0 + 28, y(0), x0 + 28, y(0) - 7, 'i'); ct(x0 + 28, y(0) - 7, 'K1'); c.L(x0 + 42, y(0) - 7, x0 + 42, y(0), 'i');
+    ct(x0, y(1), 'A-0-M: A', false); ct(x0 + 14, y(1), 'PLC'); yuk(y(1), 'K1', x0 + 28);
+    ct(x0, y(2), 'K1'); yuk(y(2), 'H1', x0 + 14); ct(x0, y(3), 'F1 ARIZA'); yuk(y(3), 'H2', x0 + 14);
+    c.T(x0, y(3) - 9, h * 0.85, 'K1: MOTOR KONTAKTÖRÜ (MCC), H1: ÇALIŞIYOR, H2: ARIZA', 'L', 0, 2);
+    /* damar tablosu */
+    const xT = 196, hS = 5.4; c.T(xT, H + 2, h, 'KK-LK-1 (10x1.5) DAMARLARI', 'L', 0, 2); c.B(xT, H - LCU_DAMAR.length * hS, 62, LCU_DAMAR.length * hS, 'k'); c.L(xT + 10, H, xT + 10, H - LCU_DAMAR.length * hS, 'i');
+    LCU_DAMAR.forEach(([n, ad], i) => { const yy = H - (i + 1) * hS; if (i < LCU_DAMAR.length - 1) c.L(xT, yy, xT + 62, yy, 'i'); c.T(xT + 5, yy + 1.6, yM('cetvel'), n, 'MC', 0, 2); c.T(xT + 12, yy + 1.6, yM('cetvel'), ad, 'L', 0, 2); });
+    baslik(c, H + 7, 'LOKAL KUMANDA PANOSU (LCU) DETAYI'); return c.g;
+  }
+
+  const api = { yolKenar, tavaYani, LCU_DAMAR, detayLCU, kenarNokta, hedefGiris, cevreYol, kabloGiris, girisYeri, detayGiris, KB, SINIF, tavaMetraj, boruMetraj, dosemeDizilim, detayDoseme, detayEk, detayKonsol, detayCikis, yv };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (C) C.elTavaApi = api;
 })(typeof window !== 'undefined' ? window.C : null);
