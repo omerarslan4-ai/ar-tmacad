@@ -69,6 +69,10 @@ t('Topraklama halkası: dış çizginin 0,50 m dışı; çubuklar köşelerde (�
   assert.strictEqual(E.cubukYerleri(R, 6).length, 6);
 });
 
+t('Paralel tavada en dolu tava bile %40 sınırını aşmaz', () => {
+  const L = [...Array(30).fill('10x1.5 mm² NYY'), ...Array(5).fill('4x120 mm² NYY')], q = E.tavaOlcu(L); assert.ok(q.dolu <= 0.40 + 1e-9, 'doluluk ' + q.dolu); const c = E.tavaOlcu(Array(100).fill('4x2.5 mm² NYY')); assert.ok(c.dolu <= 0.40 + 1e-9);
+});
+
 t('Çorlu ORP düzeni: halka başına redoks metre, PLC-1/<kod>-1 3x1.5 NYY ve -2 3x1.5 LIYCY, zayıf akım tavasında', () => {
   const O = E.enstrumanlar('101', 3); assert.deepStrictEqual(O.map(x => x.kod), ['ORP-101/A', 'ORP-101/B', 'ORP-101/C']);
   const K0 = E.kablolar(O[0]); assert.deepStrictEqual(K0.map(k => [k.kod, k.cins, k.nereden]), [['PLC-1/ORP-101/A-1', '3x1.5 mm² NYY', 'PLC-1'], ['PLC-1/ORP-101/A-2', '3x1.5 mm² LIYCY', 'PLC-1']]);

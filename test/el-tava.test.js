@@ -39,6 +39,7 @@ t('Giriş genel yerleşimden gelen tarafta: en yakın kenar, yön hedefe; tavala
   const D = [[0, 0], [10, 0], [10, 6], [0, 6]], H = T.hedefGiris([15, 2], D, 0.7);
   assert.deepStrictEqual(H.kenar, [10, 2]); assert.deepStrictEqual(H.yon, [1, 0]); assert.deepStrictEqual(H.merkez, [10.7, 2]);
   assert.deepStrictEqual(T.hedefGiris([10, 2], D, 0.5).yon.map(v => Math.round(v) + 0), [1, 0], 'nokta kenardaysa dışa');
+  for (const h of [[9.5, 2], [5, 3], [1, 5]]) { const G = T.hedefGiris(h, D, 0.7), q = G.merkez; assert.ok(q[0] < 0 || q[0] > 10 || q[1] < 0 || q[1] > 6, 'yapı içinden seçilse de baca dışarıda: ' + h); }
   assert.deepStrictEqual(T.cevreYol(D, [2, 6], [10, 2]), [[2, 6], [10, 6], [10, 2]], 'üst kenardan sağ kenara kısa yol');
   assert.deepStrictEqual(T.cevreYol(D, [2, 0], [8, 0]), [[2, 0], [8, 0]], 'aynı kenarda düz');
   assert.deepStrictEqual(T.cevreYol(D, [1, 0], [0, 3]), [[1, 0], [0, 0], [0, 3]], 'geri yön kısa ise geriden');
