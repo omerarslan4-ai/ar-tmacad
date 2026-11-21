@@ -106,4 +106,9 @@ t('50 bin: kablo listesi — mikser başına 3, kapak başına 2, vinç başına
   assert.strictEqual(E.LISTE_SUTUN.length, rows[0].length);
 });
 
+t('Rapor: her motorun In ve kesit hesabı, kablo boyu "genel kablolamada", BHAK; aydınlık hesabı yapılmadığı açık yazılır', () => {
+  const KL = E.kabloListesi(MS), h = E.raporBolum('T-108', { motor: MS, kablo: KL, tava: [E.tavaSec(KL.map(k => k.cins))], bhak: E.bhak({ isik: [216], priz: [3000] }), arm: 6, armKod: 'U-LED36W' });
+  for (const m of MS) assert.ok(h.includes(m.kod)); assert.ok(h.includes('10,74'), '5,5 kW In'); assert.ok(h.includes('16,77'), 'gerekli Iz = 1,25 · In / 0,80'); assert.ok(h.includes('genel kablolamada')); assert.ok(h.includes('GK-1/BHAK')); assert.ok(h.includes('aydınlık düzeyi hesabı yapılmamıştır'));
+});
+
 console.log(`\n${n} test geçti.`);
