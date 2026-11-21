@@ -42,8 +42,9 @@ t('Kablo tavası gerçek ölçüde: katalog genişliği, H 60, doluluk ≤ %40; 
   assert.strictEqual(E.tavaOlcu(['4x2.5 mm² NYY']).ad, '100x60 mm');
   const b = E.tavaOlcu(Array(30).fill('4x2.5 mm² NYY')); assert.strictEqual(b.w, 200); assert.ok(b.dolu <= 0.40);
   const c = E.tavaOlcu(Array(100).fill('4x2.5 mm² NYY')); assert.ok(c.n === 2 && c.w <= 600 && c.dolu <= 0.40, '600 mm yetmezse paralel tava');
-  const L = E.kablolar({ kod: 'Z-1', tur: 'mikser', P: 5.5, S: 2.5 }).concat(E.kablolar(E.enstrumanlar('101', 1)[0])), T = E.tavaSec(L);
-  assert.strictEqual(L.filter(k => E.hatSinif(k) === 'ag').length, 1, 'yalnız GK AG tavasında'); assert.ok(T.ag && T.zayif); assert.ok(T.zayif.A > T.ag.A);
+  const L = E.kablolar({ kod: 'SK-1', tur: 'kapak', P: 0.4, S: 2.5 }).concat(E.kablolar({ kod: 'Z-1', tur: 'mikser', P: 5.5, S: 2.5 }), E.kablolar(E.enstrumanlar('101', 1)[0])), T = E.tavaSec(L);
+  assert.strictEqual(L.filter(E.tavada).length, 5, 'GK-2 ve KK-2 (LCU → motor) tavaya girmez');
+  assert.strictEqual(L.filter(k => E.tavada(k) && E.hatSinif(k) === 'ag').length, 1, 'yalnız GK-1 AG tavasında'); assert.ok(T.ag && T.zayif); assert.ok(T.zayif.A > T.ag.A);
 });
 
 t('Çorlu E-BP 003 BHAK tek hat şeması: 2 ışık (600 W) + 2 priz panosu (3000 W) → 3x50A, GK-1/BHAK 4x6mm2 NYY; çıkış sırası 01–06', () => {

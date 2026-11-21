@@ -30,10 +30,10 @@
     const parcalar = [...ekMap.values()].map((x, i) => Object.assign({ poz: i + 1 }, x));
     return { satir, parcalar, toplamM: satir.reduce((t, x) => t + x.toplam, 0) };
   }
-  /* branşlar: [{ boru ('1"'), L (m) }] → boru metrajı, çıkış adaptörü, kelepçe */
+  /* branşlar: [{ boru ('1"'), L (m), tava (false: LCU → motor, tavadan çıkmaz) }]; her kablo kendi borusunda (Çorlu boru tablosu kablo başına; kabul) → boru metrajı, çıkış adaptörü, kelepçe */
   function boruMetraj(branslar) {
     const m = new Map(); let kel = 0, n = 0;
-    for (const b of branslar || []) { if (!b.boru || !(b.L > 0)) continue; m.set(b.boru, (m.get(b.boru) || 0) + b.L); kel += Math.ceil(b.L / KB.kelepce - 1e-9) + 1; n++; }
+    for (const b of branslar || []) { if (!b.boru || !(b.L > 0)) continue; m.set(b.boru, (m.get(b.boru) || 0) + b.L); kel += Math.ceil(b.L / KB.kelepce - 1e-9) + 1; if (b.tava !== false) n++; } /* adaptör yalnız tavadan çıkan kabloda */
     return { boru: [...m].map(([boru, L]) => ({ boru, L })), adaptor: n, kelepce: kel };
   }
   /* kablolar: [{ no, kod, cins, d (dış çap mm) }]; x tava sol iç yüzünden, y taban üstünden (daire merkezi, mm) */
@@ -55,17 +55,17 @@
   /* KABLO DÖŞEME AÇILIMI: perde, konsollar, AG tavası üstte, zayıf akım altta; kablolar gerçek çapta, numaralı; altta numara → kablo listesi.
      o: { yol, ag: { w, h, kablolar:[{kod,cins,d}] } | null, zayif: aynı | null, ara (m) } */
   function detayDoseme(o) {
-    const c = yeni(), mx = Math.max(o.ag ? o.ag.w : 0, o.zayif ? o.zayif.w : 0, 100), k = Math.min(0.55, 110 / mx), ara = (o.ara || 0.2) * 1000 * k, liste = []; let no = 0;
-    const kat = (t, y0, ad) => { if (!t) return; const W = t.w * k, H = t.h * k, x0 = 14;
-      c.L(0, y0 - 3, x0 + W + 5, y0 - 3, 'k'); c.L(0, y0 - 1, x0 + W + 5, y0 - 1, 'i'); /* konsol */
-      c.L(x0, y0 + H, x0, y0, 'k'); c.L(x0, y0, x0 + W, y0, 'k'); c.L(x0 + W, y0, x0 + W, y0 + H, 'k');
-      const D = dosemeDizilim(t.kablolar.map(q => Object.assign({}, q, { no: 0 })), t.w, t.h);
-      for (const q of D.yer) { q.no = ++no; liste.push(q); daire(c, x0 + q.x * k, y0 + q.y * k, q.r * k); c.T(x0 + q.x * k, y0 + q.y * k - 0.5, Math.max(1.3, Math.min(2, q.r * k * 0.8)), q.no, 'MC', 0, 2); }
-      c.T(x0 + W + 8, y0 + H * 0.6, yM('detay'), `${ad} ${t.w}x${t.h} mm`, 'L', 0, 2); c.T(x0 + W + 8, y0 + H * 0.6 - 3.6, yM('detay'), `${t.kablolar.length} kablo`, 'L', 0, 2); };
+    const c = yeni(), gen = t => (t ? (t.n || 1) * t.w + ((t.n || 1) - 1) * 50 : 0), mx = Math.max(gen(o.ag), gen(o.zayif), 100), k = Math.min(0.55, 110 / mx), ara = (o.ara || 0.2) * 1000 * k, liste = []; let no = 0;
+    const kat = (t, y0, ad) => { if (!t) return; const nT = t.n || 1, W = gen(t) * k, H = t.h * k, x00 = 14, sir = t.kablolar.slice().sort((a, b) => b.d - a.d);
+      c.L(0, y0 - 3, x00 + W + 5, y0 - 3, 'k'); c.L(0, y0 - 1, x00 + W + 5, y0 - 1, 'i'); /* konsol */
+      for (let iT = 0; iT < nT; iT++) { const x0 = x00 + iT * (t.w + 50) * k, Wt = t.w * k; c.L(x0, y0 + H, x0, y0, 'k'); c.L(x0, y0, x0 + Wt, y0, 'k'); c.L(x0 + Wt, y0, x0 + Wt, y0 + H, 'k');
+        const D = dosemeDizilim(sir.filter((_, i) => i % nT === iT).map(q => Object.assign({}, q, { no: 0 })), t.w, t.h);
+        for (const q of D.yer) { q.no = ++no; liste.push(q); daire(c, x0 + q.x * k, y0 + q.y * k, q.r * k); c.T(x0 + q.x * k, y0 + q.y * k - 0.5, Math.max(1.3, Math.min(2, q.r * k * 0.8)), q.no, 'MC', 0, 2); } }
+      c.T(x00 + W + 8, y0 + H * 0.6, yM('detay'), `${ad} ${nT > 1 ? nT + 'x' : ''}${t.w}x${t.h} mm`, 'L', 0, 2); c.T(x00 + W + 8, y0 + H * 0.6 - 3.6, yM('detay'), `${t.kablolar.length} kablo`, 'L', 0, 2); };
     const hZ = o.zayif ? o.zayif.h * k : 0, yA = o.zayif ? hZ + 14 : 0; /* tavalar arası gerçekte 200 mm: detayda kısaltılmış, ölçüsü yazılı */ void ara; kat(o.zayif, 0, 'ZAYIF AKIM TAVASI'); kat(o.ag, o.ag ? yA : 0, 'AG KABLO TAVASI');
     const ust = (o.ag ? yA + o.ag.h * k : hZ) + 6; duvar(c, 0, -8, ust); if (o.ag && o.zayif) olc(c, 8, 0, yA, String(Math.round((o.ara || 0.2) * 1000)));
     baslik(c, ust + 2, `KABLO DÖŞEME AÇILIMI — YÜRÜME YOLU ${o.yol}`);
-    const h = 2.06, sut = 62, nSat = Math.max(1, Math.ceil(liste.length / 3)); liste.sort((a, b) => a.no - b.no).forEach((q, i) => { const x = Math.floor(i / nSat) * sut, y = -14 - (i % nSat) * h * 1.7; c.T(x, y, h, `${q.no}  ${q.kod}  ${String(q.cins).replace(' mm²', '')}`, 'L', 0, 2); });
+    const h = yM('cetvel'), sut = 62, nSat = Math.max(1, Math.ceil(liste.length / 3)); liste.sort((a, b) => a.no - b.no).forEach((q, i) => { const x = Math.floor(i / nSat) * sut, y = -14 - (i % nSat) * h * 1.7; c.T(x, y, h, `${q.no}  ${q.kod}  ${String(q.cins).replace(' mm²', '')}`, 'L', 0, 2); });
     return c.g;
   }
   /* TAVA EK BAĞLANTISI (izometrik): iki tava boyu, ek levhaları, M6 civatalar, topraklama köprüsü */
@@ -81,7 +81,7 @@
   function detayKonsol(o = {}) {
     const c = yeni(), wA = Math.min(60, ((o.wAg || 200) * 0.18)), wZ = Math.min(60, ((o.wZ || 200) * 0.18)), yZ = 0, yA = 36; duvar(c, 0, -14, 72); c.L(0, 66, 72, 66, 'k'); c.L(0, 70, 72, 70, 'k'); c.T(74, 67, yM('detay'), 'YÜRÜME YOLU DÖŞEMESİ', 'L', 0, 2);
     const kat = (y, w, s) => { c.L(0, y - 2, w + 6, y - 2, 'k'); c.L(0, y, w + 6, y, 'k'); c.L(w + 6, y, w + 6, y - 2, 'k'); c.L(0, y - 8, 0 + w * 0.55, y - 2, 'i'); c.L(3, y, 3, y + 11, 'k'); c.L(3, y, 3 + w, y, 'k'); c.L(3 + w, y, 3 + w, y + 11, 'k'); for (const q of [y - 5, y + 4 - 9]) c.L(-7, q, 4, q, 'k'); ok(c, 3 + w, y + 7, 78, y + 12, s); };
-    kat(yA, wA, `AG KABLO TAVASI ${o.ag || ''}`.trim()); kat(yZ, wZ, `ZAYIF AKIM TAVASI ${o.zayif || ''}`.trim()); olc(c, 66, yZ, yA, '200');
+    kat(yA, wA, `AG KABLO TAVASI ${o.ag || ''}`.trim()); kat(yZ, wZ, `ZAYIF AKIM TAVASI ${o.zayif || ''}`.trim()); olc(c, 66, yZ, yA, String(Math.round((o.ara || 0.2) * 1000)));
     ok(c, -5, yZ - 5, -22, yZ - 12, '2 x M10 ANKRAJ'); ok(c, 12, yZ - 2, 40, yZ - 13, 'DUVAR KONSOLU (ARALIK 1,5 m)'); baslik(c, 75, 'TAVA KONSOL MONTAJ DETAYI'); return c.g;
   }
   /* TAVADAN EKİPMANA ÇIKIŞ: tava, çıkış adaptörü, galvaniz boru, kelepçe, JB ve motor kablosu */

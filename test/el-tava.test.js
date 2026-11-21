@@ -18,11 +18,16 @@ t('Aynı ölçü birleşir, farklı ölçü ayrı satır; 3 m\'den kısa tavada 
 t('Branş boruları çapa göre toplanır; adaptör ve kelepçe sayılır', () => {
   const B = T.boruMetraj([{ boru: '1"', L: 2 }, { boru: '1"', L: 1 }, { boru: '3/4"', L: 3 }]);
   assert.deepStrictEqual(B.boru, [{ boru: '1"', L: 3 }, { boru: '3/4"', L: 3 }]); assert.strictEqual(B.adaptor, 3); assert.strictEqual(B.kelepce, 3 + 2 + 3);
+  assert.strictEqual(T.boruMetraj([{ boru: '1"', L: 2 }, { boru: '1"', L: 2, tava: false }]).adaptor, 1, 'LCU → motor borusu tavadan çıkmaz');
 });
 t('Kablo döşeme: kalından inceye, tava içinde, üst üste binmez; sığmayan üst sıraya geçer', () => {
   const K = Array.from({ length: 12 }, (_, i) => ({ kod: 'K' + i, cins: '4x2.5', d: i % 2 ? 14 : 16 })), D = T.dosemeDizilim(K, 100, 60);
   assert.ok(D.sigdi); assert.ok(D.yer[0].r === 8); assert.ok(D.yer.every(q => q.x + q.r <= 100 + 1e-9 && q.x - q.r >= 0)); assert.ok(new Set(D.yer.map(q => q.y)).size > 1);
   for (let i = 0; i < D.yer.length; i++) for (let j = i + 1; j < D.yer.length; j++) assert.ok(Math.hypot(D.yer[i].x - D.yer[j].x, D.yer[i].y - D.yer[j].y) >= D.yer[i].r + D.yer[j].r - 1e-9);
+});
+t('Paralel tavada kablolar iki tavaya bölünür, numaralar tam', () => {
+  const K = Array.from({ length: 20 }, (_, i) => ({ kod: 'K' + i, cins: '4x2.5', d: 14 })), g = T.detayDoseme({ yol: 1, ag: { w: 100, h: 60, n: 2, kablolar: K }, zayif: null });
+  assert.ok(g.T.some(x => x[3] === '2x100x60' || /AG KABLO TAVASI 2x100x60 mm/.test(x[3]))); assert.strictEqual(g.T.filter(x => /^\d+  K\d+/.test(x[3])).length, 20);
 });
 t('Detaylar çiziliyor, sayılar geçerli', () => {
   const o = { yol: 1, ag: { w: 100, h: 60, kablolar: [{ kod: 'GK-1/Z', cins: '4x2.5 mm² NYY', d: 14 }] }, zayif: { w: 200, h: 60, kablolar: [{ kod: 'KK-1/Z', cins: '10x1.5 mm² NYY', d: 15.5 }] } };

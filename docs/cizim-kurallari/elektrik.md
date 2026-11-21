@@ -125,11 +125,11 @@ Detaylar ölçeksiz izometrik (perspektif) şemalardır: oklu açıklama (ince �
 ## 15. Proses üniteleri (havuzlar) — E-BP düzeni (kullanıcı kararları 20–21.11.2026)
 Kaynak: Çorlu AAT T-200 A/B/C BİO-P ANAEROBİK HAVUZU, `(31) ÇRL E-BP 001` güç, kumanda, enstrüman kablo ve tava planı · `(32) … 002` topraklama planı ·
 `(33) … 003` aydınlatma ve priz tesisatı planı — 21.11.2026'da ölçüldü (birim cm, ölçek 1/50; 10 birim yazı = 2 mm). Program: `app/el-unite.js` (ELUNITEPAFTA).
-Bina (yaşam alanı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler bu düzende üç pafta alır.
+Bina (üstyapı) elektriği §1–14 düzeninde kalır; havuz tipi üniteler (altyapı) bu düzende güç-tava, tava detay / metraj ve topraklama paftası alır (aydınlatma paftası proje ayarıyla).
 
 **Kullanıcı kararı 21.11.2026:** bu projede havuzlarda aydınlatma, priz ve anahtar kutusu yoktur; E-BP 003 karşılığı pafta üretilmez (`ELUNITEAYD` ile açılabilir, kapalı başlar).
 
-**Kullanıcı kararları 21.11.2026:** üstyapı (E-BB) ve altyapı (E-BP) mekanikteki gibi ayrı; altyapı güç paftasında plan + kesitler. Tava gerçek ölçüde (100…600 x 60 mm, doluluk ≤ %40), AG (`ELK_TAVA`, üstte) ve zayıf akım (`ELK_TAVA_Z`, altta, planda kesikli) ayrı; kumanda kabloları zayıf akım tavasında (kabul). Her halkaya bir redoks metre (ORP; sembol daire R 15,6 cm, içinde `ORP`), kabloları PLC-1/<kod>-1 3x1.5 NYY ve PLC-1/<kod>-2 3x1.5 LIYCY.
+**Kullanıcı kararları 21.11.2026:** üstyapı (E-BB) ve altyapı (E-BP) mekanikteki gibi ayrı; altyapı güç paftasında plan + kesitler. Tava gerçek ölçüde (100…600 x 60 mm, doluluk ≤ %40), AG (`ELK_TAVA`, üstte) ve zayıf akım (`ELK_TAVA_Z`, altta, planda kesikli) ayrı; kumanda kabloları zayıf akım tavasında (kabul); GK-2 / KK-2 tavaya girmez, her kablo kendi galvaniz borusunda (kabul). Her halkaya bir redoks metre (ORP; sembol daire R 15,6 cm, içinde `ORP`), kabloları PLC-1/<kod>-1 3x1.5 NYY ve PLC-1/<kod>-2 3x1.5 LIYCY.
 
 **Tava detay paftası (21.11.2026, `app/el-tava.js`):** tava ölçü ve metraj listesi, ek parça listesi, kablo döşeme açılımı, tava ek bağlantısı, konsol montajı, tavadan ekipmana çıkış. Kabuller: parça 3 m, konsol 1,5 m, ek takımı 2 levha + 8 M6, konsola 2 M10, boru kelepçesi 1,5 m. Kablo dış çapı yaklaşık 7 + 2,2·√(n·S) mm.
 
