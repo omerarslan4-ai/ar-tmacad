@@ -208,6 +208,8 @@
         const place = [X0, Yc - (bb[3] - bb[1]) - 2], ref = [bb[0], bb[1]], W = q => [place[0] + q[0] - ref[0], place[1] + q[1] - ref[1], 0];
         const res = C.makeView({ kind: 'plan', h: p.h, depth: p.depth, place, ref, ids: ents.filter(e => !(p.gizle && p.gizle(e))).map(e => e.id), hatch: p.kesit ? 'ANSI31' : 'YOK', title: up(p.baslik), mek: true, poz: false, dograma: false });
         if (!res) continue; st.gvs.push(res.gv);
+        /* beton taraması mimariyle aynı kural: kesit planda ve kesitte dolu açık gri (kullanıcı 21.11.2026: "mimari ve mekanik tarama kuralları değişmiş") */
+        if (p.kesit && Ap.uniteKesitTarama) Ap.uniteKesitTarama(res.gv);
         try { for (const m of tarif.mahaller || []) mahalYaz(res.gv, W(m.p), m.ad); planEtiket(res.gv, W, tarif.ekipman, p.h);
           for (const d of tarif.planOlcu || []) { const c = JSON.parse(JSON.stringify(d)); for (const key of ['id', '_c', 'sp', 'oto', 'bag']) delete c[key]; for (const key of ['a', 'b', 'p', 'c']) if (Array.isArray(c[key])) c[key] = W(c[key]); c.gv = res.gv; const x = C.add(C.newEnt(c.type, c)); if (x) delete x.sp; }
         } catch (er) { console.error('mekanik plan etiketleri', er); }
@@ -219,6 +221,7 @@
         const ic = 'U' + harf[i % 10]; let r = null; // geçici iç ad: Mimari kesitlerin kesitMeta'sı (A, B …) ezilmesin
         try { r = await A.kesitAl(ic, k.a, k.b, k.sp, k.depth, [X0, Yc], { kv: ['GIZLI=E', 'POZ=H'], onek: 'UMEK_KESIT_', acilim: false, durum: false }); } catch (er) { console.error('mekanik kesit', er); }
         if (!r || !r.n) continue; st.gvs.push(r.gv);
+        if (Ap.uniteKesitTarama) Ap.uniteKesitTarama(r.gv, true);
         const isr = new Set((r.yeni || []).filter(e => e.type === 'kesitisaret').map(e => e.id)); if (isr.size) C.doc.ents = C.doc.ents.filter(e => !isr.has(e.id)); // modelde ikinci kesit işareti kalmasın
         for (const e of C.doc.ents) if (e.gv === r.gv && (e.type === 'baslik' || e.type === 'text') && String(e.s || '').startsWith(`${ic}-${ic} `)) { e.s = `${k.nm}-${k.nm} ` + String(e.s).slice(2 * ic.length + 2); delete e._c; }
         const km = r.km ? JSON.parse(JSON.stringify(r.km)) : null; if (C.doc.set.kesitMeta) delete C.doc.set.kesitMeta[ic];
