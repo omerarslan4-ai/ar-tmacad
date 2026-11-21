@@ -177,7 +177,7 @@
       mahaller: R.mahaller.map(m => ({ ad: m.ad, p: W(m.p) })),
       kodlar: R.kodlar.map(k => Object.assign({}, k, { a: W(k.a) })),
       planSinif: p => sinif(yerel(p)), // planda gövde çizgisinin sınıfı (dünya koordinatı): govde → Beton, tretuvar → Tretuvar, radye (toprak altı) → çizilmez
-      planOlcu: olculer(e), // havuzun kendi plan ölçüleri (ANAOLCU): plana aynen taşınır
+      planOlcu: o && o.olcusuz ? [] : olculer(e), /* olcusuz: yalnız kesit ve ekipman bilgisi istenirken ölçüler yeniden üretilmez */ // havuzun kendi plan ölçüleri (ANAOLCU): plana aynen taşınır
       ekipman: ekipmanNo(e), // mikser ve pergel vinç numaraları (Z-…, PV-…): planda ekipmanın yanında
     };
   };

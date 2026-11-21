@@ -131,6 +131,8 @@
       /* programın kesit malzeme kodu (kesit.js → secMat / tretSecMat) → yukarıdaki malzeme */
       kod: { B: 'beton', D: 'beton', G: 'grobeton', LG: 'grobeton', 'T:tugla': 'tugla', 'T:gazbeton': 'gazbeton', F: 'dolgu', Y: 'yalitim',
         'TR:kap': 'tretuvarKaplama', 'TR:harc': 'tretuvarAlt', 'TR:stab': 'tretuvarAlt', 'TR:bord': 'bordur', 'TR:beton': 'tretuvarBeton', 'TR:yatak': 'yatak' },
+      /* ünite (havuz) plan ve kesitlerinde kesilen beton: dolu açık gri, siyah-beyazda da gri (kullanıcı kararı 20.11.2026; görünüm güncellenince de korunur) */
+      unite: { kod: ['B', 'D'], katman: 'Solid', desen: 'SOLID', aci: 0, sc: 1 },
       diger: 'SOLID' },                                   // beton olmayan kesilen parçalar (korkuluk, doğrama, profil): dolu tarama — KABUL, kullanıcı doğrulayacak
     /* MAHAL LİSTESİ — R2 İdari bina mahal listesi: başlık 4 mm (Yazi_Baslik katmanı; programda başlık katmanı Yazi30), öteki yazılar 2 mm (kullanıcı kararı 14.11.2026) */
     /* GÖRÜNÜM BAŞLIĞI (10-İdari Bina_R2, 6-Blower_R2): görünüş / plan / detay başlığı 20 birim (4 mm), kesit başlığı 25 birim (5 mm); altındaki ölçek satırı "ÖL:1/…" 15 birim (3 mm) */
@@ -448,6 +450,14 @@
         if (!tamam) out.eksikDusey = true; /* üstü açık hacim: düşey zincir kurulamadı → dıştaki düşey zincir kalır (kesit.js) */ } }
     return out;
   };
+  /* ünite planı / kesiti: bu kesit malzemesi dolu gri mi? → { pat, ang, sc, katman } | null (saf) */
+  K.uniteTaramaSec = (kural, mat) => { const U = kural && kural.kesitTarama && kural.kesitTarama.unite; return U && U.kod.includes(mat) ? { pat: U.desen, ang: U.aci, sc: U.sc, katman: U.katman } : null; };
+  /* bu tarama ünite betonu mu? kesilen mekanik parça (kapak, mikser) ve öbür malzemeler hariç (saf) */
+  K.uniteTaramaHedef = (kural, e) => (e && e.type === 'hatch' && !/_TARAMA_MEK|KESIT_MEK/.test(e.layer || '') ? K.uniteTaramaSec(kural, e.smat) : null);
+  /* yeniden taranacak ünite görünümleri (saf): kayıtlı liste + eski projede daha önce dolu griye çevrilmiş görünümler; çizimde olmayan ve atla (elle / donuk) çıkar */
+  K.uniteTaramaGv = (kural, ents, kayit, atla) => { const U = kural.kesitTarama.unite, gs = new Set(kayit || []), var_ = new Set();
+    for (const e of ents) { if (!e.gv) continue; var_.add(e.gv); if (e.monoRenk && e.layer === U.katman && K.uniteTaramaHedef(kural, e)) gs.add(e.gv); }
+    return [...gs].filter(g => var_.has(g) && !(atla && atla.has(g))); };
   /* KESİT TARAMASI (saf): programın kesit malzeme kodu (B, D, G, F, Y, T:tugla, TR:kap …) → kural tablosundaki tarama.
      Döner: { pat, ang, sc, ann, katman } · null = örnekte karşılığı yok (program kendi desenini kullanır) · undefined = kod tanınmıyor */
   K.kesitTaramaSec = (kural, mat) => {

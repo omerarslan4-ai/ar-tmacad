@@ -153,6 +153,8 @@
       let ertele = []; try { await def.fn(C.I, C); } finally { E.queue = q0 || []; if (tur === 'MIMARI' && C.kesitOklari) { ertele = C._okErtele || []; C._okErtele = ok0; } }
       const yeni = C.doc.ents.filter(e => !once.has(e.id));
       if (!yeni.length) { if (i === 0) return 0; continue; }
+      /* yeniden üretilen kesitin eski canlı kaydı (nesnesi silinmiş) kalırsa sonraki canlı güncelleme aynı kesitin kopyasını üretiyordu: kayıt yenisine devredilir */
+      { const K = C.doc.set.canli, yk = (yeni.find(e => e.canli) || {}).canli, A = C.mimariPaftaApi; if (K && yk && A && A.canliDevret) A.canliDevret(K, yk, new Set(C.doc.ents.map(e => e.canli).filter(Boolean))); }
       let gv; if (i === 0) gv = v.gv = v.gv || ('V' + Date.now().toString(36)); else { v.gvD = v.gvD || {}; gv = v.gvD[tur] = v.gvD[tur] || ('V' + Date.now().toString(36) + tur[0]); }
       const at = new Set();
       for (const e of yeni) {
@@ -170,7 +172,7 @@
         }
       } catch (er) { console.error('malzeme açılımı', er); }
       if (tur === 'MIMARI' && C.acilimYaziKutulari) try { acilimKaydir(gv); } catch (er) { console.error('açılım kaydırma', er); }
-      if (ertele.length) { const o3 = new Set(C.doc.ents.map(e => e.id)); for (const K of ertele) C.kesitOklari(K); for (const e of C.doc.ents) if (!o3.has(e.id)) { e.gv = gv; delete e.sp; } } // oklu açıklamalar açılım kodlarından sonra (onlara binmez)
+      if (ertele.length) { const o3 = new Set(C.doc.ents.map(e => e.id)); for (const K of ertele) C.kesitOklari(K); const yc = (yeni.find(e => e.canli) || {}).canli; /* oklar da canlı görünümün parçası: güncellemede silinip yeniden çizilir, çift kalmaz */ for (const e of C.doc.ents) if (!o3.has(e.id)) { e.gv = gv; delete e.sp; if (yc) e.canli = yc; } } // oklu açıklamalar açılım kodlarından sonra (onlara binmez)
       top += yeni.length;
     }
     const kul = k => (C.doc.layouts || []).some(L => (L.vps || []).some(q => q.gorunum === v.id && disTur(q.disiplin || L.grp) === k)); // eski projede başka içerikli paftada gösterilen tür görünümü kalır

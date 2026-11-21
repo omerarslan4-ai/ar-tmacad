@@ -114,6 +114,13 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C || !C.addCommand) return;
   C.uniteMekanikApi = api;
+  /* mekanik kesitler geçici iç adla (UA, UB …) alınır: canlı güncelleme yeniden ürettiğinde başlık "A-A", kesitMeta ve Tasarım'daki fazla işaret yine düzeltilir */
+  (C.gorunumSonrasi = C.gorunumSonrasi || []).push(() => { const D = C.doc && C.doc.set.uniteMek; if (!D) return 0; let n = 0; const ad = {};
+    for (const s of Object.values(D)) for (const gv of (s && s.gvs) || []) { const m = /^UMEK_KESIT_(U[A-J])_/.exec(gv); if (m) ad[gv] = [m[1], (s.kesitAd && s.kesitAd[m[1]]) || m[1].slice(1)]; }
+    const ic = new Set(Object.values(ad).map(a => a[0])); if (!ic.size) return 0;
+    for (const e of C.doc.ents) { const a = ad[e.gv]; if (!a || (e.type !== 'baslik' && e.type !== 'text')) continue; const b = `${a[0]}-${a[0]} `; if (String(e.s || '').startsWith(b)) { e.s = `${a[1]}-${a[1]} ` + String(e.s).slice(b.length); delete e._c; n++; } }
+    for (const k of ic) if (C.doc.set.kesitMeta) delete C.doc.set.kesitMeta[k];
+    const L0 = C.doc.ents.length; C.doc.ents = C.doc.ents.filter(e => !(e.type === 'kesitisaret' && !e.gv && ic.has(e.name))); return n + L0 - C.doc.ents.length; });
 
   /* ======================= MODEL → GÖRÜNÜŞLER ======================= */
   const M = C.M, up = s => String(s || '').toLocaleUpperCase('tr');
@@ -185,7 +192,7 @@
   /* ======================= ÜRETİM ======================= */
   const olcekBul = ents => { const A = C.mimariPaftaApi, bb = C.extents(ents), [z0, z1] = zAralik(ents); if (!A || !A.olcekSec || !bb) return { olcek: 50, neden: '' };
     const lx = bb[2] - bb[0], ly = bb[3] - bb[1]; return A.olcekSec([{ id: 'plan', w: lx, h: ly, kenarMm: 41, altMm: 15 }, { id: 'kesit', w: Math.max(lx, ly), h: isFinite(z1 - z0) ? z1 - z0 : 5, kenarMm: 30, altMm: 15 }], { antetW: C.antetGen ? C.antetGen() : 0 }); };
-  const temizle = u => { const st = durum(), s = st[u.id]; if (s) { const gs = new Set(s.gvs || []); C.doc.ents = C.doc.ents.filter(e => !(e.gv && gs.has(e.gv))); } C.doc.layouts = (C.doc.layouts || []).filter(L => L.uniteMek !== u.id); st[u.id] = { gvs: [] }; return st[u.id]; };
+  const temizle = u => { const st = durum(), s = st[u.id]; if (s) { const gs = new Set(s.gvs || []), K = C.doc.set.canli; if (K) for (const e of C.doc.ents) if (e.canli && e.gv && gs.has(e.gv)) delete K[e.canli]; /* eski canlı kayıt kalırsa güncelleme kesitin kopyasını üretir */ C.doc.ents = C.doc.ents.filter(e => !(e.gv && gs.has(e.gv))); } C.doc.layouts = (C.doc.layouts || []).filter(L => L.uniteMek !== u.id); st[u.id] = { gvs: [] }; return st[u.id]; };
 
   const uret = async (u) => {
     const A = C.mekPaftaArac, Ap = C.mimariPaftaApi; if (!A || !Ap || !C.makeView) { C.warn('Pafta modülleri yüklenmemiş (istasyon-pafta.js / mimari-pafta.js).'); return null; }
@@ -221,7 +228,7 @@
         const ic = 'U' + harf[i % 10]; let r = null; // geçici iç ad: Mimari kesitlerin kesitMeta'sı (A, B …) ezilmesin
         try { r = await A.kesitAl(ic, k.a, k.b, k.sp, k.depth, [X0, Yc], { kv: ['GIZLI=E', 'POZ=H'], onek: 'UMEK_KESIT_', acilim: false, durum: false }); } catch (er) { console.error('mekanik kesit', er); }
         if (!r || !r.n) continue; st.gvs.push(r.gv);
-        if (Ap.uniteKesitTarama) Ap.uniteKesitTarama(r.gv, true);
+        if (Ap.uniteKesitTarama) Ap.uniteKesitTarama(r.gv); (st.kesitAd = st.kesitAd || {})[ic] = k.nm;
         const isr = new Set((r.yeni || []).filter(e => e.type === 'kesitisaret').map(e => e.id)); if (isr.size) C.doc.ents = C.doc.ents.filter(e => !isr.has(e.id)); // modelde ikinci kesit işareti kalmasın
         for (const e of C.doc.ents) if (e.gv === r.gv && (e.type === 'baslik' || e.type === 'text') && String(e.s || '').startsWith(`${ic}-${ic} `)) { e.s = `${k.nm}-${k.nm} ` + String(e.s).slice(2 * ic.length + 2); delete e._c; }
         const km = r.km ? JSON.parse(JSON.stringify(r.km)) : null; if (C.doc.set.kesitMeta) delete C.doc.set.kesitMeta[ic];

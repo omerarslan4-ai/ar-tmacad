@@ -266,7 +266,43 @@
   const kullanilmayanKesitler = (kayitlar, o = {}) => { const G = new Set(o.vpGv || []), P = o.pencereler || [], kes = (a, b) => a && b && a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
     return (kayitlar || []).filter(q => q && (q.kind === 'kesit' || q.kind === 'plan') && !q.elle && (q.gvs || []).length && !q.gvs.some(g => G.has(g)) && !P.some(w => kes(q.bb, w))).map(q => q.id); };
   const dxfCizgiOlcegi = olcek =>({ ltscale: (+olcek || 50) / 1000, psltscale: 0, celtOlcek: +olcek || 50 });
-  const api = { PAFTA_R2, paftaPlanla, katKotlari, gercekKatlar, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, bolgeDuzeniPlanla, dxfCizgiOlcegi, yanYanaBol, kullanilmayanKesitler };
+  /* görünümleri sırayla ve tek tek yenile (saf sarmalayıcı): iki yenileme iç içe girmez, biri hata verince öbürleri sürer, son düzeltme yalnız üretim olduysa bir kez çalışır.
+     o: { liste() → görünüm kimlikleri, once() → güncelleme öncesi iz, sonra(iz), log(n, quiet), hata(er), sessiz(fn) → fn'i tek görünüm iletisi yazılmadan çalıştırır,
+     mesgul() → komut çalışıyor mu, tekrar(ids, quiet) → komut bitince bütün listeyi bir kez yeniden dener,
+     ayir(ids) → { serbest: yenilenecek kimlikler, atlanan: paftaya yerleşmiş görünüm sayısı }, atlandi(sayı, quiet) } */
+  const siraliGuncelle = (f0, o) => { let sira = Promise.resolve();
+    const tekTek = async (ids, quiet) => { let n = 0, hataVar = false;
+      if (o.mesgul && o.mesgul()) { o.tekrar(ids, quiet); return 0; }
+      const iz = o.once ? o.once() : null;
+      const L = ids || o.liste(), P = o.ayir ? o.ayir(L) : { serbest: L, atlanan: 0 };
+      for (const id of P.serbest) { try { n += (await o.sessiz(() => f0([id], quiet))) || 0; } catch (er) { hataVar = true; o.hata(er); } }
+      if (P.atlanan && o.atlandi) o.atlandi(P.atlanan, quiet);
+      if (n || hataVar) { try { o.sonra(iz); } catch (er) { o.hata(er); } } /* görünüm üretildikten sonra hata çıkmış olabilir: son düzeltme yine çalışır */
+      if (n) o.log(n, quiet);
+      return n; };
+    return (ids, quiet) => { const r = sira.then(() => tekTek(ids, quiet)); sira = r.catch(o.hata); return r; }; };
+  /* komut hata verse de son düzeltme çalışır (o ana kadar yenilenen görünümler kuralını kaybetmesin) (saf sarmalayıcı) */
+  const sonraCalistir = (f0, sonra, once) => async function () { const iz = once ? once() : null; try { return await f0.apply(this, arguments); } finally { sonra(iz); } };
+  /* donuk görünüm izi (saf): güncelleme öncesi donuk görünümler ve taramalarının kimlikleri */
+  const donukIzi = (ents, V) => { const gvs = new Set(), ids = new Set(); for (const e of ents) if (e.gv && e.canli && V && V[e.canli] && V[e.canli].donuk) gvs.add(e.gv);
+    for (const e of ents) if (e.type === 'hatch' && gvs.has(e.gv)) ids.add(e.id); return { gvs, ids }; };
+  /* korunacak donuk görünümler (saf): bu güncellemede yeni tarama almayan, yani yeniden üretilmeyenler */
+  const donukKorunan = (ents, iz) => { const a = new Set(iz ? iz.gvs : []); if (!iz) return a; for (const e of ents) if (e.type === 'hatch' && iz.gvs.has(e.gv) && !iz.ids.has(e.id)) a.delete(e.gv); return a; };
+  /* bir görünümde aynı yere iki kez konmuş oklu açıklama ve yazı (saf): canlı güncelleme okları yeniden çizer, önceki üretimin etiketsiz okları kalır. Sonraki kopyaların kimlikleri */
+  const yinelenenIdler = ents => { const r = v => Math.round(+v * 1000), P = q => (q || []).map(p => p.slice(0, 2).map(r).join(',')).join(';'), gor = new Set(), at = [];
+    for (const e of ents) { if (e.type !== 'leader' && e.type !== 'text') continue; const k = e.type === 'text' ? `T|${e.layer}|${e.s}|${P([e.p])}` : `L|${e.layer}|${e.s || ''}|${P(e.pts)}`; if (gor.has(k)) at.push(e.id); else gor.add(k); }
+    return at; };
+  /* MİMARİ ve ünite mekanik paftalarının gösterdiği görünümler (saf): ölçü, kot, mahal ve kodlar sonradan eklendiği için GORUNUSGUNCELLE bunları silip yeniden çizmemeli */
+  const paftaGorunumGv = layouts => { const g = new Set(); for (const L of layouts || []) if (L.mimPafta || L.uniteMek) for (const v of L.vps || []) if (v.gvOnly) g.add(v.gvOnly); return g; };
+  /* yeniden üretilen taramayı öncekiyle eşleştiren anahtar (saf): malzeme + sınırların sınır kutusu (cm); desen ve katman sonradan değişebildiği için anahtarda yok */
+  const taramaAnahtar = h => { let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity, n = 0; for (const lp of h.loops || []) for (const p of lp) { n++; a = Math.min(a, p[0]); b = Math.min(b, p[1]); c = Math.max(c, p[0]); d = Math.max(d, p[1]); } return [h.smat || '', (h.loops || []).length, n, ...[a, b, c, d].map(v => Math.round(v * 100))].join('|'); };
+  /* görünümün kesit hattına karşılık gelen ünite kesiti (saf): hat 1 mm içinde aynıysa */
+  const kesitTarifBul = (kesitler, v) => { const y = (p, q) => !!p && !!q && Math.hypot(p[0] - q[0], p[1] - q[1]) < 1e-3; return (kesitler || []).find(k => y(k.a, v.a) && y(k.b, v.b)) || null; };
+  /* yeniden üretilen kesitin eski canlı kaydını yenisine devret (saf): yalnız aynı ad VE aynı kesit hattı (1. nokta, 2. nokta, bakış), nesnesi kalmamış kayıt; donuk bayrağı taşınır */
+  const canliDevret = (V, yeni, varOlan) => { const Y = V[yeni]; if (!Y) return 0; const n = t => String(t).split(',').map(Number), ayni = (a, b) => { const p = n(a), q = n(b); return p.length === q.length && p.every((x, i) => Math.abs(x - q[i]) < 1e-3); }; let k = 0;
+    for (const id of Object.keys(V)) { const X = V[id]; if (id === yeni || varOlan.has(id) || X.cmd !== Y.cmd || !X.tokens || !Y.tokens || X.tokens[4] !== Y.tokens[4]) continue; if (![0, 1, 2].every(i => ayni(X.tokens[i], Y.tokens[i]))) continue; if (X.donuk) Y.donuk = X.donuk; delete V[id]; k++; }
+    return k; };
+  const api = { taramaAnahtar, paftaGorunumGv, kesitTarifBul, yinelenenIdler, canliDevret, siraliGuncelle, sonraCalistir, donukIzi, donukKorunan, PAFTA_R2, paftaPlanla, katKotlari, gercekKatlar, planKesmeKotu, kesitHatlari, kotYaz, tekKopyaYap, KAGIT, UZAMA, OLCEK_ESIK, icOlcu, olcekSec, paftalarPlanla, enAzKagit, izgaraDiz, bolgeYeri, BOLGE_SIRA, bolgeDuzeniPlanla, dxfCizgiOlcegi, yanYanaBol, kullanilmayanKesitler };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!C) return;
   C.mimariPaftaApi = api;
@@ -405,13 +441,68 @@
   };
   /* ünite kesit planında kesilen betonun taraması (kullanıcı kararı 20.11.2026): dolu (SOLID), kural tablosunun `Solid` katmanında (açık gri 254),
      siyah-beyaz çıktıda da kendi rengiyle basılır (monoRenk); kesilen kalın çizgiler görünsün diye taramalar çizim sırasının en altına alınır. Döner: tarama sayısı */
-  const uniteKesitTarama = (gv, kesit) => { /* kesit: düşey kesit (A-A …) — yalnız beton malzemeli tarama (smat B); planda MEK dışındakiler */
-    const H = C.doc.ents.filter(e => e.gv === gv && e.type === 'hatch' && (kesit ? e.smat === 'B' : !/_TARAMA_MEK/.test(e.layer || ''))); if (!H.length) return 0; // yalnız beton; kesilen kapak / mikser / korkuluk kendi katmanında kalır
-    const ly = kuralKatman('Solid');
-    for (const e of H) { e.pat = 'SOLID'; e.sc = 1; e.ang = 0; e.layer = ly; e.monoRenk = true; delete e._c; }
+  /* ünite planı / kesiti: kesilen beton kural tablosundaki dolu gri (MIMARI.kesitTarama.unite); öbür malzemeler kendi deseninde kalır. Görünüm kayda geçer, tekrar çağrılabilir. */
+  const uniteKesitTarama = gv => {
+    const K = C.cizimKural, R = K && K.MIMARI; if (!R) return 0;
+    const H = C.doc.ents.filter(e => e.gv === gv && K.uniteTaramaHedef(R, e)); if (!H.length) return 0;
+    const kayit = C.doc.set.uniteTaramaGv = C.doc.set.uniteTaramaGv || []; if (!kayit.includes(gv)) kayit.push(gv);
+    const Y = H.filter(e => { const t = K.uniteTaramaHedef(R, e); return e.pat !== t.pat || e.layer !== t.katman || !e.monoRenk; }); if (!Y.length) return 0;
+    for (const e of Y) { const t = K.uniteTaramaHedef(R, e); e.pat = t.pat; e.sc = t.sc; e.ang = t.ang; e.layer = kuralKatman(t.katman); e.monoRenk = true; delete e._c; }
     const S = new Set(H); C.doc.ents = H.concat(C.doc.ents.filter(e => !S.has(e)));
-    return H.length; };
+    return Y.length; };
   api.uniteKesitTarama = uniteKesitTarama; /* ünite mekanik paftası (unite-mekanik.js) betonu mimariyle aynı kuralla tarar */
+  /* görünümler modelden yeniden üretilince (canlı güncelleme, GORUNUSGUNCELLE, GORUNUMGUNCELLE) ünite görünümlerinin taraması ve başka modüllerin son düzeltmeleri yeniden uygulanır
+     (kullanıcı 21.11.2026: "tarama kuralları tamamen değişmiş" — güncelleme dolu griyi ANSI36'ya döndürüyordu). Elle düzeltilmiş görünüme dokunulmaz; donuk görünüm yalnız o güncellemede gerçekten yeniden üretildiyse kuralı alır. */
+  C.gorunumSonrasi = C.gorunumSonrasi || [];
+  const korunanGv = iz => { const a = donukKorunan(C.doc.ents, iz || donukIzi(C.doc.ents, C.doc.set.canli));
+    if (C.gorunumApi) for (const v of C.gorunumApi.liste()) if (v.elle) { a.add(v.gv); for (const g of Object.values(v.gvD || {})) a.add(g); }
+    return a; };
+  const uniteTaramaYenile = iz => { const K = C.cizimKural; if (!C.doc || !K) return 0; let n = 0;
+    for (const gv of K.uniteTaramaGv(K.MIMARI, C.doc.ents, C.doc.set.uniteTaramaGv, korunanGv(iz))) n += uniteKesitTarama(gv);
+    return n; };
+  C.gorunumSonrasi.push(uniteTaramaYenile);
+  /* güncellenen ünite görünümlerinde çift oklu açıklamalar teklenir; mimari kesitte su tutucu bant açıklaması MIMARIPAFTA'daki gibi sade kalır */
+  const uniteEtiketYenile = iz => { const K = C.cizimKural; if (!C.doc || !K) return 0; let n = 0, mim = new Set();
+    if (C.gorunumApi) for (const v of C.gorunumApi.liste()) if (v.kaynak === 'MIMARIPAFTA' && v.tip === 'kesit') mim.add(v.gv);
+    for (const gv of K.uniteTaramaGv(K.MIMARI, C.doc.ents, C.doc.set.uniteTaramaGv, korunanGv(iz))) { if (mim.has(gv)) n += bantEtiketSadele(gv) || 0;
+      const at = new Set(yinelenenIdler(C.doc.ents.filter(e => e.gv === gv))); if (at.size) { C.doc.ents = C.doc.ents.filter(e => !at.has(e.id)); n += at.size; } }
+    return n; };
+  C.gorunumSonrasi.push(uniteEtiketYenile);
+  const gorunumSonra = iz => { let n = 0; for (const f of C.gorunumSonrasi) { try { n += +f(iz) || 0; } catch (er) { console.error('görünüm sonrası', er); } } if (n && C.changed) C.changed(); return n; };
+  /* tek görünümün "1 görünüm üretildi" iletisi yazılmaz; toplam bir kez yazılır */
+  const iletisiz = async fn => { const log0 = C.log; C.log = function (m) { if (/^🔄 /.test(String(m))) return; return log0.apply(this, arguments); }; try { return await fn(); } finally { C.log = log0; } };
+  const gorunumOnce = () => donukIzi(C.doc.ents, C.doc.set.canli || {});
+  /* GORUNUMGUNCELLE görünümü bütünüyle siler: MIMARIPAFTA'nın sonradan koyduğu mahal adları ve ekipman numaraları yeniden üretilen ünite kesitlerine geri konur */
+  /* paftaya yerleşmiş görünümler canlı güncellemede yeniden üretilmez: kayıtlı ilk konumdan üretilince paftadan kayıyor, DU / DÖ kodları açılımdan ayrılıyordu.
+     Görünümler sekmesinde "güncel değil" görünür; kullanıcı MIMARIPAFTA / GORUNUMGUNCELLE / MEKANIKPAFTA ile yeniler (elle düzeltmeler kendiliğinden silinmez) */
+  const canliAyir = ids => { const V = C.doc.set.canli || {}, gs = paftaGorunumGv(C.doc.layouts), gvOf = new Map(), serbest = []; let atlanan = 0;
+    for (const e of C.doc.ents) if (e.canli && e.gv && e.type !== 'kesitisaret' && !gvOf.has(e.canli)) gvOf.set(e.canli, e.gv);
+    for (const id of ids) { if (!V[id]) continue; if (gs.has(gvOf.get(id))) atlanan++; else serbest.push(id); }
+    return { serbest, atlanan }; };
+  const gorunumOnceH = () => { const vp = []; for (const L of C.doc.layouts || []) if (L.mimPafta || L.uniteMek) for (const v of L.vps || []) vp.push([v, v.cx, v.cy]); /* pafta penceresinin merkezi korunur: kesit kâğıtta kaymaz */
+    const gs = paftaGorunumGv(C.doc.layouts), orig = new Map(); for (const e of C.doc.ents) if (e.type === 'hatch' && e.orig && gs.has(e.gv)) orig.set(e.gv + '#' + taramaAnahtar(e), e.orig.slice()); /* desen başlangıcı: yeniden üretilen tarama aynı desen yerinde kalır */
+    return Object.assign(gorunumOnce(), { vp, orig, hatch: new Set(C.doc.ents.filter(e => e.type === 'hatch').map(e => e.id)) }); };
+  const uniteYaziGeri = iz => { const G = C.gorunumApi; if (!G || !C.doc || !iz) return 0; let n = 0; for (const [v, cx, cy] of iz.vp || []) { v.cx = cx; v.cy = cy; }
+    if (iz.orig) for (const e of C.doc.ents) if (e.type === 'hatch' && e.gv && !iz.hatch.has(e.id)) { const o = iz.orig.get(e.gv + '#' + taramaAnahtar(e)); if (o) { e.orig = o.slice(); delete e._c; } }
+   
+    const T = C.doc.ents.filter(e => !e.gv && C.T[e.type] && C.T[e.type].paftaTarifi).map(u => { try { return C.T[u.type].paftaTarifi(u, { kh: 1.2, olcusuz: true }); } catch (er) { console.error('ünite pafta tarifi', er); return null; } }).filter(Boolean);
+    for (const v of G.liste()) { if (v.tip !== 'kesit' || v.kaynak !== 'MIMARIPAFTA' || v.elle || !v.gv) continue;
+      if (!C.doc.ents.some(e => e.gv === v.gv && e.type === 'hatch' && !iz.hatch.has(e.id))) continue; /* bu güncellemede yeniden üretilmedi */
+      for (const t of T) { const k = kesitTarifBul(t.kesitler, v); if (!k) continue;
+        try { if (k.mahal && k.mahal.length) uniteKesitMahal(v, k.mahal); if (t.ekipman) uniteKesitEkipman(v, t.ekipman); bantEtiketSadele(v.gv); cakismaGider(v.gv); baslikAlta(v.gv); n++; } /* MIMARIPAFTA'daki son yerleşim adımları: kot / ölçü çakışması ve başlık */ catch (er) { console.error('kesit yazıları', er); } break; } }
+    return n; };
+  /* GORUNUSGUNCELLE pafta planını silip yalnız modelden çiziyordu (ölçü, kot, mahal, kod kayboluyordu): pafta görünümleri komut süresince atlanır */
+  const paftaPlanKoru = f0 => async function (I, Cx) { const sak = [], gizle = () => { const G = paftaGorunumGv(C.doc.layouts); for (const e of C.doc.ents) if (e.gdef && G.has(e.gv)) { sak.push([e, e.gdef]); delete e.gdef; } };
+    /* gdef yalnız seçim bittikten sonra ve komut sürerken kalkar: seçim beklerken alınan kurtarma kopyası eksik olmaz */
+    const I2 = Object.assign({}, I, { sel: async (...a) => { const r = await I.sel(...a); gizle(); return r; } });
+    try { return await f0.call(this, I2, Cx); } finally { for (const [e, d] of sak) e.gdef = d; if (sak.length) C.log('Pafta planları korundu: güncellemek için MIMARIPAFTA / MEKANIKPAFTA çalıştırın.'); } };
+  const guncellemeSar = () => {
+    if (C.canliGuncelle && !C.canliGuncelle._son) {
+      const f1 = siraliGuncelle(C.canliGuncelle, { liste: () => Object.keys(C.doc.set.canli || {}).filter(id => (C.doc.set.canli || {})[id]), once: gorunumOnce, sonra: gorunumSonra, sessiz: iletisiz, ayir: canliAyir, atlandi: (k, quiet) => { if (!quiet) C.log(`${k} pafta görünümü yerinde bırakıldı: güncellemek için MIMARIPAFTA / GORUNUMGUNCELLE / MEKANIKPAFTA çalıştırın.`); }, mesgul: () => !!(C.cmd && C.cmd.running), tekrar: (ids, quiet) => setTimeout(() => C.canliGuncelle(ids, quiet), 800),
+        log: (n, quiet) => C.log(`🔄 ${n} görünüm modelden yeniden üretildi${quiet ? ' (otomatik)' : ''}.`), hata: er => console.error('canlı güncelleme', er) });
+      f1._son = true; C.canliGuncelle = f1; }
+    for (const ad of ['GORUNUSGUNCELLE', 'GORUNUMGUNCELLE']) { const d = C.cmds && C.cmds[ad]; if (!d || d._son) continue; d._son = true; d.fn = ad === 'GORUNUMGUNCELLE' ? sonraCalistir(d.fn, iz => { uniteYaziGeri(iz); gorunumSonra(iz); }, gorunumOnceH) : sonraCalistir(paftaPlanKoru(d.fn), gorunumSonra, gorunumOnce); } };
+  setTimeout(guncellemeSar, 0); if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', guncellemeSar);
   /* planda ünite gövdesinin görünen çizgileri (tarif.planSinif): Çokal ünite planlarında havuz duvarları ve köprü Beton katmanında (kalın, taramasız), tretuvar Tretuvar
      katmanında, radyenin toprak altında kalan kenarı çizilmez. Düz çizgi sınıf değiştirdiği yerde bölünür. Döner: katmanı değişen / bölünen nesne sayısı */
   const uniteGovdeCizgi = (gv, W, tarif, kesitPlan) => { /* kesitPlan: duvarları kesen plan — kesilenler zaten kalın; kesimin altında görünen gövde kenarları ince (görünen) kalır */
@@ -490,7 +581,8 @@
     const mimMi = v => v.kaynak === 'MIMARIPAFTA' || (grup0.get(v.id) || v.gruplar || []).some(g => /M[İI]MAR/i.test(String(g)));
     const VL = G.liste(); let kes = VL.filter(v => v.tip === 'kesit' && v.a && v.b && kesiyorMu(v, bb) && mimMi(v));
     /* önceki MIMARIPAFTA kesitleri: yerleri modelden yeniden seçilir (kullanıcının KESITPAFTA ile aldıkları aynen kalır) */
-    if (kes.length && kes.every(v => v.kaynak === 'MIMARIPAFTA' && !v.elle)) { for (const v of kes) { G.sil(v); const i = VL.indexOf(v); if (i >= 0) VL.splice(i, 1); for (const L of C.doc.layouts || []) if (L.vps) L.vps = L.vps.filter(q => q.gorunum !== v.id); } kes = [];
+    const eskiCanli = new Set(); /* silinen kesitlerin canlı kayıtları: yeniden üretilmezse sonraki canlı güncelleme silinen kesiti geri getirmesin */
+    if (kes.length && kes.every(v => v.kaynak === 'MIMARIPAFTA' && !v.elle)) { for (const v of kes) { { const g = new Set([v.gv, ...Object.values(v.gvD || {})]); for (const e of C.doc.ents) if (e.canli && g.has(e.gv)) eskiCanli.add(e.canli); } G.sil(v); const i = VL.indexOf(v); if (i >= 0) VL.splice(i, 1); for (const L of C.doc.layouts || []) if (L.vps) L.vps = L.vps.filter(q => q.gorunum !== v.id); } kes = [];
       C.doc.layouts = (C.doc.layouts || []).filter(L => !(L.kesitPaftasi && !L.mimPafta && !(L.vps || []).length)); } // boşalan disiplin kesit paftaları
     let kesitBilgi = null;
     if (kes.length) for (const v of kes) { if (v.elle) continue; const kendi = v.kaynak === 'MIMARIPAFTA', yal = kendi || !G.silTur ? undefined : 'MIMARI'; if (kendi) v.olcek = SC; if (yal) G.silTur(v, yal); else { const gv = v.gv; G.sil(v); v.gv = gv; } try { await G.kesitUret(v, yal); if (yal && G.eksikTurUret) await G.eksikTurUret(v); } catch (er) { console.error(er); } } /* Mimari kesitleri (kullanıcının KESITPAFTA ile aldıkları dahil, yerleri korunur) güncel üreticiyle yenilenir: aks, aks ölçüsü, etiketler; elle düzeltilmişler olduğu gibi kalır */
@@ -516,7 +608,8 @@
     }
     try { kesitIsaretTemizle(); } catch (er) { console.error('kesit işareti', er); }
     /* ünite paftasında kesitlerin beton taraması da dolu açık gri (kullanıcı kararı 20.11.2026: "kesitlerin taramalarını da aynı solid ile devam et") */
-    if (tarif) for (const v of kes) { if (v.elle || !v.gv) continue; try { uniteKesitTarama(v.gv, true); } catch (er) { console.error('kesit taraması', er); } }
+    if (eskiCanli.size && C.doc.set.canli) { const var_ = new Set(C.doc.ents.map(e => e.canli).filter(Boolean)); for (const id of eskiCanli) if (!var_.has(id)) delete C.doc.set.canli[id]; }
+    if (tarif) for (const v of kes) { if (v.elle || !v.gv) continue; try { uniteKesitTarama(v.gv); } catch (er) { console.error('kesit taraması', er); } }
     /* ünite kesitlerinde ekipman numaraları (kullanıcı 20.11.2026: "plan ve kesitlerde kapak isimlerini, ebatlarını, numaralarını yaz"): kesitin bakış derinliğindeki
        kapak (ad + en × yükseklik), mikser ve pergel vinç; yer kesitin çizim kuralıyla (kesit.js: çizim = yerleşim noktası + [hat boyunca uzaklık, kot]) */
     if (tarif && tarif.ekipman) for (const v of kes) { if (v.elle || !v.gv || !v.yer || !v.a || !v.b) continue; try { uniteKesitEkipman(v, tarif.ekipman); } catch (er) { console.error('kesit ekipman numarası', er); } }

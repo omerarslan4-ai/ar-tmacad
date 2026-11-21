@@ -88,7 +88,9 @@
   let prev = null; const staleIds = new Set();
   C.modelSig = () => modelSig();
   let sigNow = null;
-  const stale = () => staleIds.size > 0;
+  const stale = () => { for (const id of staleIds) if (!VIEWS()[id]) staleIds.delete(id); return staleIds.size > 0; }; // yenisine devredilip silinen kayıt güncel değil sayılmaz
+  /* "güncel değil" bilgisi proje dosyasında (görünüm kaydında bayat): paftaya yerleşmiş görünüm otomatik yenilenmediği için açılışta ve sekme geçişinde kaybolmamalı; eski dosyada alan yok = güncel */
+  const bayatYaz = () => { const V = VIEWS(); for (const id of Object.keys(V)) { if (staleIds.has(id)) V[id].bayat = true; else delete V[id].bayat; } };
   /* yeniden üret */
   C.canliGuncelle = async (ids, quiet) => {
     const V = VIEWS(); ids = (ids || Object.keys(V)).filter(id => V[id]); if (!ids.length) return 0;
@@ -109,6 +111,7 @@
     if (C.acilimYenile) C.acilimYenile();
     if (C.kesitIsaretTemizle) { try { C.kesitIsaretTemizle(); } catch (er) { } } // her kesitin Tasarım'da tek işareti (mimari-pafta.js)
     for (const id of ids) if (!(V[id] && V[id].donuk && quiet)) staleIds.delete(id);
+    bayatYaz();
     prev = scan(); C.doc.set.canliSig = sigNow = prev.sig; C.changed(); renderPane();
     if (!quiet || n) C.log(`🔄 ${n} görünüm modelden yeniden üretildi${quiet ? ' (otomatik)' : ''}.`);
     return n;
@@ -120,11 +123,12 @@
     const ch = []; let all = !prev || prev.lv !== cur.lv;
     if (!all) { for (const [id, st] of cur.map) { const o = prev.map.get(id); if (!o) ch.push(st); else if (o.h !== st.h) ch.push(o, st); } for (const [id, o] of prev.map) if (!cur.map.has(id)) ch.push(o); }
     for (const id of Object.keys(V)) if (all || affects(V[id], ch)) staleIds.add(id);
+    bayatYaz();
     prev = cur; sigNow = cur.sig; renderPane();
     if (!C.state.canliOto || !stale()) return;
     clearTimeout(tm); tm = setTimeout(() => { if (E.running || C.vpEdit || (C.cmd && C.cmd.waiting)) { tm = null; C.emit('changeIdle'); return; } const ids = [...staleIds].filter(id => V[id] && !V[id].donuk); if (ids.length) C.canliGuncelle(ids, true); }, 1200);
   });
-  C.on('doc', () => { sigNow = null; prev = null; staleIds.clear(); setTimeout(() => { prev = scan(); sigNow = prev.sig; if (!C.doc.set.canliSig) C.doc.set.canliSig = sigNow; renderPane(); }, 0); });
+  C.on('doc', () => { sigNow = null; prev = null; staleIds.clear(); for (const [id, v] of Object.entries(VIEWS())) if (v.bayat) staleIds.add(id); setTimeout(() => { prev = scan(); sigNow = prev.sig; if (!C.doc.set.canliSig) C.doc.set.canliSig = sigNow; renderPane(); }, 0); });
   C.addCommand(['GORUNUMGUNCELLE', 'KESITGUNCELLE', 'CANLIGUNCELLE', 'REGEN3B'], 'Canlı kesit ve kot planlarını 3B modelden yeniden üretir (aynı yerde; sonradan eklediğiniz ölçü / yazı / açılım kalır).', () => C.canliGuncelle(null, false), { noUndo: true });
 
   /* =================== Görünümler sekmesi =================== */

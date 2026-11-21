@@ -518,6 +518,8 @@
     ['kaldırma kapasitesi # kg', 'lifting capacity # kg'], ['manuel zincirli palanga', 'manual chain hoist'], ['elektrikli zincirli palanga', 'electric chain hoist'], ['yakl. # kg', 'approx. # kg'], ['el çarkı', 'handwheel'],
     ['TABAN PLAKASI', 'BASE PLATE'], ['Aktüatör', 'Actuator'], ['ARA BİRLEŞTİRME', 'INTERMEDIATE JOINT'],
     ['ünitesinin mekanik paftası hazırlanıyor', 'unit: preparing mechanical sheet'],
+    ['Pafta planları korundu: güncellemek için MIMARIPAFTA / MEKANIKPAFTA çalıştırın.', 'Sheet plans were kept: run MIMARIPAFTA / MEKANIKPAFTA to update them.'],
+    ['# pafta görünümü yerinde bırakıldı: güncellemek için MIMARIPAFTA / GORUNUMGUNCELLE / MEKANIKPAFTA çalıştırın.', '# sheet views were left in place: run MIMARIPAFTA / GORUNUMGUNCELLE / MEKANIKPAFTA to update them.'],
     ['Gerekli mil torku', 'Required stem torque'], ['Aktüatör motor gücü (katalog)', 'Actuator motor power (catalogue)'], ['Elektrikli aktüatör (çok turlu)', 'Electric actuator (multi-turn)'],
     /* proses ünitesi (havuz) elektrik projesi — E-BP düzeni (el-unite.js, 21.11.2026) */
     ['GÜÇ, KUMANDA, ENSTRÜMAN KABLO VE TAVA PLANI', 'POWER, CONTROL, INSTRUMENT CABLE AND TRAY PLAN'], ['AYDINLATMA VE PRİZ TESİSATI PLANI', 'LIGHTING AND SOCKET INSTALLATION PLAN'],
