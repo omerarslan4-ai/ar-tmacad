@@ -411,9 +411,9 @@
     for (const e of H) { e.pat = 'SOLID'; e.sc = 1; e.ang = 0; e.layer = ly; e.monoRenk = true; delete e._c; }
     const S = new Set(H); C.doc.ents = H.concat(C.doc.ents.filter(e => !S.has(e)));
     return H.length; };
+  api.uniteKesitTarama = uniteKesitTarama; /* ünite mekanik paftası (unite-mekanik.js) betonu mimariyle aynı kuralla tarar */
   /* planda ünite gövdesinin görünen çizgileri (tarif.planSinif): Çokal ünite planlarında havuz duvarları ve köprü Beton katmanında (kalın, taramasız), tretuvar Tretuvar
      katmanında, radyenin toprak altında kalan kenarı çizilmez. Düz çizgi sınıf değiştirdiği yerde bölünür. Döner: katmanı değişen / bölünen nesne sayısı */
-  api.uniteKesitTarama = uniteKesitTarama; /* ünite mekanik paftası (unite-mekanik.js) betonu mimariyle aynı kuralla tarar */
   const uniteGovdeCizgi = (gv, W, tarif, kesitPlan) => { /* kesitPlan: duvarları kesen plan — kesilenler zaten kalın; kesimin altında görünen gövde kenarları ince (görünen) kalır */
     const u = C.byId(tarif.unite); if (!u || !tarif.planSinif || !C.secLk) return 0;
     const d = W([0, 0]), lk = C.secLk(u), son = '_GORUNEN_' + lk, S = p => tarif.planSinif([p[0] - d[0], p[1] - d[1]]);

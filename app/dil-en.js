@@ -517,6 +517,7 @@
     ['Mikser ağırlığı (0: tahmin)', 'Mixer weight (0: estimate)'], ['Mikser ağırlığı (listede)', 'Mixer weight (schedule)'],
     ['kaldırma kapasitesi # kg', 'lifting capacity # kg'], ['manuel zincirli palanga', 'manual chain hoist'], ['elektrikli zincirli palanga', 'electric chain hoist'], ['yakl. # kg', 'approx. # kg'], ['el çarkı', 'handwheel'],
     ['TABAN PLAKASI', 'BASE PLATE'], ['Aktüatör', 'Actuator'], ['ARA BİRLEŞTİRME', 'INTERMEDIATE JOINT'],
+    ['ünitesinin mekanik paftası hazırlanıyor', 'unit: preparing mechanical sheet'],
     ['Gerekli mil torku', 'Required stem torque'], ['Aktüatör motor gücü (katalog)', 'Actuator motor power (catalogue)'], ['Elektrikli aktüatör (çok turlu)', 'Electric actuator (multi-turn)'],
     /* proses ünitesi (havuz) elektrik projesi — E-BP düzeni (el-unite.js, 21.11.2026) */
     ['GÜÇ, KUMANDA, ENSTRÜMAN KABLO VE TAVA PLANI', 'POWER, CONTROL, INSTRUMENT CABLE AND TRAY PLAN'], ['AYDINLATMA VE PRİZ TESİSATI PLANI', 'LIGHTING AND SOCKET INSTALLATION PLAN'],

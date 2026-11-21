@@ -347,8 +347,22 @@
   const bekle = () => new Promise(r => setTimeout(r, 0));
 
   /* bölümde pafta yoksa otomatik paftalama (sorulara varsayılan cevap) */
+  /* Mekanik bölümü iki kaynaktan gelir: ünite mekanik paftası (MEKANIKPAFTA) ve bina tesisatı (TESISATPAFTA, yalnız mahal varsa) */
+  const mekUniteler = () => C.doc.ents.filter(e => !e.gv && C.T[e.type] && C.T[e.type].paftaTarifi);
+  const mekEksik = () => mekUniteler().filter(u => !lays().some(L => L.uniteMek === u.id));
+  const otoGerekli = bolum => !!OTO[bolum] && (!bolumPaftalari(lays(), bolum).length || (bolum === 'Mekanik' && mekEksik().length > 0));
   const otoPaftala = async (bolum, I) => {
     const ad = OTO[bolum], def = ad && C.cmds[ad]; if (!def) return false;
+    const v0 = (p, d) => Promise.resolve(d), I0 = Object.assign({}, I, { kw: async (p, o, d) => d != null ? d : (o && o[0] && o[0][0]), num: v0, str: v0, int: v0 });
+    if (bolum === 'Mekanik' && mekUniteler().length) {
+      const bos = !bolumPaftalari(lays(), bolum).length, sel0 = C.sel;
+      try {
+        if (bos && C.doc.ents.some(e => e.type === 'mtmahal')) await def.fn(I0, C);
+        const um = C.cmds.MEKANIKPAFTA;
+        if (um) for (const u of mekEksik()) { C.log(`${u.code || ''} ${tr('ünitesinin mekanik paftası hazırlanıyor')}: MEKANIKPAFTA`); C.sel = [u]; await um.fn(I0, C); }
+      } catch (er) { if (!(er && er.cancel)) { console.error(er); C.warn(tr('Otomatik paftalama yapılamadı') + ': ' + (er && er.message || er)); } } finally { C.sel = sel0; }
+      return bolumPaftalari(lays(), bolum).length > 0;
+    }
     C.log(`${bolum} ${tr('bölümünde pafta yok — önce otomatik paftalama çalışıyor:')} ${ad}`);
     const v = (p, d) => Promise.resolve(d), I2 = Object.assign({}, I, { kw: async (p, o, d) => d != null ? d : (o && o[0] && o[0][0]), num: v, str: v, int: v });
     try { await def.fn(I2, C); } catch (er) { if (!(er && er.cancel)) { console.error(er); C.warn(tr('Otomatik paftalama yapılamadı') + ': ' + (er && er.message || er)); } }
@@ -478,10 +492,10 @@
     const kuy = C.cmd && C.cmd.queue && C.cmd.queue.length ? String(await I.str(tr('Bölüm'), 'TUMU')) : '';
     const gs = gruplar(), bul = s => gs.find(g => g.toLocaleUpperCase('tr') === String(s).toLocaleUpperCase('tr')) || (OTO[s] ? s : null);
     let bolum = kuy ? (/^(TUMU|TÜMÜ|HEPSI|ALL)$/i.test(kuy) ? 'TUMU' : bul(kuy) || 'TUMU') : (C.grpCur && gs.includes(C.grpCur) ? C.grpCur : 'TUMU');
-    if (bolum !== 'TUMU' && !bolumPaftalari(lays(), bolum).length && OTO[bolum]) { await otoPaftala(bolum, I); C.emit('layouts'); }
+    if (bolum !== 'TUMU' && otoGerekli(bolum)) { await otoPaftala(bolum, I); C.emit('layouts'); }
     if (!lays().length) { C.warn(tr('Pafta yok. Önce bölümün paftalama komutunu çalıştırın (ör. MIMARIPAFTA, TESISATPAFTA, ELEKTRIKPAFTA).')); return; }
     const sec = await pencere(bolum); if (!sec) return;
-    if (sec.bolum !== 'TUMU' && !bolumPaftalari(lays(), sec.bolum).length) { if (!(await otoPaftala(sec.bolum, I))) { C.warn(tr('Bu bölümde pafta yok.')); return; } C.emit('layouts'); }
+    if (sec.bolum !== 'TUMU' && otoGerekli(sec.bolum)) { if (!(await otoPaftala(sec.bolum, I))) { C.warn(tr('Bu bölümde pafta yok.')); return; } C.emit('layouts'); }
     await C.paftaPdfKaydet(sec);
   }, { noUndo: true });
 
