@@ -32,32 +32,36 @@ const dxfYazilar = dosya => {
   bitir(); return out;
 };
 
-const yazilar = dxfYazilar(path.join(__dirname, '..', 'test-proje', 'anted.dxf'));
+/* test-proje/ sürüm dışıdır: örnek antet o bilgisayarda yoksa yalnız ona bağlı denemeler atlanır */
+const antetDxf = path.join(__dirname, '..', 'test-proje', 'anted.dxf'), antetVar = fs.existsSync(antetDxf);
+if (!antetVar) console.log('– test-proje/anted.dxf yok: örnek antete bağlı 6 deneme atlandı');
+const td = antetVar ? t : () => {};
+const yazilar = antetVar ? dxfYazilar(antetDxf) : [];
 const oner = A.alanOner(yazilar), alanOf = s => { const o = oner.find(q => q.s.trim() === s); return o ? o.alan : 'YOK'; };
 
-t('örnek antet okundu: 28 TEXT + 4 MTEXT', () => { assert.strictEqual(yazilar.length, 32); });
-t('öneri: 1/50 → ölçek, SEP-2026 → tarih, BRP-… → çizim no, 0 → revizyon', () => {
+td('örnek antet okundu: 28 TEXT + 4 MTEXT', () => { assert.strictEqual(yazilar.length, 32); });
+td('öneri: 1/50 → ölçek, SEP-2026 → tarih, BRP-… → çizim no, 0 → revizyon', () => {
   assert.strictEqual(alanOf('1/50'), 'OLCEK');
   assert.strictEqual(alanOf('SEP-2026'), 'TARIH');
   assert.strictEqual(alanOf('BRP-CVH-PS-GT14-PS-R-AR-0002'), 'CIZIMNO');
   assert.strictEqual(alanOf('0'), 'REV');
 });
-t('öneri: AR → disiplin kodu, Architectural → disiplin adı, GT-14 → ünite, pafta adı ve yapı adı', () => {
+td('öneri: AR → disiplin kodu, Architectural → disiplin adı, GT-14 → ünite, pafta adı ve yapı adı', () => {
   assert.strictEqual(alanOf('AR'), 'DISIPLIN_KOD');
   assert.strictEqual(alanOf('Architectural'), 'DISIPLIN');
   assert.strictEqual(alanOf('GT-14'), 'UNITE');
   assert.strictEqual(alanOf('A-A and B-B SECTION'), 'PAFTAADI');
   assert.strictEqual(alanOf('TRANSFORMER and GENERATOR BUİLDİNG'), 'YAPI');
 });
-t('öneri: "Layout Name: PP-01" → başlık korunur, değer pafta no', () => {
+td('öneri: "Layout Name: PP-01" → başlık korunur, değer pafta no', () => {
   const o = oner.find(q => q.s.startsWith('Layout Name'));
   assert.strictEqual(o.alan, 'PAFTANO'); assert.strictEqual(o.sablon, 'Layout Name: {PAFTANO}');
 });
-t('öneri yazı genişliği tahmininden bağımsız (programda gerçek yazı genişliği: SCALE 12 mm, CONTRACT NO. 27,8 mm — 1/50 sözleşme no olmamalı)', () => {
+td('öneri yazı genişliği tahmininden bağımsız (programda gerçek yazı genişliği: SCALE 12 mm, CONTRACT NO. 27,8 mm — 1/50 sözleşme no olmamalı)', () => {
   for (const k of [0.6, 0.9, 1.05]) { const o = A.alanOner(yazilar, { genislik: (s, h) => s.length * h * k }), f = s => (o.find(q => q.s.trim() === s) || {}).alan;
     assert.deepStrictEqual([f('1/50'), f('SEP-2026'), f('0'), f('BRP-CVH-PS-GT14-PS-R-AR-0002')], ['OLCEK', 'TARIH', 'REV', 'CIZIMNO'], 'harf genişliği ' + k); }
 });
-t('başlıklar ve proje adı sabit kalır (SCALE, DATE, DRAWING NO., REV. NO., BENGHAZI WASTE WATER, CONTRACT NO.)', () => {
+td('başlıklar ve proje adı sabit kalır (SCALE, DATE, DRAWING NO., REV. NO., BENGHAZI WASTE WATER, CONTRACT NO.)', () => {
   for (const s of ['SCALE', 'DRAWING NO.', 'REV. NO.', 'BENGHAZI WASTE WATER', 'CONTRACT NO.', 'ISSUED FOR', 'DRAWN']) assert.strictEqual(alanOf(s), null, s);
   assert.ok(oner.filter(q => q.s.trim() === 'DATE').every(q => q.alan === null));
 });

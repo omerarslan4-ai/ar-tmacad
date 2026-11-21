@@ -53,7 +53,7 @@ Kurallar:
 4. **Aynı anda aynı parçada çalışmayın.** Kim hangi konuda çalışıyor, birbirinize kısaca yazın (ör. "bu hafta elektrik modülü bende, statik sende"). Ortak dosyalar (`index.html`, `app/ui.js`, `app/ribbon.js`, `app/core.js`, `app/entities.js`, `app/commands.js`, `app/dil-en.js`) en çok çakışan yerlerdir; bunlara dokunan işi bekletmeden gönderin.
 5. **Büyük iş ayrı dalda yapılır.** Birkaç gün sürecek bir iş için Claude'a "bunu ayrı bir dalda yap" deyin; iş bitip denenince "ana kopyaya birleştir ve gönder" deyin. Yarım iş böylece karşı tarafı etkilemez.
 6. **Kurallar belgede durur, akılda değil.** Claude'un kişisel hafızası bilgisayardan bilgisayara geçmez. Kalıcı bir karar ya da firma kuralı söylediğinizde Claude'dan `docs/tasarim-standartlari.md` ya da `CLAUDE.md` içine yazmasını isteyin; ancak o zaman karşı taraftaki Claude da bilir.
-7. **Müşteri dosyası depoya girmez.** Gerçek proje dosyaları (`.aritma`, DWG, Excel, PDF) `test-proje/` ya da depo dışındaki bir klasörde durur. `ornekler/` altına yalnız paylaşılmasında sakınca olmayan örnekler konur.
+7. **Yeni müşteri dosyası depoya eklenmez.** Gerçek proje dosyaları (`.aritma`, DWG, Excel, PDF) `test-proje/` ya da depo dışındaki bir klasörde durur. `ornekler/` altına yalnız paylaşılmasında sakınca olmayan örnekler konur. (Depoda bugün duran `SW2_3D.dwg` ve `ornekler/` dosyaları Ömer Bey'in onayıyla paylaşılmıştır.)
 
 ## Çakışma olursa
 
